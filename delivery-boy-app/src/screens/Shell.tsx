@@ -14,6 +14,8 @@ import { ProfileScreen } from './Profile';
 import { DeliveryScreen } from './Delivery';
 import { SupportScreen } from './Support';
 import { VoiceSettingsScreen } from './VoiceSettings';
+import { JobScreen } from './Jobs';
+import { useJobs } from '../state/JobsStore';
 import type { IconName } from '../ui/kit';
 
 const TABS: { key: Tab; label: string; icon: IconName }[] = [
@@ -27,11 +29,17 @@ export function Shell() {
   const r = useRider();
   const insets = useInsets();
   const { overlay, setOverlay, deliveryId, closeDelivery, tab, setTab } = r;
+  const jobsState = useJobs();
+  const { openJob, setOpenJob } = jobsState;
 
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
       if (overlay) {
         setOverlay(null);
+        return true;
+      }
+      if (openJob) {
+        setOpenJob(null);
         return true;
       }
       if (deliveryId) {
@@ -45,7 +53,7 @@ export function Shell() {
       return false;
     });
     return () => sub.remove();
-  }, [overlay, setOverlay, deliveryId, closeDelivery, tab, setTab]);
+  }, [overlay, setOverlay, deliveryId, closeDelivery, tab, setTab, openJob, setOpenJob]);
 
   const showOfferPill = r.offers.length > 0 && (tab !== 'home' || !!deliveryId) && !overlay;
   const top = r.offers[0];
@@ -83,6 +91,11 @@ export function Shell() {
             <DeliveryScreen key={deliveryId} orderId={deliveryId} onClose={closeDelivery} />
           </View>
         ) : null}
+        {openJob && !deliveryId ? (
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: C.bg }]}>
+            <JobScreen />
+          </View>
+        ) : null}
         {overlay?.kind === 'support' ? (
           <View style={[StyleSheet.absoluteFill, { backgroundColor: C.bg }]}>
             <SupportScreen prefill={overlay.prefill} onBack={() => setOverlay(null)} />
@@ -95,11 +108,12 @@ export function Shell() {
         ) : null}
       </View>
 
-      {!deliveryId && !overlay ? (
+      {!deliveryId && !overlay && !openJob ? (
         <View style={[styles.tabBar, { paddingBottom: insets.bottom }]} accessibilityRole="tablist">
           {TABS.map((t) => {
             const on = t.key === tab;
-            const badge = t.key === 'home' && r.active.data.length > 0 ? r.active.data.length : 0;
+            const myJobs = jobsState.myBaskets.length + jobsState.myServices.length;
+            const badge = t.key === 'home' && r.active.data.length + myJobs > 0 ? r.active.data.length + myJobs : 0;
             return (
               <Pressable
                 key={t.key}

@@ -35,7 +35,9 @@ const isStoreVendorType = (vendorType) => STORE_VENDOR_TYPES.includes(String(ven
 // CampusBites local vendors (2026-10-12 model): customers order stall items INSIDE Zenvy, cash on
 // delivery paid to the vendor, and the vendor delivers it themselves (Order.fulfilment = 'VENDOR':
 // no rider pool, no delivery PIN). Vendors use the Zenvy Vendor app.
-const LOCAL_VENDOR_TYPES = ['LOCAL_VENDOR', 'LOCAL', 'STALL'];
+// 'STALLS' too: both partner apps treat it as a stall (vendor-app / restaurant-mobile src/lib/api.ts), so a store saved
+// with it could log in to neither app while the server treated it as rider-delivered.
+const LOCAL_VENDOR_TYPES = ['LOCAL_VENDOR', 'LOCAL', 'STALL', 'STALLS'];
 const isLocalVendorStore = (store) => !!store && (
   LOCAL_VENDOR_TYPES.includes(String(store.vendorType || '').toUpperCase()) || store.isLocalVendor === true
 );

@@ -75,7 +75,7 @@ export function errorMessage(err: unknown, fallback = 'Something went wrong. Ple
 const NOT_SESSION_401 = new Set(['WRONG_PASSWORD', 'PHONE_MISMATCH', 'VERIFICATION_EXPIRED', 'APP_CHECK_REQUIRED']);
 
 interface RequestOptions {
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
   timeoutMs?: number;
   /** false for login: a 401 there means wrong password, not an expired session. */

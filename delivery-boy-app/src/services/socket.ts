@@ -25,6 +25,31 @@ export interface RiderSocketHandlers {
   onAuthError?: (usedToken: string | null) => boolean | void;
 }
 
+/** `rider_job` from the server (utils/riderJobs): a shopping list / service pickup entered or left the pool, or one
+ * this rider holds changed. Ids only. action 'reconnect' = the socket (re)connected (events may have been missed). */
+export interface RiderJobEvent {
+  kind: 'basket' | 'service' | '*';
+  id: string | null;
+  action: 'new' | 'gone' | 'updated' | 'reconnect';
+}
+const jobListeners = new Set<(e: RiderJobEvent) => void>();
+/** Listen for rider-job events (several listeners allowed, unlike setSocketHandlers). Returns the unsubscribe. */
+export function onRiderJob(cb: (e: RiderJobEvent) => void): () => void {
+  jobListeners.add(cb);
+  return () => {
+    jobListeners.delete(cb);
+  };
+}
+function emitJob(e: RiderJobEvent): void {
+  jobListeners.forEach((cb) => {
+    try {
+      cb(e);
+    } catch {
+      // a listener's bug never breaks the socket
+    }
+  });
+}
+
 let socket: Socket | null = null;
 let joined = new Set<string>();
 let handlers: RiderSocketHandlers = {};
@@ -88,6 +113,7 @@ export function connectSocket(token: string): void {
     // Rooms are per connection: re-join after every reconnect.
     joined.forEach((id) => s.emit('joinOrder', id));
     handlers.onConnectionChange?.(true);
+    emitJob({ kind: '*', id: null, action: 'reconnect' });
   });
   s.on('disconnect', (reason) => {
     handlers.onConnectionChange?.(false);
@@ -132,6 +158,15 @@ export function connectSocket(token: string): void {
   });
   s.on('delivery_request_gone', (p: any) => {
     if (p?.orderId) handlers.onDeliveryRequestGone?.({ orderId: String(p.orderId) });
+  });
+  s.on('rider_job', (p: any) => {
+    const kind = p?.kind === 'basket' || p?.kind === 'service' ? p.kind : null;
+    const action = p?.action === 'new' || p?.action === 'gone' || p?.action === 'updated' ? p.action : null;
+    if (kind && action && p?.id) emitJob({ kind, id: String(p.id), action });
+  });
+  // Older server events for a service pickup this rider holds.
+  s.on('serviceCancelled', (p: any) => {
+    if (p?.id) emitJob({ kind: 'service', id: String(p.id), action: 'updated' });
   });
   s.on('rider_tip_received', (p: any) => {
     const amount = Number(p?.amount);

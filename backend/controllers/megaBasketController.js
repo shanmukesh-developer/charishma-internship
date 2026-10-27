@@ -82,6 +82,63 @@ const advanceBasket = async (req, res, from, to, extra = {}) => {
 // Wrong delivery PINs per basket, stored on the basket row (survives restarts; claimed atomically).
 const MAX_BASKET_PIN_ATTEMPTS = 5;
 
+// ── Rider jobs (utils/riderJobs) ─────────────────────────────────────────────
+// A shopping list in the rider pool is announced to on-duty riders (live 'rider_job' event + push), exactly once
+// (slotDispatchedAt, conditional). A slot list waits until DISPATCH_WINDOW_MIN before its slot start: the
+// 'orders.slotDispatch' job announces it then (releaseDueSlotBaskets). Never throws.
+const riderJobs = require('../utils/riderJobs');
+const rupeesText = (n) => `₹${Math.round(Number(n) || 0)}`;
+const announceBasket = async (basketOrId, { now = new Date() } = {}) => {
+  try {
+    const MegaBasket = getMegaBasketModel();
+    const MegaBasketItem = getMegaBasketItemModel();
+    const id = typeof basketOrId === 'object' ? basketOrId.id : basketOrId;
+    const basket = await MegaBasket.findByPk(id, { attributes: ['id', 'status', 'deliveryPartnerId', 'slotStart', 'deliverySlot', 'estimatedTotal', 'slotDispatchedAt'] });
+    if (!basket || basket.status !== 'PaidEstimate' || basket.deliveryPartnerId || basket.slotDispatchedAt) return false;
+    if (!require('../utils/deliverySlots').isDispatchDue(basket, now)) return false; // the slot job announces it later
+    const [n] = await MegaBasket.update({ slotDispatchedAt: now }, { where: { id: basket.id, slotDispatchedAt: null, deliveryPartnerId: null, status: 'PaidEstimate' }, silent: true });
+    if (!n) return false;
+    const count = MegaBasketItem ? await MegaBasketItem.count({ where: { basketId: basket.id } }) : 0;
+    await riderJobs.announceJob({
+      kind: 'basket',
+      id: basket.id,
+      title: '🛒 New shopping list',
+      body: `${count} item${count === 1 ? '' : 's'} to buy and deliver (about ${rupeesText(basket.estimatedTotal)})${basket.deliverySlot ? ` · ${basket.deliverySlot} slot` : ''}.`,
+    });
+    return true;
+  } catch (err) {
+    console.warn('[BASKET_ANNOUNCE_WARN]', err.message);
+    return false;
+  }
+};
+// Delivery slots: lists whose rider window opened are announced once (called every minute by the
+// 'orders.slotDispatch' job, single runner).
+const releaseDueSlotBaskets = async ({ now = require('../utils/deliverySlots').now() } = {}) => {
+  const MegaBasket = getMegaBasketModel();
+  if (!MegaBasket) return { released: 0 };
+  const at = new Date(now);
+  const due = await MegaBasket.findAll({
+    where: {
+      status: 'PaidEstimate',
+      deliveryPartnerId: null,
+      slotDispatchedAt: null,
+      slotStart: {
+        [Op.ne]: null,
+        [Op.lte]: new Date(at.getTime() + require('../utils/deliverySlots').DISPATCH_WINDOW_MIN * 60 * 1000),
+        [Op.gt]: new Date(at.getTime() - 6 * 60 * 60 * 1000),
+      },
+    },
+    attributes: ['id'],
+    order: [['slotStart', 'ASC']],
+    limit: 100,
+  });
+  let released = 0;
+  for (const b of due) if (await announceBasket(b.id, { now: at })) released++;
+  return { released };
+};
+// The customer of a basket: push + in-app row (type ORDER_UPDATE + basketId, like the expiry notice).
+const tellBasketCustomer = (basket, title, body) => riderJobs.tellCustomer(basket.userId, title, body, { type: 'ORDER_UPDATE', basketId: String(basket.id), screen: 'mega-basket' });
+
 // Log the real error, send the client a friendly fixed message (no SQL / table names).
 const serverError = (res, tag, error) => {
   console.error(tag, error && error.message ? error.message : error);
@@ -254,6 +311,8 @@ const createBasket = async (req, res) => {
     const body = createdBasket.toJSON();
     await slot.finish(200, body); // a repeat is answered 200 + duplicate:true
     res.status(201).json(body);
+    // Riders: told now, or (slot list) when its rider window opens. After the response, never fails the list.
+    announceBasket(createdBasket.id).catch(() => {});
   } catch (error) {
     serverError(res, '[MEGA_BASKET_ERROR]', error);
   } finally {
@@ -395,6 +454,8 @@ const claimBasket = async (req, res) => {
     basket.set({ deliveryPartnerId: req.user.id, status: 'PartnerAssigned' });
 
     broadcastBasketStatus(req, basket.id, { id: basket.id, status: basket.status });
+    riderJobs.jobGone('basket', basket.id);
+    tellBasketCustomer(basket, 'A rider took your shopping list', `${String(req.user.name || 'Your rider').slice(0, 40)} will shop your list and bring it to you.`);
 
     res.json({ message: 'Basket claimed successfully', basket: withoutPin(basket) });
   } catch (error) {
@@ -549,6 +610,8 @@ const submitBill = async (req, res) => {
       io.to(basket.id.toString()).emit('price_approval_request', { actualTotal });
     }
 
+    tellBasketCustomer(basket, 'Approve your shopping bill', `Your rider's bill is ${rupeesText(actualTotal)}. Tap to check the prices and approve.`);
+
     res.json({ message: 'Bill submitted for customer approval', basket: withoutPin(basket) });
   } catch (error) {
     serverError(res, '[MEGA_BASKET_ERROR]', error);
@@ -587,6 +650,7 @@ const approvePrices = async (req, res) => {
     basket.status = 'Approved';
 
     broadcastBasketStatus(req, basket.id, { id: basket.id, status: basket.status });
+    riderJobs.tellJobRider({ kind: 'basket', id: basket.id, riderId: basket.deliveryPartnerId, title: '✅ Bill approved', body: `The customer approved ${rupeesText(basket.actualTotal)}. Buy the items and deliver.` });
 
     res.json({ message: 'Prices approved successfully', basket });
   } catch (error) {
@@ -617,6 +681,8 @@ const startDelivery = async (req, res) => {
     if (!basket) return;
 
     broadcastBasketStatus(req, basket.id, { id: basket.id, status: basket.status });
+
+    tellBasketCustomer(basket, 'Your shopping is on the way', 'Your rider is bringing your items. Keep your delivery PIN ready.');
 
     res.json({ message: 'Delivery run started', basket: withoutPin(basket) });
   } catch (error) {
@@ -673,6 +739,8 @@ const completeDelivery = async (req, res) => {
     basket.set({ status: 'Delivered', paymentStatus: 'Completed' });
 
     broadcastBasketStatus(req, basket.id, { id: basket.id, status: basket.status });
+
+    tellBasketCustomer(basket, 'Shopping delivered', 'Your shopping list was delivered. Thank you for using ZCS!');
 
     res.json({ message: 'Delivery completed successfully', basket: withoutPin(basket) });
   } catch (error) {
@@ -776,6 +844,9 @@ const cancelBasket = async (req, res) => {
       const io = req.app.get('io');
       if (io && basket.deliveryPartnerId) io.to(`rider_${basket.deliveryPartnerId}`).emit('statusUpdated', { id: basket.id, status: 'Cancelled' });
     } catch (_e) { /* best effort */ }
+    if (basket.deliveryPartnerId) {
+      riderJobs.tellJobRider({ kind: 'basket', id: basket.id, riderId: basket.deliveryPartnerId, title: 'Shopping list cancelled', body: isAdmin ? 'ZCS support cancelled this shopping list. Do not buy the items.' : 'The customer cancelled this shopping list. Do not buy the items.' });
+    } else riderJobs.jobGone('basket', basket.id);
     res.json({ message: 'Basket cancelled', basket: withoutPin(basket) });
   } catch (error) {
     serverError(res, '[MEGA_BASKET_CANCEL_ERROR]', error);
@@ -801,6 +872,7 @@ const expireStaleBaskets = async (io) => {
     const [n] = await MegaBasket.update({ status: 'Cancelled' }, { where: { id: b.id, deliveryPartnerId: null, status: { [Op.in]: OPEN } } });
     if (n === 0) continue;
     count++;
+    riderJobs.jobGone('basket', b.id);
     if (io) {
       const payload = { id: b.id, status: 'Cancelled', reason: 'NO_RIDER_TIMEOUT' };
       io.to(String(b.id)).emit('statusUpdated', payload);
@@ -832,6 +904,8 @@ module.exports = {
   MEGA_BASKET_DELIVERY_FEE,
   cancelBasket,
   expireStaleBaskets,
+  announceBasket,
+  releaseDueSlotBaskets,
   createBasket,
   payBasket,
   getBasket,

@@ -13,6 +13,8 @@ import { minutesAgo, rupees } from '../services/format';
 import { OFFER_SECONDS } from '../config';
 import { ItemsLine, PaymentPill, distanceTo } from './parts';
 import { AlertHealthBanner, StayReachableCard } from './StayReachable';
+import { JobsOnHome } from './Jobs';
+import { useJobs } from '../state/JobsStore';
 import type { RiderOrder } from '../types';
 
 // Offers whose countdown ran out (moved to "More orders"). Module-level so switching tabs does not restart the timer.
@@ -22,6 +24,7 @@ const STEP_TEXT = ['Go to store', 'At store: pick up', 'Go to customer', 'At cus
 
 export function HomeScreen() {
   const r = useRider();
+  const jobs = useJobs();
   const voice = useVoice();
   const [refreshing, setRefreshing] = useState(false);
   const [confirmOffline, setConfirmOffline] = useState(false);
@@ -33,7 +36,7 @@ export function HomeScreen() {
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-      await Promise.all([r.refreshOrders(), r.refreshToday(), r.refreshProfile()]);
+      await Promise.all([r.refreshOrders(), r.refreshToday(), r.refreshProfile(), jobs.refresh()]);
     } finally {
       setRefreshing(false);
     }
@@ -102,6 +105,8 @@ export function HomeScreen() {
             ))}
           </View>
         ) : null}
+
+        <JobsOnHome />
 
         {r.active.error && !r.active.data.length ? <ErrorState message={r.active.error} onRetry={r.refreshOrders} /> : null}
 

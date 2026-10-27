@@ -272,7 +272,7 @@ export default function GlobalAnnouncement() {
           go('/friends');
         } else if (data.type === 'SUPPORT_TICKET') {
           go('/support');
-        } else if (data.type === 'SERVICE_QUOTE') {
+        } else if (data.type === 'SERVICE_QUOTE' || data.type === 'SERVICE_STATUS') {
           // "Quote ready for …: tap to approve" opens that booking in Orders > Services
           const bid = safeId(data.bookingId);
           go(bid ? `/(tabs)/orders?segment=services&bookingId=${bid}` : '/(tabs)/orders?segment=services');
@@ -328,6 +328,18 @@ export default function GlobalAnnouncement() {
         name: 'Incoming Calls 📞',
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 500, 250, 500, 250, 500, 250, 500],
+        lightColor: '#10B981',
+        sound: 'default',
+        enableVibrate: true,
+        showBadge: true,
+      }).catch((e: any) => console.warn('Failed to set channel:', e));
+      // Every server push names Android channel 'delivery-alerts-v2' (backend utils/push.js). Without this channel
+      // Android files them under a silent "Miscellaneous" channel: no banner, so order / service / bill updates
+      // were easy to miss with the app closed.
+      Notifications.setNotificationChannelAsync('delivery-alerts-v2', {
+        name: 'Orders and updates',
+        importance: Notifications.AndroidImportance.HIGH,
+        vibrationPattern: [0, 250, 250, 250],
         lightColor: '#10B981',
         sound: 'default',
         enableVibrate: true,

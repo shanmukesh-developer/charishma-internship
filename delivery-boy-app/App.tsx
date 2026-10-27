@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { C, useInsets } from './src/theme';
 import { Toast } from './src/ui/Toast';
 import { RiderProvider, useRider } from './src/state/RiderStore';
+import { JobsProvider } from './src/state/JobsStore';
 import { LoginScreen, PendingScreen, SplashScreen } from './src/screens/Auth';
 import { Shell } from './src/screens/Shell';
 import { scheduleApiEndpointCheck } from './src/config';
@@ -41,7 +42,10 @@ export default function App() {
         {/* Force update: a retired version sees only the Update screen; a newer release shows a banner. */}
         <UpdateGate>
           <RiderProvider>
-            <Root />
+            {/* Shopping lists + service pickups (src/state/JobsStore) */}
+            <JobsProvider>
+              <Root />
+            </JobsProvider>
           </RiderProvider>
         </UpdateGate>
         {/* Backend restart: calm "waking up" banner while GETs retry (serverWake.ts) */}

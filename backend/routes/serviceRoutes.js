@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { getServiceBookingModel } = require('../models/ServiceBooking');
 const { getUserModel } = require('../models/User');
-const { protect, admin } = require('../middleware/authMiddleware');
+const { protect, admin, approvedRider } = require('../middleware/authMiddleware');
+const riderJobs = require('../utils/riderJobs');
 
 const { getMenuItemModel } = require('../models/MenuItem');
 const { getRestaurantModel } = require('../models/Restaurant');
@@ -165,6 +166,116 @@ const saveIfUnchanged = async (ServiceBooking, booking, changes, extraWhere = {}
   return ServiceBooking.findByPk(booking.id);
 };
 const staleBooking = (res) => res.status(409).json({ success: false, message: 'This booking was just updated. Please refresh and try again.' });
+
+// ── Rider pickups (utils/riderJobs) ───────────────────────────────────────────
+// Laundry, tailoring, repairs (and print jobs already booked) are collected from / delivered to the student's
+// room by a ZCS rider: the booking is announced to every on-duty rider (live 'rider_job' event + push) and sits
+// in GET /rider/pending until one claims it (assignedPartnerId = that rider). The rider then moves it with
+// PATCH /:id/status like any assigned partner. Not slot-gated (utils/deliverySlots is for deliveries only).
+const RIDER_SERVICE_TYPES = ['LAUNDRY', 'TAILORING', 'LAPTOP_REPAIR', 'PHONE_REPAIR', 'MOBILE_REPAIR', 'PRINTOUT', 'GENERAL'];
+// Before the items are collected: a rider may still claim (pool) or hand it back (release).
+const RIDER_POOL_STATUSES = ['REQUESTED', 'DIAGNOSED_QUOTED', 'CONFIRMED'];
+const RIDER_POOL_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+const MAX_ACTIVE_RIDER_SERVICES = Math.max(1, parseInt(process.env.RIDER_MAX_ACTIVE_SERVICES, 10) || 5);
+const isRiderUser = (user) => !!(user && typeof user.role === 'string' && user.role.toLowerCase() === 'rider');
+const isRiderService = (booking) => !!booking && RIDER_SERVICE_TYPES.includes(String(booking.serviceType || ''));
+const serviceLabel = (booking) => String((booking.specifications || {}).serviceName || booking.title || 'Service').trim().slice(0, 60) || 'Service';
+const firstWord = (name) => String(name || '').trim().split(/\s+/)[0] || 'Your rider';
+const catalogueIdOf = (booking) => String((booking.specifications || {}).catalogueItemId || '');
+
+// The service store a booking came from (catalogue item -> store): where the rider takes / collects the items.
+const storesFor = async (bookings) => {
+  const ids = [...new Set(bookings.map(catalogueIdOf).filter((id) => UUID_RE.test(id)))];
+  if (!ids.length) return {};
+  const items = await getMenuItemModel().findAll({ where: { id: ids }, attributes: ['id', 'restaurantId'] });
+  const storeIds = [...new Set(items.map((i) => i.restaurantId).filter(Boolean))];
+  const stores = storeIds.length ? await getRestaurantModel().findAll({ where: { id: storeIds }, attributes: ['id', 'name', 'location', 'lat', 'lon', 'whatsappNumber', 'phone'] }) : [];
+  const storeById = Object.fromEntries(stores.map((st) => [String(st.id), st]));
+  return Object.fromEntries(items.map((i) => [String(i.id), storeById[String(i.restaurantId)] || null]));
+};
+const storeJson = (store, { withPhone }) => (store ? {
+  name: store.name || null,
+  location: store.location || null,
+  lat: store.lat != null && Number.isFinite(Number(store.lat)) ? Number(store.lat) : null,
+  lng: store.lon != null && Number.isFinite(Number(store.lon)) ? Number(store.lon) : null,
+  ...(withPhone ? { phone: store.phone || store.whatsappNumber || null } : {}),
+} : null);
+// Pool card: no room number, phone or name until the rider claims it (same rule as delivery orders).
+const riderServiceJson = (booking, store, { claimed }) => {
+  const specs = booking.specifications || {};
+  const out = {
+    id: booking.id,
+    serviceType: booking.serviceType,
+    title: booking.title,
+    serviceName: specs.serviceName || null,
+    category: specs.category || null,
+    quantity: specs.quantity != null ? Number(specs.quantity) || null : null,
+    unit: specs.unit || null,
+    status: booking.status,
+    pickupSlot: booking.pickupSlot || null,
+    area: booking.hostelBlock || null,
+    quotedAmount: Number(booking.quotedAmount) || 0,
+    finalAmount: Number(booking.finalAmount) || 0,
+    paymentMethod: booking.paymentMethod || 'COD',
+    createdAt: booking.createdAt,
+    updatedAt: booking.updatedAt,
+    store: storeJson(store, { withPhone: claimed }),
+  };
+  if (!claimed) return out;
+  return {
+    ...out,
+    description: booking.description || null,
+    details: Array.isArray(specs.details) ? specs.details : [],
+    hostelBlock: booking.hostelBlock || null,
+    roomNumber: booking.roomNumber || null,
+    deliveryAddress: booking.deliveryAddress || null,
+    contactPhone: booking.contactPhone || null,
+    hasDocument: !!specs.document,
+    trackingHistory: Array.isArray(booking.trackingHistory) ? booking.trackingHistory.slice(-5) : [],
+  };
+};
+const riderServicesJson = async (rows, opts) => {
+  const stores = await storesFor(rows);
+  return rows.map((b) => riderServiceJson(b, stores[catalogueIdOf(b)], opts));
+};
+
+// Customer status notice (push + in-app list): data.type SERVICE_STATUS + bookingId opens the booking.
+const SERVICE_STATUS_COPY = {
+  CONFIRMED: (n) => ({ title: 'Booking confirmed', body: `Your ${n} booking is confirmed.` }),
+  IN_PROGRESS: (n) => ({ title: 'Picked up', body: `Your ${n} is with the partner now.` }),
+  READY_FOR_DELIVERY: (n) => ({ title: 'Ready', body: `Your ${n} is ready and on its way back to you.` }),
+  COMPLETED: (n) => ({ title: 'Service completed', body: `Your ${n} is done. Thank you for using ZCS!` }),
+  CANCELLED: (n) => ({ title: 'Booking cancelled', body: `Your ${n} booking was cancelled.` }),
+};
+const serviceStatusData = (booking) => ({ type: 'SERVICE_STATUS', bookingId: String(booking.id), screen: 'service-booking', status: booking.status });
+const notifyServiceStatus = async (booking, extra = null) => {
+  const copy = SERVICE_STATUS_COPY[booking.status];
+  if (!copy) return false;
+  const msg = copy(serviceLabel(booking));
+  await riderJobs.tellCustomer(booking.userId, msg.title, extra ? `${msg.body} ${extra}` : msg.body, serviceStatusData(booking));
+  return true;
+};
+const emitServiceToUser = (req, booking, note) => {
+  const io = req.app.get('io');
+  if (!io) return;
+  io.to(`user_${booking.userId}`).emit('serviceStatusUpdate', {
+    id: booking.id,
+    status: booking.status,
+    quotedAmount: booking.quotedAmount,
+    finalAmount: booking.finalAmount,
+    note,
+  });
+};
+const announceServiceBooking = (booking) => {
+  if (!isRiderService(booking) || booking.assignedPartnerId || !RIDER_POOL_STATUSES.includes(booking.status)) return Promise.resolve(0);
+  const slot = booking.pickupSlot ? ` · ${String(booking.pickupSlot).slice(0, 40)}` : '';
+  return riderJobs.announceJob({
+    kind: 'service',
+    id: booking.id,
+    title: '🧺 New pickup request',
+    body: `${serviceLabel(booking)}${booking.hostelBlock ? ` from ${String(booking.hostelBlock).slice(0, 40)}` : ''}${slot}`,
+  });
+};
 
 // Create a new Service Booking (Laptop Repair, Printout, Laundry, Auto Ride, Room Shift)
 // Retry key (customer-2): Idempotency-Key header or specifications.clientRequestId. A repeat
@@ -350,6 +461,8 @@ router.post('/book', protect, async (req, res) => {
       });
     }
     require('../utils/realtime').notifyAdmin('service_booking', 'created', booking.id);
+    // Riders (pickup / drop): live pool event + push. After the write, never fails the booking.
+    announceServiceBooking(booking).catch((e) => console.warn('[SERVICE_RIDER_ANNOUNCE_WARN]', e.message));
 
     const body = {
       success: true,
@@ -417,6 +530,104 @@ router.get('/my-bookings', protect, async (req, res) => {
   } catch (error) {
     console.error('Error fetching user service bookings:', error);
     return res.status(500).json({ success: false, message: 'We could not load your bookings right now. Please try again.' });
+  }
+});
+
+// ── Rider endpoints (ZCS Rider app) ──────────────────────────────────────────
+// Open pickups any approved rider may claim (pool-safe fields only).
+router.get('/rider/pending', protect, approvedRider, async (req, res) => {
+  try {
+    const { Op } = require('sequelize');
+    const rows = await getServiceBookingModel().findAll({
+      where: {
+        assignedPartnerId: null,
+        status: { [Op.in]: RIDER_POOL_STATUSES },
+        serviceType: { [Op.in]: RIDER_SERVICE_TYPES },
+        createdAt: { [Op.gt]: new Date(Date.now() - RIDER_POOL_MAX_AGE_MS) },
+      },
+      order: [['createdAt', 'DESC']],
+      limit: 50,
+    });
+    return res.json({ success: true, bookings: await riderServicesJson(rows, { claimed: false }) });
+  } catch (error) {
+    console.error('Error fetching rider service pool:', error);
+    return res.status(500).json({ success: false, message: 'Could not load pickups right now. Please try again.' });
+  }
+});
+
+// Pickups this rider holds (not finished), with the student's room and phone.
+router.get('/rider/active', protect, approvedRider, async (req, res) => {
+  try {
+    const { Op } = require('sequelize');
+    const rows = await getServiceBookingModel().findAll({
+      where: { assignedPartnerId: req.user.id, status: { [Op.notIn]: ['COMPLETED', 'CANCELLED'] } },
+      order: [['createdAt', 'ASC']],
+      limit: 50,
+    });
+    return res.json({ success: true, bookings: await riderServicesJson(rows, { claimed: true }) });
+  } catch (error) {
+    console.error('Error fetching rider active services:', error);
+    return res.status(500).json({ success: false, message: 'Could not load your pickups right now. Please try again.' });
+  }
+});
+
+// Claim an open pickup (first rider wins; conditional write).
+router.post('/:id/claim', protect, approvedRider, async (req, res) => {
+  try {
+    const { Op } = require('sequelize');
+    const ServiceBooking = getServiceBookingModel();
+    const booking = await ServiceBooking.findByPk(req.params.id);
+    if (!booking || !isRiderService(booking)) return res.status(404).json({ success: false, message: 'Booking not found' });
+    if (booking.assignedPartnerId) {
+      return res.status(409).json({ success: false, code: 'ALREADY_CLAIMED', message: booking.assignedPartnerId === req.user.id ? 'You already have this pickup.' : 'Another rider just took this pickup.' });
+    }
+    if (!RIDER_POOL_STATUSES.includes(booking.status)) {
+      return res.status(409).json({ success: false, code: 'NOT_OPEN', message: booking.status === 'CANCELLED' ? 'The student cancelled this booking.' : 'This booking is no longer open.' });
+    }
+    const mine = await ServiceBooking.count({ where: { assignedPartnerId: req.user.id, status: { [Op.notIn]: ['COMPLETED', 'CANCELLED'] } } });
+    if (mine >= MAX_ACTIVE_RIDER_SERVICES) {
+      return res.status(409).json({ success: false, code: 'TOO_MANY', message: `You already have ${mine} pickups. Finish one before taking another.` });
+    }
+    const rider = await require('../models/DeliveryPartner').getDeliveryPartnerModel().findByPk(req.user.id, { attributes: ['id', 'name', 'phone', 'vehicleNumber', 'vehicleType'] });
+    const driverDetails = cleanDriverDetails({ name: rider && rider.name, phone: rider && rider.phone, vehicleNumber: rider && rider.vehicleNumber, vehicleType: rider && rider.vehicleType });
+    const history = Array.isArray(booking.trackingHistory) ? [...booking.trackingHistory] : [];
+    history.push({ stage: booking.status, timestamp: new Date().toISOString(), note: `${firstWord(rider && rider.name)} (ZCS rider) will collect it${booking.pickupSlot ? ` (${booking.pickupSlot})` : ''}.` });
+    const saved = await saveIfUnchanged(ServiceBooking, booking, { assignedPartnerId: req.user.id, driverDetails, trackingHistory: history }, { assignedPartnerId: null });
+    if (!saved) return res.status(409).json({ success: false, code: 'ALREADY_CLAIMED', message: 'Another rider just took this pickup.' });
+
+    riderJobs.jobGone('service', saved.id);
+    require('../utils/realtime').notifyAdmin('service_booking', 'updated', saved.id);
+    emitServiceToUser(req, saved, 'Rider assigned');
+    riderJobs.tellCustomer(saved.userId, 'Rider assigned',
+      `${firstWord(rider && rider.name)} will collect your ${serviceLabel(saved)}${saved.pickupSlot ? ` (${saved.pickupSlot})` : ''}.`, serviceStatusData(saved));
+    const [json] = await riderServicesJson([saved], { claimed: true });
+    return res.json({ success: true, message: 'Pickup is yours', booking: json });
+  } catch (error) {
+    console.error('Error claiming service booking:', error);
+    return res.status(500).json({ success: false, message: 'Could not take this pickup right now. Please try again.' });
+  }
+});
+
+// Hand a pickup back (before the items are collected): back in the pool for every rider.
+router.post('/:id/release', protect, approvedRider, async (req, res) => {
+  try {
+    const ServiceBooking = getServiceBookingModel();
+    const booking = await ServiceBooking.findByPk(req.params.id);
+    if (!booking || booking.assignedPartnerId !== req.user.id) return res.status(404).json({ success: false, message: 'Booking not found' });
+    if (!RIDER_POOL_STATUSES.includes(booking.status)) {
+      return res.status(409).json({ success: false, code: 'ALREADY_PICKED_UP', message: 'You already collected the items. Finish this pickup or contact ZCS support.' });
+    }
+    const history = Array.isArray(booking.trackingHistory) ? [...booking.trackingHistory] : [];
+    history.push({ stage: booking.status, timestamp: new Date().toISOString(), note: 'Rider changed. Finding another rider.' });
+    const saved = await saveIfUnchanged(ServiceBooking, booking, { assignedPartnerId: null, driverDetails: null, trackingHistory: history }, { assignedPartnerId: req.user.id });
+    if (!saved) return staleBooking(res);
+    require('../utils/realtime').notifyAdmin('service_booking', 'updated', saved.id);
+    emitServiceToUser(req, saved, 'Finding another rider');
+    announceServiceBooking(saved).catch(() => {});
+    return res.json({ success: true, message: 'Pickup handed back' });
+  } catch (error) {
+    console.error('Error releasing service booking:', error);
+    return res.status(500).json({ success: false, message: 'Could not hand this pickup back right now. Please try again.' });
   }
 });
 
@@ -514,6 +725,11 @@ router.post('/:id/confirm-quote', protect, async (req, res) => {
       req.app.get('io').to('admin-room').emit(acceptQuote ? 'serviceQuoteAccepted' : 'serviceCancelled', { id: booking.id, serviceType: booking.serviceType });
     }
     require('../utils/realtime').notifyAdmin('service_booking', acceptQuote ? 'updated' : 'cancelled', booking.id);
+    if (booking.assignedPartnerId) {
+      riderJobs.tellJobRider({ kind: 'service', id: booking.id, riderId: booking.assignedPartnerId,
+        title: acceptQuote ? 'Price approved' : 'Booking cancelled',
+        body: acceptQuote ? `The student approved ${rupees(booking.quotedAmount)} for ${serviceLabel(booking)}.` : `The student declined the price for ${serviceLabel(booking)}. Do not collect it.` });
+    } else if (!acceptQuote) riderJobs.jobGone('service', booking.id);
 
     return res.json({ success: true, message: acceptQuote ? 'Quotation approved' : 'Booking cancelled', booking });
   } catch (error) {
@@ -555,6 +771,7 @@ const notifyServicePrice = async (booking, before, changes) => {
   return true;
 };
 router.servicePriceMessage = servicePriceMessage;
+router.RIDER_SERVICE_TYPES = RIDER_SERVICE_TYPES;
 
 // Update booking status (Admin / Partner / Driver)
 router.patch('/:id/status', protect, async (req, res) => {
@@ -652,27 +869,38 @@ router.patch('/:id/status', protect, async (req, res) => {
       changes.trackingHistory = history;
     }
 
-    const before = { quotedAmount: Number(booking.quotedAmount || 0), finalAmount: Number(booking.finalAmount || 0) };
+    const before = { quotedAmount: Number(booking.quotedAmount || 0), finalAmount: Number(booking.finalAmount || 0), assignedPartnerId: booking.assignedPartnerId || null };
     if (Object.keys(changes).length) {
       const saved = await saveIfUnchanged(ServiceBooking, booking, changes);
       if (!saved) return staleBooking(res);
       booking = saved;
     }
 
-    // A new quote or final price: push + in-app notification that opens the booking (push queue).
-    notifyServicePrice(booking, before, changes).catch((e) => console.warn('[SERVICE_QUOTE_PUSH_WARN]', e.message));
+    // A new quote or final price: push + in-app notification that opens the booking (push queue). Otherwise a
+    // stage change (confirmed, picked up, ready, done, cancelled) gets its own notice, so a student whose app is
+    // closed hears about it (the socket below only reaches an open app). One notice per update, never both.
+    const statusChanged = changes.status !== undefined && changes.status !== current;
+    notifyServicePrice(booking, before, changes)
+      .then((sent) => (!sent && statusChanged ? notifyServiceStatus(booking, note || null) : null))
+      .catch((e) => console.warn('[SERVICE_QUOTE_PUSH_WARN]', e.message));
+    if (Object.keys(changes).length) require('../utils/realtime').notifyAdmin('service_booking', booking.status === 'CANCELLED' ? 'cancelled' : 'updated', booking.id);
+
+    // Riders: an admin (re)assigned it -> the new rider is told and the pool drops it. Changed by support while a
+    // rider holds it -> that rider's app refreshes (push when it was cancelled). The rider's own updates need no
+    // notice back. Cancelled while unassigned -> the pool drops it.
+    if (changes.assignedPartnerId && changes.assignedPartnerId !== before.assignedPartnerId) {
+      riderJobs.jobGone('service', booking.id);
+      riderJobs.tellJobRider({ kind: 'service', id: booking.id, riderId: changes.assignedPartnerId, title: '🧺 Pickup assigned to you', body: `${serviceLabel(booking)}${booking.hostelBlock ? ` from ${booking.hostelBlock}` : ''}. Open ZCS Rider for the details.` });
+      if (before.assignedPartnerId) riderJobs.tellJobRider({ kind: 'service', id: booking.id, riderId: before.assignedPartnerId });
+    } else if (booking.assignedPartnerId && !isRiderUser(req.user) && Object.keys(changes).length) {
+      const cancelled = booking.status === 'CANCELLED';
+      riderJobs.tellJobRider({ kind: 'service', id: booking.id, riderId: booking.assignedPartnerId,
+        title: cancelled ? 'Booking cancelled' : null,
+        body: cancelled ? `ZCS support cancelled ${serviceLabel(booking)}. Do not collect it.` : '' });
+    } else if (!booking.assignedPartnerId && booking.status === 'CANCELLED') riderJobs.jobGone('service', booking.id);
 
     // Socket notification
-    if (req.app.get('io')) {
-      const io = req.app.get('io');
-      io.to(`user_${booking.userId}`).emit('serviceStatusUpdate', {
-        id: booking.id,
-        status: booking.status,
-        quotedAmount: booking.quotedAmount,
-        finalAmount: booking.finalAmount,
-        note: note || `Status updated to ${booking.status}`,
-      });
-    }
+    emitServiceToUser(req, booking, note || `Status updated to ${booking.status}`);
 
     return res.json({ success: true, message: 'Booking updated successfully', booking });
   } catch (error) {
@@ -732,6 +960,9 @@ router.post('/:id/cancel', protect, async (req, res) => {
       if (booking.assignedPartnerId) io.to(`rider_${booking.assignedPartnerId}`).emit('serviceCancelled', { id: booking.id, serviceType: booking.serviceType });
     }
     require('../utils/realtime').notifyAdmin('service_booking', 'cancelled', booking.id);
+    if (booking.assignedPartnerId) {
+      riderJobs.tellJobRider({ kind: 'service', id: booking.id, riderId: booking.assignedPartnerId, title: 'Pickup cancelled', body: `The student cancelled ${serviceLabel(booking)}. Do not collect it.` });
+    } else riderJobs.jobGone('service', booking.id);
 
     return res.json({ success: true, message: 'Booking cancelled successfully', booking });
   } catch (error) {

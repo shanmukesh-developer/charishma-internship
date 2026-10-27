@@ -96,13 +96,23 @@ const runAutoCancel = async ({ io }) => {
 
 // Delivery slots: slot orders held back from riders are released DISPATCH_WINDOW_MIN before their slot
 // (controllers/orderController.releaseDueSlotOrders; utils/deliverySlots).
+// Shopping lists (Mega Basket) for a slot are announced to riders at the same moment
+// (controllers/megaBasketController.releaseDueSlotBaskets, utils/riderJobs).
 const runSlotDispatch = async () => {
+  let out;
   try {
-    return await require('../controllers/orderController').releaseDueSlotOrders();
+    out = await require('../controllers/orderController').releaseDueSlotOrders();
   } catch (e) {
     console.warn('[SLOT_DISPATCH] Error:', e.message);
-    return { released: 0, error: e.message };
+    out = { released: 0, error: e.message };
   }
+  try {
+    const b = await require('../controllers/megaBasketController').releaseDueSlotBaskets();
+    if (b && b.released) out = { ...out, baskets: b.released };
+  } catch (e) {
+    console.warn('[SLOT_DISPATCH] Basket error:', e.message);
+  }
+  return out;
 };
 
 // Stall orders open for hours are FLAGGED (never cancelled): admin + stall told once (utils/stallStuckJob).

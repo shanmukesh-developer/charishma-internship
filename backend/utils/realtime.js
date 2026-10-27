@@ -244,6 +244,23 @@ const deliveryRequest = (orderId) => {
 };
 const deliveryRequestGone = (orderId) => emitToRiders(DELIVERY_REQUEST_GONE_EVENT, orderId);
 
+// Rider jobs that are not Orders: shopping lists (MegaBasket) and service pickups (ServiceBooking), see
+// utils/riderJobs. `rider_job { kind: 'basket' | 'service', id, action: 'new' | 'gone' | 'updated' }`, ids only.
+//   riderId null -> RIDERS_ONLINE_ROOM (pool changed); riderId set -> that rider's own sockets (their job changed).
+const RIDER_JOB_EVENT = 'rider_job';
+const RIDER_JOB_KINDS = new Set(['basket', 'service']);
+const RIDER_JOB_ACTIONS = new Set(['new', 'gone', 'updated']);
+const riderJob = (kind, id, action, riderId = null) => {
+  try {
+    const jobId = safeId(id);
+    if (!ioRef || jobId === null || !RIDER_JOB_KINDS.has(kind) || !RIDER_JOB_ACTIONS.has(action)) return;
+    const target = riderId ? `rider_${safeId(riderId)}` : RIDERS_ONLINE_ROOM;
+    ioRef.to(target).emit(RIDER_JOB_EVENT, { kind, id: jobId, action, at: new Date().toISOString() });
+  } catch (err) {
+    console.error('[REALTIME_RIDER_JOB_ERROR]', err.message);
+  }
+};
+
 // A rider who released (or lost) an order must stop receiving its room traffic: live status,
 // order chat and the next rider's GPS. Every socket of that rider leaves the order room.
 const leaveOrderRoom = (riderId, orderId) => {
@@ -303,6 +320,6 @@ const disconnectRevokedSockets = (accountId, tokenVersion = null) => {
 module.exports = {
   disconnectRevokedSockets,
   init, publish, notifyAdmin, toUser, toStore, toDriver, broadcast, PUBLIC_EVENT, ADMIN_EVENT, ADMIN_ROOM,
-  setRiderOnline, deliveryRequest, deliveryRequestGone, leaveOrderRoom,
+  setRiderOnline, deliveryRequest, deliveryRequestGone, leaveOrderRoom, riderJob, RIDER_JOB_EVENT,
   RIDERS_ONLINE_ROOM, DELIVERY_REQUEST_EVENT, DELIVERY_REQUEST_GONE_EVENT, CLAIMABLE_STATUSES,
 };

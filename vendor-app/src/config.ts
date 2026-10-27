@@ -80,6 +80,7 @@ export const CANCEL_REASONS = [
   'Item finished',
 ] as const;
 
-/** New orders older than this turn amber / red (server auto-cancels at PENDING_ORDER_TIMEOUT_MINUTES, default 15). */
-export const NEW_ORDER_WARN_MIN = 6;
-export const NEW_ORDER_LATE_MIN = 10;
+/** New orders older than this turn amber / red. The server cancels an order not accepted in STORE_ACCEPT_TIMEOUT_MIN
+ * (backend utils/orderTimeouts, default 7), so both warnings must come before that. */
+export const NEW_ORDER_WARN_MIN = 3;
+export const NEW_ORDER_LATE_MIN = 5;

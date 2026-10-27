@@ -33,6 +33,9 @@ const initMegaBasketModel = (sequelize) => {
     deliverySlot: { type: DataTypes.STRING, allowNull: true },
     slotStart: { type: DataTypes.DATE, allowNull: true },
     slotEnd: { type: DataTypes.DATE, allowNull: true },
+    // When riders were told about this list (utils/riderJobs): at creation, or for a slot list when the
+    // 'orders.slotDispatch' job opened its rider window. Null = not announced yet (conditional, never twice).
+    slotDispatchedAt: { type: DataTypes.DATE, allowNull: true },
     deliveryPin: { type: DataTypes.STRING },
     deliveryPinAttempts: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 0 }, // wrong PINs by the rider
     upiUTR: { type: DataTypes.STRING },

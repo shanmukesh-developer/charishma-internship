@@ -491,15 +491,12 @@ const createOrder = async (req, res) => {
     res.status(201).json({ ...ownerOrderJson(createdOrder), _id: createdOrder.id, bill: quote });
 
     // ── After the response: notifications & dispatch (never affect the order) ──
-    try {
-      if (currentUser.phone) {
-        const orderForMsg = await Order.findByPk(createdOrder.id, {
-          include: [{ model: Restaurant, as: 'restaurant', attributes: ['name'] }]
-        });
-        await sendWhatsAppMessage(currentUser.phone, formatOrderMessage(orderForMsg, 'CUSTOMER_CONFIRMATION'), 'CONFIRMATION');
-      }
-    } catch (waErr) {
-      console.error('[WHATSAPP_ERROR] Customer alert failed:', waErr.message);
+    // The customer's WhatsApp confirmation runs on its own: awaited here it held back the store's new-order
+    // alert and the rider dispatch below by up to WHATSAPP_TIMEOUT_MS (8 s) whenever the provider was slow.
+    if (currentUser.phone) {
+      Order.findByPk(createdOrder.id, { include: [{ model: Restaurant, as: 'restaurant', attributes: ['name'] }] })
+        .then((orderForMsg) => sendWhatsAppMessage(currentUser.phone, formatOrderMessage(orderForMsg, 'CUSTOMER_CONFIRMATION'), 'CONFIRMATION'))
+        .catch((waErr) => console.error('[WHATSAPP_ERROR] Customer alert failed:', waErr && waErr.message));
     }
 
     if (!io) return;

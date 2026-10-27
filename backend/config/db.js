@@ -814,6 +814,8 @@ const connectDB = async () => {
         ['MegaBaskets', 'deliverySlot', 'VARCHAR(255)'],
         ['MegaBaskets', 'slotStart', 'TIMESTAMP WITH TIME ZONE'],
         ['MegaBaskets', 'slotEnd', 'TIMESTAMP WITH TIME ZONE'],
+        // 2026-10-27 rider jobs (utils/riderJobs): when riders were told about a shopping list.
+        ['MegaBaskets', 'slotDispatchedAt', 'TIMESTAMP WITH TIME ZONE'],
         ['MenuItems', 'isSpecializedCake', 'BOOLEAN DEFAULT false'],
       ];
       for (const [table, col, type] of pgNewCols) {
