@@ -7,7 +7,7 @@
     },
     "name": "ZCS",
     "slug": "zenvy-customer",
-    "version": "1.0.21",
+    "version": "1.0.22",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -40,7 +40,7 @@
       },
       "package": "com.srm.hostelbites",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 22,
+      "versionCode": 23,
       "compileSdkVersion": 36,
       "targetSdkVersion": 36,
       "minSdkVersion": 24,
