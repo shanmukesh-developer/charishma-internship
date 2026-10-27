@@ -1025,7 +1025,7 @@ const setRestaurantHours = async (req, res) => {
 };
 
 // @desc    Register / unregister this phone for new-order pushes while the app is closed.
-// @route   POST /api/restaurants/fcm-token  { token | fcmToken, app?: 'restaurant'|'vendor', remove?: true }
+// @route   POST /api/restaurants/fcm-token  { token | fcmToken, app?: 'restaurant'|'vendor'|'campusstall', remove?: true }
 // @route   POST /api/restaurants/fcm-token/remove  { token }
 const saveStoreFcmToken = async (req, res) => {
   try {
@@ -1036,7 +1036,8 @@ const saveStoreFcmToken = async (req, res) => {
     const token = typeof (body.token || body.fcmToken) === 'string' ? (body.token || body.fcmToken).trim() : '';
     if (!require('../utils/fcmToken').FCM_TOKEN_RE.test(token)) return res.status(400).json({ message: 'A valid push token is required.' });
     const remove = body.remove === true || body.remove === 'true' || /\/remove$/.test(req.path);
-    const app = ['restaurant', 'vendor'].includes(String(body.app || '').toLowerCase()) ? String(body.app).toLowerCase() : null;
+    // 'campusstall' = ZCS Campus Stall (In-Campus Booking pushes go only to those devices: utils/storePush).
+    const app = ['restaurant', 'vendor', 'campusstall'].includes(String(body.app || '').toLowerCase()) ? String(body.app).toLowerCase() : null;
     const { registerStoreToken } = require('../utils/storePush');
     const devices = await registerStoreToken(req.user.id, token, { app, remove });
     if (devices === null) return res.status(404).json({ message: 'Store not found' });

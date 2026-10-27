@@ -51,9 +51,11 @@ export type MediaPurpose =
   // Campus Events: event posters / gallery images (public, served to every student of the campus).
   | 'event_poster'
   // Support ticket photos (private: the customer and support staff).
-  | 'support';
+  | 'support'
+  // In-Campus Booking: the UPI payment screenshot (private: the student, the booked stall and admins).
+  | 'campus_payment';
 
-export const PRIVATE_MEDIA_PURPOSES: readonly MediaPurpose[] = ['id_card', 'connect', 'liveness_selfie', 'rental_doc', 'rental_licence', 'rental_report', 'rental_condition', 'support'];
+export const PRIVATE_MEDIA_PURPOSES: readonly MediaPurpose[] = ['id_card', 'connect', 'liveness_selfie', 'rental_doc', 'rental_licence', 'rental_report', 'rental_condition', 'support', 'campus_payment'];
 
 export interface UploadedImage {
   /** Short relative path, e.g. /api/campus/media/<id>. Store this for campus features. */

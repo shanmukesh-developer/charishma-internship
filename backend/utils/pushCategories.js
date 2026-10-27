@@ -8,6 +8,7 @@ const CATEGORIES = ['orders', 'offers', 'campus', 'reminders'];
 const TYPE_CATEGORY = {
   ORDER_UPDATE: 'orders', ORDER: 'orders', ORDER_CANCELLED: 'orders', ORDER_RELEASED: 'orders', DELIVERY: 'orders',
   GATE_ARRIVAL: 'orders', PICKUP: 'orders', order_update: 'orders', order: 'orders',
+  CAMPUS_BOOKING: 'orders',
   campaign: 'offers', promo: 'offers', offer: 'offers',
   streak_nudge: 'reminders', abandoned_cart: 'reminders', reminder: 'reminders',
   BIRTHDAY_ALERT: 'campus', WALL_EVENT_ENDED: 'campus', WALL_WINNER_REWARD: 'campus',

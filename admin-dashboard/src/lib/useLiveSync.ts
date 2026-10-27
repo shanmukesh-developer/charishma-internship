@@ -20,7 +20,9 @@ export type LiveType =
   // Zenvy Auto-Ride (public 'auto_trip' + admin queues)
   | 'auto_trip' | 'auto_driver' | 'auto_vehicle' | 'auto_route' | 'auto_booking' | 'auto_private_request' | 'auto_incident'
   // Zenvy Campus Events (public 'campus_event' + admin 'campus_event_admin')
-  | 'campus_event' | 'campus_event_admin';
+  | 'campus_event' | 'campus_event_admin'
+  // In-Campus Booking (admin room): pickup bookings paid straight to the stall
+  | 'campus_booking';
 
 export interface LiveEvent {
   type: LiveType | string;

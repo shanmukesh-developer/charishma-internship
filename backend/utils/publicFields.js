@@ -2,7 +2,9 @@
 // Admin endpoints (/api/admin/*) keep the full rows.
 // phone = the partner's private login phone (customers call the stall on whatsappNumber).
 // C8: PAN, payout UPI / bank details and the verifying admin's id are private to the store and admins.
-const STORE_PRIVATE_FIELDS = ['pan', 'payoutUpiId', 'bankAccountHolder', 'bankAccountLast4', 'bankIfsc', 'fssaiVerifiedBy'];
+// In-Campus Booking: the stall's UPI ID / payee name / QR reach a student only on their own booking.
+const STORE_PRIVATE_FIELDS = ['pan', 'payoutUpiId', 'bankAccountHolder', 'bankAccountLast4', 'bankIfsc', 'fssaiVerifiedBy',
+  'campusUpiId', 'campusUpiName', 'campusUpiQrUrl'];
 const STORE_SECRET_FIELDS = ['password', 'commissionRate', 'commissionType', 'phone', 'tokenVersion', 'fcmTokens', ...STORE_PRIVATE_FIELDS];
 const ITEM_SECRET_FIELDS = ['password', 'customCommission', 'ownerName', 'ownerPhone'];
 

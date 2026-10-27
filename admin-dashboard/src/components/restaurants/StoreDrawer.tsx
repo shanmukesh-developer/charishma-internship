@@ -12,6 +12,8 @@ import {
 import { WeeklyHoursEditor } from './inputs';
 import { MenuManager } from './MenuManager';
 import { ComplianceTab } from './ComplianceTab';
+import { StallBookingSettings, type CampusStall } from '@/components/campusBooking/StallBookingSettings';
+import { adminRequest as campusRequest } from '@/lib/api';
 import { StorePreviewCard } from './StorePreviewCard';
 import { StepKey } from './StoreWizard';
 import { hasStoreBanner, patchStore, removeStoreBanner, upsertStoreBanner } from './storeActions';
@@ -21,7 +23,7 @@ import {
   cx, useToast,
 } from './ui';
 
-export type DrawerTab = 'overview' | 'menu' | 'hours' | 'login' | 'compliance' | 'promote' | 'activity';
+export type DrawerTab = 'overview' | 'menu' | 'hours' | 'login' | 'compliance' | 'promote' | 'campus' | 'activity';
 
 const STATUS_TONE = { live: 'green', closed: 'amber', draft: 'slate', inactive: 'red' } as const;
 
@@ -53,6 +55,7 @@ export function StoreDrawer({ store, tab, onTab, onClose, onEdit, onChanged, onT
     { value: 'login', label: local ? 'Vendor login' : 'Partner login', badge: noLogin ? <span className="rounded bg-warning-soft px-1.5 text-xs text-warning-text">!</span> : undefined },
     { value: 'compliance', label: 'Licences & tax', badge: fssaiAlert ? <span className="rounded bg-warning-soft px-1.5 text-xs text-warning-text">!</span> : undefined },
     ...(local ? [] : [{ value: 'promote' as DrawerTab, label: 'Promote' }]),
+    ...(local ? [{ value: 'campus' as DrawerTab, label: 'In-Campus Booking' }] : []),
     { value: 'activity', label: 'Activity' },
   ];
   const current = tabs.some(t => t.value === tab) ? tab : 'overview';
@@ -102,6 +105,7 @@ export function StoreDrawer({ store, tab, onTab, onClose, onEdit, onChanged, onT
         {current === 'login' && <LoginTab store={store} onChanged={onChanged} />}
         {current === 'compliance' && <ComplianceTab store={store} onChanged={onChanged} />}
         {current === 'promote' && <PromoteTab store={store} onChanged={onChanged} onEdit={onEdit} />}
+        {current === 'campus' && <CampusBookingTab storeId={storeId(store)} />}
         {current === 'activity' && <ActivityTab store={store} orders={orders} />}
       </div>
     </Drawer>
@@ -652,4 +656,20 @@ function ActivityTab({ store, orders }: { store: Store; orders: StoreOrder[] }) 
       </ol>
     </div>
   );
+}
+
+// ─── In-Campus Booking (local vendors only) ─────────────────────────────────
+function CampusBookingTab({ storeId: id }: { storeId: string }) {
+  const [stall, setStall] = useState<CampusStall | null>(null);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    let alive = true;
+    campusRequest<{ store: CampusStall }>(`/api/admin/campus-booking/stores/${id}`)
+      .then((r) => { if (alive) { setStall(r.store); setError(''); } })
+      .catch((e) => { if (alive) setError(e instanceof Error ? e.message : 'Could not load the In-Campus Booking settings.'); });
+    return () => { alive = false; };
+  }, [id]);
+  if (error) return <Callout tone="red">{error}</Callout>;
+  if (!stall) return <Skeleton className="h-40" />;
+  return <StallBookingSettings stall={stall} onSaved={setStall} />;
 }

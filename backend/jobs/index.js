@@ -190,6 +190,19 @@ const runAutoRide = async () => {
   }
 };
 
+// In-Campus Booking: bookings never paid (20 min) / never re-sent after a rejection (2 h) are cancelled
+// (modules/campusBooking/jobs.js). One indexed lookup and out when nothing is waiting.
+const runCampusBooking = async () => {
+  try {
+    const r = await require('../modules/campusBooking/jobs').runCampusBookingJobs();
+    if (r && !r.idle && !r.skipped && (r.expiredUnpaid || r.expiredRejected)) console.log('[CAMPUS_BOOKING_JOB]', JSON.stringify(r));
+    return r;
+  } catch (err) {
+    console.warn('[CAMPUS_BOOKING_JOB] Error:', err.message);
+    return { error: err.message };
+  }
+};
+
 // Campus Events expiries / waitlist / scheduled publish / completion / invitations / reminders / deadline
 // notices / refund retries / answer retention (modules/campusEvents/jobs.js). A few indexed lookups and
 // out when nothing is active (feature off).
@@ -317,6 +330,7 @@ const JOBS = [
   { name: 'rentals.lifecycle', schedule: { everyMs: 2 * MIN, firstMs: 40 * SEC }, run: runRentals, quietWhenIdle: true, emits: true },
   { name: 'autoRide.lifecycle', schedule: { everyMs: 30 * SEC, firstMs: 50 * SEC }, run: runAutoRide, quietWhenIdle: true, emits: true },
   { name: 'campusEvents.lifecycle', schedule: { everyMs: 60 * SEC, firstMs: 55 * SEC }, run: runCampusEvents, quietWhenIdle: true, emits: true },
+  { name: 'campusBooking.lifecycle', schedule: { everyMs: 2 * MIN, firstMs: 65 * SEC }, run: runCampusBooking, quietWhenIdle: true, emits: true },
   { name: 'coride.templates', schedule: { everyMs: 5 * MIN, firstMs: 70 * SEC }, run: runCoRideTemplates, quietWhenIdle: true },
   { name: 'wall.finalize', schedule: { cron: '*/5 * * * *' }, run: () => require('../cron/wallCron').runWallFinalizeJob(), quietWhenIdle: true },
   { name: 'wall.mediaCleanup', schedule: { cron: '0 3 * * *', timezone: IST }, run: () => require('../cron/wallCron').runWallMediaCleanupJob(), timeoutMs: 30 * MIN },

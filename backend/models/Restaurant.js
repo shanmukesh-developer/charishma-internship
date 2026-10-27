@@ -108,6 +108,15 @@ const initRestaurantModel = (sequelize) => {
     bankAccountHolder: { type: DataTypes.STRING(120), allowNull: true },
     bankAccountLast4: { type: DataTypes.STRING(4), allowNull: true },
     bankIfsc: { type: DataTypes.STRING(11), allowNull: true },
+    // ── In-Campus Booking (modules/campusBooking; all nullable, added on boot by addMissingColumns) ──
+    // Admin switch per stall. While on (and a UPI ID is set) students can book the stall for pickup and pay
+    // the stall directly by UPI. The UPI ID / QR are shown only on a student's own booking payment screen
+    // (never in public store reads: utils/publicFields STORE_PRIVATE_FIELDS).
+    campusBookingEnabled: { type: DataTypes.BOOLEAN, allowNull: true, defaultValue: false },
+    campusUpiId: { type: DataTypes.STRING(120), allowNull: true },
+    campusUpiName: { type: DataTypes.STRING(120), allowNull: true }, // payee name on the UPI account (optional)
+    campusUpiQrUrl: { type: DataTypes.TEXT, allowNull: true }, // the stall's own UPI QR photo (optional)
+    campusPrepMinutes: { type: DataTypes.INTEGER, allowNull: true }, // typical prep time; null = 10 min default
     brandTheme: {
       type: DataTypes.TEXT,
       allowNull: true,

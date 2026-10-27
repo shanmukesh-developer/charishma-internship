@@ -19,7 +19,9 @@ const PURPOSES = new Set(['id_card', 'chat', 'lost_found', 'avatar', 'post', 'ot
   // S0: order bill / item photos / delivery proof (private, like the /api/upload proof path).
   'bill', 'basket', 'delivery_proof',
   // Customer polish: photos on a support ticket (private: the customer and support staff only).
-  'support']);
+  'support',
+  // In-Campus Booking: the student's UPI payment screenshot (private: the student, that stall and admins).
+  'campus_payment']);
 // Served only to the owner, admins, or through a signed link (Connect photos are shown via signed URLs).
 // S0: chat photos and order bills / basket photos / delivery proof are private too (utils/mediaAccess).
 const { PRIVATE_PURPOSES } = require('../../../utils/mediaAccess');

@@ -1,0 +1,47 @@
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Generated native folders (expo prebuild). Signing lives in plugins/withReleaseSigning.js.
+/ios
+/android
+
+# Secrets: NEVER commit
+google-services.json
+GoogleService-Info.plist
+play-store-service-account.json
+keystore.properties
+*.keystore
+*.jks
+*.p8
+*.p12
+*.key
+*.pem
+*.mobileprovision
+.env
+.env*
+
+# Native / build output
+.kotlin/
+*.orig.*
+*.apk
+*.aab
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+
+# typescript
+*.tsbuildinfo

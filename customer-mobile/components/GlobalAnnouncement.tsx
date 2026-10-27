@@ -234,7 +234,11 @@ export default function GlobalAnnouncement() {
         const autoRideHref = autoRideHrefForNotification(data.type, data);
         const campusEventHref = campusEventHrefForNotification(data.type, data);
         const corideHref = corideHrefForNotification(data.type, data);
-        if (corideHref) {
+        if (data.type === 'CAMPUS_BOOKING') {
+          // In-Campus Booking: payment reviewed, accepted, preparing, ready for pickup, collected, cancelled
+          const bid = safeId(data.bookingId);
+          go(bid ? `/campus-booking/order/${bid}` : '/campus-booking/bookings');
+        } else if (corideHref) {
           // Co-Ride: regular ride live / reminders / cancellations (data.path or data.poolId)
           go(corideHref);
         } else if (campusEventHref) {
@@ -311,6 +315,7 @@ export default function GlobalAnnouncement() {
             screen: data.screen, chatId: data.chatId, kind: data.kind, friendshipId: data.friendshipId,
             // Campus Events pushes carry ids only; keep them so an inbox tap opens the right screen.
             ...(data.screen === 'campus_event' ? { eventId: data.eventId, registrationId: data.registrationId, teamId: data.teamId, ticketId: data.ticketId } : {}),
+            ...(data.screen === 'campus_booking' ? { bookingId: data.bookingId } : {}),
           } } : {}),
         });
       });

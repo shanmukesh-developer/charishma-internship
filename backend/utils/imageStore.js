@@ -21,7 +21,9 @@ const PURPOSES = new Set(['id_card', 'chat', 'lost_found', 'avatar', 'post', 'ot
   // Zenvy Auto-Ride driver documents / photos (always stored private; modules/autoRide/services/media.js).
   'auto_driver_doc',
   // Zenvy Campus Events posters / gallery (public; modules/campusEvents/services/media.js).
-  'event_poster']);
+  'event_poster',
+  // In-Campus Booking payment screenshots (always private; modules/campusBooking).
+  'campus_payment']);
 
 // utils/publicUrl: PUBLIC_API_URL, else the request's host; no request (socket handlers, jobs): Render's own
 // public URL, else a relative path.

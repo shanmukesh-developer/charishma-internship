@@ -253,7 +253,11 @@ export default function NotificationsScreen() {
     }
 
     // 2. Contextual navigation
-    if (safeId(n.orderId)) {
+    if (n.type === 'CAMPUS_BOOKING') {
+      // In-Campus Booking updates open that booking (pushes carry bookingId, never an orderId).
+      const bid = safeId(n.data?.bookingId);
+      router.push((bid ? `/campus-booking/order/${bid}` : '/campus-booking/bookings') as any);
+    } else if (safeId(n.orderId)) {
       router.push(`/tracking/${safeId(n.orderId)}` as any);
     } else if (n.type === 'SUPPORT_TICKET') {
       router.push('/support' as any);

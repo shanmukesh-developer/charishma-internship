@@ -57,6 +57,7 @@ const { initFriendsModels } = require('../modules/friends');
 const { initRentalsModels } = require('../modules/rentals');
 const { initAutoRideModels } = require('../modules/autoRide');
 const { initCampusEventsModels } = require('../modules/campusEvents');
+const { initCampusBookingModels } = require('../modules/campusBooking');
 const { initPgOwnerModels } = require('../modules/pgOwner');
 
 const initializeAllModels = (instance) => {
@@ -124,6 +125,8 @@ const initializeAllModels = (instance) => {
   initAutoRideModels(instance);
   // Zenvy Campus Events (Ce* tables; off until CAMPUS_EVENTS_ENABLED).
   initCampusEventsModels(instance);
+  // In-Campus Booking: pickup bookings paid straight to the stall by UPI (CampusBookings).
+  initCampusBookingModels(instance);
   // ZCS PG Partner: PG owner accounts, listing links, rent ledger, tenant complaints (pg_* tables).
   initPgOwnerModels(instance);
 
@@ -666,6 +669,13 @@ const connectDB = async () => {
       } catch (ceErr) {
         console.warn('⚠️ [CAMPUS_EVENTS_MIGRATION_WARN]', ceErr.message);
       }
+      // In-Campus Booking: named unique / plain indexes (race guards; additive, idempotent).
+      try {
+        const { runCampusBookingMigrations } = require('../modules/campusBooking/migrations');
+        await runCampusBookingMigrations(sequelize);
+      } catch (cbErr) {
+        console.warn('⚠️ [CAMPUS_BOOKING_MIGRATION_WARN]', cbErr.message);
+      }
       // C5 wallet ledger: named indexes + one-time OPENING_BALANCE rows (additive, idempotent, never
       // changes a balance). Never throws.
       await require('../utils/walletLedger').runWalletLedgerMigrations(sequelize);
@@ -730,6 +740,13 @@ const connectDB = async () => {
         await runCampusEventsMigrations(sequelize);
       } catch (ceErr) {
         console.warn('⚠️ [CAMPUS_EVENTS_MIGRATION_WARN]', ceErr.message);
+      }
+      // In-Campus Booking: named unique / plain indexes (race guards; additive, idempotent).
+      try {
+        const { runCampusBookingMigrations } = require('../modules/campusBooking/migrations');
+        await runCampusBookingMigrations(sequelize);
+      } catch (cbErr) {
+        console.warn('⚠️ [CAMPUS_BOOKING_MIGRATION_WARN]', cbErr.message);
       }
       // C5 wallet ledger: named indexes + one-time OPENING_BALANCE rows (additive, idempotent, never
       // changes a balance). Never throws.

@@ -26,6 +26,8 @@ const PRIVATE_PURPOSES = new Set([
   'chat', 'bill', 'basket', 'delivery_proof',
   // Support ticket photos (the ticket's customer and admins; utils/ticketAttachments).
   'support',
+  // In-Campus Booking payment screenshots (the student, the booked stall and admins; modules/campusBooking).
+  'campus_payment',
 ]);
 
 const CHAT_PURPOSES = new Set(['chat']);

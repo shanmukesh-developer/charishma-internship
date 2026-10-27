@@ -1,0 +1,87 @@
+{
+  "expo": {
+    "extra": {
+      "trustedApiHosts": ["hostelbites-backend-jwmt.onrender.com"]
+    },
+    "name": "ZCS Campus Stall",
+    "slug": "zcs-campus-stall",
+    "scheme": "zcsstall",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F3F4F6"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.srm.zcscampusstall"
+    },
+    "android": {
+      "package": "com.srm.zcscampusstall",
+      "versionCode": 1,
+      "allowBackup": false,
+      "adaptiveIcon": {
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "blockedPermissions": [
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_CONTACTS",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "./plugins/withReleaseSigning",
+        {
+          "prefix": "ZCS_CAMPUSSTALL_UPLOAD",
+          "appLabel": "ZCS Campus Stall",
+          "readme": "campus-stall-app/README.md"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "ZCS Campus Stall uses your photos to add your UPI QR and pictures of your menu items.",
+          "cameraPermission": "ZCS Campus Stall uses the camera to photograph your UPI QR and your menu items.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#0E9F5B",
+          "sounds": [
+            "./assets/sounds/alert.wav"
+          ],
+          "defaultChannel": "delivery-alerts-v2"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
+            "buildToolsVersion": "36.0.0",
+            "usesCleartextTraffic": false,
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "extraProguardRules": "-keep class com.swmansion.reanimated.** { *; }\n-keep class com.facebook.react.turbomodule.** { *; }"
+          }
+        }
+      ]
+    ]
+  }
+}

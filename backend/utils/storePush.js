@@ -19,7 +19,13 @@ const pushToStore = async (restaurantOrId, title, body, data = {}, opts = {}) =>
     const id = typeof restaurantOrId === 'object' ? restaurantOrId.id : restaurantOrId;
     // Always re-read the tokens (the row passed in may be older than the last registration).
     const store = await Restaurant.findByPk(id, { attributes: ['id', 'fcmTokens'] });
-    const tokens = store ? (store.fcmTokens || []).map(tokenOf).filter(Boolean) : [];
+    // Which of the store's devices: opts.apps (e.g. ['campusstall'] for In-Campus Booking) or, by default, every
+    // device except ZCS Campus Stall phones (delivery-order alerts belong to ZCS Vendor / ZCS Restaurant).
+    const wanted = Array.isArray(opts && opts.apps) && opts.apps.length ? new Set(opts.apps.map(String)) : null;
+    const appOf = (t) => (t && typeof t === 'object' && t.app ? String(t.app) : null);
+    const tokens = store ? (store.fcmTokens || [])
+      .filter((t) => (wanted ? wanted.has(appOf(t)) : appOf(t) !== 'campusstall'))
+      .map(tokenOf).filter(Boolean) : [];
     if (!tokens.length) return null;
     const result = await sendPushToTokens(tokens, title, body, { ...data, restaurantId: id }, {
       persist: false, // not a customer notification: nothing to save in the in-app list

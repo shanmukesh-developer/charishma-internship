@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, RefreshControl, FlatList, Dimensions, Platform, Modal, ActivityIndicator, Alert, Animated, Linking, BackHandler, Vibration } from 'react-native';
 import { takesSlotOrders } from '../../utils/storeOpenNow';
 import { useSectionUsage, rankByUsage, recordSectionUse } from '../../utils/sectionUsage';
+import { CB_COUNTER_PHOTO } from '../../modules/campusBooking/cbTheme';
 import { useCampusEventsStatus } from '../../modules/campusEvents/ui';
 import { RENTALS_V2_DEMO_CONTENT } from '../../modules/rentalsV2/rentalsV2Demo';
 import { EVENTS_V2_DEMO_CONTENT } from '../../modules/eventsV2/eventsV2Demo';
@@ -172,6 +173,9 @@ const CATEGORIES = [
   { key: 'services', label: 'Tech & Repairs' },
   { key: 'promos', label: 'Deals & spin' },
 ];
+// In-Campus Booking (owner, 27 Oct): ALWAYS the first card, fixed (never ranked); the cards above keep their usage order after it.
+const CAMPUS_BOOKING_CARD = { key: 'campusBooking', label: 'In-Campus Booking' };
+// Its longer label fits the card on every width (about 111 px at 12 px bold): 12 px from ~420 px phones, ~11 px at 390, ~10 px at 360.
 // Usage key per card (the Others section it opens; Shopping list counts on its own).
 const CATEGORY_USAGE_KEY: Record<string, string> = { rides: 'coride' };
 const categoryUsageKeys = (c: { key: string }) => [CATEGORY_USAGE_KEY[c.key] || c.key];
@@ -186,10 +190,13 @@ const CATEGORY_IMAGES = {
   events: require('../../modules/eventsV2/assets/ev2-sample-concert-crowd-hd-2026-10-26.webp'),
   services: { uri: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=200&q=80' },
   promos: require('../../modules/dealsV2/assets/dv2-sample-deal-donut-stack-hd-2026-10-26.webp'),
+  // Licensed (Unsplash License): a "Collect your order here" pickup counter by Hardik P. SafeImage asks the CDN for 3x the drawn width.
+  campusBooking: { uri: CB_COUNTER_PHOTO },
 };
 // Three whole cards and a slice of the fourth, so the row reads as swipeable on every width.
 const CAT_GAP = 8;
 const CAT_CARD_W = Math.round((SW - 16 - CAT_GAP * 3) / 3.3);
+const CAMPUS_LABEL_SIZE = Math.min(12, Math.floor(((CAT_CARD_W - 4) / 112) * 120) / 10);
 
 function getGreeting() {
   const h = istHour();
@@ -411,7 +418,7 @@ export default function HomeScreen() {
       if (c.key === 'events') return EVENTS_V2_DEMO_CONTENT || !!campusEventsStatus?.enabled;
       return true;
     });
-    return rankByUsage(shown, categoryUsageKeys, sectionUsage);
+    return [CAMPUS_BOOKING_CARD, ...rankByUsage(shown, categoryUsageKeys, sectionUsage)];
   }, [sectionsSWR.data, campusEventsStatus, sectionUsage]);
   // Live count for the "All restaurants" header: food stores in the grid and how many are open now
   const storeCounts = React.useMemo(() => {
@@ -960,6 +967,8 @@ export default function HomeScreen() {
                 } else if (c.key === 'basket') {
                   recordSectionUse('basket');
                   router.push('/mega-basket' as any);
+                } else if (c.key === 'campusBooking') {
+                  router.push('/campus-booking' as any);
                 } else {
                   // Others records the visit from its ?tab= link.
                   router.push({ pathname: '/(tabs)/others', params: { tab: c.key } } as any);
@@ -974,7 +983,7 @@ export default function HomeScreen() {
                 style={{ width: '100%', height: 60 }} 
                 resizeMode="cover" 
               />
-              <Text style={[s.premiumCatLabel, { color: txt, marginTop: 8, marginBottom: 8 }]} numberOfLines={1}>
+              <Text style={[s.premiumCatLabel, { color: txt, marginTop: 8, marginBottom: 8 }, c.key === 'campusBooking' && { letterSpacing: 0, fontSize: CAMPUS_LABEL_SIZE }]} numberOfLines={1} adjustsFontSizeToFit={c.key === 'campusBooking'} minimumFontScale={0.85}>
                 {c.label}
               </Text>
             </DopaminePressable>

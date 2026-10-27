@@ -43,7 +43,9 @@ const ADMIN_TYPES = new Set([...PUBLIC_TYPES, 'order', 'ticket', 'verification',
   // Campus Events admin queues (review queue, organizers, registrations, refunds)
   'campus_event_admin',
   // ZCS PG Partner: owner accounts + tenant complaints (admin /pg page, Owner accounts tab)
-  'pg_owner', 'pg_complaint']);
+  'pg_owner', 'pg_complaint',
+  // In-Campus Booking (admin /campus-booking page): pickup bookings paid straight to the stall
+  'campus_booking']);
 const ACTIONS = new Set(['created', 'updated', 'deleted']);
 const CACHE_TYPES = new Set(['store', 'product']);
 
@@ -154,6 +156,18 @@ const toUser = (userId, event, payload = {}) => {
     ioRef.to(`user_${id}`).emit(event, { ...payload, at: new Date().toISOString() });
   } catch (err) {
     console.error('[REALTIME_USER_EMIT_ERROR]', err.message);
+  }
+};
+
+// Event to one store's partner-app sockets (room `restaurant_<id>`, joined by joinRestaurant after the server
+// checked the store token). Not debounced. Payloads ids / statuses only. Never throws.
+const toStore = (storeId, event, payload = {}) => {
+  try {
+    const id = safeId(storeId);
+    if (!ioRef || id === null || typeof event !== 'string') return;
+    ioRef.to(`restaurant_${id}`).emit(event, { ...payload, at: new Date().toISOString() });
+  } catch (err) {
+    console.error('[REALTIME_STORE_EMIT_ERROR]', err.message);
   }
 };
 
@@ -288,7 +302,7 @@ const disconnectRevokedSockets = (accountId, tokenVersion = null) => {
 
 module.exports = {
   disconnectRevokedSockets,
-  init, publish, notifyAdmin, toUser, toDriver, broadcast, PUBLIC_EVENT, ADMIN_EVENT, ADMIN_ROOM,
+  init, publish, notifyAdmin, toUser, toStore, toDriver, broadcast, PUBLIC_EVENT, ADMIN_EVENT, ADMIN_ROOM,
   setRiderOnline, deliveryRequest, deliveryRequestGone, leaveOrderRoom,
   RIDERS_ONLINE_ROOM, DELIVERY_REQUEST_EVENT, DELIVERY_REQUEST_GONE_EVENT, CLAIMABLE_STATUSES,
 };
