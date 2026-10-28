@@ -294,3 +294,22 @@ test('admin list: store name, state, style label; audit rows; unknown ids 404', 
   assert.strictEqual((await H.api('PUT', '/api/admin/splash-ads/6f1c1d38-0000-4000-8000-000000000000', admin.token, {})).status, 404);
   assert.strictEqual((await H.api('DELETE', '/api/admin/splash-ads/not-a-uuid', admin.token)).status, 404);
 });
+
+test('preview link: admin makes a 15 min link to an inactive ad; the app reads exactly that ad; bad links 410', async () => {
+  const ad = await create(H.adBody(store, { style: 'peel', isActive: false }));
+  assert.strictEqual((await splash()).length, 0, 'inactive ad is not live');
+  const mk = await H.api('POST', `/api/admin/splash-ads/${ad.id}/preview`, admin.token, {});
+  assert.strictEqual(mk.status, 200, JSON.stringify(mk.body));
+  assert.ok(mk.body.code && mk.body.link.startsWith('zenvy://ad-preview?code='), 'deep link');
+  assert.strictEqual(mk.body.expiresInSec, 900);
+  const got = await H.api('GET', `/api/ads/preview?code=${encodeURIComponent(mk.body.code)}`);
+  assert.strictEqual(got.status, 200, JSON.stringify(got.body));
+  assert.strictEqual(got.body.ad.id, ad.id);
+  assert.strictEqual(got.body.ad.style, 'peel');
+  assert.strictEqual(got.body.ad.store.id, store.id);
+  assert.strictEqual((await H.api('GET', '/api/ads/preview?code=nope')).status, 410);
+  const tampered = mk.body.code.slice(0, -3) + (mk.body.code.endsWith('aaa') ? 'bbb' : 'aaa');
+  assert.strictEqual((await H.api('GET', `/api/ads/preview?code=${encodeURIComponent(tampered)}`)).status, 410);
+  assert.strictEqual((await H.api('POST', `/api/admin/splash-ads/${ad.id}/preview`, student.token, {})).status, 403);
+  assert.strictEqual((await H.api('POST', `/api/admin/splash-ads/${ad.id}/preview`)).status, 401);
+});

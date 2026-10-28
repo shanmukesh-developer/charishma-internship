@@ -9,6 +9,7 @@ import { useAdminAuth } from '@/utils/useAdminAuth';
 import { useLiveSync } from '@/lib/useLiveSync';
 import { formatDateTime } from '@/lib/format';
 import ListImage from '@/components/ListImage';
+import QRCode from 'qrcode';
 import {
   Badge, Button, DataTable, Field, Input, Modal, Notice, PageHeader, Select, StatusPill, Switch, Textarea, useConfirm,
   type Column, IconPlus, IconRefresh,
@@ -436,6 +437,22 @@ export default function SplashAdsPage() {
       setBusyId(null);
     }
   };
+  // Preview on a phone: a signed 15 min link to this ad (works for switched-off and scheduled ads too).
+  const [preview, setPreview] = useState<{ ad: SplashAd; webLink: string; qr: string } | null>(null);
+  const openPreview = async (a: SplashAd) => {
+    if (busyId) return;
+    setBusyId(a.id);
+    setNotice(null);
+    try {
+      const r = await adminRequest<{ code: string; link: string; webLink: string; expiresInSec: number }>(`/api/admin/splash-ads/${a.id}/preview`, { method: 'POST', body: '{}' });
+      const qr = await QRCode.toDataURL(r.webLink, { margin: 1, width: 280, errorCorrectionLevel: 'M' });
+      setPreview({ ad: a, webLink: r.webLink, qr });
+    } catch (e) {
+      setNotice({ kind: 'error', text: errText(e, 'Could not make a preview link.') });
+    } finally {
+      setBusyId(null);
+    }
+  };
   const remove = async (a: SplashAd) => {
     if (busyId) return;
     if (!(await confirm({ title: `Delete the ${STYLE_LABEL[a.style]} ad for ${a.store?.name || 'this store'}?`, description: 'It stops showing in the app. This cannot be undone.', confirmLabel: 'Delete ad', tone: 'danger' }))) return;
@@ -501,6 +518,7 @@ export default function SplashAdsPage() {
       key: 'actions', header: <span className="sr-only">Actions</span>, align: 'right',
       cell: a => (
         <div className="flex justify-end gap-1">
+          <Button size="sm" variant="ghost" disabled={busyId !== null || editing !== null} onClick={() => openPreview(a)}>Preview on phone</Button>
           <Button size="sm" variant="ghost" disabled={busyId !== null || editing !== null} onClick={() => { setNotice(null); setEditing(a); }}>Edit</Button>
           <Button size="sm" variant="ghost" className="text-danger-text" disabled={busyId !== null} loading={busyId === a.id} onClick={() => remove(a)}>Delete</Button>
         </div>
@@ -562,6 +580,27 @@ export default function SplashAdsPage() {
         initialSort={{ key: 'priority', dir: 'desc' }}
         empty={{ title: 'No splash ads yet', description: 'The app goes straight to Home. Create one with New ad.', action: <Button variant="primary" leftIcon={<IconPlus size={14} />} onClick={() => setEditing('new')}>New ad</Button> }}
       />
+
+      {preview && (
+        <Modal
+          open
+          onClose={() => setPreview(null)}
+          size="sm"
+          title="Preview on phone"
+          description={`${STYLE_LABEL[preview.ad.style]} ad for ${preview.ad.store?.name || 'this store'}. Only you see it; it does not switch the ad on.`}
+          footer={<Button variant="primary" onClick={() => setPreview(null)}>Done</Button>}
+        >
+          <div className="flex flex-col items-center gap-3 text-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={preview.qr} alt="QR code for the preview link" width={220} height={220} className="rounded-md bg-white p-2" />
+            <p className="text-sm text-fg-muted">Scan with the phone camera, or send yourself the link and tap it. It opens the ZCS app and plays this ad once. The link works for 15 minutes.</p>
+            <div className="flex w-full gap-2">
+              <Input readOnly value={preview.webLink} aria-label="Preview link" onFocus={e => e.currentTarget.select()} />
+              <Button variant="secondary" onClick={() => { navigator.clipboard?.writeText(preview.webLink).then(() => setNotice({ kind: 'success', text: 'Preview link copied.' })).catch(() => {}); }}>Copy</Button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {editing !== null && (
         <AdEditor

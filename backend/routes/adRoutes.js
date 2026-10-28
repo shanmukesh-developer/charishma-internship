@@ -1,6 +1,8 @@
 // Splash ads: GET /api/ads/splash (public, cached) and /api/admin/splash-ads/* (admins). Mounted in server.js
 // (admin router before /api/admin). Validation + public shape: utils/splashAds.
+const crypto = require('crypto');
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
 const { protect, admin } = require('../middleware/authMiddleware');
 const { getSplashAdModel } = require('../models/SplashAd');
@@ -41,9 +43,18 @@ const liveAds = async () => {
     limit: 50,
   });
   if (!rows.length) return [];
+  return shapeAds(rows, { listedOnly: true });
+};
+
+// Public shape for ad rows: their stores (listedOnly = only stores the public list shows) and up to two
+// products each. Shared by the live list and the admin preview link.
+const shapeAds = async (rows, { listedOnly }) => {
+  const Restaurant = getRestaurantModel();
+  const MenuItem = getMenuItemModel();
+  const now = new Date();
   const { dataUrlSafeColumns } = require('../utils/imageStore');
   const stores = await Restaurant.findAll({
-    where: { id: { [Op.in]: [...new Set(rows.map((r) => r.restaurantId))] }, isActive: true, ...(await require('../utils/receiptSettings').listingWhere()) },
+    where: { id: { [Op.in]: [...new Set(rows.map((r) => r.restaurantId))] }, ...(listedOnly ? { isActive: true, ...(await require('../utils/receiptSettings').listingWhere()) } : {}) },
     attributes: { exclude: ['imageUrl', 'logoUrl', ...STORE_SECRET_FIELDS], include: dataUrlSafeColumns('Restaurant', ['imageUrl']) },
   });
   const storeById = new Map(stores.map((s) => [s.id, s]));
@@ -76,6 +87,51 @@ router.get('/splash', responseCache.cacheGet(CACHE_GROUP, { ttlMs: 30 * 1000 }),
     res.json({ ads: await liveAds() });
   } catch (err) {
     sendServerError(res, err, '[SPLASH_ADS_ERROR]');
+  }
+});
+
+// ── Preview links ───────────────────────────────────────────────────────────────────────────────
+// An admin opens any ad (even switched off or scheduled) on a phone before it goes live: the admin page
+// makes a signed link (15 min) and the app plays exactly that ad once. The link names one ad and nothing
+// else; it is not a login and grants no other access.
+const PREVIEW_TTL_SEC = 15 * 60;
+const previewKey = () => {
+  const sec = process.env.JWT_SECRET;
+  if (!sec) throw new Error('JWT_SECRET is not configured');
+  return crypto.createHash('sha256').update(`${sec}:splash-ad-preview:v1`).digest();
+};
+const signPreview = (adId) => jwt.sign({ aid: String(adId), p: 'adpreview' }, previewKey(), { expiresIn: PREVIEW_TTL_SEC, algorithm: 'HS256' });
+// Tappable https page for the preview link (WhatsApp / a QR scan): one button that opens the ZCS app.
+const escAttr = (v) => String(v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+router.get('/open-preview', (req, res) => {
+  const code = String(req.query.code || '').slice(0, 2000);
+  res.set('Cache-Control', 'private, no-store');
+  res.set('Referrer-Policy', 'no-referrer');
+  res.type('html').send(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ZCS ad preview</title>
+<style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0a0a0b;color:#f5f5f7;font:16px system-ui,sans-serif;text-align:center;padding:24px;box-sizing:border-box}
+a{display:inline-block;margin-top:18px;background:#f4c430;color:#2a1c00;font-weight:700;text-decoration:none;padding:14px 28px;border-radius:99px}p{color:#a1a1aa;font-size:14px;max-width:320px;margin:10px auto 0}</style></head>
+<body><div><h1 style="font-size:22px;margin:0">Sponsored ad preview</h1><p>Opens this ad in the ZCS app on this phone, exactly as students will see it. The link works for 15 minutes.</p>
+<a href="zenvy://ad-preview?code=${escAttr(encodeURIComponent(code))}">Open in ZCS</a></div></body></html>`);
+});
+
+router.get('/preview', async (req, res) => {
+  res.set('Cache-Control', 'private, no-store');
+  let aid = null;
+  try {
+    const d = jwt.verify(String(req.query.code || ''), previewKey(), { algorithms: ['HS256'] });
+    if (d && d.p === 'adpreview' && UUID_RE.test(String(d.aid || ''))) aid = d.aid;
+  } catch (e) {
+    return res.status(410).json({ message: e && e.name === 'TokenExpiredError' ? 'This preview link has expired. Make a new one in admin.' : 'This preview link is not valid.' });
+  }
+  if (!aid) return res.status(410).json({ message: 'This preview link is not valid.' });
+  try {
+    const row = await getSplashAdModel().findByPk(aid);
+    if (!row) return res.status(404).json({ message: 'This ad was deleted.' });
+    const [ad] = await shapeAds([row], { listedOnly: false });
+    if (!ad) return res.status(404).json({ message: "This ad's store no longer exists." });
+    res.json({ ad });
+  } catch (err) {
+    sendServerError(res, err, '[SPLASH_AD_PREVIEW_ERROR]');
   }
 });
 
@@ -216,6 +272,20 @@ const updateWith = (bodyOf, errTag) => async (req, res) => {
 };
 
 adminRouter.put('/:id', updateWith((req) => req.body, '[SPLASH_AD_UPDATE_ERROR]'));
+
+// Preview on a phone: a signed 15 min link to this one ad (zenvy://ad-preview?code=...).
+adminRouter.post('/:id/preview', async (req, res) => {
+  try {
+    const row = await getSplashAdModel().findByPk(req.params.id);
+    if (!row) return res.status(404).json({ message: 'Ad not found.' });
+    const code = signPreview(row.id);
+    audit(req, row.id, 'SPLASH_AD_PREVIEW', {});
+    const base = `${req.protocol}://${req.get('host')}`;
+    res.json({ code, link: `zenvy://ad-preview?code=${encodeURIComponent(code)}`, webLink: `${base}/api/ads/open-preview?code=${encodeURIComponent(code)}`, expiresInSec: PREVIEW_TTL_SEC });
+  } catch (err) {
+    sendServerError(res, err, '[SPLASH_AD_PREVIEW_LINK_ERROR]');
+  }
+});
 // PUT /api/admin/splash-ads/:id/active  { isActive: true|false }  (no body = flip)
 adminRouter.put('/:id/active', updateWith((req, ad) => {
   const v = req.body && req.body.isActive;
