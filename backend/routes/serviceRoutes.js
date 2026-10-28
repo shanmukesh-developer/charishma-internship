@@ -584,9 +584,12 @@ router.post('/:id/claim', protect, approvedRider, async (req, res) => {
     if (!RIDER_POOL_STATUSES.includes(booking.status)) {
       return res.status(409).json({ success: false, code: 'NOT_OPEN', message: booking.status === 'CANCELLED' ? 'The student cancelled this booking.' : 'This booking is no longer open.' });
     }
-    const mine = await ServiceBooking.count({ where: { assignedPartnerId: req.user.id, status: { [Op.notIn]: ['COMPLETED', 'CANCELLED'] } } });
-    if (mine >= MAX_ACTIVE_RIDER_SERVICES) {
-      return res.status(409).json({ success: false, code: 'TOO_MANY', message: `You already have ${mine} pickups. Finish one before taking another.` });
+    // One limit for all a rider carries (utils/riderLoad): orders + shopping lists + pickups together.
+    const riderLoad = require('../utils/riderLoad');
+    const load = await riderLoad.activeJobs(req.user.id, { except: { kind: 'service', id: booking.id } });
+    if (load.total >= riderLoad.MAX_ACTIVE_JOBS) return res.status(409).json(riderLoad.fullBody(load));
+    if (load.services >= MAX_ACTIVE_RIDER_SERVICES) {
+      return res.status(409).json({ success: false, code: 'TOO_MANY', message: `You already have ${load.services} pickups. Finish one before taking another.` });
     }
     const rider = await require('../models/DeliveryPartner').getDeliveryPartnerModel().findByPk(req.user.id, { attributes: ['id', 'name', 'phone', 'vehicleNumber', 'vehicleType'] });
     const driverDetails = cleanDriverDetails({ name: rider && rider.name, phone: rider && rider.phone, vehicleNumber: rider && rider.vehicleNumber, vehicleType: rider && rider.vehicleType });

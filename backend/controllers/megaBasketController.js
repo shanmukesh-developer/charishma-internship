@@ -448,6 +448,11 @@ const claimBasket = async (req, res) => {
       return res.status(409).json({ code: 'SLOT_NOT_OPEN', message: `This list is for the ${basket.deliverySlot} slot. Riders can take it from ${slotsLib.timeLabel(opens)}.`, riderVisibleFrom: opens.toISOString() });
     }
 
+    // One limit for all a rider carries (utils/riderLoad): orders + shopping lists + pickups.
+    const riderLoad = require('../utils/riderLoad');
+    const load = await riderLoad.activeJobs(req.user.id, { except: { kind: 'basket', id: basket.id } });
+    if (load.total >= riderLoad.MAX_ACTIVE_JOBS) return res.status(409).json(riderLoad.fullBody(load));
+
     const [claimed] = await MegaBasket.update(
       { deliveryPartnerId: req.user.id, status: 'PartnerAssigned' },
       { where: { id: basket.id, status: 'PaidEstimate', deliveryPartnerId: null, ...require('../utils/deliverySlots').dispatchDueWhere() } }

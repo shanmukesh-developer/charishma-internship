@@ -15,7 +15,8 @@ const { Transaction } = require('sequelize');
 
 // ── Constants ────────────────────────────────────────────────────────────
 const MAX_PIN_ATTEMPTS = 5; // wrong delivery PINs before the handover is locked for support
-const MAX_ACTIVE_ORDERS = Math.max(1, parseInt(process.env.RIDER_MAX_ACTIVE_ORDERS, 10) || 3); // orders one rider may hold
+const riderLoad = require('../utils/riderLoad');
+const MAX_ACTIVE_ORDERS = riderLoad.MAX_ACTIVE_JOBS; // jobs one rider may hold (orders + shopping lists + pickups)
 
 // What the rider earns for an order (shared with the admin/support "mark delivered" path).
 const { riderPayout, pushNearestRiders, refreshRiderCurrentOrder } = require('../utils/riderDispatch');
@@ -350,17 +351,12 @@ const CLAIMABLE_STATUSES = ['Accepted', 'Preparing', 'ReadyForPickup'];
 const claimForRider = async (riderId, orderId, opts = {}) => {
   const Order = getOrderModel();
   const tx = opts.transaction ? { transaction: opts.transaction } : {};
-  // One rider must not hoard the pool: at most RIDER_MAX_ACTIVE_ORDERS (default 3) at a time.
+  // One rider must not hoard the pool: at most RIDER_MAX_ACTIVE_JOBS (default 3) jobs at a time, counting
+  // orders, shopping lists and service pickups together (utils/riderLoad).
   // (This order itself is not counted, so a retried claim of it still gets its 200 below.)
-  const activeCount = await Order.count({
-    where: {
-      deliveryPartnerId: riderId,
-      id: { [Op.ne]: orderId },
-      status: { [Op.notIn]: ['Delivered', 'Cancelled'] },
-    },
-    ...tx,
-  });
-  if (activeCount >= MAX_ACTIVE_ORDERS) return { activeCount, updatedRows: 0 };
+  const load = await riderLoad.activeJobs(riderId, { except: { kind: 'order', id: orderId }, transaction: opts.transaction || null });
+  const activeCount = load.total;
+  if (activeCount >= MAX_ACTIVE_ORDERS) return { activeCount, updatedRows: 0, load };
   // C6: a rider holding cash >= RIDER_CASH_LIMIT may not take a NEW COD order (prepaid orders are fine).
   const cashBlocked = await riderCash.claimBlockedByCash({ sequelize: Order.sequelize, riderId, orderId, transaction: opts.transaction || null });
   if (cashBlocked) return { activeCount, updatedRows: 0, cashBlocked };
@@ -407,17 +403,14 @@ const acceptOrderLocked = async (req, res) => {
 
     // Active-order limit + atomic claim (Postgres: under the rider row lock; fail open to the
     // unlocked statements, which is the single-process behaviour).
-    const { activeCount, updatedRows, cashBlocked } = (await claimForRiderLocked(req.user.id, req.params.orderId))
+    const { activeCount, updatedRows, cashBlocked, load } = (await claimForRiderLocked(req.user.id, req.params.orderId))
       || (await claimForRider(req.user.id, req.params.orderId));
     if (cashBlocked) {
       // Same 409 family as MAX_ACTIVE: older rider apps show the message; newer ones also show the banner.
       return res.status(409).json(cashBlocked);
     }
     if (activeCount >= MAX_ACTIVE_ORDERS) {
-      return res.status(409).json({
-        code: 'MAX_ACTIVE',
-        message: `You already have ${activeCount} active orders. Deliver one before taking another.`,
-      });
+      return res.status(409).json(riderLoad.fullBody(load || { orders: activeCount, baskets: 0, services: 0, total: activeCount }));
     }
 
     if (updatedRows === 0) {
