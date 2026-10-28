@@ -55,7 +55,14 @@ const normalizeOptions = (raw) => {
       const price = rupees(c && c.price != null && c.price !== '' ? c.price : 0);
       if (!Number.isFinite(price) || price < 0 || price > MAX_PRICE) throw new OptionsInputError(`"${name}" - "${label}": enter a price between 0 and ${MAX_PRICE}.`);
       if (type === VARIANT && price <= 0) throw new OptionsInputError(`"${name}" - "${label}": every weight / size needs its full price.`);
-      choices.push({ label, price });
+      // Weight / size only: an optional MRP for that weight (shown struck through with its % off).
+      let mrp = null;
+      if (type === VARIANT && c && c.mrp != null && c.mrp !== '') {
+        mrp = rupees(c.mrp);
+        if (!Number.isFinite(mrp) || mrp <= 0 || mrp > MAX_PRICE) throw new OptionsInputError(`"${name}" - "${label}": enter an MRP between 1 and ${MAX_PRICE}, or leave it empty.`);
+        if (mrp < price) throw new OptionsInputError(`"${name}" - "${label}": the MRP (${mrp}) cannot be lower than the price (${price}).`);
+      }
+      choices.push(mrp && mrp > price ? { label, price, mrp } : { label, price });
     }
     const group = { name, type, choices };
     if (type === VARIANT) group.required = true;

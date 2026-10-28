@@ -76,3 +76,9 @@ test('automatic weights: grocery / bakery packs of 250 g+ get 250 g / 500 g / 1 
   const own = po.effectiveOptions({ name: 'Amla', price: 140, specs: { weight: '1000g', options: [{ name: 'Size', type: 'variant', choices: [{ label: 'Jar', price: 99 }] }] } }, 'GROCERY');
   assert.deepStrictEqual(own.map((g) => g.name), ['Size']);
 });
+
+test('weight MRPs: kept when above the price, refused when below, dropped when equal', () => {
+  const g = po.normalizeOptions([{ name: 'Weight', type: 'variant', choices: [{ label: '250 g', price: 45, mrp: 60 }, { label: '500 g', price: 90, mrp: 90 }, { label: '1 kg', price: 170 }] }]);
+  assert.deepStrictEqual(g[0].choices, [{ label: '250 g', price: 45, mrp: 60 }, { label: '500 g', price: 90 }, { label: '1 kg', price: 170 }]);
+  assert.throws(() => po.normalizeOptions([{ name: 'Weight', type: 'variant', choices: [{ label: '1 kg', price: 170, mrp: 100 }] }]), /cannot be lower/);
+});

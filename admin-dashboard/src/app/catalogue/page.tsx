@@ -670,7 +670,7 @@ function ItemModal({ store, food, item, categories, defaultCategory, onClose, on
             </Field>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Price" required error={errors.price} hint={fromPrice !== null ? 'Set by the weights below (the lowest one).' : undefined}>
-                <Input prefix="₹" inputMode="decimal" value={fromPrice !== null ? `from ${fromPrice}` : price} onChange={e => setPrice(e.target.value)} readOnly={fromPrice !== null} />
+                <Input prefix="₹" inputMode="decimal" value={fromPrice !== null ? `${fromPrice} (lowest weight)` : price} onChange={e => setPrice(e.target.value)} readOnly={fromPrice !== null} />
               </Field>
               <Field label="MRP" optional error={errors.mrp} hint="Shown struck through when higher than the price.">
                 <Input prefix="₹" inputMode="decimal" value={mrp} onChange={e => setMrp(e.target.value)} />

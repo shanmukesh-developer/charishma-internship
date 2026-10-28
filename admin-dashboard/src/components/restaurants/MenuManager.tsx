@@ -597,7 +597,7 @@ function ItemEditor({ initial, storeName, vendorType, categories, bookingOnly, n
           <div className="grid gap-4 sm:grid-cols-3">
             {hasVariant ? (
               <Field label="Selling price (₹)" error={errors.price} help="Lowest weight / size price.">
-                {({ id, msgId, invalid }) => <input id={id} aria-describedby={msgId} aria-invalid={invalid} readOnly className={cx(INPUT, 'cursor-default bg-surface-2 text-fg-muted')} value={fromPrice !== null ? `from ₹${fromPrice.toLocaleString('en-IN')}` : 'Set weight prices below'} />}
+                {({ id, msgId, invalid }) => <input id={id} aria-describedby={msgId} aria-invalid={invalid} readOnly className={cx(INPUT, 'cursor-default bg-surface-2 text-fg-muted')} value={fromPrice !== null ? `₹${fromPrice.toLocaleString('en-IN')} (lowest weight)` : 'Set weight prices below'} />}
               </Field>
             ) : (
               <Field label="Selling price (₹)" required error={errors.price}>

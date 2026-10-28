@@ -9,7 +9,7 @@ import { Button, INPUT, MenuButton, Toggle, cx, FOCUS_RING } from './ui';
 
 export type OptionType = 'variant' | 'single' | 'multi' | 'text';
 
-export interface ChoiceDraft { key: string; label: string; price: string }
+export interface ChoiceDraft { key: string; label: string; price: string; mrp?: string }
 export interface GroupDraft {
   key: string;
   name: string;
@@ -66,7 +66,7 @@ export function groupsFromSpecs(specs: Record<string, unknown>): GroupDraft[] {
       maxLength: g.maxLength !== undefined && g.maxLength !== null ? str(g.maxLength) : String(LIMITS.textDefault),
       choices: asArray(g.choices).map(c => {
         const o = asObj(c);
-        return { key: newKey(), label: str(o.label), price: o.price !== undefined && o.price !== null ? str(o.price) : '' };
+        return { key: newKey(), label: str(o.label), price: o.price !== undefined && o.price !== null ? str(o.price) : '', mrp: o.mrp !== undefined && o.mrp !== null ? str(o.mrp) : '' };
       }),
     };
   });
@@ -129,6 +129,12 @@ export function validateOptions(groups: GroupDraft[], details: DetailDraft[]): O
       labels.add(label.toLowerCase());
       const pe = priceError(c.price, g.type === 'variant');
       if (pe) e[`c:${c.key}:price`] = pe;
+      // Weight / size: optional MRP for that weight, never below its price.
+      if (g.type === 'variant' && (c.mrp || '').trim()) {
+        const m = Number((c.mrp || '').trim());
+        if (!PRICE_RE.test((c.mrp || '').trim()) || !(m > 0) || m > LIMITS.maxPrice) e[`c:${c.key}:mrp`] = 'Enter a valid MRP or leave it empty.';
+        else if (!pe && m < Number(c.price)) e[`c:${c.key}:mrp`] = 'MRP cannot be lower than the price.';
+      }
     }
 
     if (g.type === 'multi' && g.max.trim()) {
@@ -161,7 +167,11 @@ export function serializeOptions(groups: GroupDraft[]): unknown[] | null {
       const n = Number(g.maxLength.trim());
       return { name, type: 'text', required: g.required, maxLength: g.maxLength.trim() && Number.isInteger(n) ? n : LIMITS.textDefault };
     }
-    const choices = g.choices.filter(c => !isBlankChoice(g, c)).map(c => ({ label: c.label.trim(), price: toRupees(c.price) }));
+    const choices = g.choices.filter(c => !isBlankChoice(g, c)).map(c => ({
+      label: c.label.trim(),
+      price: toRupees(c.price),
+      ...(g.type === 'variant' && (c.mrp || '').trim() ? { mrp: toRupees(c.mrp || '') } : {}),
+    }));
     if (g.type === 'variant') return { name, type: 'variant', choices };
     if (g.type === 'single') return { name, type: 'single', required: g.required, choices };
     return { name, type: 'multi', ...(g.max.trim() ? { max: Number(g.max.trim()) } : {}), choices };
@@ -251,19 +261,25 @@ const packGrams = (text: unknown): number | null => {
   const n = Number(m[1]) * (m[2].startsWith('k') ? 1000 : 1);
   return Number.isFinite(n) && n > 0 ? Math.round(n) : null;
 };
-export function suggestedWeightGroups(item: { name?: string; price?: number | string; specs?: unknown } | null, vendorType?: string | null): GroupDraft[] {
+export function suggestedWeightGroups(item: { name?: string; price?: number | string; originalPrice?: number | string | null; specs?: unknown } | null, vendorType?: string | null): GroupDraft[] {
   if (!item || !AUTO_TYPES.includes(String(vendorType || '').toUpperCase())) return [];
   const specs = (item.specs && typeof item.specs === 'object' ? item.specs : {}) as Record<string, unknown>;
   if (Array.isArray(specs.options) && specs.options.length) return [];
   const grams = packGrams(specs.weight) || packGrams(item.name);
   const price = Number(item.price);
   if (!grams || grams < 250 || !Number.isFinite(price) || price <= 0) return [];
+  const mrpRaw = Number((item as { originalPrice?: unknown }).originalPrice) || Number(specs.originalPrice);
+  const mrp = Number.isFinite(mrpRaw) && mrpRaw > price ? mrpRaw : null;
   const sizes = [...new Set([250, 500, 1000, grams])].filter(g => g >= grams / 4 && g <= grams * 2).sort((a, b) => a - b);
   if (sizes.length < 2) return [];
   const label = (g: number) => (g >= 1000 ? `${Number((g / 1000).toFixed(2))} kg` : `${g} g`);
   return [{
     key: newKey(), name: 'Weight', type: 'variant', required: true, max: '', maxLength: String(LIMITS.textDefault),
-    choices: sizes.map(g => ({ key: newKey(), label: label(g), price: String(g === grams ? Math.round(price * 100) / 100 : Math.max(1, Math.round((price / grams) * g))) })),
+    choices: sizes.map(g => {
+      const p = g === grams ? Math.round(price * 100) / 100 : Math.max(1, Math.round((price / grams) * g));
+      const m = mrp ? (g === grams ? mrp : Math.max(p, Math.round((mrp / grams) * g))) : null;
+      return { key: newKey(), label: label(g), price: String(p), mrp: m && m > p ? String(m) : '' };
+    }),
   }];
 }
 
@@ -413,9 +429,10 @@ export function OptionGroupsEditor({ groups, onChange, errors, showAllErrors }: 
                 {/* Choices */}
                 {g.type !== 'text' && (
                   <div className="space-y-2">
-                    <div className="grid grid-cols-[minmax(0,1fr)_120px_84px] gap-2 px-0.5 text-xs font-medium text-fg-muted" aria-hidden>
+                    <div className={cx('grid gap-2 px-0.5 text-xs font-medium text-fg-muted', g.type === 'variant' ? 'grid-cols-[minmax(0,1fr)_110px_110px_84px]' : 'grid-cols-[minmax(0,1fr)_120px_84px]')} aria-hidden>
                       <span>{g.type === 'variant' ? 'Weight / size' : 'Choice'}</span>
-                      <span>{priceHead} (₹)</span>
+                      <span>{g.type === 'variant' ? 'Selling price (₹)' : `${priceHead} (₹)`}</span>
+                      {g.type === 'variant' && <span>MRP (₹, optional)</span>}
                       <span />
                     </div>
                     <ul className="space-y-2">
@@ -424,7 +441,7 @@ export function OptionGroupsEditor({ groups, onChange, errors, showAllErrors }: 
                         const labelErr = err(`c:${c.key}:label`);
                         const priceErr = err(`c:${c.key}:price`);
                         return (
-                          <li key={c.key} className="grid grid-cols-[minmax(0,1fr)_120px_84px] items-start gap-2">
+                          <li key={c.key} className={cx('grid items-start gap-2', g.type === 'variant' ? 'grid-cols-[minmax(0,1fr)_110px_110px_84px]' : 'grid-cols-[minmax(0,1fr)_120px_84px]')}>
                             <div>
                               <input
                                 aria-label={`${what}: choice ${ci + 1} label`}
@@ -451,6 +468,20 @@ export function OptionGroupsEditor({ groups, onChange, errors, showAllErrors }: 
                               />
                               <ErrorText id={`${c.key}-p-err`}>{priceErr}</ErrorText>
                             </div>
+                            {g.type === 'variant' && (
+                              <div>
+                                <PriceInput
+                                  label={`${what}: ${cWhat} MRP`}
+                                  value={c.mrp || ''}
+                                  placeholder="MRP"
+                                  invalid={!!err(`c:${c.key}:mrp`)}
+                                  describedBy={err(`c:${c.key}:mrp`) ? `${c.key}-m-err` : undefined}
+                                  onChange={mrp => setChoice(g, c.key, { mrp })}
+                                  onBlur={() => touch(`c:${c.key}:mrp`)}
+                                />
+                                <ErrorText id={`${c.key}-m-err`}>{err(`c:${c.key}:mrp`)}</ErrorText>
+                              </div>
+                            )}
                             <span className="flex">
                               <MoveButtons index={ci} count={g.choices.length} what={cWhat} onMove={dir => setGroup(g.key, { choices: move(g.choices, ci, dir) })} />
                               <RemoveButton what={cWhat} onClick={() => setGroup(g.key, { choices: g.choices.filter(x => x.key !== c.key) })} />
