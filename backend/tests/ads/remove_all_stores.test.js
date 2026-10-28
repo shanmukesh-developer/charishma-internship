@@ -49,3 +49,17 @@ test('every store leaves: backup, cancel, delete or hide, marker, once only', as
   assert.strictEqual(await realDataOnly(), true, 'imports now skip');
   assert.deepStrictEqual(await runRemoveAllStores(), { skipped: 'already done' });
 });
+
+test('v2 full clean: hidden stores, their test orders, items and the backup tables go', async () => {
+  const { runRemoveAllStoresV2 } = H.r('scripts/remove_all_stores_v2');
+  const r = await runRemoveAllStoresV2();
+  assert.strictEqual(r.stores, 2, JSON.stringify(r));
+  assert.strictEqual(r.orders, 2);
+  assert.deepStrictEqual(r.errors, []);
+  assert.strictEqual(await ctx.M('Restaurant').count(), 0);
+  assert.strictEqual(await ctx.M('MenuItem').count(), 0);
+  assert.strictEqual(await ctx.M('Order').count(), 0);
+  const [tables] = await ctx.sequelize.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE '_zcs_backup_%'");
+  assert.strictEqual(tables.length, 0, 'backup tables dropped');
+  assert.deepStrictEqual(await runRemoveAllStoresV2(), { skipped: 'already done' });
+});

@@ -1346,6 +1346,10 @@ const initializeApp = async () => {
     inBootQueue(() => runRemoveAllStores({ io }))
       .then((r) => console.log('🧹 [REMOVE_ALL_STORES]', JSON.stringify(r)))
       .catch((err) => console.warn('⚠️ [REMOVE_ALL_STORES] failed:', err.message));
+    // Then the full clean (owner: no backups, old test orders go too): scripts/remove_all_stores_v2.
+    inBootQueue(() => require('./scripts/remove_all_stores_v2').runRemoveAllStoresV2())
+      .then((r) => console.log('🧹 [REMOVE_ALL_STORES_V2]', JSON.stringify(r)))
+      .catch((err) => console.warn('⚠️ [REMOVE_ALL_STORES_V2] failed:', err.message));
 
     // 🛒 Catalogue import (idempotent, ledger-keyed): the store products the app used to hardcode.
     // Runs in the background so the port opens immediately; already-imported keys are never touched.
