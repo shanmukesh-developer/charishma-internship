@@ -240,6 +240,33 @@ function PriceInput({ value, onChange, onBlur, invalid, describedBy, label, plac
   );
 }
 
+// ─── Suggested weights (same rule as backend/utils/productOptions.autoWeightOptions) ─────────────
+// A grocery / bakery product sold by weight (pack of 250 g or more) with no saved choices is sold with automatic
+// 250 g / 500 g / 1 kg weights priced per gram. The editor starts with those rows filled in, so the admin only
+// corrects prices (or weights) and saves; saving stores them as the admin's own.
+const AUTO_TYPES = ['GROCERY', 'BAKERY'];
+const packGrams = (text: unknown): number | null => {
+  const m = String(text || '').toLowerCase().match(/(\d+(?:\.\d+)?)\s*(kgs?|kilograms?|kilos?|g|gms?|grams?)(?![a-z])/);
+  if (!m) return null;
+  const n = Number(m[1]) * (m[2].startsWith('k') ? 1000 : 1);
+  return Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+};
+export function suggestedWeightGroups(item: { name?: string; price?: number | string; specs?: unknown } | null, vendorType?: string | null): GroupDraft[] {
+  if (!item || !AUTO_TYPES.includes(String(vendorType || '').toUpperCase())) return [];
+  const specs = (item.specs && typeof item.specs === 'object' ? item.specs : {}) as Record<string, unknown>;
+  if (Array.isArray(specs.options) && specs.options.length) return [];
+  const grams = packGrams(specs.weight) || packGrams(item.name);
+  const price = Number(item.price);
+  if (!grams || grams < 250 || !Number.isFinite(price) || price <= 0) return [];
+  const sizes = [...new Set([250, 500, 1000, grams])].filter(g => g >= grams / 4 && g <= grams * 2).sort((a, b) => a - b);
+  if (sizes.length < 2) return [];
+  const label = (g: number) => (g >= 1000 ? `${Number((g / 1000).toFixed(2))} kg` : `${g} g`);
+  return [{
+    key: newKey(), name: 'Weight', type: 'variant', required: true, max: '', maxLength: String(LIMITS.textDefault),
+    choices: sizes.map(g => ({ key: newKey(), label: label(g), price: String(g === grams ? Math.round(price * 100) / 100 : Math.max(1, Math.round((price / grams) * g))) })),
+  }];
+}
+
 // ─── Choices the customer picks ─────────────────────────────────────────────
 const PRESETS: { id: string; label: string; make: () => GroupDraft }[] = [
   { id: 'variant', label: 'Weight / size', make: () => ({ key: newKey(), name: 'Weight', type: 'variant', required: true, max: '', maxLength: String(LIMITS.textDefault), choices: [blankChoice()] }) },

@@ -2,7 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 import {
   DetailDraft, GroupDraft, OptionGroupsEditor, ProductDetailsEditor,
-  detailsFromSpecs, groupsFromSpecs, serializeDetails, serializeOptions, validateOptions, variantMinPrice,
+  detailsFromSpecs, groupsFromSpecs, serializeDetails, serializeOptions, suggestedWeightGroups, validateOptions, variantMinPrice,
 } from '@/components/restaurants/ProductOptionsEditor';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -554,7 +554,9 @@ function ItemModal({ store, food, item, categories, defaultCategory, onClose, on
   // Customer choices (weights with their own prices, half / full, pieces, flavours) and ordered product
   // details: the same editor as Restaurants > Menu (docs/PRODUCT_OPTIONS.md).
   const startSpecs = (item?.specs || {}) as Record<string, unknown>;
-  const [groups, setGroups] = useState<GroupDraft[]>(() => groupsFromSpecs(startSpecs));
+  // No saved choices on a weight-sold grocery / bakery product: start from the automatic weights the app shows.
+  const suggested = useMemo(() => (item ? suggestedWeightGroups(item as any, store.vendorType) : []), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const [groups, setGroups] = useState<GroupDraft[]>(() => { const own = groupsFromSpecs(startSpecs); return own.length ? own : suggested; });
   const [details, setDetails] = useState<DetailDraft[]>(() => detailsFromSpecs(startSpecs));
   const [showOptionErrors, setShowOptionErrors] = useState(false);
   const optionErrors = useMemo(() => validateOptions(groups, details), [groups, details]);
@@ -695,6 +697,7 @@ function ItemModal({ store, food, item, categories, defaultCategory, onClose, on
           <Textarea rows={3} value={description} onChange={e => setDescription(e.target.value)} maxLength={1000} />
         </Field>
         <Switch checked={inStock} onChange={setInStock} label="In stock" description="Out-of-stock items stay listed but customers cannot add them to the cart." />
+        {suggested.length > 0 && <Notice tone="warning">These 250 g / 500 g / 1 kg weights are filled in automatically from the price (customers see them now). Correct any price or weight and save to make them your own.</Notice>}
         <OptionGroupsEditor groups={groups} onChange={setGroups} errors={optionErrors} showAllErrors={showOptionErrors} />
         <ProductDetailsEditor details={details} onChange={setDetails} errors={optionErrors} showAllErrors={showOptionErrors} />
         {showOptionErrors && Object.keys(optionErrors).length > 0 && <Notice tone="danger">Fix the highlighted choices or details before saving.</Notice>}

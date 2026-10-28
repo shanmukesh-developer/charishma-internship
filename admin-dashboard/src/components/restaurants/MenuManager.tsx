@@ -7,7 +7,7 @@ import { ImagePicker, TagInput } from './inputs';
 import { bulkUpdateItems, describeBulk, duplicateItemPayload } from './storeActions';
 import {
   DetailDraft, GroupDraft, OptionGroupsEditor, ProductDetailsEditor,
-  detailsFromSpecs, groupsFromSpecs, serializeDetails, serializeOptions, validateOptions, variantMinPrice,
+  detailsFromSpecs, groupsFromSpecs, serializeDetails, serializeOptions, suggestedWeightGroups, validateOptions, variantMinPrice,
 } from './ProductOptionsEditor';
 import { API_URL } from '@/lib/config';
 import {
@@ -333,6 +333,7 @@ export function MenuManager({ store }: { store: Store }) {
         <ItemEditor
           initial={editing === 'new' ? null : editing}
           storeName={store.name}
+          vendorType={store.vendorType}
           categories={categories.filter(c => c !== UNCATEGORISED)}
           bookingOnly={bookingOnly}
           nextSortOrder={(products.reduce((m, p) => Math.max(m, Number.isFinite(sortOrderOf(p)) ? sortOrderOf(p) : 0), 0) || 0) + 10}
@@ -464,9 +465,10 @@ const timeUntil = (d: Date) => {
 };
 
 // ─── Item editor ─────────────────────────────────────────────────────────────
-function ItemEditor({ initial, storeName, categories, bookingOnly, nextSortOrder, onClose, onSave, onSaved }: {
+function ItemEditor({ initial, storeName, vendorType, categories, bookingOnly, nextSortOrder, onClose, onSave, onSaved }: {
   initial: Product | null;
   storeName: string;
+  vendorType?: string | null;
   categories: string[];
   bookingOnly: boolean;
   nextSortOrder: number;
@@ -499,7 +501,9 @@ function ItemEditor({ initial, storeName, categories, bookingOnly, nextSortOrder
   const set = (patch: Partial<typeof form>) => setForm(prev => ({ ...prev, ...patch }));
   const isBooking = !!specs.bookingOnly || bookingOnly;
   // Customer choices (specs.options) and ordered product details (specs.details): docs/PRODUCT_OPTIONS.md.
-  const [groups, setGroups] = useState<GroupDraft[]>(() => groupsFromSpecs(specs));
+  // No saved choices on a weight-sold grocery / bakery product: start from the automatic weights the app shows.
+  const suggested = useMemo(() => (initial ? suggestedWeightGroups(initial as any, vendorType) : []), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const [groups, setGroups] = useState<GroupDraft[]>(() => { const own = groupsFromSpecs(specs); return own.length ? own : suggested; });
   const [details, setDetails] = useState<DetailDraft[]>(() => detailsFromSpecs(specs));
   const [showOptionErrors, setShowOptionErrors] = useState(false);
   const optionErrors = useMemo(() => validateOptions(groups, details), [groups, details]);
@@ -634,6 +638,7 @@ function ItemEditor({ initial, storeName, categories, bookingOnly, nextSortOrder
             <Toggle tone="amber" checked={form.isEliteOnly} onChange={isEliteOnly => set({ isEliteOnly })} label="Elite members only" description="Only ZCS Elite customers can add it." />
             <Toggle tone="amber" checked={form.isSpecializedCake} onChange={isSpecializedCake => set({ isSpecializedCake })} label="Specialized cake" description="Custom or designer cake: orders close 2½ hours before the delivery slot (normal cakes 2 hours)." />
           </div>
+          {suggested.length > 0 && <Callout tone="amber">These 250 g / 500 g / 1 kg weights are filled in automatically from the price (customers see them now). Correct any price or weight and save to make them your own.</Callout>}
           <OptionGroupsEditor groups={groups} onChange={setGroups} errors={optionErrors} showAllErrors={showOptionErrors} />
           <ProductDetailsEditor details={details} onChange={setDetails} errors={optionErrors} showAllErrors={showOptionErrors} />
           {showOptionErrors && Object.keys(optionErrors).length > 0 && <Callout tone="red">Fix the highlighted choices or details before saving.</Callout>}
