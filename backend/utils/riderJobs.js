@@ -25,7 +25,14 @@ const announceJob = async ({ kind, id, title, body, limit = 10 }) => {
   realtime.riderJob(kind, id, 'new');
   try {
     const { rankOnlineRiders, RIDER_PUSH_ANDROID } = require('./riderDispatch');
-    const ranked = await rankOnlineRiders(null);
+    let ranked = await rankOnlineRiders(null);
+    // Riders already at the 3-job limit cannot claim it: they no longer take push slots from riders who can.
+    try {
+      const full = await require('./riderLoad').fullRiderIds(ranked.map(({ rider }) => rider.id));
+      if (full.size) ranked = ranked.filter(({ rider }) => !full.has(String(rider.id)));
+    } catch (countErr) {
+      console.warn('[RIDER_JOB_COUNT_WARN]', countErr.message);
+    }
     const tokens = ranked.slice(0, limit).flatMap(({ rider }) => tokensOf(rider));
     if (!tokens.length) return 0;
     await require('./push').sendPushToTokens(tokens, title, body, { type: NEW_JOB_PUSH, kind, jobId: String(id) }, {

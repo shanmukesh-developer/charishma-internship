@@ -42,4 +42,43 @@ const fullBody = (load) => {
   };
 };
 
-module.exports = { MAX_ACTIVE_JOBS, activeJobs, fullBody };
+/**
+ * Riders (of `riderIds`) already carrying MAX_ACTIVE_JOBS of any kind: three grouped counts for the whole list.
+ * Dispatch uses it so a rider who cannot claim (3 shopping lists, say) never takes a push slot from one who can.
+ */
+const fullRiderIds = async (riderIds) => {
+  const ids = (riderIds || []).map(String);
+  if (!ids.length) return new Set();
+  const { fn, col } = require('sequelize');
+  const load = new Map();
+  const add = (rows, key) => rows.forEach((r) => load.set(String(r[key]), (load.get(String(r[key])) || 0) + Number(r.n || 0)));
+  const { getOrderModel } = require('../models/Order');
+  const { getMegaBasketModel } = require('../models/MegaBasket');
+  const { getServiceBookingModel } = require('../models/ServiceBooking');
+  const count = (Model, key, done) => (Model ? Model.findAll({
+    attributes: [key, [fn('COUNT', col('id')), 'n']],
+    where: { [key]: { [Op.in]: ids }, status: { [Op.notIn]: done } },
+    group: [key],
+    raw: true,
+  }).then((rows) => add(rows, key)) : Promise.resolve());
+  await Promise.all([
+    count(getOrderModel(), 'deliveryPartnerId', ['Delivered', 'Cancelled']),
+    count(getMegaBasketModel(), 'deliveryPartnerId', ['Delivered', 'Cancelled']),
+    count(getServiceBookingModel(), 'assignedPartnerId', ['COMPLETED', 'CANCELLED']),
+  ]);
+  return new Set([...load].filter(([, n]) => n >= MAX_ACTIVE_JOBS).map(([id]) => id));
+};
+
+/**
+ * Locks the rider's row inside `transaction` (PostgreSQL FOR UPDATE), so two claims of different kinds tapped
+ * at once (an order, a pickup, a shopping list) are counted one after the other, not both against the same
+ * count: the 3-at-a-time limit could be exceeded by fast parallel taps. Order claims already lock this row.
+ */
+const lockRider = async (riderId, transaction) => {
+  if (!riderId || !transaction) return;
+  const { getDeliveryPartnerModel } = require('../models/DeliveryPartner');
+  const DeliveryPartner = getDeliveryPartnerModel();
+  if (DeliveryPartner) await DeliveryPartner.findByPk(riderId, { attributes: ['id'], transaction, lock: transaction.LOCK.UPDATE });
+};
+
+module.exports = { MAX_ACTIVE_JOBS, activeJobs, fullBody, fullRiderIds, lockRider };

@@ -19,14 +19,35 @@ let cachedRestaurantsAt = 0;
 const RESTAURANTS_CACHE_TTL_MS = 60 * 1000;
 const extraCacheClears = [];
 const responseCache = require('../utils/responseCache');
-const clearRestaurantsCacheLocal = () => {
+const clearRestaurantsCacheNow = () => {
   cachedRestaurantsResponse = null;
   cachedRestaurantsAt = 0;
   try { responseCache.invalidate('catalog'); } catch { /* never break a write */ }
   for (const fn of extraCacheClears) { try { fn(); } catch { /* never break a write */ } }
 };
+// A clear runs at once; more clears within CATALOG_CLEAR_GAP_MS are folded into one more clear at the end of
+// that gap. At lunch every store toggling stock cleared the catalogue many times a second, and each clear meant
+// a full rebuild (every menu item loaded and serialised on the one CPU) for the next customer.
+const CATALOG_CLEAR_GAP_MS = Math.max(0, Number(process.env.CATALOG_CLEAR_GAP_MS ?? (process.env.NODE_ENV === 'test' ? 0 : 3000)));
+let lastCatalogClearAt = 0;
+let catalogClearTimer = null;
+const clearRestaurantsCacheLocal = () => {
+  const since = Date.now() - lastCatalogClearAt;
+  if (!CATALOG_CLEAR_GAP_MS || since >= CATALOG_CLEAR_GAP_MS) {
+    lastCatalogClearAt = Date.now();
+    clearRestaurantsCacheNow();
+    return;
+  }
+  if (catalogClearTimer) return;
+  catalogClearTimer = setTimeout(() => {
+    catalogClearTimer = null;
+    lastCatalogClearAt = Date.now();
+    clearRestaurantsCacheNow();
+  }, CATALOG_CLEAR_GAP_MS - since);
+  if (catalogClearTimer.unref) catalogClearTimer.unref();
+};
 // B1: with REDIS_URL set every other instance clears its listing caches too (utils/cacheBus).
-const clearRestaurantsCache = require('../utils/cacheBus').wrap('restaurants.list', clearRestaurantsCacheLocal, { resync: clearRestaurantsCacheLocal });
+const clearRestaurantsCache = require('../utils/cacheBus').wrap('restaurants.list', clearRestaurantsCacheLocal, { resync: clearRestaurantsCacheNow });
 exports.clearRestaurantsCache = clearRestaurantsCache;
 // Other listing caches (GET /api/restaurants) register here so every store/product change clears them.
 exports.onRestaurantsCacheClear = (fn) => { if (typeof fn === 'function') extraCacheClears.push(fn); };
@@ -913,7 +934,10 @@ exports.getAllRiders = async (req, res) => {
   try {
     const DeliveryPartner = getDeliveryPartnerModel();
     // Clamped like getAllUsers: a huge or negative limit / page can never dump or break the query.
-    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 100);
+    // A filtered list (approved riders for the fleet map, SOS riders) may come in one page of up to 500,
+    // so the dashboard no longer chains page after page of 100 before the map can draw.
+    const filtered = ['1', 'true'].includes(req.query.approved) || ['1', 'true'].includes(req.query.sosActive);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), filtered ? 500 : 100);
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
     const offset = (page - 1) * limit;
     // Optional filters (the dashboard SOS modal only needs riders with an active SOS; the fleet map
@@ -1321,7 +1345,13 @@ exports.getPublicConfig = async (req, res) => {
 };
 
 // ─── Dashboard Stats ──────────────────────────────────────────
+// The same platform-wide numbers for every admin: one computed copy is reused for 10 s (the dashboard asks
+// on load, on its 60 s poll and after order / rider events, and each ask counted and summed the whole
+// Orders table).
+const STATS_TTL_MS = 10 * 1000;
+let statsCache = null; // { at, body }
 exports.getDashboardStats = async (req, res) => {
+  if (statsCache && statsCache.body && Date.now() - statsCache.at < STATS_TTL_MS) return res.json(statsCache.body);
   try {
     const Order = getOrderModel();
     const DeliveryPartner = getDeliveryPartnerModel();
@@ -1350,7 +1380,7 @@ exports.getDashboardStats = async (req, res) => {
     const activeRevenue = Number(activeStats?.revenue || 0);
     const activeOrdersCount = Number(activeStats?.count || 0);
 
-    res.json({
+    const body = {
       revenue: `₹${totalRevenue.toLocaleString()}`,
       activeRevenue: `₹${activeRevenue.toLocaleString()}`,
       orderActivity: totalOrders.toString(),
@@ -1358,7 +1388,9 @@ exports.getDashboardStats = async (req, res) => {
       commission: `₹${Math.round(totalRevenue * 0.1).toLocaleString()}`,
       activeOrders: activeOrdersCount.toString(),
       localVendorCount: localVendorCount.toString()
-    });
+    };
+    statsCache = { at: Date.now(), body };
+    res.json(body);
   } catch (error) {
     sendServerError(res, error, '[ADMINCONTROLLER_ERROR]');
   }
@@ -2781,15 +2813,6 @@ exports.getAttentionCounts = async (req, res) => {
       return null;
     }
   };
-  const stallStuck = require('../utils/stallStuckJob');
-  const [tickets, verifications, pgBookings, wallPending, serviceRequests, stuckStallOrders] = await Promise.all([
-    safeCount(() => require('../models/Ticket').getTicketModel(), { status: { [Op.in]: ['Open', 'In Progress'] } }),
-    safeCount(() => require('../modules/campus/models/Verification').getVerificationModel(), { status: 'pending', type: 'id_card' }),
-    safeCount(() => require('../models/PGBooking').getPGBookingModel(), { status: 'Pending' }),
-    safeCount(() => require('../models/WallSubmission').getWallSubmissionModel(), { isApproved: false }),
-    safeCount(() => require('../models/ServiceBooking').getServiceBookingModel(), { status: 'REQUESTED' }),
-    safeCount(() => require('../models/Order').getOrderModel(), stallStuck.stuckStallWhere(stallStuck.STUCK_HOURS)),
-  ]);
   // More review queues for the admin overview's "Needs attention" list (added keys only; older admin
   // builds ignore them). Module models are looked up on the shared Sequelize instance; a module that is
   // not loaded (or a table that is missing) gives null, which the admin shows as "–".
@@ -2798,7 +2821,18 @@ exports.getAttentionCounts = async (req, res) => {
     const s = getSequelize();
     return (s && s.models && s.models[name]) || null;
   };
-  const [riderApprovals, payoutsPending, autoDrivers, autoVehicles, eventsToReview, rentalListings, rentalLicences, rentalReports, rentalDisputes, friendsReports, friendsAppeals] = await Promise.all([
+  const stallStuck = require('../utils/stallStuckJob');
+  // Both groups of counts run together (they used to be two batches one after the other: one extra
+  // database round trip, ~180 ms, on every dashboard refresh).
+  const firstGroup = Promise.all([
+    safeCount(() => require('../models/Ticket').getTicketModel(), { status: { [Op.in]: ['Open', 'In Progress'] } }),
+    safeCount(() => require('../modules/campus/models/Verification').getVerificationModel(), { status: 'pending', type: 'id_card' }),
+    safeCount(() => require('../models/PGBooking').getPGBookingModel(), { status: 'Pending' }),
+    safeCount(() => require('../models/WallSubmission').getWallSubmissionModel(), { isApproved: false }),
+    safeCount(() => require('../models/ServiceBooking').getServiceBookingModel(), { status: 'REQUESTED' }),
+    safeCount(() => require('../models/Order').getOrderModel(), stallStuck.stuckStallWhere(stallStuck.STUCK_HOURS)),
+  ]);
+  const secondGroup = Promise.all([
     // New rider sign-ups waiting for approval (deactivated riders have suspendedAt set and are not counted).
     safeCount(() => require('../models/DeliveryPartner').getDeliveryPartnerModel(), { isApproved: false, suspendedAt: null }),
     safeCount(() => require('../models/Payout').getPayoutModel(), { status: 'PENDING' }),
@@ -2812,6 +2846,10 @@ exports.getAttentionCounts = async (req, res) => {
     safeCount(model('FriendsReport'), { status: 'open' }),
     safeCount(model('FriendsAppeal'), { status: 'open' }),
   ]);
+  const [
+    [tickets, verifications, pgBookings, wallPending, serviceRequests, stuckStallOrders],
+    [riderApprovals, payoutsPending, autoDrivers, autoVehicles, eventsToReview, rentalListings, rentalLicences, rentalReports, rentalDisputes, friendsReports, friendsAppeals],
+  ] = await Promise.all([firstGroup, secondGroup]);
   res.set('Cache-Control', 'no-store');
   res.json({
     tickets, verifications, pgBookings, wallPending, serviceRequests, stuckStallOrders, stuckStallHours: stallStuck.STUCK_HOURS,
@@ -2939,6 +2977,9 @@ exports.assignOrderRider = async (req, res) => {
       io.to(String(order.id)).emit('statusUpdated', payload);
       io.to('admin-room').emit('statusUpdated', payload);
       if (order.restaurantId) io.to(`restaurant_${order.restaurantId}`).emit('statusUpdated', payload);
+      // The new rider is not in the order room yet: tell their own room, so the app refetches its active
+      // orders now instead of on the next poll (or never, with no working push token).
+      if (newRiderId) io.to(`rider_${newRiderId}`).emit('statusUpdated', payload);
       if (!newRiderId) io.to('admin-room').emit('order_unassigned', { orderId: order.id, reason: 'Removed by ZCS support' });
     }
     realtime.notifyAdmin('order', 'updated', order.id);

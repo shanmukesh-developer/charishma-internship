@@ -176,7 +176,6 @@ const RIDER_SERVICE_TYPES = ['LAUNDRY', 'TAILORING', 'LAPTOP_REPAIR', 'PHONE_REP
 // Before the items are collected: a rider may still claim (pool) or hand it back (release).
 const RIDER_POOL_STATUSES = ['REQUESTED', 'DIAGNOSED_QUOTED', 'CONFIRMED'];
 const RIDER_POOL_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-const MAX_ACTIVE_RIDER_SERVICES = Math.max(1, parseInt(process.env.RIDER_MAX_ACTIVE_SERVICES, 10) || 5);
 const isRiderUser = (user) => !!(user && typeof user.role === 'string' && user.role.toLowerCase() === 'rider');
 const isRiderService = (booking) => !!booking && RIDER_SERVICE_TYPES.includes(String(booking.serviceType || ''));
 const serviceLabel = (booking) => String((booking.specifications || {}).serviceName || booking.title || 'Service').trim().slice(0, 60) || 'Service';
@@ -586,16 +585,26 @@ router.post('/:id/claim', protect, approvedRider, async (req, res) => {
     }
     // One limit for all a rider carries (utils/riderLoad): orders + shopping lists + pickups together.
     const riderLoad = require('../utils/riderLoad');
-    const load = await riderLoad.activeJobs(req.user.id, { except: { kind: 'service', id: booking.id } });
-    if (load.total >= riderLoad.MAX_ACTIVE_JOBS) return res.status(409).json(riderLoad.fullBody(load));
-    if (load.services >= MAX_ACTIVE_RIDER_SERVICES) {
-      return res.status(409).json({ success: false, code: 'TOO_MANY', message: `You already have ${load.services} pickups. Finish one before taking another.` });
-    }
     const rider = await require('../models/DeliveryPartner').getDeliveryPartnerModel().findByPk(req.user.id, { attributes: ['id', 'name', 'phone', 'vehicleNumber', 'vehicleType'] });
     const driverDetails = cleanDriverDetails({ name: rider && rider.name, phone: rider && rider.phone, vehicleNumber: rider && rider.vehicleNumber, vehicleType: rider && rider.vehicleType });
     const history = Array.isArray(booking.trackingHistory) ? [...booking.trackingHistory] : [];
     history.push({ stage: booking.status, timestamp: new Date().toISOString(), note: `${firstWord(rider && rider.name)} (ZCS rider) will collect it${booking.pickupSlot ? ` (${booking.pickupSlot})` : ''}.` });
-    const saved = await saveIfUnchanged(ServiceBooking, booking, { assignedPartnerId: req.user.id, driverDetails, trackingHistory: history }, { assignedPartnerId: null });
+    // Count + claim under the rider's row lock (utils/riderLoad.lockRider): parallel taps on an order, a pickup
+    // and a shopping list each saw the same count and all succeeded, past the 3-at-a-time limit.
+    // IMMEDIATE: SQLite (tests, local) takes the write lock up front so parallel claims queue instead of failing
+    // with SQLITE_BUSY; PostgreSQL ignores the type (the rider row lock does the work there).
+    const outcome = await ServiceBooking.sequelize.transaction({ type: require('sequelize').Transaction.TYPES.IMMEDIATE }, async (t) => {
+      await riderLoad.lockRider(req.user.id, t);
+      const load = await riderLoad.activeJobs(req.user.id, { except: { kind: 'service', id: booking.id }, transaction: t });
+      if (load.total >= riderLoad.MAX_ACTIVE_JOBS) return { full: load };
+      const [n] = await ServiceBooking.update(
+        { assignedPartnerId: req.user.id, driverDetails, trackingHistory: history },
+        { where: { id: booking.id, status: booking.status, assignedPartnerId: null }, transaction: t }
+      );
+      return { claimed: n > 0 };
+    });
+    if (outcome.full) return res.status(409).json(riderLoad.fullBody(outcome.full));
+    const saved = outcome.claimed ? await ServiceBooking.findByPk(booking.id) : null;
     if (!saved) return res.status(409).json({ success: false, code: 'ALREADY_CLAIMED', message: 'Another rider just took this pickup.' });
 
     riderJobs.jobGone('service', saved.id);

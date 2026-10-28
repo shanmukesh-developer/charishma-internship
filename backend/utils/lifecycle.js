@@ -8,11 +8,11 @@
 //                    is really ready, and an instance whose database is gone stops receiving traffic.
 //   GET /api/health  unchanged shape for existing monitors / keep-alive; reads the cached ping.
 //
-// Database ping: one `SELECT 1` every DB_PING_INTERVAL_MS (5 s) with a DB_PING_TIMEOUT_MS (1 s) timeout,
+// Database ping: one `SELECT 1` every DB_PING_INTERVAL_MS (5 s) with a DB_PING_TIMEOUT_MS (5 s) timeout,
 // never one query per health request. Never two pings at once (a ping that timed out is still waited
 // for before the next one starts, so a stuck pool holds at most one extra waiter). The ping counts as
-// failed after DB_PING_FAILS_TO_UNREADY consecutive failures (default 2, i.e. one blip under load does
-// not take the instance out of rotation) or when the last success is older than 3 intervals.
+// failed after DB_PING_FAILS_TO_UNREADY consecutive failures (default 6, ~30 s: a busy pool under load does
+// not take the instance out of rotation) or when the last success is older than that many intervals.
 //
 // Graceful shutdown (SIGTERM / SIGINT, or requestShutdown() from tests / tools), bounded by
 // SHUTDOWN_TIMEOUT_MS (default 25000; Render waits maxShutdownDelaySeconds before SIGKILL):
@@ -37,8 +37,11 @@ const num = (v, def, min = 0) => {
 };
 const config = () => ({
   pingIntervalMs: num(process.env.DB_PING_INTERVAL_MS, 5000, 250),
-  pingTimeoutMs: num(process.env.DB_PING_TIMEOUT_MS, 1000, 50),
-  failsToUnready: num(process.env.DB_PING_FAILS_TO_UNREADY, 2, 1),
+  // 5 s / 6 fails (~30 s): the ping waits in the same pool as user requests, and under load a pool wait of
+  // 2-3 s is normal. A 1 s timeout x 2 fails marked a busy-but-healthy instance not ready, Render pulled it
+  // from rotation and restarted it, every socket dropped and reconnected at once: a restart loop under load.
+  pingTimeoutMs: num(process.env.DB_PING_TIMEOUT_MS, 5000, 50),
+  failsToUnready: num(process.env.DB_PING_FAILS_TO_UNREADY, 6, 1),
   shutdownTimeoutMs: num(process.env.SHUTDOWN_TIMEOUT_MS, 25000, 1000),
   socketDrainMs: num(process.env.SOCKET_DRAIN_MS, 8000, 0),
 });
@@ -113,8 +116,8 @@ const pingDb = () => {
 
 const dbHealthy = () => {
   if (!ping.ok) return false;
-  const { pingIntervalMs, pingTimeoutMs } = config();
-  return Date.now() - ping.lastOkAt <= pingIntervalMs * 3 + pingTimeoutMs;
+  const { pingIntervalMs, pingTimeoutMs, failsToUnready } = config();
+  return Date.now() - ping.lastOkAt <= pingIntervalMs * Math.max(3, failsToUnready) + pingTimeoutMs;
 };
 
 /** Start the background ping loop. getSequelize: () => Sequelize | null (may be null until connectDB). */

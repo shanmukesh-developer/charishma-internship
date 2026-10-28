@@ -1,5 +1,5 @@
 const express = require('express');
-const { registerPartner, authPartner, refreshPartnerToken, acceptOrder, getPendingOrders, getActiveOrders, updateOrderStatus, toggleOnline, getOrderHistory, saveFcmToken, getLeaderboard, getRiderProfile, updateRiderProfile, getPublicRiderProfile, getTodayStats, cancelOrderByRider, changePassword, notifyArrivalAtGate, getWeekStats, getStatsRange, createRiderTicket, getRiderTickets, removeFcmToken, triggerSos } = require('../controllers/deliveryPartnerController');
+const { registerPartner, authPartner, refreshPartnerToken, acceptOrder, getPendingOrders, getActiveOrders, updateOrderStatus, toggleOnline, getOrderHistory, saveFcmToken, getLeaderboard, getRiderProfile, updateRiderProfile, getPublicRiderProfile, getTodayStats, cancelOrderByRider, changePassword, notifyArrivalAtGate, getWeekStats, getStatsRange, createRiderTicket, getRiderTickets, removeFcmToken, triggerSos, saveRiderLocation } = require('../controllers/deliveryPartnerController');
 const { protect, rider } = require('../middleware/authMiddleware');
 const rateLimit = require('express-rate-limit');
 const router = express.Router();
@@ -22,9 +22,10 @@ router.post('/refresh-token', protect, rider, refreshPartnerToken);
 router.post('/fcm-token', protect, rider, saveFcmToken);
 // Logout on this phone: stop order pushes to its token (partners-3). Any rider session, approved or not.
 router.post('/fcm-token/remove', protect, rider, removeFcmToken);
-// Rider SOS (admin-11): any signed-in rider, approved or not. Rate limited per IP.
-const sosLimiter = rateLimit({ windowMs: 60 * 1000, max: 10, message: { message: 'Too many SOS requests. If you are in danger call 112.' }, ...require('../utils/sharedRateLimit').expressStore('rider.sosLimiter') });
-router.post('/sos', sosLimiter, protect, rider, triggerSos);
+// Rider SOS (admin-11): any signed-in rider, approved or not. Rate limited per rider (it was per IP and checked
+// before sign-in, so every rider on one network shared 10 a minute).
+const sosLimiter = rateLimit({ windowMs: 60 * 1000, max: 10, keyGenerator: (req) => `rider:${req.user && req.user.id}`, message: { message: 'Too many SOS requests. If you are in danger call 112.' }, ...require('../utils/sharedRateLimit').expressStore('rider.sosLimiter') });
+router.post('/sos', protect, rider, sosLimiter, triggerSos);
 router.get('/orders/pending', protect, rider, getPendingOrders);
 router.get('/orders/active', protect, rider, getActiveOrders);
 router.get('/orders/history', protect, rider, getOrderHistory);
@@ -55,6 +56,7 @@ router.put('/cancel/:orderId', protect, rider, cancelOrderByRider);
 // Alias used by the rider app's "unassign" button (POST /api/delivery/orders/:orderId/cancel).
 router.post('/orders/:orderId/cancel', protect, rider, cancelOrderByRider);
 router.put('/online', protect, rider, toggleOnline);
+router.post('/location', protect, rider, saveRiderLocation); // GPS while the socket is down (background)
 // C9: in-app account deletion (any signed-in rider, approved or not): /account/deletion-check, /delete-otp, /delete.
 router.use('/account', require('./partnerAccountRoutes').riderRouter);
 

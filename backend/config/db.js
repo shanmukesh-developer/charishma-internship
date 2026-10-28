@@ -696,19 +696,33 @@ const connectDB = async () => {
       // done) and can change column types on live data. Instead: create missing tables, then add
       // missing columns only (nullable, never altering or dropping anything).
       // Set DB_SYNC_ALTER=true for a one-off full alter sync if ever needed.
-      if (String(process.env.DB_SYNC_ALTER || '').toLowerCase() === 'true') {
-        try {
-          await sequelize.sync({ alter: true });
-        } catch (syncErr) {
-          console.warn('⚠️ [DB_SYNC_WARN] PostgreSQL alter sync warning:', syncErr.message);
+      // Skipped when no model changed since the last boot that synced cleanly (fingerprint of every table,
+      // column and declared index, kept in "_zcs_schema_state"): sync() + the column check cost a couple of
+      // database round trips per model (~100 models, ~180 ms each from Virginia to Seoul), i.e. a minute or
+      // more of 503s on every restart / deploy. DB_SYNC_ALWAYS=true forces the full run.
+      const fingerprint = schemaFingerprint(sequelize);
+      const forceSync = String(process.env.DB_SYNC_ALWAYS || '').toLowerCase() === 'true' || String(process.env.DB_SYNC_ALTER || '').toLowerCase() === 'true';
+      if (!forceSync && await schemaUnchanged(sequelize, fingerprint)) {
+        console.log('✅ [DB_SYNC] Models unchanged since the last boot: table / column sync skipped.');
+      } else {
+        let syncOk = true;
+        if (String(process.env.DB_SYNC_ALTER || '').toLowerCase() === 'true') {
+          try {
+            await sequelize.sync({ alter: true });
+          } catch (syncErr) {
+            syncOk = false;
+            console.warn('⚠️ [DB_SYNC_WARN] PostgreSQL alter sync warning:', syncErr.message);
+          }
         }
+        try {
+          await sequelize.sync();
+        } catch (normalSyncErr) {
+          syncOk = false;
+          console.warn('⚠️ [DB_SYNC_WARN] Standard sync warning:', normalSyncErr.message);
+        }
+        await addMissingColumns(sequelize);
+        if (syncOk) await saveSchemaFingerprint(sequelize, fingerprint);
       }
-      try {
-        await sequelize.sync();
-      } catch (normalSyncErr) {
-        console.warn('⚠️ [DB_SYNC_WARN] Standard sync warning:', normalSyncErr.message);
-      }
-      await addMissingColumns(sequelize);
       await ensureOrderIdempotencyIndex(sequelize);
       try {
         const { runCampusMigrations } = require('../modules/campus/migrations/campusMigrations');
@@ -915,18 +929,74 @@ const connectDB = async () => {
   }
 };
 
+// Fingerprint of what sync() + addMissingColumns() would create: every model's table, columns (name, type,
+// nullability, uniqueness) and declared indexes.
+function schemaFingerprint(db) {
+  try { return schemaFingerprintOf(db); } catch (err) {
+    console.warn('⚠️ [DB_SYNC_WARN] Schema fingerprint failed, running the full sync:', err.message);
+    return null;
+  }
+}
+function schemaFingerprintOf(db) {
+  const crypto = require('crypto');
+  const tableOf = (m) => { const t = m.getTableName(); return typeof t === 'string' ? t : `${t.schema || ''}.${t.tableName}`; };
+  const parts = Object.values(db.models)
+    .map((m) => JSON.stringify([
+      tableOf(m),
+      Object.entries(m.rawAttributes).map(([n, a]) => [a.field || n, a.type && (a.type.key || String(a.type)), a.allowNull !== false, a.unique ? 1 : 0, a.primaryKey ? 1 : 0]),
+      (m.options.indexes || []).map((i) => [i.name || '', i.fields, !!i.unique]),
+    ]))
+    .sort();
+  return crypto.createHash('sha1').update(parts.join('|')).digest('hex');
+}
+async function schemaUnchanged(db, fingerprint) {
+  if (!fingerprint) return false;
+  try {
+    const rows = await db.query('SELECT "hash" FROM "_zcs_schema_state" WHERE "id" = 1', { type: require('sequelize').QueryTypes.SELECT });
+    return !!(rows && rows[0] && rows[0].hash === fingerprint);
+  } catch (_err) {
+    return false; // first boot with this code: the table does not exist yet
+  }
+}
+async function saveSchemaFingerprint(db, fingerprint) {
+  if (!fingerprint) return;
+  try {
+    await db.query('CREATE TABLE IF NOT EXISTS "_zcs_schema_state" ("id" INTEGER PRIMARY KEY, "hash" TEXT NOT NULL, "at" TIMESTAMPTZ NOT NULL DEFAULT NOW())');
+    await db.query('INSERT INTO "_zcs_schema_state" ("id", "hash", "at") VALUES (1, :h, NOW()) ON CONFLICT ("id") DO UPDATE SET "hash" = EXCLUDED."hash", "at" = NOW()', { replacements: { h: fingerprint } });
+  } catch (err) {
+    console.warn('⚠️ [DB_SYNC_WARN] Could not save the schema fingerprint:', err.message);
+  }
+}
+
 // Additive-only schema catch-up: for every model, add columns the table does not have yet
 // (nullable, model default when it is a plain value). Never alters types, constraints or indexes.
+// Every table's columns come from ONE information_schema query (was a describeTable round trip per model).
 async function addMissingColumns(db) {
   const qi = db.getQueryInterface();
   let added = 0;
+  let columnsByTable = null;
+  try {
+    const rows = await db.query('SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = current_schema()', { type: require('sequelize').QueryTypes.SELECT });
+    columnsByTable = new Map();
+    for (const r of rows) {
+      if (!columnsByTable.has(r.table_name)) columnsByTable.set(r.table_name, {});
+      columnsByTable.get(r.table_name)[r.column_name] = true;
+    }
+  } catch (_err) {
+    columnsByTable = null; // fall back to one describeTable per model
+  }
   for (const model of Object.values(db.models)) {
     const table = model.getTableName();
     let existing;
-    try {
-      existing = await qi.describeTable(table);
-    } catch (_err) {
-      continue; // table missing (sync() failed for it); nothing safe to do here
+    if (columnsByTable && typeof table === 'string') {
+      existing = columnsByTable.get(table);
+      if (!existing) continue; // table missing (sync() failed for it); nothing safe to do here
+    } else {
+      try {
+        existing = await qi.describeTable(table);
+      } catch (_err) {
+        continue; // table missing (sync() failed for it); nothing safe to do here
+      }
     }
     for (const [name, attr] of Object.entries(model.rawAttributes)) {
       const field = attr.field || name;

@@ -361,7 +361,9 @@ app.get('/Zenvy_Customer_Standalone.apk', (req, res) => {
 const server = http.createServer(app);
 
 // ── High-Concurrency Server Tuning ──────────────────────
-server.maxConnections = 2000; // Allow 2000 simultaneous TCP connections
+// Each live app (socket) holds one connection: 2000 would silently refuse new connections, HTTP included, at
+// launch scale. Overridable; the real limit is memory, not this number.
+server.maxConnections = Math.max(2000, parseInt(process.env.MAX_CONNECTIONS, 10) || 20000);
 server.keepAliveTimeout = 65000; // Keep connections alive (must be > nginx/ALB timeout)
 server.headersTimeout = 70000; // Must be > keepAliveTimeout
 
@@ -494,7 +496,7 @@ io.use((socket, next) => {
     const decoded = jwt.verify(token, secret);
     // The JWT role is only a hint: load the live account so suspended / deleted accounts are
     // refused and a demoted admin loses admin rooms at once (tokens live 30 days).
-    loadSocketAccount(decoded)
+    loadSocketAccountCached(decoded)
       .then((account) => {
         if (!account) return next(new Error('Authentication error: Account not found'));
         if (account.suspended) return next(new Error('Authentication error: Account suspended'));
@@ -515,6 +517,20 @@ io.use((socket, next) => {
 });
 
 // Resolve the account behind a socket JWT: { id, role, suspended } or null when it no longer exists.
+// Answers are kept 20 s per (role, id, token version): after a restart every app reconnects within seconds,
+// and one database read per connection overran the pool ("Authentication error: Please retry" for many).
+// A password change bumps the token version, so an old token never matches a newer cached answer.
+const socketAccountCache = new Map();
+const SOCKET_ACCOUNT_TTL_MS = 20000;
+async function loadSocketAccountCached(decoded) {
+  const key = `${String((decoded && decoded.role) || '').toLowerCase()}:${decoded && decoded.id}:${Number(decoded && decoded.tv) || 0}:${(decoded && decoded.mfa) ? 1 : 0}`;
+  const hit = socketAccountCache.get(key);
+  if (hit && Date.now() - hit.at < SOCKET_ACCOUNT_TTL_MS) return hit.account;
+  const account = await loadSocketAccount(decoded);
+  if (socketAccountCache.size > 20000) socketAccountCache.clear();
+  socketAccountCache.set(key, { at: Date.now(), account });
+  return account;
+}
 async function loadSocketAccount(decoded) {
   const id = decoded && decoded.id;
   if (!id) return null;
@@ -1313,11 +1329,22 @@ const initializeApp = async () => {
     // Production no longer auto-seeds invented restaurants/menus (scripts/seed_prod.js). Real
     // restaurants are onboarded from the admin dashboard; store products come from the catalogue import.
 
+    // One-off imports / clean-ups below run one at a time, starting BOOT_SCRIPTS_DELAY_MS after boot: they all
+    // started together on every boot and competed with the first users (and each other) for the database
+    // right when every app reconnects. Each still skips itself when its marker says it already ran.
+    const BOOT_SCRIPTS_DELAY_MS = Math.max(0, Number(process.env.BOOT_SCRIPTS_DELAY_MS ?? (process.env.NODE_ENV === 'test' ? 0 : 20000)));
+    let bootChain = new Promise((resolve) => { const t = setTimeout(resolve, BOOT_SCRIPTS_DELAY_MS); if (t.unref) t.unref(); });
+    const inBootQueue = (fn) => {
+      const run = bootChain.then(() => fn());
+      bootChain = run.catch(() => {});
+      return run;
+    };
+
     // 🛒 Catalogue import (idempotent, ledger-keyed): the store products the app used to hardcode.
     // Runs in the background so the port opens immediately; already-imported keys are never touched.
     try {
       const { runCatalogueImport } = require('./scripts/catalogue_import');
-      runCatalogueImport()
+      inBootQueue(runCatalogueImport)
         .then((r) => console.log('🛒 [CATALOGUE_IMPORT]', JSON.stringify(r)))
         .catch((err) => console.warn('⚠️ [CATALOGUE_IMPORT] failed:', err.message));
     } catch (catErr) {
@@ -1328,7 +1355,7 @@ const initializeApp = async () => {
     // owner keeps for representation (matched by id + name). Background; never edits or re-adds items.
     try {
       const { runDemoMenuFill } = require('./scripts/demo_menu_fill_import');
-      runDemoMenuFill()
+      inBootQueue(runDemoMenuFill)
         .then((r) => console.log('🍽️ [DEMO_MENU_FILL]', JSON.stringify(r)))
         .catch((err) => console.warn('⚠️ [DEMO_MENU_FILL] failed:', err.message));
     } catch (fillErr) {
@@ -1340,7 +1367,7 @@ const initializeApp = async () => {
     // creates no partner login. DISABLE_DEMO_STALLS=true switches it off.
     try {
       const { runDemoStallsImport } = require('./scripts/demo_stalls_import');
-      runDemoStallsImport()
+      inBootQueue(runDemoStallsImport)
         .then((r) => console.log('🏪 [DEMO_STALLS]', JSON.stringify(r)))
         .catch((err) => console.warn('⚠️ [DEMO_STALLS] failed:', err.message));
     } catch (stallErr) {
@@ -1356,7 +1383,7 @@ const initializeApp = async () => {
     // win; hides never delete. DISABLE_CATALOGUE_CLEANUP=true switches it off.
     try {
       const { runCatalogueCleanups } = require('./scripts/catalogue_cleanup_import');
-      runCatalogueCleanups()
+      inBootQueue(runCatalogueCleanups)
         .then((r) => console.log('🧽 [CATALOGUE_CLEANUP]', JSON.stringify(Object.fromEntries(Object.entries(r).map(([k, v]) => [k, { ...v, skippedIds: undefined }])))))
         .catch((err) => console.warn('⚠️ [CATALOGUE_CLEANUP] failed:', err.message));
     } catch (cleanErr) {
@@ -1370,7 +1397,7 @@ const initializeApp = async () => {
     // "[AUTO_ROUTES_SEED] created N, skipped M". DISABLE_AUTO_ROUTES_SEED=true switches it off.
     try {
       const { runAutoRoutesSeed } = require('./scripts/auto_routes_seed');
-      runAutoRoutesSeed()
+      inBootQueue(runAutoRoutesSeed)
         .then((r) => { if (r && r.skipped && typeof r.skipped === 'string') console.log('🛺 [AUTO_ROUTES_SEED]', r.skipped); })
         .catch((err) => console.warn('⚠️ [AUTO_ROUTES_SEED] failed:', err.message));
     } catch (autoSeedErr) {
@@ -1384,7 +1411,7 @@ const initializeApp = async () => {
     // created id. DISABLE_PARTNER_TEST_ACCOUNTS=true switches it off.
     try {
       const { runPartnerTestAccountsSeed } = require('./scripts/partner_test_accounts_seed');
-      runPartnerTestAccountsSeed()
+      inBootQueue(runPartnerTestAccountsSeed)
         .then((r) => console.log('🧪 [PARTNER_TEST_ACCOUNTS]', JSON.stringify(r)))
         .catch((err) => console.warn('⚠️ [PARTNER_TEST_ACCOUNTS] failed:', err.message));
     } catch (ptErr) {
@@ -1395,7 +1422,7 @@ const initializeApp = async () => {
     // own photo, all switched OFF and tagged "Sample ad." (admin > Splash ads > Preview on phone). Create-only.
     try {
       const { runSampleSplashAdsSeed } = require('./scripts/sample_splash_ads_seed');
-      runSampleSplashAdsSeed()
+      inBootQueue(runSampleSplashAdsSeed)
         .then((r) => console.log('🪧 [SAMPLE_SPLASH_ADS]', JSON.stringify(r)))
         .catch((err) => console.warn('⚠️ [SAMPLE_SPLASH_ADS] failed:', err.message));
     } catch (saErr) {
@@ -1406,7 +1433,7 @@ const initializeApp = async () => {
     // older builds seeded into production. Runs in the background; never deletes anything.
     try {
       const { runDemoDataCleanup } = require('./scripts/demo_data_cleanup');
-      runDemoDataCleanup()
+      inBootQueue(runDemoDataCleanup)
         .then((r) => console.log('🧹 [DEMO_CLEANUP]', JSON.stringify(r)))
         .catch((err) => console.warn('⚠️ [DEMO_CLEANUP] failed:', err.message))
         // 🔐 Admins still on a published seed password (C1-1): reset from ADMIN_RESET_PASSWORD, or warn
@@ -1422,7 +1449,7 @@ const initializeApp = async () => {
     // 🍽️ Remove the template dishes a deleted bulk seed copied into every store (backed up first).
     try {
       const { runTemplateMenuCleanup } = require('./scripts/remove_template_menu_items');
-      runTemplateMenuCleanup()
+      inBootQueue(runTemplateMenuCleanup)
         .then((r) => console.log('🍽️ [TEMPLATE_MENU_CLEANUP]', JSON.stringify(r)))
         .catch((err) => console.warn('⚠️ [TEMPLATE_MENU_CLEANUP] failed:', err.message));
     } catch (menuErr) {
@@ -1432,7 +1459,7 @@ const initializeApp = async () => {
     // 🖼️ One-time item corrections (photos, descriptions, veg flag); each applied once, old values kept.
     try {
       const { runItemFixes } = require('./scripts/apply_item_fixes');
-      runItemFixes()
+      inBootQueue(runItemFixes)
         .then((r) => console.log('🖼️ [ITEM_FIXES]', JSON.stringify(r)))
         .catch((err) => console.warn('⚠️ [ITEM_FIXES] failed:', err.message));
     } catch (fixErr) {
@@ -1442,7 +1469,7 @@ const initializeApp = async () => {
     // 🖼️ Broken app-relative '/assets/...' image URLs -> null (idempotent; absolute URLs untouched).
     try {
       const { runAssetUrlFix } = require('./scripts/normalize_asset_urls');
-      runAssetUrlFix()
+      inBootQueue(runAssetUrlFix)
         .then((r) => console.log('🖼️ [ASSET_URL_FIX]', JSON.stringify(r)))
         .catch((err) => console.warn('⚠️ [ASSET_URL_FIX] failed:', err.message));
     } catch (assetErr) {
@@ -1721,12 +1748,27 @@ const initializeApp = async () => {
           const partner = await DeliveryPartner.findByPk(riderId, { attributes: ['id', 'isOnline', 'liveLocation', 'currentOrderId'] });
           if (!partner || !partner.isOnline) return;
           if (partner.currentOrderId) return; // still carrying an order: leave their duty state alone
+          // Shopping lists and pickups count too (currentOrderId only tracks food orders).
+          if ((await require('./utils/riderLoad').activeJobs(riderId)).total > 0) return;
           if (riderFixAgeMs(partner) < RIDER_OFFLINE_GRACE_MS) { scheduleRiderOfflineCheck(riderId); return; }
           const [changed] = await DeliveryPartner.update({ isOnline: false }, { where: { id: riderId, isOnline: true } });
           if (changed > 0) {
             require('./utils/realtime').setRiderOnline(riderId, false);
             io.to('admin-room').emit('admin_rider_offline', { riderId, reason: 'no_connection', timestamp: new Date().toISOString() });
             console.log(`[RIDER_PRESENCE] Rider ${riderId} set offline after ${Math.round(RIDER_OFFLINE_GRACE_MS / 60000)} min without a connection`);
+            // Tell the rider: they still believed they were on duty and silently got nothing from here on.
+            try {
+              const full = await DeliveryPartner.findByPk(riderId, { attributes: ['id', 'fcmTokens'] });
+              const tokens = (Array.isArray(full && full.fcmTokens) ? full.fcmTokens : []).map((t) => (typeof t === 'string' ? t : t && t.token)).filter(Boolean);
+              if (tokens.length) {
+                const { RIDER_PUSH_ANDROID } = require('./utils/riderDispatch');
+                await require('./utils/push').sendPushToTokens(tokens, "You're off duty now",
+                  'ZCS lost contact with your phone for a while, so you were taken off duty. Open the app and go online to get orders again.',
+                  { type: 'OFF_DUTY' }, { persist: false, android: RIDER_PUSH_ANDROID });
+              }
+            } catch (pushErr) {
+              console.warn('[RIDER_PRESENCE_PUSH_WARN]', pushErr.message);
+            }
           }
         } catch (err) {
           console.warn('[RIDER_PRESENCE_WARN]', err.message);
@@ -1825,15 +1867,23 @@ const initializeApp = async () => {
       // Live dispatch pool: only an authenticated rider whose account is approved AND on duty joins
       // 'riders_online' (delivery_request / delivery_request_gone). PUT /delivery/online moves it after.
       if (!isGuestSocket() && socketRole() === 'rider') {
+        // Retried: a failed lookup (cold / slow database right after a restart, exactly when every rider
+        // reconnects) used to leave this connection outside the room, hearing no delivery_request until
+        // its next reconnect.
         (async () => {
-          try {
-            const { getDeliveryPartnerModel } = require('./models/DeliveryPartner');
-            const partner = await getDeliveryPartnerModel().findByPk(socket.user.id, { attributes: ['id', 'isOnline', 'isApproved'] });
-            if (partner && partner.isOnline && partner.isApproved && socket.connected) {
-              socket.join(require('./utils/realtime').RIDERS_ONLINE_ROOM);
+          for (const wait of [0, 1500, 4000, 10000]) {
+            if (wait) await new Promise((r) => setTimeout(r, wait));
+            if (!socket.connected) return;
+            try {
+              const { getDeliveryPartnerModel } = require('./models/DeliveryPartner');
+              const partner = await getDeliveryPartnerModel().findByPk(socket.user.id, { attributes: ['id', 'isOnline', 'isApproved'] });
+              if (partner && partner.isOnline && partner.isApproved && socket.connected) {
+                socket.join(require('./utils/realtime').RIDERS_ONLINE_ROOM);
+              }
+              return;
+            } catch (err) {
+              console.warn('[RIDERS_ONLINE_JOIN_WARN]', err.message);
             }
-          } catch (err) {
-            console.warn('[RIDERS_ONLINE_JOIN_WARN]', err.message);
           }
         })();
       }
@@ -2700,15 +2750,24 @@ const initializeApp = async () => {
           // Verify activeOrderId if provided
           if (data.activeOrderId) {
             try {
-              const { getOrderModel } = require('./models/Order');
-              const Order = getOrderModel();
-              const order = await Order.findByPk(String(data.activeOrderId).trim(), { attributes: ['id', 'deliveryPartnerId', 'status'] });
-              if (!order || order.deliveryPartnerId !== socket.user.id) {
+              // The check is cached on the connection for 30 s: every rider sends a ping per carried order
+              // every few seconds, and each one was a database read.
+              const oid = String(data.activeOrderId).trim();
+              if (!socket.data.orderCheck) socket.data.orderCheck = new Map();
+              let check = socket.data.orderCheck.get(oid);
+              if (!check || Date.now() - check.at > 30000) {
+                const { getOrderModel } = require('./models/Order');
+                const order = await getOrderModel().findByPk(oid, { attributes: ['id', 'deliveryPartnerId', 'status'] });
+                check = { at: Date.now(), mine: !!order && order.deliveryPartnerId === socket.user.id, done: !!order && ['Delivered', 'Cancelled'].includes(order.status) };
+                if (socket.data.orderCheck.size > 20) socket.data.orderCheck.clear();
+                socket.data.orderCheck.set(oid, check);
+              }
+              if (!check.mine) {
                 console.warn(`[SOCKET_DENIED] Rider ${socket.user.id} tried to update location for unauthorized order ${data.activeOrderId}`);
                 return;
               }
               // Delivered / cancelled: the customer's tracking room no longer gets the rider's position.
-              if (['Delivered', 'Cancelled'].includes(order.status)) data.activeOrderId = null;
+              if (check.done) data.activeOrderId = null;
             } catch (err) {
               console.error('[SOCKET_RIDER_LOCATION_UPDATE_ERROR]', err.message);
               return;

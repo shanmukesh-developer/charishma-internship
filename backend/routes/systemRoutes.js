@@ -20,7 +20,9 @@ let nextSlotAt = 0;
 
 const nominatimLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 30,
+  // Per IP, and a whole hostel shares one: 30 a minute failed address search for most students during
+  // onboarding. Cached answers cost nothing; uncached ones still queue one per second upstream.
+  max: Math.max(30, Number(process.env.ADDRESS_LOOKUP_IP_MAX) || 150),
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many address lookups. Please wait a moment.' },

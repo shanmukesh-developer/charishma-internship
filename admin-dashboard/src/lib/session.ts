@@ -3,9 +3,13 @@
  * Admin session store.
  *
  * The JWT lives in memory and in sessionStorage (cleared when the tab closes);
- * it is never kept in localStorage. Nothing here trusts the client: the role is
- * always confirmed by the backend (GET /api/admin/me) before the dashboard
- * renders, and the session is dropped on 401 / failed re-checks.
+ * it is never kept in localStorage. Nothing here trusts the client: every admin
+ * API call is checked by the backend, the role is re-confirmed with
+ * GET /api/admin/me on each load, and the session is dropped on 401 / failed
+ * re-checks. On a reload of a tab that was already signed in, the shell renders
+ * at once from the admin last confirmed for this token (sessionStorage) while
+ * that check runs alongside the pages' own reads, instead of a blank
+ * "Checking your session" screen for a full server round trip first.
  */
 import { API_URL } from './config';
 import { clearRequestCache, setPeekTokenSource } from './requestCache';
@@ -32,6 +36,17 @@ export interface AuthState {
 
 const TOKEN_KEY = 'zenvy_admin_token';
 const LEGACY_KEY = 'user'; // old builds stored { token, role } in localStorage
+const USER_KEY = 'zenvy_admin_user'; // { t: last 16 chars of the token it belongs to, user }
+
+const rememberUser = (token: string, user: AdminUser) => {
+  try { window.sessionStorage.setItem(USER_KEY, JSON.stringify({ t: token.slice(-16), user })); } catch { /* ignore */ }
+};
+const rememberedUser = (token: string): AdminUser | null => {
+  try {
+    const v = JSON.parse(window.sessionStorage.getItem(USER_KEY) || 'null');
+    return v && v.t === token.slice(-16) && v.user && String(v.user.role || '').toLowerCase() === 'admin' ? (v.user as AdminUser) : null;
+  } catch { return null; }
+};
 
 let memoryToken: string | null = null;
 let tokenLoaded = false;
@@ -94,6 +109,7 @@ export function startSession(token: string, user: AdminUser) {
   } catch {
     /* in-memory only */
   }
+  rememberUser(token, user);
   setState({ status: 'authed', user, message: null });
 }
 
@@ -105,6 +121,7 @@ export function clearSession(message: string | null = null) {
   inflight = null;
   try {
     window.sessionStorage.removeItem(TOKEN_KEY);
+    window.sessionStorage.removeItem(USER_KEY);
   } catch {
     /* ignore */
   }
@@ -165,7 +182,10 @@ async function runVerify(): Promise<AuthState> {
     clearSession(null);
     return state;
   }
-  if (state.status !== 'authed') setState({ status: 'checking', user: state.user, message: null });
+  if (state.status !== 'authed') {
+    const known = rememberedUser(token);
+    setState(known ? { status: 'authed', user: known, message: null } : { status: 'checking', user: state.user, message: null });
+  }
 
   // The admin signed out (or signed in again) while this check was running: its answer is about a
   // token that is no longer the session's, so it must not change the state.
@@ -191,6 +211,7 @@ async function runVerify(): Promise<AuthState> {
       return state;
     }
     if (!r.ok) {
+      if (state.status === 'authed') return state; // a server hiccup does not sign out a known admin; pages show their own errors
       setState({ status: 'error', user: null, message: `The server returned an error (${r.status}). Please retry.` });
       return state;
     }
@@ -199,10 +220,12 @@ async function runVerify(): Promise<AuthState> {
       clearSession('This account does not have admin access.');
       return state;
     }
+    rememberUser(token, user);
     setState({ status: 'authed', user, message: null });
     return state;
   } catch {
     if (superseded()) return state;
+    if (state.status === 'authed') return state;
     setState({
       status: 'error',
       user: null,

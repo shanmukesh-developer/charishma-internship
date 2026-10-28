@@ -103,11 +103,11 @@ export default function SOSAlertModal() {
   const loadActive = useCallback(async () => {
     const seq = ++loadSeq.current;
     try {
-      const riderPage = (page: number) => adminRequest<{ riders?: any[]; pages?: number }>(`/api/admin/riders?sosActive=1&limit=100&page=${page}`, { cache: 'reload' });
+      const riderPage = (page: number) => adminRequest<{ riders?: any[]; pages?: number }>(`/api/admin/riders?sosActive=1&limit=500&page=${page}`, { cache: 'reload' });
       const first = await riderPage(1);
       const all: any[] = Array.isArray(first?.riders) ? [...first.riders] : [];
       const pages = Math.min(20, Number(first?.pages) || 1);
-      if (all.length >= 100 && pages > 1) {
+      if (pages > 1) {
         const rest = await Promise.all(Array.from({ length: pages - 1 }, (_, i) => riderPage(i + 2)));
         rest.forEach(d => { if (Array.isArray(d?.riders)) all.push(...d.riders); });
       }

@@ -28,7 +28,7 @@ const pushPoolOrder = (order) => {
     await pushNearestRiders({
       restaurant,
       orderId: order.id,
-      limit: 5,
+      limit: 20,
       title: '🛵 New Order Ready!',
       body: `${restaurant?.name || 'Restaurant'} has a new order for pickup. Closest to you!`,
       data: { distance: order.distance },
@@ -54,7 +54,11 @@ const broadcastOrderStatus = (req, orderOrId, payload) => {
     if (!io) return;
     const isObj = orderOrId && typeof orderOrId === 'object';
     const room = String(isObj ? orderOrId.id : orderOrId);
-    io.to(room).emit('statusUpdated', payload);
+    // Also the customer's own room (joined on every connect): the orders list rejoins order rooms only after
+    // it loads, so a status change while the phone slept was missed until a manual refresh. One emit over both
+    // rooms, so a socket in both gets it once.
+    const userRoom = isObj && orderOrId.userId ? `user_${orderOrId.userId}` : null;
+    io.to(userRoom ? [room, userRoom] : room).emit('statusUpdated', payload);
     io.to('admin-room').emit('statusUpdated', payload);
     require('../utils/realtime').notifyAdmin('order', 'updated', room);
     // The restaurant portal joins `restaurant_<id>`; no global broadcast of other people's orders.
@@ -664,11 +668,12 @@ const restaurantAcceptOrder = async (req, res) => {
         });
       }
 
-      // Push the 5 closest riders that have a recent GPS fix (stale / unknown positions rank last).
+      // Push the 20 closest riders with a recent GPS fix, plus on-duty riders with no recent position
+      // (utils/riderDispatch). Was 5: on a campus fleet the other riders were never told at all.
       await pushNearestRiders({
         restaurant,
         orderId: order.id,
-        limit: 5,
+        limit: 20,
         title: '🛵 New Order Ready!',
         body: `${restaurant?.name || 'Restaurant'} is ready for pickup. Closest to you!`,
         data: { distance: order.distance },
@@ -838,6 +843,7 @@ const getMyOrders = async (req, res) => {
     const { limit, before, q } = parseMyOrdersQuery(req.query);
     const orders = await Order.findAll({
       where: await buildMyOrdersWhere({ userId: req.user.id, before, q, Restaurant }),
+      attributes: { exclude: ['upiScreenshot'] }, // never sent to the customer (customerOrderJson drops it)
       include: [{ model: Restaurant, as: 'restaurant', attributes: ['id', 'name', 'imageUrl', 'vendorType'] }],
       order: [['createdAt', 'DESC']],
       limit,
@@ -1203,6 +1209,86 @@ const { storeAcceptTimeoutMinutes } = require('../utils/orderTimeouts');
 const UNCLAIMED_TIMEOUT_MINUTES = Math.max(10, parseInt(process.env.UNCLAIMED_ORDER_TIMEOUT_MINUTES, 10) || 30);
 const UNCLAIMED_STATUSES = ['Accepted', 'Preparing', 'ReadyForPickup'];
 const STORE_TIMEOUT_TEXT = "The store didn't respond, so your order was cancelled.";
+// The "no rider" clock starts when the food can actually go: the later of acceptance + the store's own prep
+// estimate (capped at 4 h) and the moment it was marked ready. A 40-minute dish used to be cancelled and
+// refunded at 30 minutes while it was still cooking, because riders wait until an order is nearly ready.
+const unclaimedClockStart = (o) => {
+  const accepted = o.acceptedAt ? new Date(o.acceptedAt).getTime() : new Date(o.createdAt).getTime();
+  const prepMin = Math.min(240, Math.max(0, Number(o.estDuration) || 0));
+  const ready = o.readyAt ? new Date(o.readyAt).getTime() : 0;
+  return Math.max(accepted + prepMin * 60 * 1000, ready);
+};
+
+// Unclaimed orders are pushed again, wider each time, before the "no rider" cancel: the first push reached
+// only the best-placed riders, the socket event only riders whose app was open, and nothing ever retried,
+// so an order the first riders ignored reached nobody else and cancelled itself (riders "not getting"
+// orders). Rounds by minutes since the order became claimable; the last one also alerts the admins.
+const ESCALATION_ROUNDS = [
+  { atMin: 4, limit: 30, title: '🛵 Order still waiting for a rider' },
+  { atMin: 10, limit: 100, title: '🛵 Order waiting: pick it up?' },
+  { atMin: 18, limit: 100, title: '⏰ Order about to be cancelled', alertAdmins: true },
+];
+const escalated = new Map(); // orderId -> rounds already sent (a restart re-sends at most the current one)
+const escalateUnclaimedOrders = async (io) => {
+  const Order = getOrderModel();
+  const since = new Date(Date.now() - ESCALATION_ROUNDS[0].atMin * 60 * 1000);
+  const rows = await Order.findAll({
+    where: {
+      status: { [Op.in]: UNCLAIMED_STATUSES },
+      deliveryPartnerId: null,
+      [Op.and]: [
+        { [Op.or]: [{ fulfilment: null }, { fulfilment: { [Op.ne]: 'VENDOR' } }] },
+        { [Op.or]: [{ acceptedAt: null }, { acceptedAt: { [Op.lt]: since } }] },
+        { createdAt: { [Op.lt]: since } },
+      ],
+    },
+    attributes: ['id', 'restaurantId', 'acceptedAt', 'createdAt', 'readyAt', 'estDuration', 'slotStart', 'distance'],
+    order: [['createdAt', 'ASC']],
+    limit: 100,
+  });
+  const live = new Set(rows.map((o) => String(o.id)));
+  for (const id of escalated.keys()) if (!live.has(id)) escalated.delete(id);
+  let sent = 0;
+  for (const order of rows) {
+    try {
+      if (!deliverySlots.isDispatchDue(order)) continue;
+      // Minutes since riders could first see it (a slot order: since its dispatch window opened).
+      const opens = deliverySlots.dispatchOpensAt(order);
+      const from = Math.max(order.acceptedAt ? new Date(order.acceptedAt).getTime() : new Date(order.createdAt).getTime(), opens ? opens.getTime() : 0);
+      const ageMin = (Date.now() - from) / 60000;
+      const done = escalated.get(String(order.id)) || 0;
+      let due = 0;
+      ESCALATION_ROUNDS.forEach((r, i) => { if (ageMin >= r.atMin) due = i + 1; });
+      if (due <= done) continue;
+      escalated.set(String(order.id), due);
+      const round = ESCALATION_ROUNDS[due - 1];
+      const restaurant = await getRestaurantModel().findByPk(order.restaurantId, { attributes: ['id', 'name', 'location', 'lat', 'lon'] });
+      realtime.deliveryRequest(order.id); // riders with the app open see it come back to the top
+      await pushNearestRiders({
+        restaurant,
+        orderId: order.id,
+        limit: round.limit,
+        title: round.title,
+        body: `${restaurant?.name || 'A store'} has an order nobody has picked up yet. Tap to take it.`,
+        data: { distance: order.distance, escalation: String(due) },
+      });
+      if (round.alertAdmins) {
+        require('../utils/adminAlert').pushAdmins(
+          'No rider for an order',
+          `${restaurant?.name || 'A store'}: order ${String(order.id).slice(-6)} has had no rider for ${Math.round(ageMin)} min. Assign one before it cancels.`,
+          { orderId: String(order.id), type: 'NO_RIDER' },
+          { io }
+        ).catch(() => {});
+      }
+      sent++;
+    } catch (e) {
+      console.warn('[RIDER_ESCALATION_WARN]', order.id, e.message);
+    }
+  }
+  if (sent) console.log(`[RIDER_ESCALATION] Re-pushed ${sent} unclaimed order(s)`);
+  return sent;
+};
+
 const autoCancelStalePendingOrders = async (io) => {
   const Order = getOrderModel();
   const PENDING_TIMEOUT_MINUTES = storeAcceptTimeoutMinutes();
@@ -1229,8 +1315,8 @@ const autoCancelStalePendingOrders = async (io) => {
       ],
     },
     order: [['createdAt', 'ASC']],
-    limit: 50,
-  });
+    limit: 200,
+  }).then((rows) => rows.filter((o) => Date.now() - unclaimedClockStart(o) >= UNCLAIMED_TIMEOUT_MINUTES * 60 * 1000).slice(0, 50));
   const jobs = [
     ...stalePending.map((order) => ({ order, from: ['Pending'], code: 'STORE_TIMEOUT', why: 'The store did not accept the order in time', text: STORE_TIMEOUT_TEXT })),
     ...staleUnclaimed.map((order) => ({ order, from: UNCLAIMED_STATUSES, code: 'NO_RIDER_TIMEOUT', why: 'No delivery partner was available in time', text: 'No delivery partner could pick up your order in time.' })),
@@ -2265,4 +2351,4 @@ const approveBill = async (req, res) => {
   }
 };
 
-module.exports = { pushCustomer, pushStoreCancelled, customerOrderJson, restaurantUpdateOrderStatus, autoCancelStalePendingOrders, releaseStalledRiderClaims, releaseDueSlotOrders, cancelAndRefund, createOrder, quoteOrder, getServiceability, getDeliverySlots, getOrderById, getMyOrders, rateOrder, getAllOrders, cancelOrder, updateOrderStatus, getSurgeStatus, restaurantAcceptOrder, verifyUPIPayment, restaurantReadyOrder, getOrderStats, uploadItemPhoto, approvePurchase, uploadBillProof, approveBill };
+module.exports = { pushCustomer, pushStoreCancelled, customerOrderJson, restaurantUpdateOrderStatus, autoCancelStalePendingOrders, escalateUnclaimedOrders, unclaimedClockStart, releaseStalledRiderClaims, releaseDueSlotOrders, cancelAndRefund, createOrder, quoteOrder, getServiceability, getDeliverySlots, getOrderById, getMyOrders, rateOrder, getAllOrders, cancelOrder, updateOrderStatus, getSurgeStatus, restaurantAcceptOrder, verifyUPIPayment, restaurantReadyOrder, getOrderStats, uploadItemPhoto, approvePurchase, uploadBillProof, approveBill };

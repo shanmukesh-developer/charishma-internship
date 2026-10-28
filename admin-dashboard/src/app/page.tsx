@@ -288,14 +288,14 @@ export default function AdminHome() {
   // Seed the rider list from the database; sockets keep it live afterwards.
   const fetchRiders = useCallback(async () => {
     try {
-      // Every rider (100 per page, capped at 20 pages) so riders beyond the newest 100 are on the map too.
+      // Every approved rider, normally in one request of up to 500 (more pages, capped at 20, only beyond that).
       // Page 1 tells us the page count; the rest are fetched in parallel instead of one after another.
       // Approved riders only (server-side filter): unapproved sign-ups were downloaded and then dropped.
-      const riderPage = (page: number) => apiRequest<{ riders?: any[]; pages?: number }>(`/api/admin/riders?approved=1&limit=100&page=${page}`);
+      const riderPage = (page: number) => apiRequest<{ riders?: any[]; pages?: number }>(`/api/admin/riders?approved=1&limit=500&page=${page}`);
       const first = await riderPage(1);
       const list: any[] = Array.isArray(first?.riders) ? [...first.riders] : [];
       const pages = Math.min(20, Number(first?.pages) || 1);
-      if (list.length >= 100 && pages > 1) {
+      if (pages > 1) { // pages is counted by the server at its own page size (500 now, 100 on older servers)
         const rest = await Promise.all(Array.from({ length: pages - 1 }, (_, i) => riderPage(i + 2)));
         rest.forEach(d => { if (Array.isArray(d?.riders)) list.push(...d.riders); });
       }

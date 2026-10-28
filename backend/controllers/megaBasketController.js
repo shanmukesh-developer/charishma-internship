@@ -449,14 +449,23 @@ const claimBasket = async (req, res) => {
     }
 
     // One limit for all a rider carries (utils/riderLoad): orders + shopping lists + pickups.
+    // Count + claim under the rider's row lock (utils/riderLoad.lockRider): parallel taps on different job kinds
+    // were each counted against the same total and could all succeed, past the 3-at-a-time limit.
     const riderLoad = require('../utils/riderLoad');
-    const load = await riderLoad.activeJobs(req.user.id, { except: { kind: 'basket', id: basket.id } });
-    if (load.total >= riderLoad.MAX_ACTIVE_JOBS) return res.status(409).json(riderLoad.fullBody(load));
-
-    const [claimed] = await MegaBasket.update(
-      { deliveryPartnerId: req.user.id, status: 'PartnerAssigned' },
-      { where: { id: basket.id, status: 'PaidEstimate', deliveryPartnerId: null, ...require('../utils/deliverySlots').dispatchDueWhere() } }
-    );
+    // IMMEDIATE: SQLite (tests, local) takes the write lock up front so parallel claims queue instead of failing
+    // with SQLITE_BUSY; PostgreSQL ignores the type (the rider row lock does the work there).
+    const outcome = await MegaBasket.sequelize.transaction({ type: require('sequelize').Transaction.TYPES.IMMEDIATE }, async (t) => {
+      await riderLoad.lockRider(req.user.id, t);
+      const load = await riderLoad.activeJobs(req.user.id, { except: { kind: 'basket', id: basket.id }, transaction: t });
+      if (load.total >= riderLoad.MAX_ACTIVE_JOBS) return { full: load };
+      const [n] = await MegaBasket.update(
+        { deliveryPartnerId: req.user.id, status: 'PartnerAssigned' },
+        { where: { id: basket.id, status: 'PaidEstimate', deliveryPartnerId: null, ...require('../utils/deliverySlots').dispatchDueWhere() }, transaction: t }
+      );
+      return { claimed: n };
+    });
+    if (outcome.full) return res.status(409).json(riderLoad.fullBody(outcome.full));
+    const claimed = outcome.claimed;
     if (claimed === 0) return res.status(400).json({ message: 'Another rider just claimed this basket.' });
     basket.set({ deliveryPartnerId: req.user.id, status: 'PartnerAssigned' });
 

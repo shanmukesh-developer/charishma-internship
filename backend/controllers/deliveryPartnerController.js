@@ -528,6 +528,8 @@ const getPendingOrders = async (req, res) => {
         // before its slot start.
         [Op.and]: [...NOT_STALL_ORDER[Op.and], require('../utils/deliverySlots').dispatchDueWhere()],
       }, 
+      // Pool cards never show payment proofs, receipts or reviews (large TEXT columns, legacy base64 images).
+      attributes: { exclude: ['upiScreenshot', 'proofImage', 'receiptSnapshot', 'review'] },
       order: [['createdAt', 'DESC']],
       limit: 100
     });
@@ -909,6 +911,35 @@ const cancelOrderByRider = async (req, res) => {
     res.json({ message: 'Order released. Another rider will pick it up.', status: order.status });
   } catch (error) {
     serverError(res, '[RIDER_CANCEL_ERROR]', error);
+  }
+};
+
+// @desc    Rider GPS over HTTP (POST /api/delivery/location { lat, lng, heading?, speed? })
+// The socket 'rider_location_update' was the only way a position reached the server, and Android drops the
+// socket in the background: the rider's fix went stale, dispatch ranked them last (outside the pushed
+// riders) and the presence job took them off duty. The rider app sends here whenever its socket is down
+// (background task included). Same rule as the socket path: at most one save every 10 s per rider.
+const lastHttpGpsSave = new Map();
+const saveRiderLocation = async (req, res) => {
+  try {
+    const body = req.body || {};
+    const lat = Number(body.lat ?? body.latitude);
+    const lng = Number(body.lng ?? body.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180 || (lat === 0 && lng === 0)) {
+      return res.status(400).json({ message: 'A valid lat and lng are required.' });
+    }
+    const id = String(req.user.id);
+    const now = Date.now();
+    if (now - (lastHttpGpsSave.get(id) || 0) < 10000) return res.json({ saved: false });
+    lastHttpGpsSave.set(id, now);
+    if (lastHttpGpsSave.size > 5000) lastHttpGpsSave.clear();
+    await getDeliveryPartnerModel().update(
+      { liveLocation: { lat, lng, heading: Number(body.heading) || null, speed: Number(body.speed) || null, ts: new Date(now).toISOString() } },
+      { where: { id } }
+    );
+    res.json({ saved: true });
+  } catch (error) {
+    serverError(res, '[RIDER_HTTP_LOCATION_ERROR]', error);
   }
 };
 
@@ -1668,6 +1699,7 @@ module.exports = {
   getRiderProfile, updateRiderProfile, getPublicRiderProfile, getTodayStats,
   cancelOrderByRider, changePassword, notifyArrivalAtGate,
   getWeekStats, getStatsRange, createRiderTicket, getRiderTickets, removeFcmToken, triggerSos,
+  saveRiderLocation,
   sosLocationOf,
   claimForRider, // A2: the count + claim step (tests run it inside a transaction too)
 };

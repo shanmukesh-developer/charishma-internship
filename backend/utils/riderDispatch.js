@@ -11,8 +11,10 @@ const { getCoordsForAddress, getHaversineDistance } = require('./distance');
 const { BASE_DELIVERY_FEE, earningRupees: riderPayout } = require('./riderEarnings');
 
 // Orders one rider may hold at once (same env as the claim check in deliveryPartnerController).
-const MAX_ACTIVE_ORDERS = Math.max(1, parseInt(process.env.RIDER_MAX_ACTIVE_ORDERS, 10) || 3);
+const MAX_ACTIVE_ORDERS = Math.max(1, parseInt(process.env.RIDER_MAX_ACTIVE_ORDERS, 10) || 3); // exported for older callers
 const RIDER_FRESH_MS = Math.max(2, Number(process.env.RIDER_FRESH_MINUTES) || 10) * 60 * 1000;
+// Most riders one new order rings (fresh nearest first, then riders with no recent position).
+const MAX_PUSH_RIDERS = Math.max(5, parseInt(process.env.RIDER_MAX_PUSH, 10) || 20);
 
 const riderFixAgeMs = (rider) => {
   const loc = rider && rider.liveLocation;
@@ -25,7 +27,13 @@ const isRiderFresh = (rider) => riderFixAgeMs(rider) <= RIDER_FRESH_MS;
 // Online + approved riders, nearest fresh fix first; riders with stale or no position go last.
 const rankOnlineRiders = async (restaurant, { excludeRiderId = null } = {}) => {
   const riders = await getDeliveryPartnerModel().findAll({ where: { isOnline: true, isApproved: true } });
-  const restCoords = getCoordsForAddress(restaurant ? restaurant.location : '');
+  // The store's saved map point when it has one; the address text only as a fallback (text that does not parse
+  // put every store at one fallback point, so "nearest riders" was effectively arbitrary).
+  const lat0 = restaurant ? Number(restaurant.lat) : NaN;
+  const lon0 = restaurant ? Number(restaurant.lon) : NaN;
+  const restCoords = Number.isFinite(lat0) && Number.isFinite(lon0) && !(lat0 === 0 && lon0 === 0)
+    ? { lat: lat0, lon: lon0 }
+    : getCoordsForAddress(restaurant ? restaurant.location : '');
   return riders
     .filter((r) => !excludeRiderId || String(r.id) !== String(excludeRiderId))
     .map((rider) => {
@@ -61,24 +69,23 @@ const pushNearestRiders = async ({ restaurant, orderId, title, body, limit = 5, 
       if (slotOrder && !require('./deliverySlots').isDispatchDue(slotOrder)) return 0;
     }
     let ranked = await rankOnlineRiders(restaurant, { excludeRiderId });
-    // A rider already carrying the maximum orders cannot claim this one: do not ring them, and do not let
-    // them take one of the `limit` push slots from riders who can.
+    // A rider already carrying the maximum jobs (orders + shopping lists + pickups, utils/riderLoad) cannot
+    // claim this one: do not ring them, and do not let them take a push slot from riders who can.
     if (ranked.length) {
       try {
-        const { Op, fn, col } = require('sequelize');
-        const rows = await require('../models/Order').getOrderModel().findAll({
-          attributes: ['deliveryPartnerId', [fn('COUNT', col('id')), 'n']],
-          where: { deliveryPartnerId: { [Op.in]: ranked.map(({ rider }) => rider.id) }, status: { [Op.notIn]: ['Delivered', 'Cancelled'] } },
-          group: ['deliveryPartnerId'],
-          raw: true,
-        });
-        const full = new Set(rows.filter((r) => Number(r.n) >= MAX_ACTIVE_ORDERS).map((r) => String(r.deliveryPartnerId)));
+        const full = await require('./riderLoad').fullRiderIds(ranked.map(({ rider }) => rider.id));
         if (full.size) ranked = ranked.filter(({ rider }) => !full.has(String(rider.id)));
       } catch (countErr) {
         console.warn('[RIDER_DISPATCH_COUNT_WARN]', countErr.message);
       }
     }
-    const tokens = ranked.slice(0, limit).flatMap(({ rider }) => tokensOf(rider));
+    // The `limit` nearest riders with a fresh GPS fix, plus every on-duty rider whose position is unknown
+    // or stale (location off, app backgrounded): they used to sort last and fall outside the `limit`, so
+    // they were never rung at all. Capped so a big fleet is never rung all at once.
+    const fresh = ranked.filter((x) => x.fresh).slice(0, limit);
+    const stale = ranked.filter((x) => !x.fresh);
+    const chosen = [...fresh, ...stale].slice(0, Math.max(limit, MAX_PUSH_RIDERS));
+    const tokens = chosen.flatMap(({ rider }) => tokensOf(rider));
     if (tokens.length === 0) return 0;
     // Rider app v3 channel (bundled 'alert' sound; the app deletes the old v2 channel).
     await sendPushToTokens(tokens, title, body, { orderId: String(orderId), type: 'NEW_ORDER', ...data }, {

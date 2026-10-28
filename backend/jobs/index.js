@@ -78,6 +78,12 @@ const runAutoCancel = async ({ io }) => {
   } catch (e) {
     console.warn('[AUTO_CANCEL] Error:', e.message);
   }
+  // Unclaimed orders: push riders again, wider each round, before the "no rider" cancel above reaches them.
+  try {
+    out.riderEscalations = (await require('../controllers/orderController').escalateUnclaimedOrders(io)) || 0;
+  } catch (e) {
+    console.warn('[RIDER_ESCALATION] Error:', e.message);
+  }
   try {
     const { releaseStalledRiderClaims } = require('../controllers/orderController');
     out.ridersReleased = (await releaseStalledRiderClaims(io)) || 0;
@@ -269,6 +275,27 @@ const runAbandonedCart = async () => {
 };
 
 // Expired retry-key claims / stored answers (utils/idempotency.js, IdempotencyKeys table).
+// Keeps the admin portal awake: it runs on Render's free plan, which sleeps after 15 idle minutes, so the
+// admin who opened it next waited ~47 s for the first page. This always-on backend opens it every 10 min.
+// OFF unless ADMIN_KEEPALIVE_URL is set (the admin address, or "on" for the default one): while this backend is
+// also a free Render service, both share the 750 free hours a month, and keeping both awake would use them up.
+// Production only.
+const runAdminKeepAlive = async () => {
+  const raw = String(process.env.ADMIN_KEEPALIVE_URL || '').trim();
+  if (!raw || raw.toLowerCase() === 'off' || process.env.NODE_ENV !== 'production') return { skipped: true };
+  const url = raw.toLowerCase() === 'on' ? 'https://hostelbites-admin-iyoy.onrender.com/' : raw;
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), 60000);
+  try {
+    const r = await fetch(url, { method: 'GET', signal: ctl.signal, headers: { 'User-Agent': 'zcs-keepalive' } });
+    return { status: r.status };
+  } catch (err) {
+    return { error: String(err && err.message || err).slice(0, 120) };
+  } finally {
+    clearTimeout(t);
+  }
+};
+
 const runIdempotencyCleanup = async () => {
   try {
     return await require('../utils/idempotency').cleanupExpired();
@@ -347,6 +374,7 @@ const JOBS = [
   { name: 'retention.chatPulse', schedule: { cron: '23 * * * *', onceAfterMs: 3 * MIN }, run: runRetention, timeoutMs: 30 * MIN },
   { name: 'chat.ephemeralPurge', schedule: { cron: '0 * * * *' }, run: () => require('../cron/ephemeralPurge').runEphemeralPurge() },
   { name: 'idempotency.cleanup', schedule: { everyMs: 30 * MIN, firstMs: 2 * MIN }, run: runIdempotencyCleanup, quietWhenIdle: true },
+  { name: 'admin.keepAlive', schedule: { everyMs: 10 * MIN, firstMs: 90 * SEC }, run: runAdminKeepAlive, quietWhenIdle: true },
   { name: 'push.streakNudge', schedule: { cron: '0 18 * * *', timezone: IST }, run: () => require('../cron/streakNudge').runStreakNudgeJob(), timeoutMs: 30 * MIN },
   { name: 'push.abandonedCart', schedule: { cron: '0 10 * * *', timezone: IST }, run: runAbandonedCart, timeoutMs: 30 * MIN },
   {

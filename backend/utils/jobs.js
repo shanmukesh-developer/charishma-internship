@@ -83,8 +83,14 @@ const runExclusive = async (name, fn, opts = {}) => {
   try {
     const db = opts.sequelize !== undefined ? opts.sequelize : defaultDb();
     const isPg = !!db && typeof db.getDialect === 'function' && db.getDialect() === 'postgres';
+    // The cross-process lock only matters with more than one instance. On one instance it cost every run
+    // a pooled connection held for the whole run (plus 4 round trips) while the job's own queries waited for
+    // a second one: with ~9 runs a minute that starved user requests when the pool was busy.
+    let multi = false;
+    try { multi = require('./redis').isMultiInstance(); } catch { multi = false; }
+    const useLock = isPg && (opts.sequelize !== undefined || multi || String(process.env.JOBS_LOCK || '').toLowerCase() === 'always');
 
-    if (isPg) {
+    if (useLock) {
       let t;
       try {
         t = await db.transaction();

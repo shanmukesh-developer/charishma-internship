@@ -13,7 +13,8 @@ const router = express.Router();
 // account (accountLockout, 5 OTP attempts per code, 8 SMS per number per day), so the per-IP cap
 // is only a flood guard now, and each phone number gets its own small budget on top.
 const { normalizePhone } = require('../utils/phoneUtils');
-const AUTH_IP_MAX = Math.max(50, Number(process.env.AUTH_RATE_LIMIT_IP_MAX) || 600);
+// 3000 per IP per 15 min (was 600, ~200 logins at 2-3 calls each): launch-day sign-ups from one hostel NAT.
+const AUTH_IP_MAX = Math.max(50, Number(process.env.AUTH_RATE_LIMIT_IP_MAX) || 3000);
 const AUTH_PHONE_MAX = Math.max(10, Number(process.env.AUTH_RATE_LIMIT_PHONE_MAX) || 30);
 const authIpLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -38,7 +39,8 @@ const authLimiter = [authIpLimiter, authPhoneLimiter];
 // (default 200 per 15 min per IP, floor 30). It stays generous on purpose: a whole hostel shares a few
 // NAT IPs. The real abuse limits are per phone (cooldown + daily cap in the controller, the phone
 // bucket above) and the global daily SMS cap (utils/smsBudget, SMS_DAILY_CAP).
-const OTP_SEND_IP_MAX = Math.max(30, Number(process.env.OTP_SEND_IP_MAX) || 200);
+// 1000 (was 200, ~13 codes a minute for a whole campus Wi-Fi): money is guarded per phone and by SMS_DAILY_CAP.
+const OTP_SEND_IP_MAX = Math.max(30, Number(process.env.OTP_SEND_IP_MAX) || 1000);
 const otpSendIpLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: OTP_SEND_IP_MAX,
