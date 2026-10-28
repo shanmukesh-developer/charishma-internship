@@ -13,6 +13,12 @@
 //   others wait for its entry (up to COALESCE_WAIT_MS) instead of all hitting the database at once
 //   after an expiry / invalidation. A non-200 / non-JSON leader lets the waiters run the handler.
 // • The gzip of a new entry runs on the libuv threadpool (zlib.gzip), not on the event loop.
+// • Stale-while-revalidate (28 Oct live load test): an entry past its TTL but still of the current
+//   generation is served at once ('STALE') for up to STALE_MS more, and that same request then runs the
+//   handler in the background to rebuild it (one refresh per key at a time). Before this, the first
+//   student after every 30 s expiry waited 0.2-2.6 s for the rebuild (database ~180 ms per query) and
+//   everyone arriving meanwhile queued behind it. Invalidations still bump the generation, so a store /
+//   product / config write is never hidden behind a stale copy: only the clock-driven TTL is softened.
 //
 // Only use on handlers that never read req.user / cookies / Authorization: the key is the URL alone
 // (or the `key(req)` function, which must also depend on public request data only).
@@ -23,6 +29,12 @@ const { URLSearchParams } = require('url');
 
 const MAX_ENTRIES = 1000;
 const GZIP_MIN_BYTES = 1024;
+// How long past its TTL an entry may still be served while it is being rebuilt (RESPONSE_CACHE_STALE_MS, 0 = off).
+const STALE_MS = (() => {
+  const n = Number(process.env.RESPONSE_CACHE_STALE_MS);
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 5 * 60 * 1000;
+})();
+const REFRESH_TIMEOUT_MS = 30 * 1000;
 
 const store = new Map(); // key -> { body, gz, etag, at, ttl, gen }
 const generations = new Map(); // group -> number (bumped by invalidate)
@@ -157,7 +169,13 @@ const serve = (group, ttlMs, key, req, res, next, bypassable = false) => {
   const cacheKey = `${group}|${key ? key(req) : canonicalUrl(req)}`;
   const gen = genOf(group);
   const hit = store.get(cacheKey);
-  if (hit && hit.gen === gen && Date.now() - hit.at < hit.ttl) return sendEntry(req, res, hit, 'HIT', cc);
+  const age = hit ? Date.now() - hit.at : 0;
+  if (hit && hit.gen === gen && age < hit.ttl) return sendEntry(req, res, hit, 'HIT', cc);
+  if (hit && hit.gen === gen && age < hit.ttl + STALE_MS) {
+    sendEntry(req, res, hit, 'STALE', cc);
+    if (!refreshing.has(cacheKey) && !inflight.has(cacheKey)) refreshInBackground(cacheKey, group, gen, ttlMs, req, res, next);
+    return undefined;
+  }
   if (hit) store.delete(cacheKey);
 
   // Another request is already building this entry (same generation): wait for it.
@@ -229,6 +247,40 @@ const serve = (group, ttlMs, key, req, res, next, bypassable = false) => {
   next();
 };
 
-const stats = () => ({ entries: store.size, inflight: inflight.size, groups: Object.fromEntries(generations) });
+// Keys being rebuilt in the background (cacheKey -> timer that frees the key if the handler never answers).
+const refreshing = new Map();
+
+// The client already has the stale copy (res is finished). The handler runs once more on this request with
+// every response method turned into a no-op, except res.json, which captures the fresh body into the cache.
+const refreshInBackground = (cacheKey, group, gen, ttlMs, req, res, next) => {
+  const timer = setTimeout(() => refreshing.delete(cacheKey), REFRESH_TIMEOUT_MS);
+  if (timer.unref) timer.unref();
+  refreshing.set(cacheKey, timer);
+  const done = () => {
+    if (refreshing.get(cacheKey) === timer) { clearTimeout(timer); refreshing.delete(cacheKey); }
+  };
+  let code = 200;
+  const noop = () => res;
+  for (const m of ['set', 'header', 'setHeader', 'removeHeader', 'append', 'vary', 'type', 'contentType', 'location', 'links', 'cookie', 'clearCookie', 'attachment', 'writeHead', 'write', 'redirect', 'render', 'sendFile', 'download', 'sendStatus', 'end']) {
+    try { res[m] = noop; } catch { /* read-only on some objects: ignore */ }
+  }
+  res.status = (c) => { code = Number(c) || code; return res; };
+  res.send = () => { done(); return res; };
+  res.json = (payload) => {
+    if (code !== 200) { done(); return res; }
+    let built;
+    try { built = buildBody(payload); } catch { done(); return res; }
+    gzipAsync(built.body).then((gz) => {
+      if (genOf(group) === gen) put(cacheKey, { body: built.body, gz, etag: built.etag, at: Date.now(), ttl: ttlMs, gen });
+      done();
+    });
+    return res;
+  };
+  setImmediate(() => {
+    try { next(); } catch { done(); }
+  });
+};
+
+const stats = () => ({ entries: store.size, inflight: inflight.size, refreshing: refreshing.size, groups: Object.fromEntries(generations) });
 
 module.exports = { cacheGet, invalidate, invalidateAll, canonicalUrl, stats, liveAdminBypass };

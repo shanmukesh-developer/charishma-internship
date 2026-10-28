@@ -1,9 +1,11 @@
 // Sequelize pool + Postgres per-connection timeouts, read from the environment (A4).
 //
 //   DB_POOL_MAX              max connections per process          default 20   (same as before; lower after the load test)
-//   DB_POOL_MIN              warm connections kept open            default 0    (was 3)
+//   DB_POOL_MIN              warm connections kept open            default 4    (28 Oct live load test: with 0, every
+//                            burst opened new TLS connections to a database ~180 ms away and waited up to 2.4 s)
 //   DB_POOL_ACQUIRE_MS       wait for a free connection, then fail default 10000 (was 60000)
-//   DB_POOL_IDLE_MS          close a connection idle this long     default 30000 (unchanged)
+//   DB_POOL_IDLE_MS          close an extra (above min) connection idle this long   default 600000 (was 30000:
+//                            connections opened for a burst were dropped 30 s later and reopened on the next one)
 //   DB_POOL_EVICT_MS         idle sweep interval                   default 10000 (unchanged)
 //   DB_STATEMENT_TIMEOUT_MS  Postgres statement_timeout per conn   default 30000 (same as before); 0 = off
 //
@@ -16,9 +18,9 @@
 // transaction (withStatementTimeout below), or its own connection (scripts/ensure_indexes.js).
 const DEFAULTS = Object.freeze({
   poolMax: 20,
-  poolMin: 0,
+  poolMin: 4,
   acquireMs: 10000,
-  idleMs: 30000,
+  idleMs: 10 * 60 * 1000,
   evictMs: 10000,
   statementTimeoutMs: 30000,
   idleInTransactionMs: 30000,
@@ -50,7 +52,9 @@ const getStatementTimeoutMs = (env = process.env) => intEnv(env, 'DB_STATEMENT_T
 
 /** Postgres timeout connection options for Sequelize dialectOptions (merged with ssl by the caller). */
 const getPgTimeoutOptions = (env = process.env) => {
-  const opts = { idle_in_transaction_session_timeout: DEFAULTS.idleInTransactionMs };
+  // keepAlive: TCP keep-alive on every connection, so the warm ones kept open (DB_POOL_MIN) are not
+  // silently dropped by NAT / load balancers between the server and the database while idle.
+  const opts = { idle_in_transaction_session_timeout: DEFAULTS.idleInTransactionMs, keepAlive: true, keepAliveInitialDelayMillis: 10000 };
   const st = getStatementTimeoutMs(env);
   if (st > 0) opts.statement_timeout = st; // 0 = not sent at all: the server / role default applies
   return opts;

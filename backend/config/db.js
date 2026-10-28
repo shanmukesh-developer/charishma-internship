@@ -380,7 +380,7 @@ const connectDB = async () => {
         dialect: 'postgres',
         dialectOptions: dialectOptions,
         // DB_POOL_MAX / DB_POOL_MIN / DB_POOL_ACQUIRE_MS / DB_POOL_IDLE_MS / DB_POOL_EVICT_MS
-        // (defaults 10 / 0 / 10 s / 30 s / 10 s; config/dbSettings.js).
+        // (defaults 20 / 4 / 10 s / 10 min / 10 s; config/dbSettings.js).
         pool: dbSettings.getPoolConfig(),
         retry: {
           match: [

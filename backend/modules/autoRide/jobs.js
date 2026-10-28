@@ -30,9 +30,12 @@ const runAutoRideJobs = async (now = clock.now()) => {
   const Booking = getModel('AutoBooking');
   const Private = getModel('AutoPrivateRequest');
   if (!Trip || !Booking || !Private) return { skipped: true };
-  const busy = await Trip.findOne({ where: { status: { [Op.in]: E.ACTIVE_TRIP_STATUSES } }, attributes: ['id'] })
-    || await Booking.findOne({ where: { status: { [Op.in]: [B.REFUND_PENDING, B.HELD] } }, attributes: ['id'] })
-    || await Private.findOne({ where: { status: E.PRIVATE_STATUS.REQUESTED }, attributes: ['id'] });
+  // The three idle checks run together: one database round trip instead of three on every 30 s tick.
+  const busy = (await Promise.all([
+    Trip.findOne({ where: { status: { [Op.in]: E.ACTIVE_TRIP_STATUSES } }, attributes: ['id'] }),
+    Booking.findOne({ where: { status: { [Op.in]: [B.REFUND_PENDING, B.HELD] } }, attributes: ['id'] }),
+    Private.findOne({ where: { status: E.PRIVATE_STATUS.REQUESTED }, attributes: ['id'] }),
+  ])).some(Boolean);
   if (!busy) return { idle: true };
 
   // Lazy requires: nothing below loads while idle.
