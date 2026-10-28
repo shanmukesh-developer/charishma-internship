@@ -9,7 +9,7 @@ const { getUserModel } = require('../models/User');
 const { getGlobalConfigModel } = require('../models/GlobalConfig');
 const { calculateBadgePerks } = require('../middleware/rewardEngine');
 const { calculateCustomizationCost } = require('./pricingSchema');
-const { readOptions, priceWithOptions } = require('./productOptions');
+const { effectiveOptions, priceWithOptions } = require('./productOptions');
 const { getStoreOpenState } = require('./storeHours');
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -283,7 +283,7 @@ const computeOrderQuote = async ({ user, items, couponCode }) => {
     const isAddOn = (l.store.vendorType || '').toUpperCase() === ADDON_VENDOR_TYPE;
     // A product with admin-set choices (weights, flavours, types: utils/productOptions, docs/PRODUCT_OPTIONS.md)
     // is priced ONLY from them; everything else keeps the older keyword-based customization pricing.
-    const groups = isAddOn ? [] : readOptions(l.dbItem.specs);
+    const groups = isAddOn ? [] : effectiveOptions(l.dbItem, l.store && l.store.vendorType);
     let basePrice;
     let addOnPrice;
     if (groups.length) {

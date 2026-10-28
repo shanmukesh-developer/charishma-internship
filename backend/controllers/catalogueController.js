@@ -82,7 +82,8 @@ const shapeItem = (item, store) => {
     brand: specs.brand || null,
     // Admin-set choices (weights with their own prices, flavours, types) and ordered product details:
     // docs/PRODUCT_OPTIONS.md. Present only when set.
-    ...(() => { const o = require('../utils/productOptions').readOptions(specs); return o.length ? { options: o } : {}; })(),
+    // (admin-set, else automatic 250 g / 500 g / 1 kg for weight-sold grocery / bakery products)
+    ...(() => { const o = require('../utils/productOptions').effectiveOptions(i, store && store.vendorType); return o.length ? { options: o } : {}; })(),
     ...(Array.isArray(specs.details) && specs.details.length ? { details: specs.details } : {}),
     emoji: specs.emoji || null,
     category: i.category || null,

@@ -99,6 +99,52 @@ const readOptions = (specs) => {
   try { return normalizeOptions(s.options) || []; } catch { return []; }
 };
 
+// ── Automatic weights (owner, 29 Oct 2026: "if admin not specified the weights ... 250, 500, 1000 ... randomly,
+// later admin correct it") ─────────────────────────────────────────────────────────────────────────────────────
+// A grocery / bakery product sold by weight (pack size in g / kg, at least 250 g) that has NO admin-set choices gets
+// a Weight group of 250 g / 500 g / 1 kg (plus its own pack size), priced from its own price per gram, whole rupees.
+// Its own pack keeps exactly its current price and is the default pick. The admin's own choices always replace it.
+const AUTO_WEIGHT_TYPES = ['GROCERY', 'BAKERY'];
+const AUTO_SIZES = [250, 500, 1000];
+
+/** "1000g" / "1 kg" / "500 gms" / "1.5kg" -> grams, or null. */
+const packGrams = (text) => {
+  const m = String(text || '').toLowerCase().match(/(\d+(?:\.\d+)?)\s*(kgs?|kilograms?|kilos?|g|gms?|grams?)(?![a-z])/);
+  if (!m) return null;
+  const n = Number(m[1]) * (m[2].startsWith('k') ? 1000 : 1);
+  return Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+};
+const weightLabel = (g) => (g >= 1000 ? `${Number((g / 1000).toFixed(2))} kg` : `${g} g`);
+
+/** The automatic Weight group for `item` (MenuItem row or plain object) of a store of `vendorType`, or []. */
+const autoWeightOptions = (item, vendorType) => {
+  if (!item || !AUTO_WEIGHT_TYPES.includes(String(vendorType || '').toUpperCase())) return [];
+  let specs = item.specs;
+  if (typeof specs === 'string') { try { specs = JSON.parse(specs); } catch { specs = {}; } }
+  specs = specs && typeof specs === 'object' ? specs : {};
+  const grams = packGrams(specs.weight) || packGrams(item.name);
+  const price = Number(item.price);
+  if (!grams || grams < 250 || !Number.isFinite(price) || price <= 0) return [];
+  const sizes = [...new Set([...AUTO_SIZES, grams])].filter((g) => g >= grams / 4 && g <= grams * 2).sort((a, b) => a - b);
+  if (sizes.length < 2) return [];
+  const mrpRaw = Number(item.originalPrice) || Number(specs.originalPrice);
+  const mrp = Number.isFinite(mrpRaw) && mrpRaw > price ? mrpRaw : null;
+  const choices = sizes.map((g) => {
+    const own = g === grams;
+    const c = { label: weightLabel(g), price: own ? Math.round(price * 100) / 100 : Math.max(1, Math.round((price / grams) * g)) };
+    if (mrp) c.mrp = own ? mrp : Math.max(c.price, Math.round((mrp / grams) * g));
+    if (own) c.isDefault = true;
+    return c;
+  });
+  return [{ name: 'Weight', type: VARIANT, required: true, auto: true, choices }];
+};
+
+/** The choices a product is sold with: the admin's own, else the automatic weights (see above), else []. */
+const effectiveOptions = (item, vendorType) => {
+  const own = readOptions(item && item.specs);
+  return own.length ? own : autoWeightOptions(item, vendorType);
+};
+
 /**
  * Price one unit of `dbItem` (which has options) from the customer's picks `{ [groupName]: label | label[] | text }`.
  * Returns { basePrice, addOnPrice, unitPrice, customizations } (customizations cleaned, in the admin's group order).
@@ -124,7 +170,9 @@ const priceWithOptions = (dbItem, groups, picks) => {
       cleaned[g.name] = t;
       continue;
     }
-    const labels = (Array.isArray(v) ? v : (v === undefined || v === null || v === '' ? [] : [v])).filter((x) => typeof x === 'string');
+    let labels = (Array.isArray(v) ? v : (v === undefined || v === null || v === '' ? [] : [v])).filter((x) => typeof x === 'string');
+    // Automatic weights and no pick (an app from before weights existed): the product's own pack, its own price.
+    if (!labels.length && g.auto) { const d = g.choices.find((c) => c.isDefault); if (d) labels = [d.label]; }
     if (!labels.length) { if (g.required) fail(`${itemName}: please choose ${g.type === VARIANT ? 'a' : 'an option for'} "${g.name}".`); continue; }
     if (g.type !== MULTI && labels.length > 1) fail(`${itemName}: choose only one "${g.name}".`);
     if (g.type === MULTI && g.max && labels.length > g.max) fail(`${itemName}: choose at most ${g.max} for "${g.name}".`);
@@ -145,4 +193,5 @@ const priceWithOptions = (dbItem, groups, picks) => {
 module.exports = {
   VARIANT, SINGLE, MULTI, TEXT, OptionsInputError,
   normalizeOptions, normalizeDetails, readOptions, priceWithOptions, variantFromPrice,
+  autoWeightOptions, effectiveOptions, packGrams,
 };

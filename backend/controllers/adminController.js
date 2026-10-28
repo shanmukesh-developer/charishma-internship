@@ -315,7 +315,9 @@ exports.getRestaurantById = async (req, res) => {
         if (typeof mTags === 'string') {
           try { mTags = JSON.parse(mTags); } catch { mTags = []; }
         }
-        return { ...mObj, tags: mTags, _id: m.id, id: m.id, image: mObj.imageUrl || mObj.image };
+        // Customer choices: the admin's, else automatic weights (utils/productOptions, docs/PRODUCT_OPTIONS.md).
+        const opts = require('../utils/productOptions').effectiveOptions(m, restaurant.vendorType);
+        return { ...mObj, tags: mTags, _id: m.id, id: m.id, image: mObj.imageUrl || mObj.image, ...(opts.length ? { options: opts } : {}) };
       })
     });
   } catch (error) {
@@ -378,6 +380,8 @@ exports.getMenuItemById = async (req, res) => {
       ratingCount: specs.ratingCount || 0,
       isAvailable: inStock,
       bookingOnly,
+      // Customer choices: the admin's, else automatic weights (utils/productOptions, docs/PRODUCT_OPTIONS.md).
+      ...(() => { const o = require('../utils/productOptions').effectiveOptions(item, restaurant && restaurant.vendorType); return o.length ? { options: o } : {}; })(),
       // CampusBites stalls are ordered in Zenvy: cash to the stall, the stall delivers it.
       orderable: inStock && !bookingOnly && !!restaurant && restaurant.isActive !== false && !(stall && restaurant.isOffline) && (openState.isOpen || slotInfo.takesSlotOrders),
       directOrderOnly: false,

@@ -58,3 +58,23 @@ test('a placed order stores the server price and the picks', async () => {
   assert.equal(items[0].unitPrice, 120);
   assert.equal(items[0].customizations.Weight, '250 g');
 });
+
+test('automatic weights: a grocery 1 kg pack sells 500 g at half price; a plain quote still charges the pack price', async () => {
+  const { item } = await T.mkStore({ price: 140, store: { vendorType: 'GROCERY' }, item: { specs: { weight: '1000g' } } });
+  const u = await H.mkUser();
+  let r = await H.api('POST', '/api/orders/quote', u.token, body(item.id, { Weight: '500 g' }));
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal((r.body.lines || r.body.items)[0].unitPrice, 70);
+  r = await H.api('POST', '/api/orders/quote', u.token, body(item.id, { Weight: '1 kg' }));
+  assert.equal((r.body.lines || r.body.items)[0].unitPrice, 140);
+  r = await H.api('POST', '/api/orders/quote', u.token, body(item.id, { Weight: '2 kg' }));
+  assert.equal(r.status, 400);
+});
+
+test('automatic weights: an older app that sends no weight gets the pack at its own price (never a 400)', async () => {
+  const { item } = await T.mkStore({ price: 140, store: { vendorType: 'GROCERY' }, item: { specs: { weight: '1000g' } } });
+  const u = await H.mkUser();
+  const r = await H.api('POST', '/api/orders/quote', u.token, { items: [{ menuItemId: item.id, quantity: 1 }], paymentMethod: 'COD', deliveryAddress: 'Block A, Room 101, SRM AP', campus: 'srmap' });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal((r.body.lines || r.body.items)[0].unitPrice, 140);
+});

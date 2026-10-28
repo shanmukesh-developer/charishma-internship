@@ -65,3 +65,14 @@ test('stored data that does not validate counts as "no options" (the product sel
   assert.deepStrictEqual(po.readOptions('not json'), []);
   assert.deepStrictEqual(po.readOptions({}), []);
 });
+
+test('automatic weights: grocery / bakery packs of 250 g+ get 250 g / 500 g / 1 kg from their price per gram', () => {
+  const amla = po.autoWeightOptions({ name: 'Amla', price: 140, originalPrice: 170, specs: { weight: '1000g' } }, 'GROCERY');
+  assert.deepStrictEqual(amla[0].choices.map((c) => [c.label, c.price, c.mrp, !!c.isDefault]), [['250 g', 35, 43, false], ['500 g', 70, 85, false], ['1 kg', 140, 170, true]]);
+  assert.strictEqual(po.autoWeightOptions({ name: 'Lays 52g', price: 20, specs: { weight: '52 g' } }, 'GROCERY').length, 0, 'small packets keep one size');
+  assert.strictEqual(po.autoWeightOptions({ name: 'Biryani', price: 200, specs: { weight: '1 kg' } }, 'RESTAURANT').length, 0, 'restaurants never');
+  assert.strictEqual(po.autoWeightOptions({ name: 'Mango pickle 500 gms', price: 120, specs: {} }, 'BAKERY')[0].choices.length, 3, 'pack size read from the name');
+  // the admin's own choices always win
+  const own = po.effectiveOptions({ name: 'Amla', price: 140, specs: { weight: '1000g', options: [{ name: 'Size', type: 'variant', choices: [{ label: 'Jar', price: 99 }] }] } }, 'GROCERY');
+  assert.deepStrictEqual(own.map((g) => g.name), ['Size']);
+});
