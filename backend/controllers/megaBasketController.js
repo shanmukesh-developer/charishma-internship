@@ -88,7 +88,9 @@ const MAX_BASKET_PIN_ATTEMPTS = 5;
 // 'orders.slotDispatch' job announces it then (releaseDueSlotBaskets). Never throws.
 const riderJobs = require('../utils/riderJobs');
 const rupeesText = (n) => `₹${Math.round(Number(n) || 0)}`;
-const announceBasket = async (basketOrId, { now = new Date() } = {}) => {
+// The slot module's clock (like every other delivery-slot check), not new Date(): tests freeze it, and the
+// pool, claim and slot job already read it.
+const announceBasket = async (basketOrId, { now = require('../utils/deliverySlots').now() } = {}) => {
   try {
     const MegaBasket = getMegaBasketModel();
     const MegaBasketItem = getMegaBasketItemModel();

@@ -154,12 +154,12 @@ test('store hours at the slot start: closed then -> that slot is closed, the res
   assert.equal(S.slotsForOrder({ store: { name: 'Switched off', isActive: true, isOpenNow: false }, at: IST('2026-10-27T09:00:00') }).nextSlot, null);
 });
 
-test('dispatch window: riders see a slot order from 45 minutes before the start', () => {
-  assert.equal(S.DISPATCH_WINDOW_MIN, 45);
+test('dispatch window: riders see a slot order from 6 hours before the start (same-day orders at once)', () => {
+  assert.equal(S.DISPATCH_WINDOW_MIN, 360);
   const order = { slotStart: new Date('2026-10-27T07:00:00Z') }; // 12:30 IST
-  assert.equal(S.isDispatchDue(order, IST('2026-10-27T11:44:59')), false);
-  assert.equal(S.isDispatchDue(order, IST('2026-10-27T11:45:00')), true);
-  assert.equal(S.dispatchOpensAt(order).toISOString(), '2026-10-27T06:15:00.000Z');
+  assert.equal(S.isDispatchDue(order, IST('2026-10-27T06:29:59')), false);
+  assert.equal(S.isDispatchDue(order, IST('2026-10-27T06:30:00')), true);
+  assert.equal(S.dispatchOpensAt(order).toISOString(), '2026-10-27T01:00:00.000Z');
   assert.equal(S.isDispatchDue({ slotStart: null }, IST('2026-10-27T03:00:00')), true); // older rows: at once
 });
 

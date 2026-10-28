@@ -11,7 +11,7 @@
 // (always). Nothing beyond tomorrow. Local vendors / stalls (they deliver themselves), In-Campus Booking pickups,
 // services, Auto rides, Co-Ride, PG and Rentals keep their own timing (owner, 27 Oct).
 //
-// Riders see a slot order only from DISPATCH_WINDOW_MIN before the slot start (the 'orders.slotDispatch' job in
+// Riders see a slot order from DISPATCH_WINDOW_MIN (6 h) before the slot start (the 'orders.slotDispatch' job in
 // jobs/index.js releases orders that were held back). Stores get the order at once so they can plan.
 //
 // Optional GlobalConfig key DELIVERY_SLOTS = { enabled?: bool, slots?: [{ id: 'S1', start: '12:30', end: '13:00' }] }
@@ -37,7 +37,15 @@ const LEAD_REASONS = Object.freeze({
 });
 
 // Riders see a slot order from this many minutes before the slot start.
-const DISPATCH_WINDOW_MIN = 45;
+// Owner flow (28 Oct 2026): "the restaurant accepts, then the order shows to riders to pick". Every same-day
+// slot order is placed less than ~5 h before its slot (store cutoff 1-2.5 h), so a 6 h window releases it to
+// riders the moment the store accepts; an order booked at night for tomorrow still waits (no 1 AM pings) and
+// reaches riders 6 h before its slot. Riders see the booked slot on every card (SLOT badge). Was 45 min.
+// Env RIDER_SLOT_WINDOW_MIN overrides (15..1440).
+const DISPATCH_WINDOW_MIN = (() => {
+  const n = Number(process.env.RIDER_SLOT_WINDOW_MIN);
+  return Number.isFinite(n) && n >= 15 && n <= 1440 ? Math.floor(n) : 360;
+})();
 // A Pending slot order must be accepted by the store within the usual timeout counted from this many minutes
 // before the slot start (or from when it was placed, whichever is later). A night order for tomorrow is not
 // auto-cancelled at night while the kitchen is closed.

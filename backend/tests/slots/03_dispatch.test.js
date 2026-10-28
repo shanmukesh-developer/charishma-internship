@@ -1,5 +1,5 @@
-// Rider dispatch gating for slot orders: the store gets the order at once, riders only from 45 minutes before
-// the slot start (pool, claim, live event, push), released once by the 'orders.slotDispatch' job. Plus the
+// Rider dispatch gating for slot orders: the store gets the order at once, riders from 6 hours before
+// the slot start (so a same-day order reaches riders when the store accepts) (pool, claim, live event, push), released once by the 'orders.slotDispatch' job. Plus the
 // slot-aware timers: a night order for tomorrow is not store-timed-out at night, and an unclaimed slot order is
 // cancelled only after its slot started; the shopping list follows the same slot rules.
 const { test, before, after, afterEach } = require('node:test');
@@ -25,7 +25,7 @@ test('jobs registry runs the slot release every minute (single runner)', () => {
   assert.ok(j, jobs.map((x) => x.name).join(', '));
 });
 
-test('a slot order is not offered to riders early: pool, claim and live event wait for the 45-minute window', async () => {
+test('a slot order is not offered to riders early: pool, claim and live event wait for the 6-hour window', async () => {
   // 10 PM: an order for tomorrow 12:30. The store accepts it at once (it plans), riders do not see it.
   setNow(IST('2026-10-27T22:00:00'));
   const { store, item } = await T.mkStore();
@@ -36,6 +36,8 @@ test('a slot order is not offered to riders early: pool, claim and live event wa
   const id = placed.body.id;
   const acc = await H.api('PUT', `/api/orders/${id}/restaurant-accept`, store.token, { estDuration: 20 });
   assert.equal(acc.status, 200, JSON.stringify(acc.body));
+  // acceptedAt is the real clock; put it at the test's 10 PM so the job sees an order held back.
+  await H.ctx.M('Order').update({ acceptedAt: IST('2026-10-27T22:00:00') }, { where: { id } });
   await settle();
   assert.equal(deliveryRequests(id), 0, 'no delivery_request before the window');
 
@@ -45,16 +47,16 @@ test('a slot order is not offered to riders early: pool, claim and live event wa
   const early = await H.api('PUT', `/api/delivery/accept/${id}`, rider.token);
   assert.equal(early.status, 409, JSON.stringify(early.body));
   assert.equal(early.body.code, 'SLOT_NOT_OPEN');
-  assert.match(early.body.message, /Riders can take it from 11:45 AM/);
+  assert.match(early.body.message, /Riders can take it from 6:30 AM/);
   assert.equal((await H.ctx.M('Order').findByPk(id)).deliveryPartnerId, null);
 
-  // 11:44 tomorrow: still held; the job releases nothing.
-  setNow(IST('2026-10-28T11:44:00'));
+  // 6:29 tomorrow: still held; the job releases nothing.
+  setNow(IST('2026-10-28T06:29:00'));
   assert.deepEqual(await releaseDueSlotOrders(), { released: 0, marked: 0 });
   assert.ok(!(await H.api('GET', '/api/delivery/orders/pending', rider.token)).body.some((o) => o.id === id));
 
-  // 11:45: the window opens. The job releases it once (live event), the pool shows it, a claim works.
-  setNow(IST('2026-10-28T11:45:00'));
+  // 6:30: the window opens. The job releases it once (live event), the pool shows it, a claim works.
+  setNow(IST('2026-10-28T06:30:00'));
   const first = await releaseDueSlotOrders();
   assert.equal(first.released, 1);
   await settle();
@@ -62,10 +64,10 @@ test('a slot order is not offered to riders early: pool, claim and live event wa
   assert.deepEqual(await releaseDueSlotOrders(), { released: 0, marked: 0 }, 'released once');
   const inPool = await H.api('GET', '/api/delivery/orders/pending', rider.token);
   const card = inPool.body.find((o) => o.id === id);
-  assert.ok(card, 'in the pool from 11:45');
+  assert.ok(card, 'in the pool from 6:30');
   assert.equal(card.deliverySlot, 'Wed 28 Oct, 12:30–1:00 PM');
   assert.equal(card.slotLabel, 'Wed 28 Oct, 12:30–1:00 PM');
-  assert.equal(card.riderVisibleFrom, '2026-10-28T06:15:00.000Z');
+  assert.equal(card.riderVisibleFrom, '2026-10-28T01:00:00.000Z');
   const claim = await H.api('PUT', `/api/delivery/accept/${id}`, rider.token);
   assert.equal(claim.status, 200, JSON.stringify(claim.body));
   assert.equal(claim.body.slotStart, '2026-10-28T07:00:00.000Z');
@@ -168,7 +170,7 @@ test('store reminders follow the slot accept clock (none at night for tomorrow)'
   assert.match(mine[0].body, /For .+\. Accept it in the next [1-5] min/);
 });
 
-test('shopping list: slot picked / auto-assigned, closed slot refused, riders only in the window', async () => {
+test('shopping list: slot picked / auto-assigned, closed slot refused, riders from 6 h before the slot', async () => {
   setNow(IST('2026-10-27T15:45:00'));
   const u = await H.mkUser();
   const rider = await H.mkRider();
@@ -184,20 +186,17 @@ test('shopping list: slot picked / auto-assigned, closed slot refused, riders on
   assert.equal(picked.status, 201, JSON.stringify(picked.body));
   assert.equal(picked.body.deliverySlot, 'Wed 28 Oct, 4:30–5:30 PM');
 
-  // 7:44 PM: neither list is in the rider pool yet; 7:45 PM the 8:30 one is, tomorrow's is not.
-  setNow(IST('2026-10-27T19:44:00'));
-  let pool = await T.basketApi('GET', '/api/mega-basket/rider/pending', rider.token);
+  // 6-hour rider window: today's 8:30 PM list is in the pool at once; tomorrow's 4:30 PM one only from 10:30 AM.
+  setNow(IST('2026-10-27T15:46:00'));
+  const pool = await T.basketApi('GET', '/api/mega-basket/rider/pending', rider.token);
   assert.equal(pool.status, 200, JSON.stringify(pool.body));
-  assert.ok(!pool.body.some((b) => b.id === legacy.body.id));
-  const early = await T.basketApi('POST', `/api/mega-basket/${legacy.body.id}/claim`, rider.token);
+  const card = pool.body.find((b) => b.id === legacy.body.id);
+  assert.ok(card, "today's list is in the pool");
+  assert.equal(card.slotLabel, 'Tue 27 Oct, 8:30–9:30 PM');
+  assert.ok(!pool.body.some((b) => b.id === picked.body.id), "tomorrow's list is not");
+  const early = await T.basketApi('POST', `/api/mega-basket/${picked.body.id}/claim`, rider.token);
   assert.equal(early.status, 409);
   assert.equal(early.body.code, 'SLOT_NOT_OPEN');
-  setNow(IST('2026-10-27T19:45:00'));
-  pool = await T.basketApi('GET', '/api/mega-basket/rider/pending', rider.token);
-  const card = pool.body.find((b) => b.id === legacy.body.id);
-  assert.ok(card);
-  assert.equal(card.slotLabel, 'Tue 27 Oct, 8:30–9:30 PM');
-  assert.ok(!pool.body.some((b) => b.id === picked.body.id));
   const claim = await T.basketApi('POST', `/api/mega-basket/${legacy.body.id}/claim`, rider.token);
   assert.equal(claim.status, 200, JSON.stringify(claim.body));
 
@@ -215,4 +214,23 @@ test('shopping list: slot picked / auto-assigned, closed slot refused, riders on
 
 test('slot fields helper is safe on rows without a slot', () => {
   assert.deepEqual(S.slotFields({ deliverySlot: 'ASAP' }), { deliverySlot: 'ASAP', slotStart: null, slotEnd: null, slotLabel: null, riderVisibleFrom: null });
+});
+
+test('owner flow: a same-day order reaches riders the moment the store accepts it', async () => {
+  // 3:05 PM: an order for the 4:30 PM slot. The store accepts; riders get the live event and see it in the pool.
+  setNow(IST('2026-10-28T15:05:00'));
+  const { store, item } = await T.mkStore();
+  const u = await H.mkUser();
+  const rider = await H.mkRider();
+  const placed = await H.api('POST', '/api/orders', u.token, H.orderBody(item.id, 'COD', { deliverySlot: '2026-10-28|S2' }));
+  assert.equal(placed.status, 201, JSON.stringify(placed.body));
+  const id = placed.body.id;
+  const acc = await H.api('PUT', `/api/orders/${id}/restaurant-accept`, store.token, { estDuration: 20 });
+  assert.equal(acc.status, 200, JSON.stringify(acc.body));
+  await settle();
+  assert.equal(deliveryRequests(id), 1, 'riders hear about it at once');
+  const pool = await H.api('GET', '/api/delivery/orders/pending', rider.token);
+  const card = pool.body.find((o) => o.id === id);
+  assert.ok(card, 'in the rider pool right after the store accepted');
+  assert.match(String(card.deliverySlot), /4:30/);
 });

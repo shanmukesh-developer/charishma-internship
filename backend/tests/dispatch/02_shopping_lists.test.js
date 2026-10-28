@@ -1,5 +1,5 @@
 // Shopping lists (Mega Basket) reach the riders: a new list is announced once to every on-duty rider (live
-// 'rider_job' + push on delivery-alerts-v3); a slot list only when its rider window opens (45 min before the
+// 'rider_job' + push on delivery-alerts-v3); a slot list only when its rider window opens (6 h before the
 // slot, released by the 'orders.slotDispatch' job, exactly once). The customer hears every step that needs them
 // (rider took it, bill to approve, on the way, delivered) and the rider hears the approval / a cancel.
 const { test, before, after, beforeEach, afterEach } = require('node:test');
@@ -15,20 +15,20 @@ afterEach(() => setNow(null));
 const list = (extra = {}) => ({ items: [{ name: 'Bread', quantity: 1, priceEstimated: 40 }, { name: 'Milk', quantity: 2, priceEstimated: 30 }], deliveryAddress: 'Ganga, Room 412', paymentMethod: 'COD', ...extra });
 
 test('a new list rings on-duty riders once and is in their pool', async () => {
-  setNow(IST('2026-10-28T11:00:00'));
+  setNow(IST('2026-10-28T05:00:00'));
   const rider = await D.mkRider();
   const off = await D.mkRider({ online: false });
   const cust = await D.mkCustomer();
-  const mb = await D.api('POST', '/api/mega-basket', cust.token, list({ deliverySlot: '2026-10-28|S1' })); // 12:30 slot: window open at 11:45
+  const mb = await D.api('POST', '/api/mega-basket', cust.token, list({ deliverySlot: '2026-10-28|S1' })); // 12:30 slot: rider window opens at 6:30
   assert.equal(mb.status, 201, JSON.stringify(mb.body));
   await D.settle(700);
-  // 11:00 is before the window: held back.
+  // 5:00 is before the window: held back.
   assert.equal(D.jobEvents().length, 0, 'slot list held until its window');
   assert.equal(D.pushesTo(rider.pushToken).length, 0);
   const released0 = await H.r('controllers/megaBasketController').releaseDueSlotBaskets();
   assert.equal(released0.released, 0);
 
-  setNow(IST('2026-10-28T11:45:00'));
+  setNow(IST('2026-10-28T06:30:00'));
   const viaJob = await H.r('jobs/index').runJob('orders.slotDispatch');
   assert.ok(viaJob && !viaJob.error, JSON.stringify(viaJob));
   await D.settle(700);
