@@ -99,7 +99,10 @@ export function connectSocket(token: string): void {
       // appName / appVersion / appBuild: the server refuses a retired app version (force update).
       cb({ token: currentToken, ...socketVersionAuth() });
     },
-    transports: ['websocket'],
+    // WebSocket first; on a network that blocks WebSockets the client falls back to HTTP long-polling instead
+    // of never connecting (the rider then lived on the 12 s poll alone, with no instant delivery_request).
+    transports: ['websocket', 'polling'],
+    tryAllTransports: true,
     reconnection: true,
     reconnectionDelay: 2000,
     reconnectionDelayMax: 15000,

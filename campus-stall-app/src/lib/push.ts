@@ -138,14 +138,26 @@ export interface PushData { type?: string; bookingId?: string; status?: string }
  * Booking pushes received while open (`tapped` false) or tapped (`tapped` true). The tap that cold-launched the
  * app (before this listener existed) is delivered once as tapped too.
  */
+// Taps already handled in this app run (notification ids). The listener is re-subscribed whenever the signed-in
+// stall object changes (session refresh), and getLastNotificationResponseAsync keeps returning the same old tap:
+// without this the booking that cold-launched the app opened again on every refresh.
+const handledTaps = new Set<string>();
+const firstTime = (r: any): boolean => {
+  const id = String(r?.notification?.request?.identifier || r?.actionIdentifier || '');
+  if (!id) return true;
+  if (handledTaps.has(id)) return false;
+  handledTaps.add(id);
+  return true;
+};
+
 export function onStallPush(cb: (data: PushData, tapped: boolean) => void): () => void {
   if (!isNative) return () => {};
   let alive = true;
   try {
     const recv = Notifications.addNotificationReceivedListener((n) => cb((n.request.content.data as any) || {}, false));
-    const tap = Notifications.addNotificationResponseReceivedListener((r) => cb((r.notification.request.content.data as any) || {}, true));
+    const tap = Notifications.addNotificationResponseReceivedListener((r) => { if (firstTime(r)) cb((r.notification.request.content.data as any) || {}, true); });
     Promise.resolve((Notifications as any).getLastNotificationResponseAsync?.())
-      .then((r: any) => { const d = r?.notification?.request?.content?.data; if (d && alive) cb(d, true); })
+      .then((r: any) => { const d = r?.notification?.request?.content?.data; if (d && alive && firstTime(r)) cb(d, true); })
       .catch(() => {});
     return () => { alive = false; recv.remove(); tap.remove(); };
   } catch {

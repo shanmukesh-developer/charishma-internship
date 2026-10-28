@@ -48,6 +48,14 @@ export async function saveFcmToken(fcmToken: string): Promise<void> {
   await apiFetch('/delivery/fcm-token', { method: 'POST', body: { fcmToken, appVersion: APP_PUSH_VERSION } });
 }
 
+/**
+ * GPS over HTTP (POST /delivery/location) while the socket is down, e.g. in the background: dispatch ranks
+ * riders by a recent position, and the server takes a rider with no recent position off duty.
+ */
+export async function postLocation(p: { lat: number; lng: number; heading?: number | null; speed?: number | null }): Promise<void> {
+  await apiFetch('/delivery/location', { method: 'POST', body: { lat: p.lat, lng: p.lng, heading: p.heading ?? null, speed: p.speed ?? null } });
+}
+
 /** Logout: stop this phone's order pushes for this rider (POST /delivery/fcm-token/remove). */
 export async function removeFcmToken(fcmToken: string, token?: string): Promise<void> {
   await apiFetch('/delivery/fcm-token/remove', { method: 'POST', body: { fcmToken }, token });

@@ -165,6 +165,7 @@ export function RiderProvider({ children }: { children: React.ReactNode }) {
   const seenOffers = useRef<Set<string>>(new Set());
   const autoOpened = useRef(false);
   const lastEmit = useRef(0);
+  const lastHttpFix = useRef(0);
   const phaseRef = useRef<Phase>('splash');
   const isOnlineRef = useRef(isOnline);
   const dismissedRef = useRef(dismissed);
@@ -796,7 +797,14 @@ export function RiderProvider({ children }: { children: React.ReactNode }) {
         lastEmit.current = now;
         const orders = activeRef.current;
         const meta = { riderName: profileRef.current?.name || undefined, isOnline: isOnlineRef.current, activeOrderCount: orders.length };
-        if (orders.length) {
+        if (!sock.isSocketConnected()) {
+          // Socket down (Android drops it in the background): keep the server's position fresh over HTTP,
+          // every 30 s, so dispatch still rings this rider and the presence job keeps them on duty.
+          if ((orders.length || isOnlineRef.current) && now - lastHttpFix.current >= 30000) {
+            lastHttpFix.current = now;
+            api.postLocation({ lat: f.lat, lng: f.lng, heading: f.heading, speed: f.speed }).catch(() => {});
+          }
+        } else if (orders.length) {
           orders.forEach((o) => sock.emitLocation({ lat: f.lat, lng: f.lng, heading: f.heading, speed: f.speed, orderId: o.id, ...meta }));
         } else if (isOnlineRef.current) {
           sock.emitLocation({ lat: f.lat, lng: f.lng, heading: f.heading, speed: f.speed, ...meta });
@@ -848,8 +856,12 @@ export function RiderProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!inMain || !riderId) return;
     push.registerForPush(riderId);
+    // Back in the app: re-send the token when due (a send that failed while the server was asleep at
+    // launch is retried here instead of only at the next cold start).
+    const appSub = AppState.addEventListener('change', (st) => { if (st === 'active') push.registerForPush(riderId); });
     const offToken = push.onPushTokenChange(riderId);
     const offRecv = push.onPushReceived((data) => {
+      if (data?.type === 'OFF_DUTY') { refreshProfile(); return; } // the server took us off duty: show it
       if (data?.type === 'NEW_ORDER' || data?.orderId) refetchSoon();
     });
     const offTap = push.onPushTapped((data) => {
@@ -875,6 +887,7 @@ export function RiderProvider({ children }: { children: React.ReactNode }) {
       } else refetchSoon();
     });
     return () => {
+      appSub.remove();
       offToken();
       offRecv();
       offTap();

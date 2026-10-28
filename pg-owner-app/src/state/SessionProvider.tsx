@@ -139,8 +139,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     if (!token || !ownerId || !canUseApp) return;
     let alive = true;
     registerOwnerPush(ownerId).then((s) => { if (alive) setPushState(s); });
+    // Back in the app: a registration that failed (server waking up at launch) is retried here, not only at
+    // the next cold start; a successful one is a no-op until its daily re-send is due.
+    const appSub = AppState.addEventListener('change', (st) => {
+      if (st === 'active') registerOwnerPush(ownerId).then((s) => { if (alive) setPushState(s); });
+    });
     const off = onPushTokenChange(ownerId);
-    return () => { alive = false; off(); };
+    return () => { alive = false; appSub.remove(); off(); };
   }, [token, ownerId, canUseApp]);
 
   const signIn = useCallback(async (t: string, raw: any) => {

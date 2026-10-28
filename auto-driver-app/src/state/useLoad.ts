@@ -59,7 +59,10 @@ export function useLoad<T>(fn: () => Promise<T>, deps: unknown[] = [], opts: { p
   useEffect(() => {
     if (!opts.pollMs || !focused) return;
     const t = setInterval(() => { if (AppState.currentState === 'active') run('quiet'); }, opts.pollMs);
-    return () => clearInterval(t);
+    // Back from the background: refresh at once (the next poll could be a full interval away, so the driver
+    // saw requests that were already gone).
+    const sub = AppState.addEventListener('change', (st) => { if (st === 'active') run('quiet'); });
+    return () => { clearInterval(t); sub.remove(); };
   }, [opts.pollMs, focused, run]);
 
   return {

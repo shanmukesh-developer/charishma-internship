@@ -14,16 +14,21 @@ export function useAppActive(): boolean {
   return active;
 }
 
-/** Device connectivity from expo-network (true until proven otherwise). */
+/**
+ * Device connectivity from expo-network (true until proven otherwise). Only the link counts (Wi-Fi / data
+ * connected), not Android's "internet reachable" probe: campus Wi-Fi that blocks Google's connectivity check
+ * reported "no internet" while our server answered fine, and that stopped order polling and blocked Accept.
+ * Whether the server answers is known from the requests themselves.
+ */
 export function useNetwork(): boolean {
   const [connected, setConnected] = useState(true);
   useEffect(() => {
     let mounted = true;
     Network.getNetworkStateAsync()
-      .then((s) => mounted && setConnected(s.isConnected !== false && s.isInternetReachable !== false))
+      .then((s) => mounted && setConnected(s.isConnected !== false))
       .catch(() => {});
     const sub = Network.addNetworkStateListener((s) => {
-      setConnected(s.isConnected !== false && s.isInternetReachable !== false);
+      setConnected(s.isConnected !== false);
     });
     return () => {
       mounted = false;

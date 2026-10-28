@@ -2,8 +2,9 @@
 // stay length, note and first name (never a phone number). Accept (optionally into another room with a free
 // bed) or decline with a reason the student sees. The student gets a push + in-app notification from the
 // server. Tabs: New / Accepted / Closed (declined, cancelled, moved out).
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { color, font, radius, space } from '../theme';
 import { Badge, Button, Card, Chip, EmptyState, ErrorStrip, Segmented, Sheet, SkeletonCard } from '../ui/kit';
@@ -41,25 +42,37 @@ export default function RequestsScreen({ navigation, route }: ScreenProps<'Reque
   const [accepting, setAccepting] = useState<Booking | null>(null);
   const [rejecting, setRejecting] = useState<Booking | null>(null);
 
+  // Only the newest request may set the list: a slow "New" reply arriving after a switch to "Accepted" used to
+  // overwrite the Accepted list with new requests.
+  const seq = useRef(0);
   const load = useCallback(async (quiet = false) => {
     if (!current) return;
+    const mine = ++seq.current;
     if (!quiet) setLoading(true);
     try {
       const r = await ownerApi.bookings(tab, current.id);
+      if (mine !== seq.current) return;
       setList(r.bookings);
       setCounts(r.counts);
       setError(null);
     } catch (e) {
-      setError(errorMessage(e));
+      if (mine === seq.current) setError(errorMessage(e));
     } finally {
-      setLoading(false);
+      if (mine === seq.current) setLoading(false);
     }
   }, [tab, current]);
   useEffect(() => { setList(null); load(); }, [load]);
+  // Polls only while this screen is in front and the app is open (it kept polling every 30 s from under other
+  // screens and in the background).
+  const focused = useIsFocused();
+  const firstFocus = useRef(true);
   useEffect(() => {
-    const t = setInterval(() => load(true), HOME_POLL_MS);
+    if (!focused) return undefined;
+    if (firstFocus.current) firstFocus.current = false; // the load above already ran
+    else load(true); // back on this screen: refresh at once
+    const t = setInterval(() => { if (AppState.currentState === 'active') load(true); }, HOME_POLL_MS);
     return () => clearInterval(t);
-  }, [load]);
+  }, [load, focused]);
 
   const afterChange = (msg: string) => {
     toast.show(msg, 'success');

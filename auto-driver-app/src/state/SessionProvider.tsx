@@ -142,8 +142,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     if (!token || !driverId) return;
     let alive = true;
     registerDriverPush(driverId).then((s) => { if (alive) setPushState(s); });
+    // Back in the app: a registration that failed (server waking up at launch) is retried here, not only at
+    // the next cold start; a successful one is a no-op until its daily re-send is due.
+    const appSub = AppState.addEventListener('change', (st) => {
+      if (st === 'active') registerDriverPush(driverId).then((s) => { if (alive) setPushState(s); });
+    });
     const off = onPushTokenChange(driverId);
-    return () => { alive = false; off(); };
+    return () => { alive = false; appSub.remove(); off(); };
   }, [token, driverId]);
 
   const signIn = useCallback(async (t: string, raw: any) => {

@@ -134,6 +134,8 @@ export async function playChime(kind: ChimeKind, text: string): Promise<void> {
   }
 }
 
+const REREGISTER_MS = 12 * 60 * 60 * 1000;
+
 /** Ask permission and send the device (FCM) token to the server. Safe to call repeatedly. */
 export async function registerForPush(riderId: string): Promise<void> {
   try {
@@ -147,9 +149,13 @@ export async function registerForPush(riderId: string): Promise<void> {
     const token = typeof device?.data === 'string' ? device.data : '';
     if (!token) return;
     const marker = `${riderId}:${token}`;
-    if ((await getItem(REGISTERED_KEY)) === marker) return;
+    // Re-sent at least every 12 h even when unchanged (and on every return to the app): the server drops a
+    // token whose send failed, another rider's login on this phone takes it, a database move can lose it.
+    // A rider whose token was sent once and never again stayed silent while the app was closed, for good.
+    const [savedMarker, savedAt] = ((await getItem(REGISTERED_KEY)) || '').split('|');
+    if (savedMarker === marker && Date.now() - Number(savedAt || 0) < REREGISTER_MS) return;
     await saveFcmToken(token);
-    await setItem(REGISTERED_KEY, marker);
+    await setItem(REGISTERED_KEY, `${marker}|${Date.now()}`);
   } catch {
     // Push is best effort; polling still finds orders while the app is open.
   }
@@ -161,7 +167,7 @@ export function onPushTokenChange(riderId: string): () => void {
     if (!token) return;
     try {
       await saveFcmToken(token);
-      await setItem(REGISTERED_KEY, `${riderId}:${token}`);
+      await setItem(REGISTERED_KEY, `${riderId}:${token}|${Date.now()}`);
     } catch {
       // retried on next start
     }
@@ -177,7 +183,7 @@ export function onPushTokenChange(riderId: string): () => void {
  */
 /** The device token this phone last registered for `riderId` (from the local marker), or null. */
 export async function registeredPushToken(riderId: string): Promise<string | null> {
-  const marker = await getItem(REGISTERED_KEY);
+  const marker = ((await getItem(REGISTERED_KEY)) || '').split('|')[0]; // "<rider>:<token>|<sent at>"
   const prefix = `${riderId}:`;
   return riderId && marker && marker.startsWith(prefix) ? marker.slice(prefix.length) || null : null;
 }
