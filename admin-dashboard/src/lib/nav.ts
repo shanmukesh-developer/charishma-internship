@@ -84,6 +84,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: '/vault', label: 'Daily deals', icon: 'gift', description: 'Limited daily deals (Vault) that customers claim as coupons.', keywords: 'vault deals daily claim' },
       { href: '/notifications', label: 'Push notifications', icon: 'bell', description: 'Send push notifications to customers.', keywords: 'push notification broadcast message send' },
       { href: '/cms', label: 'Home screen layout', icon: 'layout', description: 'Banners and sections on the customer app home screen.', keywords: 'cms banners layout home sections' },
+      { href: '/splash-ads', label: 'Splash ads', icon: 'image', description: 'Full-screen store ads shown right after the customer app intro (one per style, up to 8).', keywords: 'splash ads advert sponsored intro full screen promotion store offer' },
     ],
   },
   {

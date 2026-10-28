@@ -28,7 +28,8 @@
     "test:s1": "node tests/s1/run.js",
     "test:slots": "node tests/slots/run.js",
     "test:dispatch": "node tests/dispatch/run.js",
-    "test:cb": "node tests/cb/run.js"
+    "test:cb": "node tests/cb/run.js",
+    "test:ads": "node tests/ads/run.js"
   },
   "keywords": [],
   "author": "",

@@ -22,7 +22,9 @@ export type LiveType =
   // Zenvy Campus Events (public 'campus_event' + admin 'campus_event_admin')
   | 'campus_event' | 'campus_event_admin'
   // In-Campus Booking (admin room): pickup bookings paid straight to the stall
-  | 'campus_booking';
+  | 'campus_booking'
+  // Splash ads (admin room): full-screen store ads after the customer app intro
+  | 'splash_ad';
 
 export interface LiveEvent {
   type: LiveType | string;

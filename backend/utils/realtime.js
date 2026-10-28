@@ -45,7 +45,9 @@ const ADMIN_TYPES = new Set([...PUBLIC_TYPES, 'order', 'ticket', 'verification',
   // ZCS PG Partner: owner accounts + tenant complaints (admin /pg page, Owner accounts tab)
   'pg_owner', 'pg_complaint',
   // In-Campus Booking (admin /campus-booking page): pickup bookings paid straight to the stall
-  'campus_booking']);
+  'campus_booking',
+  // Splash ads (admin /splash-ads page): full-screen store ads after the customer app intro
+  'splash_ad']);
 const ACTIONS = new Set(['created', 'updated', 'deleted']);
 const CACHE_TYPES = new Set(['store', 'product']);
 

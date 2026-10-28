@@ -1285,6 +1285,9 @@ const initializeApp = async () => {
     app.use('/api/wall', require('./routes/wallRoutes'));
     app.use('/api/services', require('./routes/serviceRoutes'));
     app.use('/api/catalogue', require('./routes/catalogueRoutes'));
+    // Splash ads after the customer app intro: public GET /api/ads/splash (cached); admin CRUD is mounted
+    // below, before /api/admin.
+    app.use('/api/ads', require('./routes/adRoutes').router);
     app.use('/api/notifications', require('./routes/notificationRoutes'));
 
     // 🚀 Auto-Seed: DEVELOPMENT ONLY — Never overwrite production data
@@ -1522,6 +1525,8 @@ const initializeApp = async () => {
     app.use('/api/campus-booking/vendor', campusBookingRoutes.vendorRouter);
     app.use('/api/campus-booking', campusBookingRoutes.router);
     app.use('/api/admin/campus-booking', campusBookingRoutes.adminRouter);
+    // Splash ads (admin): list / create / edit / switch on-off / delete (routes/adRoutes).
+    app.use('/api/admin/splash-ads', require('./routes/adRoutes').adminRouter);
     app.use('/api/admin', require('./routes/adminRoutes'));
     app.use('/api/rewards', require('./routes/rewardRoutes'));
     app.use('/api/community', require('./routes/communityRoutes'));

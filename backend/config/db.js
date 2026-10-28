@@ -26,6 +26,7 @@ const { initPGRoomModel } = require('../models/PGRoom');
 const { initPGBookingModel } = require('../models/PGBooking');
 const { initPGReviewModel } = require('../models/PGReview');
 const { initPgPromotionModel } = require('../models/PgPromotion');
+const { initSplashAdModel } = require('../models/SplashAd');
 const { initMegaBasketModel } = require('../models/MegaBasket');
 const { initMegaBasketItemModel } = require('../models/MegaBasketItem');
 const { initAppConfigModel } = require('../models/AppConfig');
@@ -88,6 +89,8 @@ const initializeAllModels = (instance) => {
   // PG v2: stay reviews (one per confirmed booking) + list-page promotions (admin curated).
   initPGReviewModel(instance);
   initPgPromotionModel(instance);
+  // Splash ads: full-screen store ads after the customer app intro (admin curated, one active per style).
+  initSplashAdModel(instance);
   initMegaBasketModel(instance);
   initMegaBasketItemModel(instance);
   initBirthdayCelebrationModel(instance);
