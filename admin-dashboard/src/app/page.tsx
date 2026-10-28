@@ -65,8 +65,6 @@ const CHECKPOINTS = [
 
 const ORDER_FEED_LIMIT = 40;
 const ORDERS_PATH = `/api/orders?limit=${ORDER_FEED_LIMIT}`;
-// Summary rows only (no basket items): the overview needs totals, status and names, nothing else.
-const BASKETS_PATH = `/api/mega-basket/admin/all?summary=1&limit=${ORDER_FEED_LIMIT}`;
 const STATS_PATH = '/api/admin/stats';
 /** Fallback polling: frequent only while the live socket is down; slow safety net otherwise. */
 const POLL_OFFLINE_MS = 15000;
@@ -89,7 +87,7 @@ interface AdminStat {
 
 interface LiveOrder {
   id: string;
-  kind: 'order' | 'basket';
+  kind: 'order';
   customer: string;
   location: string;
   status: string;
@@ -156,21 +154,6 @@ const mapOrder = (o: any): LiveOrder => ({
   deliveryPartnerPhoto: o.deliveryPartner?.photoUrl,
 });
 
-const mapBasket = (b: any): LiveOrder => ({
-  id: String(b.id || b._id),
-  kind: 'basket',
-  customer: b.user?.name || 'Customer',
-  location: b.deliveryAddress || 'Hostel delivery',
-  status: String(b.status || 'Pending'),
-  price: toNumber(b.actualTotal ?? b.estimatedTotal) + toNumber(b.shoppingFee) + toNumber(b.deliveryFee),
-  restaurant: 'Mega Basket',
-  timestamp: new Date(b.createdAt || Date.now()),
-  paymentMethod: String(b.paymentMethod || 'COD'),
-  riderAssigned: !!(b.deliveryPartnerId || b.deliveryPartner),
-  deliveryPartnerName: b.deliveryPartner?.name,
-  deliveryPartnerPhoto: b.deliveryPartner?.photoUrl,
-});
-
 // Legacy UPI orders (before COD + Wallet only) can still be waiting for a manual check.
 const needsUpiCheck = (o: LiveOrder) => o.kind === 'order' && o.paymentMethod === 'UPI' && o.upiStatus === 'Pending';
 
@@ -184,10 +167,9 @@ const toStats = (data: any): AdminStat[] => [
   { label: 'Local vendors', value: String(data?.localVendorCount ?? '0'), hint: 'Active stalls' },
 ];
 
-const mergeFeed = (ordersData: { orders?: any[] } | null, basketsData: any[] | null): LiveOrder[] => {
+const toFeed = (ordersData: { orders?: any[] } | null): LiveOrder[] => {
   const orders = (Array.isArray(ordersData?.orders) ? ordersData!.orders! : []).map(mapOrder);
-  const baskets = (Array.isArray(basketsData) ? basketsData : []).map(mapBasket);
-  return [...orders, ...baskets]
+  return orders
     .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
     .slice(0, ORDER_FEED_LIMIT);
 };
@@ -199,7 +181,7 @@ const peekStats = () => {
 };
 const peekFeed = () => {
   const o = peekCachedJson<{ orders?: any[] }>(ORDERS_PATH, API_URL);
-  return o ? mergeFeed(o, peekCachedJson<any[]>(BASKETS_PATH, API_URL)) : null;
+  return o ? toFeed(o) : null;
 };
 
 // ─── Presentational pieces ─────────────────────────────────
@@ -272,11 +254,8 @@ export default function AdminHome() {
 
   const fetchOrders = useCallback(async () => {
     try {
-      const [ordersData, basketsData] = await Promise.all([
-        apiRequest<{ orders?: any[] }>(ORDERS_PATH),
-        apiRequest<any[]>(BASKETS_PATH).catch(() => [] as any[]),
-      ]);
-      setLiveOrders(mergeFeed(ordersData, basketsData));
+      const ordersData = await apiRequest<{ orders?: any[] }>(ORDERS_PATH);
+      setLiveOrders(toFeed(ordersData));
       setOrdersError(null);
     } catch (err) {
       setOrdersError(errMsg(err, 'Could not load recent orders.'));
@@ -520,25 +499,6 @@ export default function AdminHome() {
       });
     };
 
-    // admin_newMegaBasket: { id, customer, address, estimatedTotal, paymentMethod, status }
-    const handleIncomingMegaBasket = (basket: any) => {
-      throttledFetchStats();
-      const basketId = basket?.id || basket?._id;
-      if (!basketId) return;
-      prependOrder({
-        id: String(basketId),
-        kind: 'basket',
-        customer: basket.customer || basket.user?.name || 'Customer',
-        location: basket.address || 'Hostel delivery',
-        status: basket.status || 'Pending',
-        price: toNumber(basket.estimatedTotal),
-        restaurant: 'Mega Basket',
-        timestamp: new Date(),
-        paymentMethod: basket.paymentMethod || 'COD',
-        riderAssigned: false,
-      });
-    };
-
     const handleStatusUpdated = (data: any) => {
       throttledFetchStats();
       const targetId = String(data?.id || data?.orderId || '');
@@ -685,7 +645,6 @@ export default function AdminHome() {
     };
 
     socket.on('admin_newOrder', handleIncomingOrder);
-    socket.on('admin_newMegaBasket', handleIncomingMegaBasket);
     socket.on('statusUpdated', handleStatusUpdated);
     socket.on('orderCancelled', handleOrderCancelled);
     socket.on('admin_rider_location', handleRiderLocation);
@@ -702,7 +661,6 @@ export default function AdminHome() {
 
     return () => {
       socket.off('admin_newOrder', handleIncomingOrder);
-      socket.off('admin_newMegaBasket', handleIncomingMegaBasket);
       socket.off('statusUpdated', handleStatusUpdated);
       socket.off('orderCancelled', handleOrderCancelled);
       socket.off('admin_rider_location', handleRiderLocation);
@@ -846,8 +804,7 @@ export default function AdminHome() {
 
   const openOrder = (o: LiveOrder) => {
     if (needsUpiCheck(o)) { handleVerifyRequest(o); return; }
-    if (o.kind === 'basket') router.push('/mega-basket');
-    else router.push(`/orders?order=${encodeURIComponent(o.id)}`);
+    router.push(`/orders?order=${encodeURIComponent(o.id)}`);
   };
 
   return (
@@ -957,7 +914,7 @@ export default function AdminHome() {
         <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="text-base font-semibold text-fg">Latest orders</h2>
-            <p className="mt-0.5 text-sm text-fg-muted">The newest {ORDER_FEED_LIMIT} food and Mega Basket orders. Select a row to open it.</p>
+            <p className="mt-0.5 text-sm text-fg-muted">The newest {ORDER_FEED_LIMIT} orders. Select a row to open it.</p>
           </div>
           {upiPendingCount > 0 && <Badge tone="warning">{upiPendingCount} legacy UPI {upiPendingCount === 1 ? 'payment' : 'payments'} to verify</Badge>}
         </div>

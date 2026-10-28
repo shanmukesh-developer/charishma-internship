@@ -1,16 +1,16 @@
-// Rider jobs that are not Orders: shopping lists (MegaBasket, rider shops and delivers) and service pickups
-// (ServiceBooking: laundry / tailoring / repairs, rider collects from the student's room and brings it back).
-// Same reach as a delivery order: every on-duty approved rider hears the live pool event
+// Rider jobs that are not Orders: service pickups (ServiceBooking: laundry / tailoring / repairs, rider collects
+// from the student's room and brings it back). Shopping lists (MegaBasket) were removed on 28 Oct 2026: they are
+// never announced to the pool again, but a list a rider already holds is still told about its changes
+// (tellJobRider with kind 'basket'). Same reach as a delivery order: every on-duty approved rider hears the live pool event
 // (realtime.riderJob -> 'rider_job' in RIDERS_ONLINE_ROOM) and the best-placed riders get a push on the rider
 // app's order channel. The rider who holds a job is told about changes to it (customer approved the bill,
 // cancelled, admin moved it) on their own room + push.
 //
-// Delivery slots (utils/deliverySlots) apply to shopping lists only: a slot list is announced from
-// DISPATCH_WINDOW_MIN before its slot start (megaBasketController.releaseDueSlotBaskets). Service pickups are
-// never slot-gated.
+// Service pickups are never slot-gated.
 const realtime = require('./realtime');
 
-const JOB_KINDS = ['basket', 'service'];
+// Kinds that can be announced to the pool (announceJob). 'basket' is no longer one (shopping lists removed).
+const JOB_KINDS = ['service'];
 // Push data.type the rider app reacts to (delivery-boy-app src/state/JobsStore.tsx).
 const NEW_JOB_PUSH = 'NEW_JOB';
 const JOB_UPDATE_PUSH = 'JOB_UPDATE';
@@ -68,7 +68,7 @@ const tellJobRider = async ({ kind, id, riderId, title = null, body = '' }) => {
   }
 };
 
-// Customer push + in-app notification for a job (type MEGA_BASKET / SERVICE_STATUS). Never throws.
+// Customer push + in-app notification for a job (type ORDER_UPDATE for a held shopping list / SERVICE_STATUS). Never throws.
 const tellCustomer = async (userId, title, body, data) => {
   if (!userId) return;
   try {

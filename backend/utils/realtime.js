@@ -246,8 +246,8 @@ const deliveryRequest = (orderId) => {
 };
 const deliveryRequestGone = (orderId) => emitToRiders(DELIVERY_REQUEST_GONE_EVENT, orderId);
 
-// Rider jobs that are not Orders: shopping lists (MegaBasket) and service pickups (ServiceBooking), see
-// utils/riderJobs. `rider_job { kind: 'basket' | 'service', id, action: 'new' | 'gone' | 'updated' }`, ids only.
+// Rider jobs that are not Orders: service pickups (ServiceBooking) and, for the rider still holding one,
+// shopping lists (MegaBasket; the pool no longer gets new ones), see utils/riderJobs. `rider_job { kind: 'basket' | 'service', id, action: 'new' | 'gone' | 'updated' }`, ids only.
 //   riderId null -> RIDERS_ONLINE_ROOM (pool changed); riderId set -> that rider's own sockets (their job changed).
 const RIDER_JOB_EVENT = 'rider_job';
 const RIDER_JOB_KINDS = new Set(['basket', 'service']);

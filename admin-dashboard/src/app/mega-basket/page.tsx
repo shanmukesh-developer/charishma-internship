@@ -114,7 +114,9 @@ export default function MegaBasketAdminPage() {
   const basketIdsRef = useRef<Set<string>>(new Set());
   useEffect(() => { basketIdsRef.current = new Set(baskets.map(b => String(b.id))); }, [baskets]);
 
-  // Reload when a customer creates a new basket, or a basket's status changes (the backend sends
+  // Shopping lists were removed (28 Oct 2026): this page is no longer in the menu and no new list is created; it
+  // stays reachable by URL so support can see and cancel a list a rider still holds.
+  // Reload when a basket's status changes (the backend sends
   // `statusUpdated` { id, status } to admin-room; orders use the same event, so only known basket ids count).
   // Bursts of events become one quiet reload (no spinner) per 800 ms window.
   const quietReload = useRef(false);
@@ -129,14 +131,11 @@ export default function MegaBasketAdminPage() {
         setRefreshCount(count => count + 1);
       }, 800);
     };
-    const onNew = () => bump();
     const onStatus = (payload: { id?: string | number } | undefined) => {
       if (payload?.id != null && basketIdsRef.current.has(String(payload.id))) bump();
     };
-    socket.on('admin_newMegaBasket', onNew);
     socket.on('statusUpdated', onStatus);
     return () => {
-      socket.off('admin_newMegaBasket', onNew);
       socket.off('statusUpdated', onStatus);
       if (timer) clearTimeout(timer);
     };

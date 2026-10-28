@@ -25,12 +25,12 @@ exports.getConfig = async (req, res) => {
         banners: [
           {
             imageUrl: 'https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=1974&auto=format&fit=crop',
-            tagline: 'MEGA BASKET',
+            tagline: 'GROCERIES',
             title1: 'YOUR ESSENTIALS',
             title2: 'DELIVERED TODAY',
-            description: 'CREATE A CUSTOM SHOPPING LIST AND HAVE OUR PERSONAL SHOPPERS BUY AND DELIVER YOUR DAILY NEEDS.',
-            buttonText: 'CREATE BASKET',
-            redirectUrl: '/mega-basket',
+            description: 'DAILY NEEDS FROM CAMPUS STORES, DELIVERED TO YOUR ROOM.',
+            buttonText: 'SHOP NOW',
+            redirectUrl: '/others',
             isActive: true
           }
         ],

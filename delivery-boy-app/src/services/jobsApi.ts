@@ -1,6 +1,6 @@
-// Rider jobs that are not delivery orders: shopping lists (/api/mega-basket, the rider buys and delivers) and
-// service pickups (/api/services, laundry / tailoring / repairs collected from the student's room and brought
-// back). No invented defaults: a value the server did not send stays null.
+// Rider jobs that are not delivery orders: service pickups (/api/services, laundry / tailoring / repairs collected
+// from the student's room and brought back) and, only to finish one the rider already holds, shopping lists
+// (/api/mega-basket; removed, no new ones). No invented defaults: a value the server did not send stays null.
 import { apiFetch } from './apiClient';
 import { toNumber } from './orderModel';
 
@@ -39,7 +39,7 @@ export interface RiderBasket {
   shoppingFee: number;
   deliveryFee: number;
   paymentMethod: string | null;
-  /** Pool: hostel block only. Claimed: the full address. */
+  /** Hostel block (fallback when the full address is missing). */
   area: string | null;
   deliveryAddress: string | null;
   customerName: string | null;
@@ -154,16 +154,11 @@ function toService(raw: any): RiderService {
 }
 
 // ── Shopping lists ───────────────────────────────────────────────────────────
-export async function fetchBasketPool(): Promise<RiderBasket[]> {
-  const rows = await apiFetch<any[]>('/mega-basket/rider/pending');
-  return Array.isArray(rows) ? rows.map(toBasket) : [];
-}
+// Removed (28 Oct 2026): there is no pool and no claim any more. A list the rider already holds is still listed
+// here and finished with the steps below.
 export async function fetchMyBaskets(): Promise<RiderBasket[]> {
   const rows = await apiFetch<any[]>('/mega-basket/rider/active');
   return Array.isArray(rows) ? rows.map(toBasket) : [];
-}
-export async function claimBasket(id: string): Promise<void> {
-  await apiFetch(`/mega-basket/${id}/claim`, { method: 'POST' });
 }
 export async function startShopping(id: string): Promise<void> {
   await apiFetch(`/mega-basket/${id}/start-shopping`, { method: 'POST' });

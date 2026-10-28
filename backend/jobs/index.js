@@ -73,10 +73,14 @@ const runAutoCancel = async ({ io }) => {
   try {
     const { autoCancelStalePendingOrders } = require('../controllers/orderController');
     out.orders = (await autoCancelStalePendingOrders(io)) || 0;
-    const { expireStaleBaskets } = require('../controllers/megaBasketController');
-    out.baskets = (await expireStaleBaskets(io)) || 0;
   } catch (e) {
     console.warn('[AUTO_CANCEL] Error:', e.message);
+  }
+  // Shopping lists were removed: any list still waiting for a rider is closed (nobody can take it now).
+  try {
+    out.baskets = (await require('../controllers/megaBasketController').closeUnclaimedBaskets(io)) || 0;
+  } catch (e) {
+    console.warn('[BASKET_CLOSE] Error:', e.message);
   }
   // Unclaimed orders: push riders again, wider each round, before the "no rider" cancel above reaches them.
   try {
@@ -102,8 +106,6 @@ const runAutoCancel = async ({ io }) => {
 
 // Delivery slots: slot orders held back from riders are released DISPATCH_WINDOW_MIN before their slot
 // (controllers/orderController.releaseDueSlotOrders; utils/deliverySlots).
-// Shopping lists (Mega Basket) for a slot are announced to riders at the same moment
-// (controllers/megaBasketController.releaseDueSlotBaskets, utils/riderJobs).
 const runSlotDispatch = async () => {
   let out;
   try {
@@ -111,12 +113,6 @@ const runSlotDispatch = async () => {
   } catch (e) {
     console.warn('[SLOT_DISPATCH] Error:', e.message);
     out = { released: 0, error: e.message };
-  }
-  try {
-    const b = await require('../controllers/megaBasketController').releaseDueSlotBaskets();
-    if (b && b.released) out = { ...out, baskets: b.released };
-  } catch (e) {
-    console.warn('[SLOT_DISPATCH] Basket error:', e.message);
   }
   return out;
 };

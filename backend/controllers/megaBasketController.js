@@ -83,61 +83,12 @@ const advanceBasket = async (req, res, from, to, extra = {}) => {
 const MAX_BASKET_PIN_ATTEMPTS = 5;
 
 // ── Rider jobs (utils/riderJobs) ─────────────────────────────────────────────
-// A shopping list in the rider pool is announced to on-duty riders (live 'rider_job' event + push), exactly once
-// (slotDispatchedAt, conditional). A slot list waits until DISPATCH_WINDOW_MIN before its slot start: the
-// 'orders.slotDispatch' job announces it then (releaseDueSlotBaskets). Never throws.
+// Shopping lists were removed (owner, 28 Oct 2026): no new list is created, announced or claimable. Lists a
+// rider already holds still finish through the step endpoints below, and the rider is still told about
+// changes to them (bill approved, cancelled). The MegaBaskets rows stay as they are.
 const riderJobs = require('../utils/riderJobs');
 const rupeesText = (n) => `₹${Math.round(Number(n) || 0)}`;
-// The slot module's clock (like every other delivery-slot check), not new Date(): tests freeze it, and the
-// pool, claim and slot job already read it.
-const announceBasket = async (basketOrId, { now = require('../utils/deliverySlots').now() } = {}) => {
-  try {
-    const MegaBasket = getMegaBasketModel();
-    const MegaBasketItem = getMegaBasketItemModel();
-    const id = typeof basketOrId === 'object' ? basketOrId.id : basketOrId;
-    const basket = await MegaBasket.findByPk(id, { attributes: ['id', 'status', 'deliveryPartnerId', 'slotStart', 'deliverySlot', 'estimatedTotal', 'slotDispatchedAt'] });
-    if (!basket || basket.status !== 'PaidEstimate' || basket.deliveryPartnerId || basket.slotDispatchedAt) return false;
-    if (!require('../utils/deliverySlots').isDispatchDue(basket, now)) return false; // the slot job announces it later
-    const [n] = await MegaBasket.update({ slotDispatchedAt: now }, { where: { id: basket.id, slotDispatchedAt: null, deliveryPartnerId: null, status: 'PaidEstimate' }, silent: true });
-    if (!n) return false;
-    const count = MegaBasketItem ? await MegaBasketItem.count({ where: { basketId: basket.id } }) : 0;
-    await riderJobs.announceJob({
-      kind: 'basket',
-      id: basket.id,
-      title: '🛒 New shopping list',
-      body: `${count} item${count === 1 ? '' : 's'} to buy and deliver (about ${rupeesText(basket.estimatedTotal)})${basket.deliverySlot ? ` · ${basket.deliverySlot} slot` : ''}.`,
-    });
-    return true;
-  } catch (err) {
-    console.warn('[BASKET_ANNOUNCE_WARN]', err.message);
-    return false;
-  }
-};
-// Delivery slots: lists whose rider window opened are announced once (called every minute by the
-// 'orders.slotDispatch' job, single runner).
-const releaseDueSlotBaskets = async ({ now = require('../utils/deliverySlots').now() } = {}) => {
-  const MegaBasket = getMegaBasketModel();
-  if (!MegaBasket) return { released: 0 };
-  const at = new Date(now);
-  const due = await MegaBasket.findAll({
-    where: {
-      status: 'PaidEstimate',
-      deliveryPartnerId: null,
-      slotDispatchedAt: null,
-      slotStart: {
-        [Op.ne]: null,
-        [Op.lte]: new Date(at.getTime() + require('../utils/deliverySlots').DISPATCH_WINDOW_MIN * 60 * 1000),
-        [Op.gt]: new Date(at.getTime() - 6 * 60 * 60 * 1000),
-      },
-    },
-    attributes: ['id'],
-    order: [['slotStart', 'ASC']],
-    limit: 100,
-  });
-  let released = 0;
-  for (const b of due) if (await announceBasket(b.id, { now: at })) released++;
-  return { released };
-};
+const LISTS_GONE = { code: 'FEATURE_REMOVED', message: 'Shopping lists are no longer available.' };
 // The customer of a basket: push + in-app row (type ORDER_UPDATE + basketId, like the expiry notice).
 const tellBasketCustomer = (basket, title, body) => riderJobs.tellCustomer(basket.userId, title, body, { type: 'ORDER_UPDATE', basketId: String(basket.id), screen: 'mega-basket' });
 
@@ -147,179 +98,10 @@ const serverError = (res, tag, error) => {
   if (!res.headersSent) res.status(500).json({ message: 'Something went wrong on our side. Please try again in a moment.' });
 };
 
-// @desc    Create a new Mega Basket
+// @desc    Create a new Mega Basket: removed. Always 410 Gone (nothing is created).
 // @route   POST /api/mega-basket
-// Retry key (customer-3), same pattern as createOrder: a repeat returns the first basket with
-// duplicate: true; 409 only while the first request is still running.
-const BASKET_KEY_WINDOW_MS = 24 * 60 * 60 * 1000;
 const createBasket = async (req, res) => {
-  const { readIdempotencyKey, claim } = require('../utils/idempotency');
-  const basketKey = readIdempotencyKey(req, (req.body || {}).idempotencyKey);
-  const slot = await claim('mega-basket', req.user.id, basketKey);
-  if (slot.state === 'busy') {
-    return res.status(409).json({ code: 'BASKET_IN_PROGRESS', message: 'Your list is still being placed. Hang tight.' });
-  }
-  if (slot.state === 'done') return res.status(slot.status).json({ ...slot.body, duplicate: true });
-  const replayBasket = async (id) => {
-    const MegaBasket = getMegaBasketModel();
-    const existing = await MegaBasket.findByPk(id, { include: [{ model: getMegaBasketItemModel(), as: 'items' }] });
-    return existing ? res.status(200).json({ ...existing.toJSON(), duplicate: true }) : null;
-  };
-  try {
-    const { items, deliveryAddress, paymentMethod, upiUTR, deliverySlot } = req.body || {};
-    // Survives restarts: the key is stored on the basket itself.
-    if (basketKey) {
-      const stored = await getMegaBasketModel().findOne({
-        where: { userId: req.user.id, idempotencyKey: basketKey, createdAt: { [Op.gt]: new Date(Date.now() - BASKET_KEY_WINDOW_MS) } },
-        attributes: ['id'],
-      });
-      if (stored && await replayBasket(stored.id)) return;
-    }
-
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ message: 'No items provided in basket' });
-    }
-
-    if (items.length > 50) {
-      return res.status(400).json({ message: 'A shopping list can have up to 50 items. Please split it into two lists.' });
-    }
-    if (items.some(item => !item || typeof item.name !== 'string' || !item.name.trim())) {
-      return res.status(400).json({ message: 'Every item needs a name. Please check your list.' });
-    }
-
-    if (!deliveryAddress || typeof deliveryAddress !== 'string' || deliveryAddress.trim().length < 3) {
-      return res.status(400).json({ message: 'Please add your delivery address (hostel block and room) so the rider can find you.' });
-    }
-
-    // The final bill is only known after shopping, so Mega Basket is Cash on Delivery only.
-    if (String(paymentMethod || 'COD').trim().toUpperCase() !== 'COD') {
-      return res.status(400).json({
-        message: 'A shopping list is paid in cash when it arrives (the shop bill is known only after shopping). Please choose Cash on Delivery.',
-        code: 'PAYMENT_METHOD_UNAVAILABLE',
-        allowed: ['COD']
-      });
-    }
-
-    // Same campus ordering hours as regular orders (riders are off at night). With delivery slots ordering is
-    // open at night too: the list is delivered in the chosen slot (shopping-list lead, 1 hour before the slot).
-    const slotsLib = require('../utils/deliverySlots');
-    await slotsLib.loadConfig();
-    const serviceability = require('../utils/storeHours').getCampusServiceability(slotsLib.now());
-    if (!serviceability.open) {
-      return res.status(403).json({ message: serviceability.message, code: 'ORDERING_CLOSED', reopensAt: serviceability.reopensAt });
-    }
-    // New apps send the slot id; older builds send nothing -> the earliest open slot. A closed slot -> 409.
-    let slotCols = {};
-    if (slotsLib.slotsEnabled()) {
-      const picked = slotsLib.resolveSlot(deliverySlot, slotsLib.slotsForOrder({ lead: slotsLib.leadForType('list'), at: slotsLib.now() }));
-      if (!picked.ok) return res.status(picked.status).json(picked.body);
-      slotCols = slotsLib.slotColumns(picked.slot);
-    }
-
-    const User = getUserModel();
-    const currentUser = await User.findByPk(req.user.id);
-    if (!currentUser) {
-      return res.status(401).json({ message: 'Your session has expired. Please log in again.' });
-    }
-
-    // Calculate estimated total
-    let estimatedTotal = 0;
-    // Clamp BEFORE totalling (B24): the estimate used the raw quantity / price while the stored
-    // item was clamped, so the shown estimate and the items disagreed.
-    const itemsData = items.map(item => {
-      const qty = Math.min(99, Math.max(1, parseInt(item.quantity) || 1));
-      const rawPrice = parseFloat(item.priceEstimated);
-      const estPrice = Math.round(Math.min(100000, Math.max(0, Number.isFinite(rawPrice) ? rawPrice : 0)) * 100) / 100;
-      estimatedTotal += estPrice * qty;
-
-      return {
-        name: item.name.replace(/[<>]/g, '').trim().slice(0, 80),
-        quantity: qty,
-        unit: String(item.unit || 'pcs').replace(/[<>]/g, '').trim().slice(0, 20) || 'pcs',
-        priceEstimated: estPrice,
-        status: 'Pending'
-      };
-    });
-    estimatedTotal = Math.round(estimatedTotal * 100) / 100;
-
-    const shoppingFee = MEGA_BASKET_SHOPPING_FEE;
-    const deliveryFee = MEGA_BASKET_DELIVERY_FEE;
-    const deliveryPin = String(require('crypto').randomInt(1000, 10000));
-
-    // Initial status determined by payment method
-    // For COD, advance directly to PaidEstimate (ready for shopping)
-    const initialStatus = 'PaidEstimate'; // COD: ready for shopping
-    const paymentStatus = 'Pending'; // collected in cash on delivery
-
-    const MegaBasket = getMegaBasketModel();
-    const MegaBasketItem = getMegaBasketItemModel();
-
-    // Basket + items in one transaction: a failure never leaves an empty basket behind.
-    let basket;
-    try {
-    basket = await MegaBasket.sequelize.transaction(async (t) => {
-    const created = await MegaBasket.create({
-      userId: req.user.id,
-      idempotencyKey: basketKey || null,
-      status: initialStatus,
-      estimatedTotal,
-      actualTotal: null,
-      shoppingFee,
-      deliveryFee,
-      deliveryAddress: deliveryAddress.replace(/[<>]/g, '').trim().slice(0, 500),
-      ...slotCols,
-      deliveryPin,
-      upiUTR: null,
-      paymentMethod: 'COD',
-      paymentStatus
-    }, { transaction: t });
-
-    // Create the items associated with the basket
-    const itemsWithBasketId = itemsData.map(item => ({
-      ...item,
-      basketId: created.id
-    }));
-    await MegaBasketItem.bulkCreate(itemsWithBasketId, { transaction: t });
-    return created;
-    });
-    } catch (createErr) {
-      // Same key raced in from another process: the unique index kept one basket, return it.
-      if (basketKey && createErr && createErr.name === 'SequelizeUniqueConstraintError') {
-        const winner = await MegaBasket.findOne({ where: { userId: req.user.id, idempotencyKey: basketKey }, attributes: ['id'] });
-        if (winner && await replayBasket(winner.id)) return;
-      }
-      throw createErr;
-    }
-
-    // Fetch the full basket representation to return
-    const createdBasket = await MegaBasket.findByPk(basket.id, {
-      include: [{ model: MegaBasketItem, as: 'items' }]
-    });
-
-    // Notify Admin via Socket.IO
-    const io = req.app.get('io');
-    if (io) {
-      io.to('admin-room').emit('admin_newMegaBasket', {
-        id: createdBasket.id,
-        customer: currentUser.name,
-        address: createdBasket.deliveryAddress,
-        estimatedTotal: createdBasket.estimatedTotal,
-        paymentMethod: createdBasket.paymentMethod,
-        status: createdBasket.status,
-        ...require('../utils/deliverySlots').slotFields(createdBasket),
-      });
-    }
-
-    const body = createdBasket.toJSON();
-    await slot.finish(200, body); // a repeat is answered 200 + duplicate:true
-    res.status(201).json(body);
-    // Riders: told now, or (slot list) when its rider window opens. After the response, never fails the list.
-    announceBasket(createdBasket.id).catch(() => {});
-  } catch (error) {
-    serverError(res, '[MEGA_BASKET_ERROR]', error);
-  } finally {
-    await slot.release(); // no-op after finish(); frees the key after a refusal so a retry can run
-  }
+  res.status(410).json(LISTS_GONE);
 };
 
 // @desc    Submit payment UTR for estimation
@@ -387,96 +169,16 @@ const getCustomerBaskets = async (req, res) => {
   }
 };
 
-// @desc    Get all pending baskets ready for shopping (Riders)
-// @route   GET /api/delivery/mega-basket/pending
+// @desc    Rider pool of shopping lists: always empty now (older rider apps still poll it).
+// @route   GET /api/mega-basket/rider/pending
 const getPendingBaskets = async (req, res) => {
-  try {
-    const MegaBasket = getMegaBasketModel();
-    const MegaBasketItem = getMegaBasketItemModel();
-    const User = getUserModel();
-
-    const baskets = await MegaBasket.findAll({
-      // Delivery slots: a list shows in the rider pool from DISPATCH_WINDOW_MIN before its slot start.
-      where: { status: 'PaidEstimate', deliveryPartnerId: null, ...require('../utils/deliverySlots').dispatchDueWhere() },
-      include: [
-        { model: MegaBasketItem, as: 'items' },
-        { model: User, as: 'user', attributes: ['hostelBlock'] }
-      ],
-      order: [['createdAt', 'DESC']]
-    });
-
-    // Open pool = every rider sees it: only what is needed to decide on a claim (B11). The exact
-    // address, customer identity and payment details are shown after the claim (rider's own list).
-    res.json(baskets.map((b) => {
-      const j = b.toJSON();
-      return {
-        id: j.id,
-        status: j.status,
-        estimatedTotal: j.estimatedTotal,
-        shoppingFee: j.shoppingFee,
-        deliveryFee: j.deliveryFee,
-        paymentMethod: j.paymentMethod,
-        createdAt: j.createdAt,
-        updatedAt: j.updatedAt,
-        area: j.user ? j.user.hostelBlock || null : null,
-        ...require('../utils/deliverySlots').slotFields(j),
-        user: { hostelBlock: j.user ? j.user.hostelBlock || null : null },
-        items: (j.items || []).map((i) => ({ id: i.id, name: i.name, quantity: i.quantity, unit: i.unit, priceEstimated: i.priceEstimated, status: i.status })),
-      };
-    }));
-  } catch (error) {
-    serverError(res, '[MEGA_BASKET_ERROR]', error);
-  }
+  res.json([]);
 };
 
-// @desc    Claim a basket for shopping (Riders)
-// @route   POST /api/delivery/mega-basket/:id/claim
+// @desc    Claim a shopping list: removed. Always 410 Gone (lists already held are not affected).
+// @route   POST /api/mega-basket/:id/claim
 const claimBasket = async (req, res) => {
-  try {
-    const MegaBasket = getMegaBasketModel();
-    const basket = await MegaBasket.findByPk(req.params.id);
-    if (!basket) {
-      return res.status(404).json({ message: 'Basket not found' });
-    }
-
-    if (basket.status !== 'PaidEstimate' || basket.deliveryPartnerId) {
-      return res.status(400).json({ message: 'Basket already claimed or not ready' });
-    }
-    const slotsLib = require('../utils/deliverySlots');
-    if (!slotsLib.isDispatchDue(basket)) {
-      const opens = slotsLib.dispatchOpensAt(basket);
-      return res.status(409).json({ code: 'SLOT_NOT_OPEN', message: `This list is for the ${basket.deliverySlot} slot. Riders can take it from ${slotsLib.timeLabel(opens)}.`, riderVisibleFrom: opens.toISOString() });
-    }
-
-    // One limit for all a rider carries (utils/riderLoad): orders + shopping lists + pickups.
-    // Count + claim under the rider's row lock (utils/riderLoad.lockRider): parallel taps on different job kinds
-    // were each counted against the same total and could all succeed, past the 3-at-a-time limit.
-    const riderLoad = require('../utils/riderLoad');
-    // IMMEDIATE: SQLite (tests, local) takes the write lock up front so parallel claims queue instead of failing
-    // with SQLITE_BUSY; PostgreSQL ignores the type (the rider row lock does the work there).
-    const outcome = await MegaBasket.sequelize.transaction({ type: require('sequelize').Transaction.TYPES.IMMEDIATE }, async (t) => {
-      await riderLoad.lockRider(req.user.id, t);
-      const load = await riderLoad.activeJobs(req.user.id, { except: { kind: 'basket', id: basket.id }, transaction: t });
-      if (load.total >= riderLoad.MAX_ACTIVE_JOBS) return { full: load };
-      const [n] = await MegaBasket.update(
-        { deliveryPartnerId: req.user.id, status: 'PartnerAssigned' },
-        { where: { id: basket.id, status: 'PaidEstimate', deliveryPartnerId: null, ...require('../utils/deliverySlots').dispatchDueWhere() }, transaction: t }
-      );
-      return { claimed: n };
-    });
-    if (outcome.full) return res.status(409).json(riderLoad.fullBody(outcome.full));
-    const claimed = outcome.claimed;
-    if (claimed === 0) return res.status(400).json({ message: 'Another rider just claimed this basket.' });
-    basket.set({ deliveryPartnerId: req.user.id, status: 'PartnerAssigned' });
-
-    broadcastBasketStatus(req, basket.id, { id: basket.id, status: basket.status });
-    riderJobs.jobGone('basket', basket.id);
-    tellBasketCustomer(basket, 'A rider took your shopping list', `${String(req.user.name || 'Your rider').slice(0, 40)} will shop your list and bring it to you.`);
-
-    res.json({ message: 'Basket claimed successfully', basket: withoutPin(basket) });
-  } catch (error) {
-    serverError(res, '[MEGA_BASKET_ERROR]', error);
-  }
+  res.status(410).json(LISTS_GONE);
 };
 
 // @desc    Start shopping items (Riders)
@@ -862,24 +564,22 @@ const cancelBasket = async (req, res) => {
     } catch (_e) { /* best effort */ }
     if (basket.deliveryPartnerId) {
       riderJobs.tellJobRider({ kind: 'basket', id: basket.id, riderId: basket.deliveryPartnerId, title: 'Shopping list cancelled', body: isAdmin ? 'ZCS support cancelled this shopping list. Do not buy the items.' : 'The customer cancelled this shopping list. Do not buy the items.' });
-    } else riderJobs.jobGone('basket', basket.id);
+    }
     res.json({ message: 'Basket cancelled', basket: withoutPin(basket) });
   } catch (error) {
     serverError(res, '[MEGA_BASKET_CANCEL_ERROR]', error);
   }
 };
 
-// Baskets no rider claims are cancelled after MEGA_BASKET_TIMEOUT_MINUTES (default 60), so they do
-// not sit in the rider pool forever. Runs from jobs/index.js together with the order auto-cancel job.
-const BASKET_TIMEOUT_MINUTES = Math.max(15, parseInt(process.env.MEGA_BASKET_TIMEOUT_MINUTES, 10) || 60);
-const expireStaleBaskets = async (io) => {
+// Shopping lists were removed: no rider can take a list that is still unclaimed, so every open, unclaimed list
+// left from before the removal is cancelled (COD, nothing was charged) and its customer told. Runs from
+// jobs/index.js with the order auto-cancel job; a no-op once none are left.
+const closeUnclaimedBaskets = async (io) => {
   const MegaBasket = getMegaBasketModel();
   if (!MegaBasket) return 0;
-  const cutoff = new Date(Date.now() - BASKET_TIMEOUT_MINUTES * 60 * 1000);
   const OPEN = ['Created', 'PaidEstimate'];
   const stale = await MegaBasket.findAll({
-    // Delivery slots: a list for a later slot is only cancelled once its slot started SLOT_UNCLAIMED_GRACE_MIN ago.
-    where: { status: { [Op.in]: OPEN }, deliveryPartnerId: null, createdAt: { [Op.lt]: cutoff }, ...require('../utils/deliverySlots').slotGracePassedWhere(new Date()) },
+    where: { status: { [Op.in]: OPEN }, deliveryPartnerId: null },
     attributes: ['id', 'userId'],
     limit: 50,
   });
@@ -888,9 +588,8 @@ const expireStaleBaskets = async (io) => {
     const [n] = await MegaBasket.update({ status: 'Cancelled' }, { where: { id: b.id, deliveryPartnerId: null, status: { [Op.in]: OPEN } } });
     if (n === 0) continue;
     count++;
-    riderJobs.jobGone('basket', b.id);
     if (io) {
-      const payload = { id: b.id, status: 'Cancelled', reason: 'NO_RIDER_TIMEOUT' };
+      const payload = { id: b.id, status: 'Cancelled', reason: 'FEATURE_REMOVED' };
       io.to(String(b.id)).emit('statusUpdated', payload);
       io.to('admin-room').emit('statusUpdated', payload);
     }
@@ -900,16 +599,16 @@ const expireStaleBaskets = async (io) => {
         await require('../utils/push').sendPushToTokens(
           customer.fcmTokens,
           'Shopping list cancelled',
-          'No rider could take your shopping list in time. Nothing was charged.',
+          'Shopping lists are no longer available. Nothing was charged.',
           { basketId: String(b.id), type: 'ORDER_UPDATE' },
           { recipients: [customer.id] }
         );
       }
     } catch (pushErr) {
-      console.warn('[BASKET_EXPIRE_PUSH_WARN]', pushErr.message);
+      console.warn('[BASKET_CLOSE_PUSH_WARN]', pushErr.message);
     }
   }
-  if (count) console.log(`[BASKET_EXPIRE] Cancelled ${count} unclaimed Mega Basket(s) after ${BASKET_TIMEOUT_MINUTES} min`);
+  if (count) console.log(`[BASKET_CLOSE] Cancelled ${count} unclaimed shopping list(s): the feature was removed`);
   return count;
 };
 
@@ -919,9 +618,7 @@ module.exports = {
   MEGA_BASKET_SHOPPING_FEE,
   MEGA_BASKET_DELIVERY_FEE,
   cancelBasket,
-  expireStaleBaskets,
-  announceBasket,
-  releaseDueSlotBaskets,
+  closeUnclaimedBaskets,
   createBasket,
   payBasket,
   getBasket,

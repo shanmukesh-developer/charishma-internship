@@ -1,14 +1,13 @@
 // Rider dispatch gating for slot orders: the store gets the order at once, riders from 6 hours before
 // the slot start (so a same-day order reaches riders when the store accepts) (pool, claim, live event, push), released once by the 'orders.slotDispatch' job. Plus the
 // slot-aware timers: a night order for tomorrow is not store-timed-out at night, and an unclaimed slot order is
-// cancelled only after its slot started; the shopping list follows the same slot rules.
+// cancelled only after its slot started. Shopping lists were removed (28 Oct 2026): no slot list is created.
 const { test, before, after, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
 const T = require('./helpers');
 
 const { H, S, IST, setNow } = T;
 const { releaseDueSlotOrders, autoCancelStalePendingOrders } = H.r('controllers/orderController');
-const { expireStaleBaskets } = H.r('controllers/megaBasketController');
 const fakeIo = { to: () => ({ emit() {} }), emit() {} };
 
 before(async () => { await T.setup(); });
@@ -170,46 +169,17 @@ test('store reminders follow the slot accept clock (none at night for tomorrow)'
   assert.match(mine[0].body, /For .+\. Accept it in the next [1-5] min/);
 });
 
-test('shopping list: slot picked / auto-assigned, closed slot refused, riders from 6 h before the slot', async () => {
+test('shopping lists are removed: a slot list is refused (410) and the rider pool stays empty', async () => {
   setNow(IST('2026-10-27T15:45:00'));
   const u = await H.mkUser();
   const rider = await H.mkRider();
-  const body = (extra = {}) => ({ items: [{ name: 'Amul milk 1L', quantity: 2, priceEstimated: 30 }], deliveryAddress: 'Block A, Room 101, SRM AP', paymentMethod: 'COD', ...extra });
-  const closed = await T.basketApi('POST', '/api/mega-basket', u.token, body({ deliverySlot: '2026-10-27|S2' }));
-  assert.equal(closed.status, 409, JSON.stringify(closed.body));
-  assert.equal(closed.body.code, 'SLOT_CLOSED');
-  assert.equal(closed.body.nextSlot.id, '2026-10-27|S3');
-  const legacy = await T.basketApi('POST', '/api/mega-basket', u.token, body());
-  assert.equal(legacy.status, 201, JSON.stringify(legacy.body));
-  assert.equal(legacy.body.deliverySlot, 'Tue 27 Oct, 8:30–9:30 PM');
-  const picked = await T.basketApi('POST', '/api/mega-basket', u.token, body({ deliverySlot: '2026-10-28|S2' }));
-  assert.equal(picked.status, 201, JSON.stringify(picked.body));
-  assert.equal(picked.body.deliverySlot, 'Wed 28 Oct, 4:30–5:30 PM');
-
-  // 6-hour rider window: today's 8:30 PM list is in the pool at once; tomorrow's 4:30 PM one only from 10:30 AM.
-  setNow(IST('2026-10-27T15:46:00'));
+  const body = { items: [{ name: 'Amul milk 1L', quantity: 2, priceEstimated: 30 }], deliveryAddress: 'Block A, Room 101, SRM AP', paymentMethod: 'COD', deliverySlot: '2026-10-28|S2' };
+  const res = await T.basketApi('POST', '/api/mega-basket', u.token, body);
+  assert.equal(res.status, 410, JSON.stringify(res.body));
+  assert.equal(res.body.message, 'Shopping lists are no longer available.');
   const pool = await T.basketApi('GET', '/api/mega-basket/rider/pending', rider.token);
   assert.equal(pool.status, 200, JSON.stringify(pool.body));
-  const card = pool.body.find((b) => b.id === legacy.body.id);
-  assert.ok(card, "today's list is in the pool");
-  assert.equal(card.slotLabel, 'Tue 27 Oct, 8:30–9:30 PM');
-  assert.ok(!pool.body.some((b) => b.id === picked.body.id), "tomorrow's list is not");
-  const early = await T.basketApi('POST', `/api/mega-basket/${picked.body.id}/claim`, rider.token);
-  assert.equal(early.status, 409);
-  assert.equal(early.body.code, 'SLOT_NOT_OPEN');
-  const claim = await T.basketApi('POST', `/api/mega-basket/${legacy.body.id}/claim`, rider.token);
-  assert.equal(claim.status, 200, JSON.stringify(claim.body));
-
-  // Unclaimed list for a later slot is not expired after an hour; only once its slot started 15 min ago.
-  const MB = H.ctx.M('MegaBasket');
-  const old = new Date(Date.now() - 2 * 60 * MIN).toISOString().replace('T', ' ').replace('Z', ' +00:00');
-  await H.ctx.sequelize.query(`UPDATE "MegaBaskets" SET "createdAt" = ? WHERE id = ?`, { replacements: [old, picked.body.id] });
-  await MB.update({ slotStart: new Date(Date.now() + 60 * MIN) }, { where: { id: picked.body.id } });
-  await expireStaleBaskets(null);
-  assert.equal((await MB.findByPk(picked.body.id)).status, 'PaidEstimate');
-  await MB.update({ slotStart: new Date(Date.now() - 16 * MIN) }, { where: { id: picked.body.id } });
-  await expireStaleBaskets(null);
-  assert.equal((await MB.findByPk(picked.body.id)).status, 'Cancelled');
+  assert.deepEqual(pool.body, []);
 });
 
 test('slot fields helper is safe on rows without a slot', () => {

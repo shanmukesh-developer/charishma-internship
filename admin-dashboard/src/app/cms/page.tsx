@@ -369,8 +369,8 @@ export default function CMSPage() {
               <Field label="Tagline"><Input value={banner.tagline || ''} onChange={e => updateBanner(openBanner, 'tagline', e.target.value)} /></Field>
               <Field label="Button text"><Input value={banner.buttonText || ''} onChange={e => updateBanner(openBanner, 'buttonText', e.target.value)} /></Field>
             </div>
-            <Field label="Opens" hint="An app path, for example /mega-basket.">
-              <Input value={banner.redirectUrl || ''} onChange={e => updateBanner(openBanner, 'redirectUrl', e.target.value)} placeholder="/mega-basket" />
+            <Field label="Opens" hint="An app path, for example /others.">
+              <Input value={banner.redirectUrl || ''} onChange={e => updateBanner(openBanner, 'redirectUrl', e.target.value)} placeholder="/others" />
             </Field>
             <Field label="Description">
               <Textarea rows={3} value={banner.description || ''} onChange={e => updateBanner(openBanner, 'description', e.target.value)} />

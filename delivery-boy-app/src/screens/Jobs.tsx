@@ -1,5 +1,6 @@
-// Shopping lists (rider buys and delivers) and service pickups (laundry / tailoring / repairs collected from the
-// student's room and brought back). JobsOnHome: the rider's own jobs + the open pool on Home. JobScreen: one
+// Service pickups (laundry / tailoring / repairs collected from the student's room and brought back) and, only to
+// finish one the rider already holds, shopping lists (removed 28 Oct 2026: never in the pool, never claimable).
+// JobsOnHome: the rider's own jobs + the open pickup pool on Home. JobScreen: one
 // job, full screen, step by step. State and actions: state/JobsStore.
 import React, { useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -40,7 +41,7 @@ export function JobsOnHome() {
   const r = useRider();
   const j = useJobs();
   const mine = j.myBaskets.length + j.myServices.length;
-  const pool = j.basketPool.length + j.servicePool.length;
+  const pool = j.servicePool.length;
   if (!mine && !(r.isOnline && pool)) return null;
   return (
     <View style={{ gap: S.md }}>
@@ -78,25 +79,7 @@ export function JobsOnHome() {
 
       {r.isOnline && pool ? (
         <>
-          <Text style={[T.h3, { color: C.ink }]}>Shopping lists and pickups ({pool})</Text>
-          {j.basketPool.map((b) => (
-            <PoolCard
-              key={b.id}
-              tone="gold"
-              icon="cart-outline"
-              label="SHOPPING LIST"
-              title={`${itemsCount(b)} item${itemsCount(b) === 1 ? '' : 's'} to buy`}
-              lines={[
-                b.items.slice(0, 3).map((i) => `${i.quantity} × ${i.name}`).join(', ') + (b.items.length > 3 ? ` +${b.items.length - 3} more` : ''),
-                `Drop: ${b.area ?? 'shown after you accept'}`,
-                `About ${rupees(b.estimatedTotal)} · cash from customer`,
-                b.deliverySlot ? `Slot: ${b.deliverySlot}` : null,
-              ]}
-              ago={minutesAgo(b.createdAt)}
-              connected={r.connected}
-              onAccept={() => j.claim('basket', b.id)}
-            />
-          ))}
+          <Text style={[T.h3, { color: C.ink }]}>Pickups ({pool})</Text>
           {j.servicePool.map((s) => (
             <PoolCard
               key={s.id}
@@ -111,7 +94,7 @@ export function JobsOnHome() {
               ]}
               ago={minutesAgo(s.createdAt)}
               connected={r.connected}
-              onAccept={() => j.claim('service', s.id)}
+              onAccept={() => j.claim(s.id)}
             />
           ))}
         </>
@@ -130,7 +113,7 @@ function PoolCard({
   connected,
   onAccept,
 }: {
-  tone: 'gold' | 'blue';
+  tone: 'blue';
   icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
   label: string;
   title: string;

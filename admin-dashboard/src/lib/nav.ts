@@ -41,10 +41,9 @@ export const NAV_GROUPS: NavGroup[] = [
     label: 'Orders & stores',
     items: [
       { href: '/orders', label: 'Orders', icon: 'orders', description: 'Every food and store order: status, rider, payment and refunds.', keywords: 'live orders delivery refund cancel stuck' },
-      { href: '/mega-basket', label: 'Mega Basket', icon: 'basket', description: 'Shopping-list orders that riders buy and deliver.', keywords: 'basket grocery list' },
       { href: '/campus-booking', label: 'In-Campus Booking', icon: 'orders', description: 'Pickup bookings paid straight to campus stalls by UPI; each stall: switch, UPI ID and QR.', keywords: 'campus booking pickup stall upi qr payment proof commission' },
       { href: '/restaurants', label: 'Stores', icon: 'store', description: 'Restaurants, local vendors and stalls: details, hours, compliance.', keywords: 'restaurants vendors stalls shops merchants fssai gst' },
-      { href: '/catalogue', label: 'Catalogue', icon: 'catalogue', description: 'Add, edit and delete items for any store, Others category or Mega Basket.', keywords: 'menu items products prices stock categories toys fruits groceries stationery' },
+      { href: '/catalogue', label: 'Catalogue', icon: 'catalogue', description: 'Add, edit and delete items for any store or Others category.', keywords: 'menu items products prices stock categories toys fruits groceries stationery' },
     ],
   },
   {

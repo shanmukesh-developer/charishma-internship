@@ -1,5 +1,6 @@
-// Rider jobs that are not delivery orders: shopping lists (Mega Basket) and service pickups (laundry, tailoring,
-// repairs). The server announces them to on-duty riders (socket 'rider_job' + push NEW_JOB, backend
+// Rider jobs that are not delivery orders: service pickups (laundry, tailoring, repairs) and, only to finish one
+// the rider already holds, shopping lists (Mega Basket: removed 28 Oct 2026, no pool and no claim). The server
+// announces pickups to on-duty riders (socket 'rider_job' + push NEW_JOB, backend
 // utils/riderJobs); this store keeps the open pool and the rider's own jobs fresh (socket events, pushes,
 // app resume, a poll while on duty) and runs the claim / step actions. Screens use useJobs().
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
@@ -16,7 +17,6 @@ import type { JobKind, RiderBasket, RiderService } from '../services/jobsApi';
 export type OpenJob = { kind: JobKind; id: string } | null;
 
 interface JobsContextValue {
-  basketPool: RiderBasket[];
   servicePool: RiderService[];
   myBaskets: RiderBasket[];
   myServices: RiderService[];
@@ -25,7 +25,8 @@ interface JobsContextValue {
   refresh: () => Promise<void>;
   openJob: OpenJob;
   setOpenJob: (j: OpenJob) => void;
-  claim: (kind: JobKind, id: string) => Promise<boolean>;
+  /** Takes a service pickup from the pool (shopping lists can no longer be claimed). */
+  claim: (id: string) => Promise<boolean>;
   /** Runs one server step for a job, then refreshes. Shows the server's message on failure. */
   step: (fn: () => Promise<unknown>, okText?: string) => Promise<boolean>;
 }
@@ -45,7 +46,6 @@ export function JobsProvider({ children }: { children: React.ReactNode }) {
   const appActive = useAppActive();
   const inMain = r.phase === 'main';
   const approved = !!r.profile?.isApproved;
-  const [basketPool, setBasketPool] = useState<RiderBasket[]>([]);
   const [servicePool, setServicePool] = useState<RiderService[]>([]);
   const [myBaskets, setMyBaskets] = useState<RiderBasket[]>([]);
   const [myServices, setMyServices] = useState<RiderService[]>([]);
@@ -74,16 +74,14 @@ export function JobsProvider({ children }: { children: React.ReactNode }) {
       }
     };
     try {
-      const [mb, ms, pb, ps] = await Promise.all([
+      const [mb, ms, ps] = await Promise.all([
         safe(jobs.fetchMyBaskets()),
         safe(jobs.fetchMyServices()),
-        online ? safe(jobs.fetchBasketPool()) : Promise.resolve([] as RiderBasket[]),
         online ? safe(jobs.fetchServicePool()) : Promise.resolve([] as RiderService[]),
       ]);
       if (mySeq !== seq.current) return;
       setMyBaskets(mb ?? []);
       setMyServices(ms ?? []);
-      setBasketPool(pb ?? []);
       setServicePool(ps ?? []);
       setError(null);
       setLoaded(true);
@@ -105,7 +103,6 @@ export function JobsProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!inMain) {
-      setBasketPool([]);
       setServicePool([]);
       setMyBaskets([]);
       setMyServices([]);
@@ -158,9 +155,9 @@ export function JobsProvider({ children }: { children: React.ReactNode }) {
   );
 
   const claim = useCallback(
-    async (kind: JobKind, id: string) => {
-      const ok = await step(() => (kind === 'basket' ? jobs.claimBasket(id) : jobs.claimService(id)), kind === 'basket' ? 'Shopping list is yours' : 'Pickup is yours');
-      if (ok) setOpenJob({ kind, id });
+    async (id: string) => {
+      const ok = await step(() => jobs.claimService(id), 'Pickup is yours');
+      if (ok) setOpenJob({ kind: 'service', id });
       return ok;
     },
     [step],
@@ -174,8 +171,8 @@ export function JobsProvider({ children }: { children: React.ReactNode }) {
   }, [openJob, loaded, myBaskets, myServices]);
 
   const value = useMemo<JobsContextValue>(
-    () => ({ basketPool, servicePool, myBaskets, myServices, loaded, error, refresh, openJob, setOpenJob, claim, step }),
-    [basketPool, servicePool, myBaskets, myServices, loaded, error, refresh, openJob, claim, step],
+    () => ({ servicePool, myBaskets, myServices, loaded, error, refresh, openJob, setOpenJob, claim, step }),
+    [servicePool, myBaskets, myServices, loaded, error, refresh, openJob, claim, step],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

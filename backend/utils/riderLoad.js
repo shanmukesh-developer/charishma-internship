@@ -8,7 +8,8 @@ const { Op } = require('sequelize');
 const MAX_ACTIVE_JOBS = Math.max(1, parseInt(process.env.RIDER_MAX_ACTIVE_JOBS, 10) || parseInt(process.env.RIDER_MAX_ACTIVE_ORDERS, 10) || 3);
 
 /**
- * Jobs this rider holds now: { orders, baskets, services, total }. `except` leaves one job out (a retried claim of
+ * Jobs this rider holds now: { orders, baskets, services, total }. Shopping lists can no longer be claimed, but a
+ * list a rider still holds from before their removal keeps counting until it is delivered or cancelled. `except` leaves one job out (a retried claim of
  * the same job must not count against itself). `transaction` keeps the count inside a caller's lock.
  */
 const activeJobs = async (riderId, { except = null, transaction = null } = {}) => {

@@ -50,7 +50,7 @@ interface Item {
   specs?: Record<string, unknown> | null;
 }
 
-type Source = 'restaurants' | 'vendors' | 'others' | 'basket';
+type Source = 'restaurants' | 'vendors' | 'others';
 
 const LOCAL_VENDOR_TYPES = ['LOCAL_VENDOR', 'LOCAL', 'STALL'];
 const isStall = (s: Store) => LOCAL_VENDOR_TYPES.includes(String(s.vendorType || '').toUpperCase()) || s.isLocalVendor === true;
@@ -318,7 +318,6 @@ export default function CataloguePage() {
     { value: 'restaurants', label: 'Restaurants', count: stores.filter(s => sourceOf(s) === 'restaurants').length },
     { value: 'vendors', label: 'Local vendors', count: stores.filter(s => sourceOf(s) === 'vendors').length },
     { value: 'others', label: 'Others section', count: stores.filter(s => sourceOf(s) === 'others').length },
-    { value: 'basket', label: 'Mega Basket' },
   ];
 
   const inStockCount = items.filter(i => i.isAvailable !== false).length;
@@ -329,7 +328,7 @@ export default function CataloguePage() {
         title="Catalogue"
         description="Add, edit and delete the items customers can order, for any restaurant, local vendor or Others section store."
         actions={
-          source !== 'basket' && store ? (
+          store ? (
             <>
               <Button leftIcon={<IconLayers size={14} />} onClick={() => setCatsOpen(true)} disabled={items.length === 0}>Categories</Button>
               <Button variant="primary" leftIcon={<IconPlus size={14} />} onClick={() => { setNewCategory(null); setEditing('new'); }}>Add item</Button>
@@ -345,22 +344,20 @@ export default function CataloguePage() {
             <p className="mb-1 text-sm font-medium text-fg">Section</p>
             <SegmentedControl ariaLabel="Section" value={source} onChange={v => { setSource(v); setStoreId(''); }} options={sourceOptions} />
           </div>
-          {source !== 'basket' && (
-            <Field label={source === 'others' ? 'Category and store' : 'Store'} className="min-w-[260px] flex-1 sm:max-w-md">
-              <Select value={storeId} onChange={e => setStoreId(e.target.value)} disabled={storesLoading || storesInSource.length === 0}>
-                <option value="">{storesLoading ? 'Loading stores…' : storesInSource.length ? 'Pick a store' : 'No stores in this section'}</option>
-                {source === 'others'
-                  ? Array.from(new Set(storesInSource.map(s => s.vendorType))).map(type => (
-                      <optgroup key={type} label={humanize(type)}>
-                        {storesInSource.filter(s => s.vendorType === type).map(s => (
-                          <option key={s.id} value={s.id}>{s.name}{s.isActive ? '' : ' (hidden)'}</option>
-                        ))}
-                      </optgroup>
-                    ))
-                  : storesInSource.map(s => <option key={s.id} value={s.id}>{s.name}{s.isActive ? '' : ' (hidden)'}</option>)}
-              </Select>
-            </Field>
-          )}
+          <Field label={source === 'others' ? 'Category and store' : 'Store'} className="min-w-[260px] flex-1 sm:max-w-md">
+            <Select value={storeId} onChange={e => setStoreId(e.target.value)} disabled={storesLoading || storesInSource.length === 0}>
+              <option value="">{storesLoading ? 'Loading stores…' : storesInSource.length ? 'Pick a store' : 'No stores in this section'}</option>
+              {source === 'others'
+                ? Array.from(new Set(storesInSource.map(s => s.vendorType))).map(type => (
+                    <optgroup key={type} label={humanize(type)}>
+                      {storesInSource.filter(s => s.vendorType === type).map(s => (
+                        <option key={s.id} value={s.id}>{s.name}{s.isActive ? '' : ' (hidden)'}</option>
+                      ))}
+                    </optgroup>
+                  ))
+                : storesInSource.map(s => <option key={s.id} value={s.id}>{s.name}{s.isActive ? '' : ' (hidden)'}</option>)}
+            </Select>
+          </Field>
           {store && (
             <p className="pb-1.5 text-sm text-fg-muted">
               {formatNumber(items.length)} items · {formatNumber(inStockCount)} in stock
@@ -372,21 +369,7 @@ export default function CataloguePage() {
         {storesError && <div className="px-4 pb-4"><Notice tone="danger" action={<Button size="sm" onClick={loadStores}>Try again</Button>}>{storesError}</Notice></div>}
       </Card>
 
-      {source === 'basket' ? (
-        <Card>
-          <EmptyState
-            icon={<IconLayers size={18} />}
-            title="Mega Basket has no fixed item list"
-            description="Customers type their own shopping list and a rider buys it at the market, so prices are set by the shop bill. Packaged groceries, fruits and other ready items are sold through Others section stores: pick Others section above to manage them."
-            action={
-              <div className="flex flex-wrap justify-center gap-2">
-                <Button onClick={() => setSource('others')}>Manage Others section items</Button>
-                <Link href="/mega-basket" className={buttonClass('ghost')}>Mega Basket orders</Link>
-              </div>
-            }
-          />
-        </Card>
-      ) : !store ? (
+      {!store ? (
         <Card>
           {storesLoading ? <LoadingState label="Loading stores…" /> : storesError ? <ErrorState message={storesError} onRetry={loadStores} /> : (
             <EmptyState

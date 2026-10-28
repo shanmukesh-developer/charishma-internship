@@ -25,8 +25,8 @@ export interface RiderSocketHandlers {
   onAuthError?: (usedToken: string | null) => boolean | void;
 }
 
-/** `rider_job` from the server (utils/riderJobs): a shopping list / service pickup entered or left the pool, or one
- * this rider holds changed. Ids only. action 'reconnect' = the socket (re)connected (events may have been missed). */
+/** `rider_job` from the server (utils/riderJobs): a service pickup entered or left the pool, or a job this rider holds
+ * (a pickup, or a shopping list held from before lists were removed) changed. Ids only. action 'reconnect' = the socket (re)connected (events may have been missed). */
 export interface RiderJobEvent {
   kind: 'basket' | 'service' | '*';
   id: string | null;
