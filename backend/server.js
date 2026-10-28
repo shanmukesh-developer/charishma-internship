@@ -1391,6 +1391,17 @@ const initializeApp = async () => {
       console.warn('⚠️ [PARTNER_TEST_ACCOUNTS] not started:', ptErr.message);
     }
 
+    // 🪧 Sample splash ads, once (GlobalConfig SAMPLE_SPLASH_ADS_V1_DONE): one per style on a real live store and its
+    // own photo, all switched OFF and tagged "Sample ad." (admin > Splash ads > Preview on phone). Create-only.
+    try {
+      const { runSampleSplashAdsSeed } = require('./scripts/sample_splash_ads_seed');
+      runSampleSplashAdsSeed()
+        .then((r) => console.log('🪧 [SAMPLE_SPLASH_ADS]', JSON.stringify(r)))
+        .catch((err) => console.warn('⚠️ [SAMPLE_SPLASH_ADS] failed:', err.message));
+    } catch (saErr) {
+      console.warn('⚠️ [SAMPLE_SPLASH_ADS] not started:', saErr.message);
+    }
+
     // 🧹 Demo-data cleanup (idempotent): switches off the demo riders / students / PG listings that
     // older builds seeded into production. Runs in the background; never deletes anything.
     try {

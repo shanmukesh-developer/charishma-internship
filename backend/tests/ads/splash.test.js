@@ -313,3 +313,18 @@ test('preview link: admin makes a 15 min link to an inactive ad; the app reads e
   assert.strictEqual((await H.api('POST', `/api/admin/splash-ads/${ad.id}/preview`, student.token, {})).status, 403);
   assert.strictEqual((await H.api('POST', `/api/admin/splash-ads/${ad.id}/preview`)).status, 401);
 });
+
+test('sample ads seed: 8 switched-off ads, one per style, real stores with their own photo, once', async () => {
+  const { runSampleSplashAdsSeed } = require('../../scripts/sample_splash_ads_seed');
+  for (let i = 0; i < 8; i++) await H.mkStore({ name: `Seed Store ${i}`, imageUrl: `https://images.unsplash.com/photo-seed-${i}?w=800` });
+  await H.ctx.M('GlobalConfig').destroy({ where: { key: 'SAMPLE_SPLASH_ADS_TEST_DONE' } });
+  const r = await runSampleSplashAdsSeed({ marker: 'SAMPLE_SPLASH_ADS_TEST_DONE' });
+  assert.strictEqual(r.created.length, 8, JSON.stringify(r));
+  const rows = await H.ctx.M('SplashAd').findAll();
+  assert.deepStrictEqual(rows.map((a) => a.style).sort(), ['coupon', 'envelope', 'gift', 'glass', 'peel', 'portal', 'scratch', 'tear']);
+  assert.ok(rows.every((a) => a.isActive === false), 'all switched off');
+  assert.ok(rows.every((a) => /^Sample ad\./.test(a.subline)), 'all tagged Sample');
+  assert.strictEqual(new Set(rows.map((a) => a.restaurantId)).size, 8, 'a different store per ad');
+  assert.deepStrictEqual((await H.api('GET', '/api/ads/splash')).body, { ads: [] }, 'students see none');
+  assert.deepStrictEqual(await runSampleSplashAdsSeed({ marker: 'SAMPLE_SPLASH_ADS_TEST_DONE' }), { skipped: 'already done' });
+});
