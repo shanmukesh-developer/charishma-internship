@@ -1339,12 +1339,19 @@ const initializeApp = async () => {
       bootChain = run.catch(() => {});
       return run;
     };
+    // Owner, 28 Oct 2026: every store removed so real ones are entered from the admin (scripts/remove_all_stores_v1,
+    // once, backup tables first). Runs first; afterwards the imports below that create stores / items never run again.
+    const { runRemoveAllStores, realDataOnly } = require('./scripts/remove_all_stores_v1');
+    const storeImport = (fn) => async () => ((await realDataOnly()) ? { skipped: 'real data only: stores were removed' } : fn());
+    inBootQueue(() => runRemoveAllStores({ io }))
+      .then((r) => console.log('🧹 [REMOVE_ALL_STORES]', JSON.stringify(r)))
+      .catch((err) => console.warn('⚠️ [REMOVE_ALL_STORES] failed:', err.message));
 
     // 🛒 Catalogue import (idempotent, ledger-keyed): the store products the app used to hardcode.
     // Runs in the background so the port opens immediately; already-imported keys are never touched.
     try {
       const { runCatalogueImport } = require('./scripts/catalogue_import');
-      inBootQueue(runCatalogueImport)
+      inBootQueue(storeImport(runCatalogueImport))
         .then((r) => console.log('🛒 [CATALOGUE_IMPORT]', JSON.stringify(r)))
         .catch((err) => console.warn('⚠️ [CATALOGUE_IMPORT] failed:', err.message));
     } catch (catErr) {
@@ -1355,7 +1362,7 @@ const initializeApp = async () => {
     // owner keeps for representation (matched by id + name). Background; never edits or re-adds items.
     try {
       const { runDemoMenuFill } = require('./scripts/demo_menu_fill_import');
-      inBootQueue(runDemoMenuFill)
+      inBootQueue(storeImport(runDemoMenuFill))
         .then((r) => console.log('🍽️ [DEMO_MENU_FILL]', JSON.stringify(r)))
         .catch((err) => console.warn('⚠️ [DEMO_MENU_FILL] failed:', err.message));
     } catch (fillErr) {
@@ -1367,7 +1374,7 @@ const initializeApp = async () => {
     // creates no partner login. DISABLE_DEMO_STALLS=true switches it off.
     try {
       const { runDemoStallsImport } = require('./scripts/demo_stalls_import');
-      inBootQueue(runDemoStallsImport)
+      inBootQueue(storeImport(runDemoStallsImport))
         .then((r) => console.log('🏪 [DEMO_STALLS]', JSON.stringify(r)))
         .catch((err) => console.warn('⚠️ [DEMO_STALLS] failed:', err.message));
     } catch (stallErr) {
@@ -1383,7 +1390,7 @@ const initializeApp = async () => {
     // win; hides never delete. DISABLE_CATALOGUE_CLEANUP=true switches it off.
     try {
       const { runCatalogueCleanups } = require('./scripts/catalogue_cleanup_import');
-      inBootQueue(runCatalogueCleanups)
+      inBootQueue(storeImport(runCatalogueCleanups))
         .then((r) => console.log('🧽 [CATALOGUE_CLEANUP]', JSON.stringify(Object.fromEntries(Object.entries(r).map(([k, v]) => [k, { ...v, skippedIds: undefined }])))))
         .catch((err) => console.warn('⚠️ [CATALOGUE_CLEANUP] failed:', err.message));
     } catch (cleanErr) {
@@ -1411,7 +1418,7 @@ const initializeApp = async () => {
     // created id. DISABLE_PARTNER_TEST_ACCOUNTS=true switches it off.
     try {
       const { runPartnerTestAccountsSeed } = require('./scripts/partner_test_accounts_seed');
-      inBootQueue(runPartnerTestAccountsSeed)
+      inBootQueue(storeImport(runPartnerTestAccountsSeed))
         .then((r) => console.log('🧪 [PARTNER_TEST_ACCOUNTS]', JSON.stringify(r)))
         .catch((err) => console.warn('⚠️ [PARTNER_TEST_ACCOUNTS] failed:', err.message));
     } catch (ptErr) {
@@ -1422,7 +1429,7 @@ const initializeApp = async () => {
     // own photo, all switched OFF and tagged "Sample ad." (admin > Splash ads > Preview on phone). Create-only.
     try {
       const { runSampleSplashAdsSeed } = require('./scripts/sample_splash_ads_seed');
-      inBootQueue(runSampleSplashAdsSeed)
+      inBootQueue(storeImport(runSampleSplashAdsSeed))
         .then((r) => console.log('🪧 [SAMPLE_SPLASH_ADS]', JSON.stringify(r)))
         .catch((err) => console.warn('⚠️ [SAMPLE_SPLASH_ADS] failed:', err.message));
     } catch (saErr) {
