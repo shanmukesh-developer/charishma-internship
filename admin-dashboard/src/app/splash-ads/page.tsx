@@ -163,8 +163,13 @@ function Preview({ form, store }: { form: Form; store: Store | undefined }) {
           </div>
           <div className="relative mt-4 flex-1 overflow-hidden rounded-xl bg-black/20">
             {img ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={img} alt="" className="absolute inset-0 h-full w-full object-cover" />
+              <>
+                {/* The whole photo stays visible (object-contain); a blurred copy fills the rest of the frame. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={img} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full scale-110 object-cover opacity-60 blur-md" />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={img} alt="" className="absolute inset-0 h-full w-full object-contain" />
+              </>
             ) : <span className="absolute inset-0 flex items-center justify-center text-xs opacity-70">Add an image</span>}
             <span className="absolute left-2 top-2 rounded-md bg-white px-2 py-1 text-sm font-extrabold tracking-tight" style={{ color: a }}>{oneLine(form.offerText) || 'OFFER'}</span>
           </div>
