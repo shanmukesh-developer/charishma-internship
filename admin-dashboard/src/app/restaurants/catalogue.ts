@@ -158,7 +158,8 @@ export type VendorGroup = 'Food' | 'Shops' | 'Services' | 'Campus';
 export const VENDOR_TYPES: { value: string; label: string; group: VendorGroup; hint: string }[] = [
   { value: 'RESTAURANT', label: 'Restaurant', group: 'Food', hint: 'Cooked food. Orders, payment and ZCS riders.' },
   { value: 'LOCAL_VENDOR', label: 'Local stall (CampusBites)', group: 'Campus', hint: 'Customers order in ZCS and pay the stall cash. The stall delivers with the ZCS Vendor app; no rider.' },
-  { value: 'GROCERY', label: 'Grocery / Kirana', group: 'Shops', hint: 'Packaged goods, Mega Basket and late-night mart.' },
+  { value: 'GROCERY', label: 'Grocery / Kirana', group: 'Shops', hint: 'Packaged goods, fruits, pickles and late-night mart.' },
+  { value: 'BAKERY', label: 'Bakery & cakes', group: 'Shops', hint: 'Cakes, breads and bakes. Shows under Bakery in Groceries; set weights and flavours per product.' },
   { value: 'PHARMACY', label: 'Pharmacy', group: 'Shops', hint: 'Medicines and health essentials.' },
   { value: 'STATIONERY', label: 'Stationery', group: 'Shops', hint: 'Books, pens, study kits.' },
   { value: 'ELECTRONICS', label: 'Electronics', group: 'Shops', hint: 'Chargers, cables, gadgets.' },

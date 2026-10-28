@@ -80,6 +80,10 @@ const shapeItem = (item, store) => {
     discountPercent: originalPrice ? Math.round((1 - price / originalPrice) * 100) : null,
     weight: specs.weight || null,
     brand: specs.brand || null,
+    // Admin-set choices (weights with their own prices, flavours, types) and ordered product details:
+    // docs/PRODUCT_OPTIONS.md. Present only when set.
+    ...(() => { const o = require('../utils/productOptions').readOptions(specs); return o.length ? { options: o } : {}; })(),
+    ...(Array.isArray(specs.details) && specs.details.length ? { details: specs.details } : {}),
     emoji: specs.emoji || null,
     category: i.category || null,
     tags,

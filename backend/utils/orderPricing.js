@@ -9,6 +9,7 @@ const { getUserModel } = require('../models/User');
 const { getGlobalConfigModel } = require('../models/GlobalConfig');
 const { calculateBadgePerks } = require('../middleware/rewardEngine');
 const { calculateCustomizationCost } = require('./pricingSchema');
+const { readOptions, priceWithOptions } = require('./productOptions');
 const { getStoreOpenState } = require('./storeHours');
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -23,7 +24,7 @@ const money = (n) => Math.round((Number(n) || 0) * 100) / 100;
 // At most 10 options; each a short string or a list of at most 10 short strings. Anything else
 // (nested objects, numbers, huge text) is dropped.
 const CUSTOM_MAX_KEYS = 10;
-const CUSTOM_MAX_LEN = 60;
+const CUSTOM_MAX_LEN = 100; // a typed cake message may be up to 100 (utils/productOptions text groups)
 const cleanCustomText = (v) => String(v).replace(/[<>]/g, '').trim().slice(0, CUSTOM_MAX_LEN);
 const sanitizeCustomizations = (raw) => {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
@@ -280,8 +281,26 @@ const computeOrderQuote = async ({ user, items, couponCode }) => {
   let subtotal = 0;
   const pricedLines = lines.map((l) => {
     const isAddOn = (l.store.vendorType || '').toUpperCase() === ADDON_VENDOR_TYPE;
-    const basePrice = money(l.dbItem.price);
-    const addOnPrice = isAddOn ? 0 : money(calculateCustomizationCost(basePrice, l.dbItem, l.customizations));
+    // A product with admin-set choices (weights, flavours, types: utils/productOptions, docs/PRODUCT_OPTIONS.md)
+    // is priced ONLY from them; everything else keeps the older keyword-based customization pricing.
+    const groups = isAddOn ? [] : readOptions(l.dbItem.specs);
+    let basePrice;
+    let addOnPrice;
+    if (groups.length) {
+      let priced;
+      try {
+        priced = priceWithOptions(l.dbItem, groups, l.customizations);
+      } catch (err) {
+        if (err && err.code === 'OPTION_INVALID') throw new PricingError(400, 'OPTION_INVALID', err.message, { menuItemId: l.dbItem.id });
+        throw err;
+      }
+      basePrice = money(priced.basePrice);
+      addOnPrice = money(priced.addOnPrice);
+      l.customizations = priced.customizations;
+    } else {
+      basePrice = money(l.dbItem.price);
+      addOnPrice = isAddOn ? 0 : money(calculateCustomizationCost(basePrice, l.dbItem, l.customizations));
+    }
     const unitPrice = money(basePrice + addOnPrice);
     const lineTotal = money(unitPrice * l.qty);
     subtotal = money(subtotal + lineTotal);

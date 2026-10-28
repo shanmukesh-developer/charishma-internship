@@ -5,6 +5,10 @@ import { useLiveSync, useFreshIds, FRESH_ROW_CLASS, LiveEvent } from '@/lib/useL
 import { parseCsv, timeAgo } from './helpers';
 import { ImagePicker, TagInput } from './inputs';
 import { bulkUpdateItems, describeBulk, duplicateItemPayload } from './storeActions';
+import {
+  DetailDraft, GroupDraft, OptionGroupsEditor, ProductDetailsEditor,
+  detailsFromSpecs, groupsFromSpecs, serializeDetails, serializeOptions, validateOptions, variantMinPrice,
+} from './ProductOptionsEditor';
 import { API_URL } from '@/lib/config';
 import {
   Button, Callout, Chip, ConfirmModal, EmptyState, Field, INPUT, MenuButton, Modal, Segmented, Skeleton, Toggle, cx, FOCUS_RING, useToast,
@@ -494,12 +498,20 @@ function ItemEditor({ initial, storeName, categories, bookingOnly, nextSortOrder
   const [error, setError] = useState('');
   const set = (patch: Partial<typeof form>) => setForm(prev => ({ ...prev, ...patch }));
   const isBooking = !!specs.bookingOnly || bookingOnly;
+  // Customer choices (specs.options) and ordered product details (specs.details): docs/PRODUCT_OPTIONS.md.
+  const [groups, setGroups] = useState<GroupDraft[]>(() => groupsFromSpecs(specs));
+  const [details, setDetails] = useState<DetailDraft[]>(() => detailsFromSpecs(specs));
+  const [showOptionErrors, setShowOptionErrors] = useState(false);
+  const optionErrors = useMemo(() => validateOptions(groups, details), [groups, details]);
+  const hasVariant = groups.some(g => g.type === 'variant');
+  const fromPrice = variantMinPrice(groups);
 
   const validate = () => {
     const e: Record<string, string> = {};
-    const price = Number(form.price);
+    const price = hasVariant ? (fromPrice ?? NaN) : Number(form.price);
     if (!form.name.trim()) e.name = 'Name the item as it appears on the menu.';
-    if (form.price.trim() === '' || !Number.isFinite(price) || price < 0 || price > 100000) e.price = 'Enter a price between ₹0 and ₹1,00,000.';
+    if (hasVariant) { if (fromPrice === null) e.price = 'Give each weight / size a price below.'; }
+    else if (form.price.trim() === '' || !Number.isFinite(price) || price < 0 || price > 100000) e.price = 'Enter a price between ₹0 and ₹1,00,000.';
     if (form.mrp.trim() !== '') {
       const mrp = Number(form.mrp);
       if (!Number.isFinite(mrp) || mrp <= 0) e.mrp = 'MRP must be a positive amount, or empty.';
@@ -512,13 +524,16 @@ function ItemEditor({ initial, storeName, categories, bookingOnly, nextSortOrder
     if (saving) return;
     const e = validate();
     setErrors(e);
-    if (Object.keys(e).length) return;
+    const optionsInvalid = Object.keys(optionErrors).length > 0;
+    if (optionsInvalid) setShowOptionErrors(true);
+    if (Object.keys(e).length || optionsInvalid) return;
     setSaving(again ? 'again' : 'save');
     setError('');
     try {
       const payload: Record<string, unknown> = {
         name: form.name.trim(),
-        price: Math.round(Number(form.price) * 100) / 100,
+        // With a weight / size group the product price is its lowest weight price (the server sets the same).
+        price: hasVariant && fromPrice !== null ? fromPrice : Math.round(Number(form.price) * 100) / 100,
         category: form.category.trim() || null,
         description: form.description.trim() || null,
         imageUrl: form.imageUrl.trim() || null,
@@ -532,6 +547,9 @@ function ItemEditor({ initial, storeName, categories, bookingOnly, nextSortOrder
         originalPrice: form.mrp.trim() === '' ? null : Number(form.mrp),
         specs: {
           weight: form.weight.trim() || null,
+          // null removes the key (the server merges specs keys).
+          options: serializeOptions(groups),
+          details: serializeDetails(details),
           ...(initial ? {} : { sortOrder: nextSortOrder }),
           // Items added to a booking-only service store carry the flag like its imported items do
           // (the list shows the Booking chip from it; the server also checks the store type).
@@ -540,7 +558,10 @@ function ItemEditor({ initial, storeName, categories, bookingOnly, nextSortOrder
       };
       if (form.isAvailable) payload.outOfStockUntil = null;
       const saved = await onSave(payload, initial);
-      if (again) { setForm({ ...blank(), category: form.category }); setErrors({}); setSaving(null); }
+      if (again) {
+        setForm({ ...blank(), category: form.category }); setErrors({}); setSaving(null);
+        setGroups([]); setDetails([]); setShowOptionErrors(false);
+      }
       onSaved(saved, again);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save the item.');
@@ -548,7 +569,7 @@ function ItemEditor({ initial, storeName, categories, bookingOnly, nextSortOrder
     }
   };
 
-  const price = Number(form.price); const mrp = Number(form.mrp);
+  const price = hasVariant ? (fromPrice ?? NaN) : Number(form.price); const mrp = Number(form.mrp);
   const discount = form.mrp && Number.isFinite(price) && Number.isFinite(mrp) && mrp > price && price >= 0 ? Math.round((1 - price / mrp) * 100) : null;
 
   return (
@@ -570,9 +591,15 @@ function ItemEditor({ initial, storeName, categories, bookingOnly, nextSortOrder
             {({ id, msgId, invalid }) => <input id={id} data-autofocus aria-describedby={msgId} aria-invalid={invalid} className={INPUT} maxLength={200} value={form.name} onChange={e => set({ name: e.target.value })} placeholder="e.g. Chicken Dum Biryani" />}
           </Field>
           <div className="grid gap-4 sm:grid-cols-3">
-            <Field label="Selling price (₹)" required error={errors.price}>
-              {({ id, msgId, invalid }) => <input id={id} aria-describedby={msgId} aria-invalid={invalid} inputMode="decimal" className={INPUT} value={form.price} onChange={e => set({ price: e.target.value })} />}
-            </Field>
+            {hasVariant ? (
+              <Field label="Selling price (₹)" error={errors.price} help="Lowest weight / size price.">
+                {({ id, msgId, invalid }) => <input id={id} aria-describedby={msgId} aria-invalid={invalid} readOnly className={cx(INPUT, 'cursor-default bg-surface-2 text-fg-muted')} value={fromPrice !== null ? `from ₹${fromPrice.toLocaleString('en-IN')}` : 'Set weight prices below'} />}
+              </Field>
+            ) : (
+              <Field label="Selling price (₹)" required error={errors.price}>
+                {({ id, msgId, invalid }) => <input id={id} aria-describedby={msgId} aria-invalid={invalid} inputMode="decimal" className={INPUT} value={form.price} onChange={e => set({ price: e.target.value })} />}
+              </Field>
+            )}
             <Field label="MRP (₹)" optional error={errors.mrp} help={discount ? `Shows ${discount}% off` : 'Crossed-out price'}>
               {({ id, msgId, invalid }) => <input id={id} aria-describedby={msgId} aria-invalid={invalid} inputMode="decimal" className={INPUT} value={form.mrp} onChange={e => set({ mrp: e.target.value })} />}
             </Field>
@@ -607,6 +634,9 @@ function ItemEditor({ initial, storeName, categories, bookingOnly, nextSortOrder
             <Toggle tone="amber" checked={form.isEliteOnly} onChange={isEliteOnly => set({ isEliteOnly })} label="Elite members only" description="Only ZCS Elite customers can add it." />
             <Toggle tone="amber" checked={form.isSpecializedCake} onChange={isSpecializedCake => set({ isSpecializedCake })} label="Specialized cake" description="Custom or designer cake: orders close 2½ hours before the delivery slot (normal cakes 2 hours)." />
           </div>
+          <OptionGroupsEditor groups={groups} onChange={setGroups} errors={optionErrors} showAllErrors={showOptionErrors} />
+          <ProductDetailsEditor details={details} onChange={setDetails} errors={optionErrors} showAllErrors={showOptionErrors} />
+          {showOptionErrors && Object.keys(optionErrors).length > 0 && <Callout tone="red">Fix the highlighted choices or details before saving.</Callout>}
           {error && <Callout tone="red">{error}</Callout>}
         </div>
         <div className="space-y-2">

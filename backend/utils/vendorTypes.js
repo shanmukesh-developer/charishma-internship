@@ -3,6 +3,8 @@
 const STORE_VENDOR_TYPES = [
   'GROCERY', 'ELECTRONICS', 'HOME_ESSENTIALS', 'STATIONERY', 'PHARMACY', 'TOYS', 'SEEDS',
   'RENTALS', 'REPAIRS', 'PRINT', 'LAUNDRY', 'TAILORING', 'EXTRAS',
+  // Bakeries (owner, 28 Oct 2026): browsed from the Groceries tab's Bakery tile, cakes with weights / flavours.
+  'BAKERY',
   // spellings used by older rows
   'STATIONARY', 'RENTAL'
 ];
@@ -16,6 +18,7 @@ const TYPE_ALIASES = {
   pharmacy: ['PHARMACY'], medicine: ['PHARMACY'],
   toys: ['TOYS'], games: ['TOYS'],
   seeds: ['SEEDS'], gardening: ['SEEDS'],
+  bakery: ['BAKERY'], bakeries: ['BAKERY'], cakes: ['BAKERY'],
   rentals: ['RENTALS', 'RENTAL'], rental: ['RENTALS', 'RENTAL'],
   repairs: ['REPAIRS'], print: ['PRINT'], xerox: ['PRINT'], laundry: ['LAUNDRY'], tailoring: ['TAILORING'],
   extras: ['EXTRAS'], addons: ['EXTRAS'], 'add-ons': ['EXTRAS'],

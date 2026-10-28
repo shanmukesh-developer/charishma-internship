@@ -636,6 +636,15 @@ const pickMenuItemFields = (body = {}, existing = null) => {
 
   if (out.specs !== undefined) {
     const incoming = readItemSpecs(out.specs);
+    // Customer choices (weights, flavours, types) and ordered product details: docs/PRODUCT_OPTIONS.md.
+    const po = require('../utils/productOptions');
+    try {
+      if (incoming.options !== undefined) incoming.options = po.normalizeOptions(incoming.options);
+      if (incoming.details !== undefined) incoming.details = po.normalizeDetails(incoming.details);
+    } catch (optErr) {
+      if (optErr instanceof po.OptionsInputError) throw new AdminInputError(optErr.message);
+      throw optErr;
+    }
     const merged = { ...readItemSpecs(existing && existing.specs) };
     for (const [key, value] of Object.entries(incoming)) {
       if (value === null || value === '') delete merged[key];
@@ -650,6 +659,9 @@ const pickMenuItemFields = (body = {}, existing = null) => {
     }
     out.specs = merged;
     out.originalPrice = merged.originalPrice !== undefined ? merged.originalPrice : null;
+    // With a weight / size group the product's own price is its lowest weight (lists show "from ₹...").
+    const fromPrice = require('../utils/productOptions').variantFromPrice(Array.isArray(merged.options) ? merged.options : []);
+    if (fromPrice !== null) out.price = fromPrice;
   }
   return out;
 };
