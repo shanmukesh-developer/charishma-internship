@@ -1,5 +1,9 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
+import {
+  DetailDraft, GroupDraft, OptionGroupsEditor, ProductDetailsEditor,
+  detailsFromSpecs, groupsFromSpecs, serializeDetails, serializeOptions, validateOptions, variantMinPrice,
+} from '@/components/restaurants/ProductOptionsEditor';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useAdminAuth } from '@/utils/useAdminAuth';
@@ -547,20 +551,31 @@ function ItemModal({ store, food, item, categories, defaultCategory, onClose, on
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
+  // Customer choices (weights with their own prices, half / full, pieces, flavours) and ordered product
+  // details: the same editor as Restaurants > Menu (docs/PRODUCT_OPTIONS.md).
+  const startSpecs = (item?.specs || {}) as Record<string, unknown>;
+  const [groups, setGroups] = useState<GroupDraft[]>(() => groupsFromSpecs(startSpecs));
+  const [details, setDetails] = useState<DetailDraft[]>(() => detailsFromSpecs(startSpecs));
+  const [showOptionErrors, setShowOptionErrors] = useState(false);
+  const optionErrors = useMemo(() => validateOptions(groups, details), [groups, details]);
+  const fromPrice = variantMinPrice(groups);
+  const startOptions = useMemo(() => JSON.stringify([serializeOptions(groupsFromSpecs(startSpecs)), serializeDetails(detailsFromSpecs(startSpecs))]), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const validate = () => {
     const e: Record<string, string> = {};
     if (!name.trim()) e.name = 'Enter the item name.';
     else if (name.trim().length > 200) e.name = 'Keep the name under 200 characters.';
-    const p = Number(price);
-    if (price.trim() === '' || !Number.isFinite(p) || p < 0 || p > 100000) e.price = 'Enter a price between ₹0 and ₹1,00,000.';
+    const p = fromPrice !== null ? fromPrice : Number(price);
+    if (fromPrice === null && (price.trim() === '' || !Number.isFinite(p) || p < 0 || p > 100000)) e.price = 'Enter a price between ₹0 and ₹1,00,000.';
     if (mrp.trim() !== '') {
       const m = Number(mrp);
       if (!Number.isFinite(m) || m <= 0 || m > 100000) e.mrp = 'Enter a positive amount.';
       else if (Number.isFinite(p) && m < p) e.mrp = 'MRP cannot be lower than the price.';
     }
     setErrors(e);
-    return Object.keys(e).length === 0;
+    const optionsInvalid = Object.keys(optionErrors).length > 0;
+    if (optionsInvalid) setShowOptionErrors(true);
+    return Object.keys(e).length === 0 && !optionsInvalid;
   };
 
   const upload = async (file?: File) => {
@@ -583,7 +598,7 @@ function ItemModal({ store, food, item, categories, defaultCategory, onClose, on
     setFormError(null);
     const body: Record<string, unknown> = {
       name: name.trim(),
-      price: Math.round(Number(price) * 100) / 100,
+      price: fromPrice !== null ? fromPrice : Math.round(Number(price) * 100) / 100,
       category: cat.trim(),
       description: description.trim(),
       imageUrl: imageUrl || '',
@@ -602,7 +617,10 @@ function ItemModal({ store, food, item, categories, defaultCategory, onClose, on
       if (body.isAvailable === (item.isAvailable !== false)) delete body.isAvailable;
       if ((body.originalPrice ?? null) === (item.originalPrice ?? null)) delete body.originalPrice;
       if (food && body.dietType === (item.dietType || (item.isVegetarian === false ? 'nonveg' : 'veg'))) delete body.dietType;
-      if (Object.keys(body).length === 0) { onClose(); return; }
+      if (Object.keys(body).length === 0 && JSON.stringify([serializeOptions(groups), serializeDetails(details)]) === startOptions) { onClose(); return; }
+    }
+    if (JSON.stringify([serializeOptions(groups), serializeDetails(details)]) !== startOptions) {
+      body.specs = { options: serializeOptions(groups), details: serializeDetails(details) };
     }
     try {
       const saved = await adminRequest<any>(`/api/admin/menu-items/${item ? encodeURIComponent(item.id) : 'new'}`, { method: 'POST', body: JSON.stringify(body) });
@@ -649,8 +667,8 @@ function ItemModal({ store, food, item, categories, defaultCategory, onClose, on
               <Input value={name} onChange={e => setName(e.target.value)} maxLength={200} data-autofocus />
             </Field>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Price" required error={errors.price}>
-                <Input prefix="₹" inputMode="decimal" value={price} onChange={e => setPrice(e.target.value)} />
+              <Field label="Price" required error={errors.price} hint={fromPrice !== null ? 'Set by the weights below (the lowest one).' : undefined}>
+                <Input prefix="₹" inputMode="decimal" value={fromPrice !== null ? `from ${fromPrice}` : price} onChange={e => setPrice(e.target.value)} readOnly={fromPrice !== null} />
               </Field>
               <Field label="MRP" optional error={errors.mrp} hint="Shown struck through when higher than the price.">
                 <Input prefix="₹" inputMode="decimal" value={mrp} onChange={e => setMrp(e.target.value)} />
@@ -677,6 +695,9 @@ function ItemModal({ store, food, item, categories, defaultCategory, onClose, on
           <Textarea rows={3} value={description} onChange={e => setDescription(e.target.value)} maxLength={1000} />
         </Field>
         <Switch checked={inStock} onChange={setInStock} label="In stock" description="Out-of-stock items stay listed but customers cannot add them to the cart." />
+        <OptionGroupsEditor groups={groups} onChange={setGroups} errors={optionErrors} showAllErrors={showOptionErrors} />
+        <ProductDetailsEditor details={details} onChange={setDetails} errors={optionErrors} showAllErrors={showOptionErrors} />
+        {showOptionErrors && Object.keys(optionErrors).length > 0 && <Notice tone="danger">Fix the highlighted choices or details before saving.</Notice>}
       </form>
     </Modal>
   );
