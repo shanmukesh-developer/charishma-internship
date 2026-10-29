@@ -76,10 +76,20 @@ export function useDismissedOrders() {
       return next;
     });
   }, []);
+  /** An order skipped earlier is offered again (the server escalated it: nobody took it, it is about to cancel). */
+  const undismiss = useCallback((orderId: string) => {
+    setDismissed((prev) => {
+      if (!(orderId in prev)) return prev;
+      const { [orderId]: _gone, ...next } = prev;
+      void _gone;
+      setItem(DISMISSED_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
   /** Logout / account switch: the next rider on this phone must see every pool order. */
   const resetDismissed = useCallback(() => {
     setDismissed({});
     setItem(DISMISSED_KEY, '{}');
   }, []);
-  return { dismiss, dismissed, resetDismissed };
+  return { dismiss, dismissed, resetDismissed, undismiss };
 }

@@ -9,6 +9,8 @@ export interface RiderSocketHandlers {
   onOrderReady?: (p: { orderId: string }) => void;
   /** Any status change on an order room we joined (kitchen ready, admin changes, cancellations). */
   onStatusUpdated?: (p: { orderId: string; status: string | null }) => void;
+  /** The order was taken off this rider without a cancellation: released (not picked up in time) or reassigned. */
+  onHandedOver?: (p: { orderId: string; kind: 'released' | 'reassigned' }) => void;
   onTip?: (p: { amount: number; from?: string; orderId?: string }) => void;
   onTicketUpdated?: (p: { id: string; status: string; adminResponse?: string | null }) => void;
   /** A new order entered the pool (server room 'riders_online': approved + on duty). Ids only. */
@@ -154,7 +156,11 @@ export function connectSocket(token: string): void {
   });
   s.on('statusUpdated', (p: any) => {
     const id = p?.id ?? p?._id ?? p?.orderId;
+    if (id && p?.reassigned) handlers.onHandedOver?.({ orderId: String(id), kind: 'reassigned' });
     if (id) handlers.onStatusUpdated?.({ orderId: String(id), status: p?.status ? String(p.status) : null });
+  });
+  s.on('orderReleased', (p: any) => {
+    if (p?.orderId) handlers.onHandedOver?.({ orderId: String(p.orderId), kind: 'released' });
   });
   s.on('delivery_request', (p: any) => {
     if (p?.orderId) handlers.onDeliveryRequest?.({ orderId: String(p.orderId) });

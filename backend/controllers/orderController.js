@@ -1567,6 +1567,10 @@ const cancelOrder = async (req, res) => {
       // The assigned rider must stop (they may not be in the order room right now).
       if (order.deliveryPartnerId) io.to(`rider_${order.deliveryPartnerId}`).emit('orderCancelled', { orderId: order.id });
     }
+    if (order.deliveryPartnerId) {
+      const rd = require('../utils/riderDispatch');
+      rd.pushAssignedRider(order.deliveryPartnerId, 'Order cancelled', `Order #${rd.shortRef(order.id)} was cancelled${ownerCancel ? ' by the customer' : ' by ZCS support'}. Do not pick it up.`, { orderId: order.id, type: 'ORDER_CANCELLED' });
+    }
     if (order.restaurantId) pushStoreCancelled(order.restaurantId, order, ownerCancel ? 'The customer cancelled an order.' : 'An order was cancelled by ZCS support.');
     // Support cancelled it: the customer may not have the app open (the auto-cancel and store-decline paths push too).
     if (!ownerCancel) {
@@ -2082,6 +2086,10 @@ const restaurantUpdateOrderStatus = async (req, res) => {
       io.to(String(order.id)).emit('orderCancelled', { orderId: order.id, reason: 'STORE_DECLINED' });
       io.to('admin-room').emit('orderCancelled', { orderId: order.id, reason: 'STORE_DECLINED' });
       if (order.deliveryPartnerId) io.to(`rider_${order.deliveryPartnerId}`).emit('orderCancelled', { orderId: order.id, reason: 'STORE_DECLINED' });
+    }
+    if (order.deliveryPartnerId) {
+      const rd = require('../utils/riderDispatch');
+      rd.pushAssignedRider(order.deliveryPartnerId, 'Order cancelled', `The store could not take order #${rd.shortRef(order.id)}. Do not pick it up.`, { orderId: order.id, type: 'ORDER_CANCELLED', reason: 'STORE_DECLINED' });
     }
     res.json({ message: 'Order declined', orderId: order.id, status: 'Cancelled', refundedToWallet: refunded });
     try {

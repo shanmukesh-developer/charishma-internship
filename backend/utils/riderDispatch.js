@@ -123,5 +123,23 @@ const refreshRiderCurrentOrder = async (riderId) => {
   }
 };
 
-module.exports = { RIDER_PUSH_ANDROID,
+/**
+ * One push to the rider who has (had) an order: a cancellation or a hand-over reaches them with the app closed too
+ * (the socket events alone were lost whenever the rider's connection was down). `short` = the rider app's #ABC123.
+ */
+const shortRef = (orderId) => String(orderId || '').replace(/-/g, '').slice(-6).toUpperCase();
+const pushAssignedRider = async (riderId, title, body, data = {}) => {
+  if (!riderId) return null;
+  try {
+    const rider = await getDeliveryPartnerModel().findByPk(riderId, { attributes: ['id', 'fcmTokens'] });
+    const tokens = rider ? tokensOf(rider) : [];
+    if (!tokens.length) return null;
+    return await sendPushToTokens(tokens, title, body, Object.fromEntries(Object.entries(data).map(([k, v]) => [k, String(v)])), { persist: false, android: RIDER_PUSH_ANDROID });
+  } catch (err) {
+    console.warn('[RIDER_ASSIGNED_PUSH_WARN]', err && err.message);
+    return null;
+  }
+};
+
+module.exports = { RIDER_PUSH_ANDROID, pushAssignedRider, shortRef,
   RIDER_NEW_ORDER_CHANNEL, BASE_DELIVERY_FEE, riderPayout, RIDER_FRESH_MS, isRiderFresh, riderFixAgeMs, rankOnlineRiders, pushNearestRiders, refreshRiderCurrentOrder };

@@ -2024,6 +2024,10 @@ exports.batchUpdateOrders = async (req, res) => {
             // The assigned rider must stop (they may not be in the order room). cancelAndRefund already
             // re-pointed their currentOrderId at an order they still carry.
             if (order.deliveryPartnerId) io.to(`rider_${order.deliveryPartnerId}`).emit('orderCancelled', { orderId: order.id });
+            if (order.deliveryPartnerId) {
+              const rd = require('../utils/riderDispatch');
+              rd.pushAssignedRider(order.deliveryPartnerId, 'Order cancelled', `Order #${rd.shortRef(order.id)} was cancelled by ZCS support. Do not pick it up.`, { orderId: order.id, type: 'ORDER_CANCELLED' });
+            }
           }
           realtime.notifyAdmin('order', 'updated', order.id);
           const oc = require('./orderController');
@@ -2982,6 +2986,10 @@ const releaseOrderRider = async (order, { io = null, reason = 'Removed by ZCS su
   await refreshRiderCurrentOrder(oldRiderId);
   // The old rider's app drops the order on its refetch (it vanished from their active list).
   if (io) io.to(`rider_${oldRiderId}`).emit('statusUpdated', { id: order.id, status: order.status, reassigned: true });
+  if (oldRiderId) {
+    const rd = require('../utils/riderDispatch');
+    rd.pushAssignedRider(oldRiderId, 'Order given to another rider', `ZCS support gave order #${rd.shortRef(order.id)} to another rider. You do not need to pick it up.`, { orderId: order.id, type: 'ORDER_REASSIGNED' });
+  }
   realtime.deliveryRequest(order.id); // back in the pool for every online rider
   if (io) {
     const payload = { id: order.id, status: order.status, riderAssigned: false };
@@ -3054,6 +3062,10 @@ exports.assignOrderRider = async (req, res) => {
       await refreshRiderCurrentOrder(oldRiderId);
       // The old rider's app drops the order on its refetch (it vanished from their active list).
       if (io) io.to(`rider_${oldRiderId}`).emit('statusUpdated', { id: order.id, status: order.status, reassigned: true });
+      if (oldRiderId) {
+        const rd = require('../utils/riderDispatch');
+        rd.pushAssignedRider(oldRiderId, 'Order given to another rider', `ZCS support took order #${rd.shortRef(order.id)} off you. You do not need to pick it up.`, { orderId: order.id, type: 'ORDER_REASSIGNED' });
+      }
     }
     if (newRiderId) {
       await DeliveryPartner.update({ currentOrderId: order.id }, { where: { id: newRiderId, currentOrderId: null } });

@@ -150,7 +150,7 @@ export function RiderProvider({ children }: { children: React.ReactNode }) {
 
   const connected = useNetwork();
   const appActive = useAppActive();
-  const { dismiss, dismissed, resetDismissed } = useDismissedOrders();
+  const { dismiss, dismissed, resetDismissed, undismiss } = useDismissedOrders();
 
   const tokenRef = useRef<string | null>(null);
   const profileRef = useRef<RiderProfile | null>(null);
@@ -458,6 +458,9 @@ export function RiderProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Orders taken off this rider WITHOUT a cancellation (released after a pickup timeout, or given to another rider by
+  // ZCS support): the vanished-order check below says so instead of "cancelled, do not pick it up".
+  const handedOver = useRef<Map<string, 'released' | 'reassigned'>>(new Map());
   const noteCancelled = useCallback((o: RiderOrder, reason?: string) => {
     finishedIds.current.add(o.id);
     queue.removeForOrder(o.id);
@@ -487,7 +490,14 @@ export function RiderProvider({ children }: { children: React.ReactNode }) {
         const hist = await loadHistory();
         for (const o of vanished) {
           await queue.removeForOrder(o.id);
-          if (hist?.some((h) => h.id === o.id)) {
+          const how = handedOver.current.get(o.id);
+          if (how) {
+            handedOver.current.delete(o.id);
+            showToast(how === 'released'
+              ? `Order #${o.shortId} went back to other riders: it was not picked up in time.`
+              : `Order #${o.shortId} was given to another rider by ZCS support.`, 'info');
+            setDeliveryId((cur) => (cur === o.id ? null : cur));
+          } else if (hist?.some((h) => h.id === o.id)) {
             showToast(`Order #${o.shortId} was marked delivered by ZCS support.`, 'success');
             setDeliveryId((cur) => (cur === o.id ? null : cur));
           } else if (hist === null) {
@@ -523,9 +533,11 @@ export function RiderProvider({ children }: { children: React.ReactNode }) {
       // Announce the newest order this rider has not heard about yet.
       const now = Date.now();
       const fresh = list.filter((o) => !seenOffers.current.has(o.id) && !((dismissedRef.current[o.id] ?? 0) > now));
-      list.forEach((o) => seenOffers.current.add(o.id));
-      // Carrying the most orders allowed: the claim would be refused, so do not call the rider for it.
-      if (fresh.length && activeRef.current.length < RIDER_MAX_ACTIVE_ORDERS) {
+      // Carrying the most orders allowed: the claim would be refused, so do not call the rider for it. Those orders
+      // are not marked heard either, so they are announced once a delivery frees a place.
+      const full = activeRef.current.length >= RIDER_MAX_ACTIVE_ORDERS;
+      if (!full) list.forEach((o) => seenOffers.current.add(o.id));
+      if (fresh.length && !full) {
         const o = fresh[0];
         const say = (chime: 'order' | null) =>
           announce('newOrder', { store: o.restaurantName, earning: o.earning }, { dedupeKey: `new:${o.id}`, chime });
@@ -706,6 +718,10 @@ export function RiderProvider({ children }: { children: React.ReactNode }) {
     if (!inMain || !tokenRef.current) return;
     let firstConnect = true;
     sock.setSocketHandlers({
+      onHandedOver: ({ orderId, kind }) => {
+        handedOver.current.set(orderId, kind);
+        refetchSoon();
+      },
       onOrderCancelled: ({ orderId, reason }) => {
         const o = activeRef.current.find((x) => x.id === orderId);
         if (!o || finishedIds.current.has(orderId)) return;
@@ -860,11 +876,27 @@ export function RiderProvider({ children }: { children: React.ReactNode }) {
     // launch is retried here instead of only at the next cold start).
     const appSub = AppState.addEventListener('change', (st) => { if (st === 'active') push.registerForPush(riderId); });
     const offToken = push.onPushTokenChange(riderId);
+    // "Order about to be cancelled" (server escalation rounds at 4 / 10 / 18 min): offer it again even if this rider
+    // skipped it (Skip hides an order 30 min, so the escalation tap used to open an empty pool).
+    const reoffer = (data: Record<string, any>) => {
+      if (!data?.escalation || !data?.orderId) return;
+      const id = String(data.orderId);
+      const { [id]: _gone, ...rest } = dismissedRef.current;
+      void _gone;
+      dismissedRef.current = rest;
+      undismiss(id);
+      seenOffers.current.delete(id);
+    };
     const offRecv = push.onPushReceived((data) => {
       if (data?.type === 'OFF_DUTY') { refreshProfile(); return; } // the server took us off duty: show it
+      reoffer(data);
+      if (data?.orderId && (data?.type === 'ORDER_RELEASED' || data?.type === 'ORDER_REASSIGNED')) {
+        handedOver.current.set(String(data.orderId), data.type === 'ORDER_RELEASED' ? 'released' : 'reassigned');
+      }
       if (data?.type === 'NEW_ORDER' || data?.orderId) refetchSoon();
     });
     const offTap = push.onPushTapped((data) => {
+      reoffer(data);
       const id = data?.orderId ? String(data.orderId) : null;
       setOverlay(null);
       if (id && activeRef.current.some((o) => o.id === id)) setDeliveryId(id);
@@ -893,7 +925,7 @@ export function RiderProvider({ children }: { children: React.ReactNode }) {
       offTap();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inMain, riderId, refetchSoon]);
+  }, [inMain, riderId, refetchSoon, undismiss]);
 
   // Route a launch tap once the order shows up in a fresh active list (or give up: it is no longer ours).
   useEffect(() => {
