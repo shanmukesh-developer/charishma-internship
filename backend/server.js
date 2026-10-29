@@ -1571,6 +1571,7 @@ const initializeApp = async () => {
     // In-Campus Booking (pickup at the stall, paid straight to the stall by UPI). Vendor router before the
     // student router; admin routes before /api/admin. Expiry: jobs/index.js 'campusBooking.lifecycle' (2 min).
     const campusBookingRoutes = require('./modules/campusBooking/routes');
+    app.use('/api/campus-booking/documents', campusBookingRoutes.docRouter); // signed print-PDF links (no sign-in)
     app.use('/api/campus-booking/vendor', campusBookingRoutes.vendorRouter);
     app.use('/api/campus-booking', campusBookingRoutes.router);
     app.use('/api/admin/campus-booking', campusBookingRoutes.adminRouter);

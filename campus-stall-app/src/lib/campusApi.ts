@@ -34,6 +34,8 @@ export interface CbVendorBooking {
   customer: { firstName: string };
   payeeUpiId: string | null;
   note: string | null;
+  /** Stationery / print bookings: the student's PDFs (url: a signed link, about an hour; detail view only). */
+  documents?: { id: string; name: string; size: number; url: string | null }[];
   pickupLocked: boolean;
   createdAt: string | null;
   updatedAt: string | null;

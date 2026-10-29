@@ -57,6 +57,9 @@ const initCampusBookingModels = (sequelize) => {
     cancelCode: { type: DataTypes.STRING(20), allowNull: true },
     cancelReason: { type: DataTypes.STRING(250), allowNull: true },
     note: { type: DataTypes.STRING(200), allowNull: true }, // student's note to the stall
+    // Stationery / print stalls: the student's PDFs to print [{ mediaId, name, size }] (private 'service_doc'
+    // uploads, POST /api/services/documents; opened through signed links, controllers/student.document).
+    documents: { type: DataTypes.JSON, allowNull: true },
     idempotencyKey: { type: DataTypes.STRING(120), allowNull: true },
     // Optimistic concurrency: every status write is "UPDATE ... WHERE id = ? AND version = ?".
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },

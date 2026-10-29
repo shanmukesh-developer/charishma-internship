@@ -45,6 +45,9 @@ const COMMISSION_PCT = 1.5;
 const LIMITS = Object.freeze({
   maxLines: 20,
   maxQtyPerLine: 10,
+  // Stationery / print stalls sell per page: a 60-page print is one line of 60 (owner, 29 Oct: document uploads).
+  maxQtyPerLineStationery: 200,
+  maxDocuments: 5, // PDFs per booking (stationery / print stalls only)
   maxOpenPerStudent: 3, // open bookings (any stall) at a time
   proofMaxAttempts: 5, // proof submissions per booking (first + re-sends)
   pickupCodeMaxTries: 6, // wrong pickup codes before the stall must wait (per booking, rolling 15 min)

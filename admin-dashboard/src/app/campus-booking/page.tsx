@@ -40,6 +40,7 @@ interface Booking {
   customer: { id: string; name?: string | null; phone?: string | null };
   payeeUpiId: string | null;
   note: string | null;
+  documents?: { id: string; name: string; size: number; url: string | null }[];
   createdAt: string | null;
   updatedAt: string | null;
 }
@@ -273,6 +274,20 @@ function BookingDetail({ b }: { b: Booking }) {
           ))}
         </ul>
       </div>
+      {b.documents && b.documents.length ? (
+        <div>
+          <p className="mb-2 text-sm font-medium text-fg">Files to print</p>
+          <ul className="divide-y divide-line rounded-lg border border-line">
+            {b.documents.map((d) => (
+              <li key={d.id} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+                <span className="truncate">{d.name}</span>
+                {/* Signed link (about an hour); reopen the booking for a fresh one. */}
+                {d.url ? <a className="shrink-0 font-medium text-accent-text hover:underline" href={d.url} target="_blank" rel="noreferrer">Download</a> : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       <div>
         <p className="mb-2 text-sm font-medium text-fg">Progress</p>
         <ol className="space-y-1 text-sm">

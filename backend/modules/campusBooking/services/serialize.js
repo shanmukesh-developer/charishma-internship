@@ -11,6 +11,26 @@ const iso = (d) => (d ? new Date(d).toISOString() : null);
 
 const plainOf = (b) => (b && typeof b.get === 'function' ? b.get({ plain: true }) : { ...b });
 
+/** Stationery bookings: the PDFs to print. `url` is filled only in detail views (signProofs) with a signed link. */
+const docsOf = (b) => {
+  let list = b.documents;
+  if (typeof list === 'string') { try { list = JSON.parse(list); } catch { list = []; } }
+  return (Array.isArray(list) ? list : []).filter((d) => d && d.mediaId).map((d) => ({
+    id: String(d.mediaId),
+    name: String(d.name || 'Document.pdf'),
+    size: Number(d.size) || 0,
+    url: null,
+  }));
+};
+
+/** Signed link to one booking PDF (GET /api/campus-booking/documents/:bookingId/:mediaId), valid 60-90 minutes. */
+const signedDocUrl = (req, bookingId, mediaId, now = Date.now()) => {
+  const mc = require('../../campus/controllers/mediaController');
+  const exp = (Math.floor((Math.floor(now / 1000) + 3600) / 1800) + 1) * 1800;
+  const base = require('../../../utils/imageStore').publicBase(req);
+  return `${base}/api/campus-booking/documents/${bookingId}/${mediaId}?exp=${exp}&sig=${mc.sigFor(`cbdoc.${bookingId}.${mediaId}`, exp)}`;
+};
+
 const itemsOf = (b) => (Array.isArray(b.items) ? b.items : []).map((it) => ({
   menuItemId: it.menuItemId ? String(it.menuItemId) : null,
   name: String(it.name || ''),
@@ -72,6 +92,7 @@ const base = (b) => ({
   // The stall confirmed the money arrived (shown as "Paid" to the stall; the student was told "Payment verified").
   paymentVerified: !!b.paymentVerifiedAt,
   note: b.note || null,
+  documents: docsOf(b),
   createdAt: iso(b.createdAt),
   updatedAt: iso(b.updatedAt),
   paymentVerifiedAt: iso(b.paymentVerifiedAt),
@@ -131,11 +152,12 @@ const forAdmin = (row, { user, store } = {}) => {
   return out;
 };
 
-/** Private proof screenshots -> short-lived signed links for the viewer (owner, stall or admin). */
+/** Private proof screenshots and print PDFs -> short-lived signed links for the viewer (owner, stall or admin). */
 const signProofs = async (req, list) => {
-  const rows = (Array.isArray(list) ? list : [list]).filter(Boolean).map((x) => x.proof);
-  await signMediaFields(req, rows, ['imageUrl'], { purposes: PROOF_PURPOSES });
+  const all = (Array.isArray(list) ? list : [list]).filter(Boolean);
+  await signMediaFields(req, all.map((x) => x.proof), ['imageUrl'], { purposes: PROOF_PURPOSES });
+  for (const b of all) for (const d of b.documents || []) d.url = signedDocUrl(req, b.id, d.id);
   return list;
 };
 
-module.exports = { forStudent, forVendor, forAdmin, signProofs, timelineOf, upiLinkOf, PROOF_PURPOSES, CODE_VISIBLE };
+module.exports = { forStudent, forVendor, forAdmin, signProofs, timelineOf, upiLinkOf, docsOf, PROOF_PURPOSES, CODE_VISIBLE };

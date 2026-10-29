@@ -2,7 +2,7 @@
 // the UPI ID they paid, the reference, time and amount) with Reject / Confirm payment, then Start preparing,
 // Mark as ready, Hand over (type the student's pickup code) or Cancel order. Every action waits for the server.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NetImage } from '../components/NetImage';
@@ -152,6 +152,26 @@ export default function CampusOrderScreen({ bookingId, onBack }: { bookingId: st
             </View>
           ))}
           {b.note ? <Text style={[font.body, { color: color.warning, fontWeight: '700', marginTop: 4 }]}>Note: {b.note}</Text> : null}
+          {/* Stationery / print: the student's PDFs. Open downloads the file (link valid about an hour; reopen the booking for a fresh one). */}
+          {(b.documents || []).length ? (
+            <View style={{ gap: space.xs, marginTop: space.xs }}>
+              <Text style={[font.body, { color: color.text, fontWeight: '800' }]}>Files to print ({(b.documents || []).length})</Text>
+              {(b.documents || []).map((d) => (
+                <Pressable
+                  key={d.id}
+                  disabled={!d.url}
+                  onPress={() => { if (d.url) Linking.openURL(d.url).catch(() => toast.show('Could not open the file. Reopen this booking and try again.', 'error')); }}
+                  style={({ pressed }) => [kit.row, { gap: space.sm, paddingVertical: 6, opacity: pressed ? 0.6 : 1 }]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open ${d.name}`}
+                >
+                  <Ionicons name="document-text-outline" size={22} color={color.primary} />
+                  <Text style={[font.body, { color: color.text, flex: 1 }]} numberOfLines={1}>{d.name}</Text>
+                  <Text style={[font.body, { color: color.primary, fontWeight: '800' }]}>{d.url ? 'Open' : ''}</Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
           <View style={[kit.divider, { marginVertical: space.xs }]} />
           <Row label="Total paid by the student" value={inr(b.amount)} strong />
           <Row label={`ZCS commission ${b.commissionPct}%`} value={`- ${inr(b.commission)}`} />

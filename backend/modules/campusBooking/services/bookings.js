@@ -21,19 +21,38 @@ const commissionFor = (amountPaise) => {
   return { commissionPct: COMMISSION_PCT, commissionPaise: c.commissionAmountPaise, vendorNetPaise: c.storeNetPaise };
 };
 
-/** Normalised lines [{ menuItemId, quantity }] (same item twice = one line). */
-const parseLines = (raw) => {
+/** Normalised lines [{ menuItemId, quantity }] (same item twice = one line). maxQty: per line (stationery: pages). */
+const parseLines = (raw, maxQty = LIMITS.maxQtyPerLine) => {
   if (!Array.isArray(raw) || !raw.length) throw fail(400, 'EMPTY_CART', 'Add at least one item to book.');
   const map = new Map();
   for (const l of raw) {
     const id = l && (l.menuItemId || l.id);
     const q = Number(l && l.quantity);
     if (!isUuid(String(id || ''))) throw fail(400, 'INVALID_ITEM', 'One of the items is not on this stall menu any more. Please refresh.');
-    if (!Number.isInteger(q) || q < 1 || q > LIMITS.maxQtyPerLine) throw fail(400, 'INVALID_QUANTITY', `Each item can be booked 1 to ${LIMITS.maxQtyPerLine} at a time.`);
-    map.set(String(id), Math.min(LIMITS.maxQtyPerLine, (map.get(String(id)) || 0) + q));
+    if (!Number.isInteger(q) || q < 1 || q > maxQty) throw fail(400, 'INVALID_QUANTITY', `Each item can be booked 1 to ${maxQty} at a time.`);
+    map.set(String(id), Math.min(maxQty, (map.get(String(id)) || 0) + q));
   }
   if (map.size > LIMITS.maxLines) throw fail(400, 'TOO_MANY_ITEMS', `A booking can have up to ${LIMITS.maxLines} different items.`);
   return [...map.entries()].map(([menuItemId, quantity]) => ({ menuItemId, quantity }));
+};
+
+/**
+ * The student's PDFs for a stationery / print stall: [{ id, name }] uploaded first by this student through
+ * POST /api/services/documents (private 'service_doc' rows). Returns [{ mediaId, name, size }] (none -> []).
+ */
+const resolveDocuments = async (raw, { userId, stationery }) => {
+  if (raw === undefined || raw === null || (Array.isArray(raw) && !raw.length)) return [];
+  if (!Array.isArray(raw)) throw fail(400, 'BAD_DOCUMENT', 'Attach the files again.');
+  if (!stationery) throw fail(400, 'DOCUMENTS_NOT_TAKEN', 'Only stationery and print stalls take files. Remove the files to book here.');
+  if (raw.length > LIMITS.maxDocuments) throw fail(400, 'TOO_MANY_DOCUMENTS', `Attach up to ${LIMITS.maxDocuments} files per booking.`);
+  const { resolveServiceDocument } = require('../../../utils/serviceDocuments');
+  const out = [];
+  for (const d of raw) {
+    const r = await resolveServiceDocument(d && (d.id || d.mediaId), { ownerId: userId, name: d && d.name });
+    if (!r.ok) throw fail(r.status || 400, r.code || 'BAD_DOCUMENT', r.message || 'That file was not found. Please attach it again.');
+    if (!out.some((x) => String(x.mediaId) === String(r.value.mediaId))) out.push(r.value);
+  }
+  return out;
 };
 
 /** A pickup code no other open booking of this stall is using. */
@@ -50,7 +69,7 @@ const freshPickupCode = async (restaurantId) => {
  * POST /bookings. Returns { booking, store, created }. A retry with the same Idempotency-Key returns the
  * booking it created the first time (created false).
  */
-const createBooking = async ({ userId, stallId, items, note, idempotencyKey, now = new Date() }) => {
+const createBooking = async ({ userId, stallId, items, note, documents, idempotencyKey, now = new Date() }) => {
   const key = idempotencyKey ? String(idempotencyKey).slice(0, 120) : null;
   const { getRestaurantModel } = require('../../../models/Restaurant');
   const Restaurant = getRestaurantModel();
@@ -59,9 +78,12 @@ const createBooking = async ({ userId, stallId, items, note, idempotencyKey, now
     if (prior) return { booking: prior, store: await Restaurant.findByPk(prior.restaurantId, { attributes: ['id', 'name', 'location', 'imageUrl'] }), created: false };
   }
   if (!isUuid(String(stallId || ''))) throw fail(404, 'STALL_NOT_FOUND', 'This stall is not taking bookings on ZCS.');
-  const lines = parseLines(items);
+  parseLines(items, LIMITS.maxQtyPerLineStationery); // shape first; the stall decides the per-line cap below
   const store = await Restaurant.findByPk(stallId, { attributes: [...stalls.STORE_ATTRS, 'imageUrl'] });
   if (!stalls.takesBookings(store)) throw fail(409, 'NOT_TAKING_BOOKINGS', `${store ? store.name : 'This stall'} is not taking In-Campus Bookings right now.`);
+  const stationery = stalls.categoryOf(store) === 'stationery';
+  const lines = parseLines(items, stationery ? LIMITS.maxQtyPerLineStationery : LIMITS.maxQtyPerLine);
+  const docs = await resolveDocuments(documents, { userId, stationery });
   const open = stalls.openStateOf(store, now);
   if (!open.isOpen) throw fail(409, 'STALL_CLOSED', open.closedReason || `${store.name} is closed right now.`, { opensAt: open.opensAt });
 
@@ -109,6 +131,7 @@ const createBooking = async ({ userId, stallId, items, note, idempotencyKey, now
     payeeQrUrl: store.campusUpiQrUrl || null,
     prepMinutes,
     note: cleanText(note, 200) || null,
+    documents: docs.length ? docs : null,
     idempotencyKey: key,
     proofAttempts: 0,
     pickupCodeFails: 0,

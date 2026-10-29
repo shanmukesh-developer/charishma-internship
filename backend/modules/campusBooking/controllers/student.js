@@ -44,7 +44,7 @@ const home = async (req, res) => {
     categories: CATEGORIES,
     stalls: list,
     active: active.map((b) => S.forStudent(b, stores.get(String(b.restaurantId)))).map((b) => ({ ...b, proof: { ...b.proof, imageUrl: null } })),
-    limits: { maxQtyPerLine: LIMITS.maxQtyPerLine, maxLines: LIMITS.maxLines, proofMaxBytes: 5 * 1024 * 1024 },
+    limits: { maxQtyPerLine: LIMITS.maxQtyPerLine, maxQtyPerLineStationery: LIMITS.maxQtyPerLineStationery, maxDocuments: LIMITS.maxDocuments, maxLines: LIMITS.maxLines, proofMaxBytes: 5 * 1024 * 1024 },
     commissionPct: COMMISSION_PCT,
   });
 };
@@ -61,7 +61,24 @@ const stallDetail = async (req, res) => {
   res.json({ stall, menu });
 };
 
-// POST /api/campus-booking/bookings { stallId, items: [{ menuItemId, quantity }], note? }  (Idempotency-Key header)
+// GET /api/campus-booking/documents/:bookingId/:mediaId?exp=&sig= (no sign-in: a phone's PDF viewer opens it).
+// A stationery booking's PDF through the short-lived signed link only the student who booked, the stall and admins
+// are given (serialize.signProofs). Sent as a download; anything else is a plain 404.
+const document = async (req, res) => {
+  const bookingId = String(req.params.bookingId || '');
+  const mediaId = String(req.params.mediaId || '');
+  const notFound = () => res.status(404).json({ message: 'Not found' });
+  if (!isUuid(bookingId) || !isUuid(mediaId)) return notFound();
+  const { verifySignature } = require('../../campus/controllers/mediaController');
+  if (!verifySignature(`cbdoc.${bookingId}.${mediaId}`, String(req.query.exp || ''), String(req.query.sig || ''))) return notFound();
+  const row = await B.Booking().findByPk(bookingId, { attributes: ['id', 'userId', 'documents'] });
+  const doc = row ? S.docsOf({ documents: row.documents }).find((d) => d.id === mediaId) : null;
+  if (!doc) return notFound();
+  return require('../../../utils/serviceDocuments').sendServiceDocument(res, { userId: row.userId }, { mediaId: doc.id, name: doc.name });
+};
+
+// POST /api/campus-booking/bookings { stallId, items: [{ menuItemId, quantity }], note?, documents?: [{ id, name }] }
+// (Idempotency-Key header). documents: stationery / print stalls only, uploaded first via POST /api/services/documents.
 const create = async (req, res) => {
   const key = String(req.get('Idempotency-Key') || (req.body && req.body.idempotencyKey) || '').slice(0, 120) || null;
   // A retry of a booking already made returns it without counting against the limit.
@@ -69,7 +86,7 @@ const create = async (req, res) => {
   if (prior) return sendOne(req, res, prior, 200);
   hit('book', req.user.id);
   const body = req.body || {};
-  const { booking, created } = await B.createBooking({ userId: req.user.id, stallId: body.stallId, items: body.items, note: body.note, idempotencyKey: key });
+  const { booking, created } = await B.createBooking({ userId: req.user.id, stallId: body.stallId, items: body.items, note: body.note, documents: body.documents, idempotencyKey: key });
   if (created) notify.bookingChanged(booking, { action: 'created', push: false });
   return sendOne(req, res, booking, created ? 201 : 200);
 };
@@ -113,4 +130,4 @@ const cancel = async (req, res) => {
   return sendOne(req, res, fresh);
 };
 
-module.exports = { home, listStalls, stallDetail, create, listMine, getMine, submitProof, cancel, storeBriefs };
+module.exports = { home, listStalls, stallDetail, create, listMine, getMine, submitProof, cancel, storeBriefs, document };

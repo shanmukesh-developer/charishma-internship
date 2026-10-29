@@ -26,6 +26,7 @@ const setup = async () => {
     app.use(express.json({ limit: '8mb' }));
     app.post('/api/campus/media', protect, media.parseUpload, media.uploadMedia);
     app.get('/api/campus/media/:id', media.serveMedia);
+    app.use('/api/campus-booking/documents', routes.docRouter);
     app.use('/api/campus-booking/vendor', routes.vendorRouter);
     app.use('/api/campus-booking', routes.router);
     app.use('/api/admin/campus-booking', routes.adminRouter);

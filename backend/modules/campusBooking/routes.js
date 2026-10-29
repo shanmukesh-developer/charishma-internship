@@ -9,6 +9,10 @@ const A = require('./controllers/admin');
 
 const noStore = (req, res, next) => { res.set('Cache-Control', 'private, no-store'); next(); };
 
+// ── Print PDFs of stationery bookings: signed links, no sign-in (mounted before the student router) ─────
+const docRouter = express.Router();
+docRouter.get('/:bookingId/:mediaId', noStore, handler(St.document, 'CAMPUS_BOOKING_DOCUMENT'));
+
 // ── Students ────────────────────────────────────────────────────────────────
 const router = express.Router();
 router.use(protect, studentOnly, noStore);
@@ -46,4 +50,4 @@ adminRouter.get('/stores', handler(A.listStores, 'CAMPUS_BOOKING_ADMIN'));
 adminRouter.get('/stores/:id', handler(A.getStore, 'CAMPUS_BOOKING_ADMIN'));
 adminRouter.put('/stores/:id', handler(A.updateStore, 'CAMPUS_BOOKING_ADMIN'));
 
-module.exports = { router, vendorRouter, adminRouter };
+module.exports = { router, vendorRouter, adminRouter, docRouter };
