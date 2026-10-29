@@ -133,9 +133,24 @@ const logAuditAction = async (req, targetId, action, details) => {
 // only the fields the Home list uses (name, price, photo, category, tags, veg). The full menu is fetched
 // on the store page (GET /api/users/restaurants/:id). Without the parameter the response is unchanged.
 const SUMMARY_ITEM_FIELDS = ['id', '_id', 'restaurantId', 'name', 'price', 'imageUrl', 'category', 'tags', 'isVegetarian', 'dietType', 'isAvailable'];
+// A dish with choices to make keeps just those in specs (the admin's options, the customisable flag): Home's quick add
+// reads them (productOptions / isCustomizable) and opens the dish page instead of a bare add that checkout refused
+// ("please choose a Portion"). Any other specs stay out of the summary.
+const summarySpecs = (specs) => {
+  let s = specs;
+  if (typeof s === 'string') { try { s = JSON.parse(s); } catch { s = null; } }
+  if (!s || typeof s !== 'object') return null;
+  const out = {};
+  const options = require('../utils/productOptions').readOptions(s);
+  if (options.length) out.options = options;
+  if (s.customizable === true) out.customizable = true;
+  return Object.keys(out).length ? out : null;
+};
 const summaryItem = (m) => {
   const out = {};
   for (const k of SUMMARY_ITEM_FIELDS) if (m[k] !== undefined && m[k] !== null) out[k] = m[k];
+  const specs = summarySpecs(m.specs);
+  if (specs) out.specs = specs;
   return out;
 };
 const summaryStore = (r) => {

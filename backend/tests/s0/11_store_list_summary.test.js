@@ -1,5 +1,5 @@
 // Home store list: ?fields=summary sends the same stores with a light menu (available dishes only, list
-// fields only, no descriptions / specs), the old response is unchanged without it, and the public list /
+// fields only, no descriptions; specs only for a dish's choices), the old response is unchanged without it, and the public list /
 // detail show stores closed during the campus night window (campusClosed, opensAt 06:00). The night
 // message has no emoji and ends with a full stop.
 const test = require('node:test');
@@ -39,6 +39,26 @@ test('full list unchanged; ?fields=summary trims the menu and marks menuMode', a
   assert.strictEqual(s.isOpen, f.isOpen);
   assert.strictEqual(s.name, f.name);
   assert.ok(JSON.stringify(sum.body).length < JSON.stringify(full.body).length);
+});
+
+test("?fields=summary keeps a dish's choices (admin options, customisable) so Home opens the dish page", async () => {
+  const kitchen = await H.mkStore({ name: 'Choice Kitchen', vendorType: 'RESTAURANT' });
+  const options = [{ name: 'Portion', type: 'variant', required: true, choices: [{ label: 'Half', price: 90 }, { label: 'Full', price: 160 }] }];
+  await H.ctx.M.MenuItem.create({ restaurantId: kitchen.id, name: 'Chicken Biryani', price: 90, category: 'Biryani', isAvailable: true, specs: { options, weight: '500 g', demoFillKey: 'x' } });
+  await H.ctx.M.MenuItem.create({ restaurantId: kitchen.id, name: 'Build Your Pizza', price: 199, category: 'Pizza', isAvailable: true, specs: { customizable: true, brand: 'House' } });
+  await H.ctx.M.MenuItem.create({ restaurantId: kitchen.id, name: 'Plain Dosa', price: 40, category: 'Tiffins', isAvailable: true, specs: { weight: '1 piece' } });
+  H.r('controllers/adminController').clearRestaurantsCache(); // what every store / menu write calls
+  const sum = await H.api('GET', '/api/users/restaurants?fields=summary');
+  assert.strictEqual(sum.status, 200);
+  const k = sum.body.find((r) => r.id === kitchen.id);
+  assert.ok(k, 'store listed');
+  const byName = Object.fromEntries(k.menu.map((m) => [m.name, m]));
+  const biryani = byName['Chicken Biryani'];
+  assert.deepStrictEqual(Object.keys(biryani.specs), ['options'], 'only the choices, no other specs');
+  assert.strictEqual(biryani.specs.options[0].name, 'Portion');
+  assert.deepStrictEqual(biryani.specs.options[0].choices.map((c) => c.label), ['Half', 'Full']);
+  assert.deepStrictEqual(byName['Build Your Pizza'].specs, { customizable: true });
+  assert.ok(!('specs' in byName['Plain Dosa']), 'a dish without choices has no specs');
 });
 
 test('night window: store shown closed with opensAt 06:00 and the plain message (production only)', () => {
