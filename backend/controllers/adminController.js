@@ -316,8 +316,17 @@ exports.getRestaurantById = async (req, res) => {
           try { mTags = JSON.parse(mTags); } catch { mTags = []; }
         }
         // Customer choices: the admin's, else automatic weights (utils/productOptions, docs/PRODUCT_OPTIONS.md).
-        const opts = require('../utils/productOptions').effectiveOptions(m, restaurant.vendorType);
-        return { ...mObj, tags: mTags, _id: m.id, id: m.id, image: mObj.imageUrl || mObj.image, ...(opts.length ? { options: opts } : {}) };
+        const po = require('../utils/productOptions');
+        const opts = po.effectiveOptions(m, restaurant.vendorType);
+        // Sold in weights: the row's price / MRP / size are the default weight's own (never the lowest weight's
+        // price next to the 1 kg pack's MRP, which read as a false "74% off").
+        const listed = po.listingFromOptions(opts);
+        const mSpecs = mObj.specs && typeof mObj.specs === 'object' ? mObj.specs : {};
+        return {
+          ...mObj, tags: mTags, _id: m.id, id: m.id, image: mObj.imageUrl || mObj.image,
+          ...(listed ? { price: listed.price, originalPrice: listed.originalPrice, weight: listed.weight } : (mSpecs.weight ? { weight: po.packLabel(mSpecs.weight) } : {})),
+          ...(opts.length ? { options: opts } : {}),
+        };
       })
     });
   } catch (error) {
