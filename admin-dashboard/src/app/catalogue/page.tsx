@@ -1,9 +1,11 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 import {
-  DetailDraft, GroupDraft, OptionGroupsEditor, ProductDetailsEditor,
-  detailsFromSpecs, groupsFromSpecs, serializeDetails, serializeOptions, suggestedWeightGroups, validateOptions, variantMinPrice,
+  AutoWeightsNote, DetailDraft, OptionGroupsEditor, ProductDetailsEditor,
+  detailsFromSpecs, groupsFromSpecs, serializeDetails, serializeOptions, useChoiceGroups, validateOptions, variantMinPrice,
 } from '@/components/restaurants/ProductOptionsEditor';
+import { isBookingOnlyStore } from '@/app/restaurants/catalogue';
+import { QueryChange } from '@/components/shell/QueryChange';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useAdminAuth } from '@/utils/useAdminAuth';
@@ -172,7 +174,23 @@ export default function CataloguePage() {
 
   useEffect(() => {
     if (wantNew.current && storeId && !itemsLoading) { wantNew.current = false; setPendingNew(false); setEditing('new'); }
-  }, [storeId, itemsLoading]);
+  }, [storeId, itemsLoading, pendingNew]);
+
+  // A header / palette link to this page while it is open (?new=1, ?store=<id>): the read on load above misses it.
+  const onQuery = useCallback((qs: URLSearchParams) => {
+    const sid = qs.get('store');
+    const hit = sid ? stores.find(s => s.id === sid) : null;
+    if (hit && hit.id !== storeId) { setSource(sourceOf(hit)); setStoreId(hit.id); }
+    if (qs.get('new') === '1') {
+      wantNew.current = true;
+      setPendingNew(true);
+      const url = new URL(window.location.href);
+      url.searchParams.delete('new');
+      const keep = hit?.id || storeId;
+      if (keep) url.searchParams.set('store', keep);
+      window.history.replaceState(window.history.state, '', url.toString());
+    }
+  }, [stores, storeId]);
 
   // Products changed elsewhere (store app, another admin): refresh quietly.
   useLiveSync(['product'], () => { loadItems(true); }, { enabled: isAuthed && !!storeId });
@@ -297,7 +315,7 @@ export default function CataloguePage() {
       key: 'diet', header: 'Type', hideBelow: 'xl' as const, sortValue: (i: Item) => dietLabel(i),
       cell: (i: Item) => <Badge tone={dietLabel(i) === 'Veg' ? 'success' : dietLabel(i) === 'Egg' ? 'warning' : 'danger'} dot>{dietLabel(i)}</Badge>,
     }] : []),
-    { key: 'price', header: 'Price', align: 'right', width: '140px', sortValue: i => Number(i.price), cell: i => <PriceCell item={i} onSave={savePrice} /> },
+    { key: 'price', header: 'Price', align: 'right', width: '140px', sortValue: i => Number(i.price), cell: i => <PriceCell item={i} allowFree={!!store && isBookingOnlyStore(store.vendorType)} onSave={savePrice} /> },
     {
       key: 'stock', header: 'In stock', align: 'center', width: '90px', sortValue: i => i.isAvailable !== false,
       cell: i => (
@@ -328,6 +346,7 @@ export default function CataloguePage() {
 
   return (
     <div>
+      <QueryChange onChange={onQuery} />
       <PageHeader
         title="Catalogue"
         description="Add, edit and delete the items customers can order, for any restaurant, local vendor or Others section store."
@@ -478,15 +497,16 @@ function Thumb({ url, size, alt = '' }: { url?: string | null; size: number; alt
 
 /* ───────────────────────── Inline price edit ───────────────────────── */
 
-function PriceCell({ item, onSave }: { item: Item; onSave: (item: Item, price: number) => Promise<void> }) {
+function PriceCell({ item, allowFree, onSave }: { item: Item; allowFree: boolean; onSave: (item: Item, price: number) => Promise<void> }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const soldInWeights = useMemo(() => groupsFromSpecs((item.specs || {}) as Record<string, unknown>).some(g => g.type === 'variant'), [item.specs]);
   const start = () => { setValue(String(item.price ?? '')); setError(null); setEditing(true); };
   const commit = async () => {
     const n = Number(value);
-    if (value.trim() === '' || !Number.isFinite(n) || n < 0 || n > 100000) { setError('₹0 to ₹1,00,000'); return; }
+    if (value.trim() === '' || !Number.isFinite(n) || n < 0 || (n === 0 && !allowFree) || n > 100000) { setError(allowFree ? '₹0 to ₹1,00,000' : 'Above ₹0, up to ₹1,00,000'); return; }
     const rounded = Math.round(n * 100) / 100;
     if (rounded === Number(item.price)) { setEditing(false); return; }
     setSaving(true);
@@ -499,6 +519,15 @@ function PriceCell({ item, onSave }: { item: Item; onSave: (item: Item, price: n
       setSaving(false);
     }
   };
+  if (soldInWeights) {
+    // Not a button: a click opens the product (row click), where the weight prices are edited.
+    return (
+      <span className="inline-flex items-center gap-1.5 px-1 py-0.5 tabular-nums" title="Sold in weights / sizes: open the product to change their prices">
+        <span className="font-medium text-fg">{formatINR(item.price)}</span>
+        <span className="text-2xs text-fg-subtle">lowest weight</span>
+      </span>
+    );
+  }
   if (!editing) {
     return (
       <button type="button" onClick={start} className="group inline-flex items-center gap-1.5 rounded px-1 py-0.5 tabular-nums hover:bg-surface-2" title="Change price">
@@ -554,21 +583,40 @@ function ItemModal({ store, food, item, categories, defaultCategory, onClose, on
   // Customer choices (weights with their own prices, half / full, pieces, flavours) and ordered product
   // details: the same editor as Restaurants > Menu (docs/PRODUCT_OPTIONS.md).
   const startSpecs = (item?.specs || {}) as Record<string, unknown>;
-  // No saved choices on a weight-sold grocery / bakery product: start from the automatic weights the app shows.
-  const suggested = useMemo(() => (item ? suggestedWeightGroups(item as any, store.vendorType) : []), []); // eslint-disable-line react-hooks/exhaustive-deps
-  const [groups, setGroups] = useState<GroupDraft[]>(() => { const own = groupsFromSpecs(startSpecs); return own.length ? own : suggested; });
+  // A weight-sold grocery / bakery product with no saved choices shows its automatic weights (never saved as they
+  // are; see useChoiceGroups). This modal has no pack-size field: the stored one (or the name) is used.
+  const choice = useChoiceGroups(startSpecs, { name, price, mrp, weight: startSpecs.weight }, store.vendorType);
+  const { groups, setGroups } = choice;
   const [details, setDetails] = useState<DetailDraft[]>(() => detailsFromSpecs(startSpecs));
   const [showOptionErrors, setShowOptionErrors] = useState(false);
   const optionErrors = useMemo(() => validateOptions(groups, details), [groups, details]);
-  const fromPrice = variantMinPrice(groups);
-  const startOptions = useMemo(() => JSON.stringify([serializeOptions(groupsFromSpecs(startSpecs)), serializeDetails(detailsFromSpecs(startSpecs))]), []); // eslint-disable-line react-hooks/exhaustive-deps
+  // The admin's own weight / size group sets the price (its lowest); automatic weights follow the price instead.
+  const fromPrice = choice.usingAuto ? null : variantMinPrice(groups);
+  // ₹0 only in service stores (priced after a quote); a ₹0 product would be given away free.
+  const freeAllowed = isBookingOnlyStore(store.vendorType);
+  // What was stored when the modal opened: only changed specs keys are sent.
+  const start = useMemo(() => ({
+    options: JSON.stringify(serializeOptions(groupsFromSpecs(startSpecs))),
+    autoOff: startSpecs.autoWeights === false,
+    details: JSON.stringify(serializeDetails(detailsFromSpecs(startSpecs))),
+  }), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const errorRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => { if (formError) errorRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, [formError]);
+  // Unsaved changes: a stray click outside, Esc or Cancel asks first.
+  const snapshot = JSON.stringify([name, price, mrp, cat, description, diet, inStock, imageUrl, choice.specsPatch(), serializeDetails(details)]);
+  const startSnap = useRef(snapshot);
+  const requestClose = () => {
+    if (saving) return;
+    if (snapshot !== startSnap.current && !window.confirm('Discard the changes to this item?')) return;
+    onClose();
+  };
 
   const validate = () => {
     const e: Record<string, string> = {};
     if (!name.trim()) e.name = 'Enter the item name.';
     else if (name.trim().length > 200) e.name = 'Keep the name under 200 characters.';
     const p = fromPrice !== null ? fromPrice : Number(price);
-    if (fromPrice === null && (price.trim() === '' || !Number.isFinite(p) || p < 0 || p > 100000)) e.price = 'Enter a price between ₹0 and ₹1,00,000.';
+    if (fromPrice === null && (price.trim() === '' || !Number.isFinite(p) || p < 0 || (p === 0 && !freeAllowed) || p > 100000)) e.price = freeAllowed ? 'Enter a price between ₹0 and ₹1,00,000.' : 'Enter a price above ₹0 (up to ₹1,00,000).';
     if (mrp.trim() !== '') {
       const m = Number(mrp);
       if (!Number.isFinite(m) || m <= 0 || m > 100000) e.mrp = 'Enter a positive amount.';
@@ -619,11 +667,16 @@ function ItemModal({ store, food, item, categories, defaultCategory, onClose, on
       if (body.isAvailable === (item.isAvailable !== false)) delete body.isAvailable;
       if ((body.originalPrice ?? null) === (item.originalPrice ?? null)) delete body.originalPrice;
       if (food && body.dietType === (item.dietType || (item.isVegetarian === false ? 'nonveg' : 'veg'))) delete body.dietType;
-      if (Object.keys(body).length === 0 && JSON.stringify([serializeOptions(groups), serializeDetails(details)]) === startOptions) { onClose(); return; }
     }
-    if (JSON.stringify([serializeOptions(groups), serializeDetails(details)]) !== startOptions) {
-      body.specs = { options: serializeOptions(groups), details: serializeDetails(details) };
-    }
+    // Only the specs keys that changed: the admin's own choices, the automatic-weights switch, the details.
+    const patch = choice.specsPatch();
+    const specs: Record<string, unknown> = {};
+    if (JSON.stringify(patch.options) !== start.options) specs.options = patch.options;
+    if ((patch.autoWeights === false) !== start.autoOff) specs.autoWeights = patch.autoWeights;
+    const det = serializeDetails(details);
+    if (JSON.stringify(det) !== start.details) specs.details = det;
+    if (Object.keys(specs).length) body.specs = specs;
+    if (item && Object.keys(body).length === 0) { onClose(); return; }
     try {
       const saved = await adminRequest<any>(`/api/admin/menu-items/${item ? encodeURIComponent(item.id) : 'new'}`, { method: 'POST', body: JSON.stringify(body) });
       onSaved({ ...saved, id: String(saved.id || saved._id) }, !item);
@@ -637,20 +690,20 @@ function ItemModal({ store, food, item, categories, defaultCategory, onClose, on
   return (
     <Modal
       open
-      onClose={onClose}
+      onClose={requestClose}
       dismissible={!saving}
       size="lg"
       title={item ? `Edit ${item.name}` : 'Add item'}
       description={`${store.name} · ${humanize(store.vendorType)}`}
       footer={
         <>
-          <Button onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button onClick={requestClose} disabled={saving}>Cancel</Button>
           <Button variant="primary" type="submit" form="catalogue-item-form" loading={saving} disabled={uploading}>{item ? 'Save changes' : 'Add item'}</Button>
         </>
       }
     >
       <form id="catalogue-item-form" onSubmit={save} noValidate className="space-y-4">
-        {formError && <Notice tone="danger">{formError}</Notice>}
+        {formError && <div ref={errorRef}><Notice tone="danger">{formError}</Notice></div>}
         <div className="flex gap-4">
           <div className="shrink-0">
             <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-lg border border-line bg-surface-2 text-fg-subtle">
@@ -697,7 +750,7 @@ function ItemModal({ store, food, item, categories, defaultCategory, onClose, on
           <Textarea rows={3} value={description} onChange={e => setDescription(e.target.value)} maxLength={1000} />
         </Field>
         <Switch checked={inStock} onChange={setInStock} label="In stock" description="Out-of-stock items stay listed but customers cannot add them to the cart." />
-        {suggested.length > 0 && <Notice tone="warning">These 250 g / 500 g / 1 kg weights are filled in automatically from the price (customers see them now). Correct any price or weight and save to make them your own.</Notice>}
+        <AutoWeightsNote usingAuto={choice.usingAuto} autoOff={choice.autoOff} packLabel={choice.packLabel} onUseAutomatic={choice.useAutomatic} />
         <OptionGroupsEditor groups={groups} onChange={setGroups} errors={optionErrors} showAllErrors={showOptionErrors} />
         <ProductDetailsEditor details={details} onChange={setDetails} errors={optionErrors} showAllErrors={showOptionErrors} />
         {showOptionErrors && Object.keys(optionErrors).length > 0 && <Notice tone="danger">Fix the highlighted choices or details before saving.</Notice>}

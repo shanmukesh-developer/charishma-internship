@@ -792,6 +792,9 @@ const resetPassword = async (req, res) => {
     require('../middleware/authMiddleware').clearCachedUser(user.id);
     // ...and so is every live socket opened with one of those tokens.
     require('../utils/realtime').disconnectRevokedSockets(user.id, user.tokenVersion);
+    // The new password works at once: earlier wrong guesses no longer lock the sign-in (same key as accountLockout).
+    const lockout = require('../middleware/lockoutMiddleware');
+    lockout.clearAccountFailures(lockout.lockoutKey({ baseUrl: req.baseUrl, body: { phone: cleanPhone } }));
 
     res.json({ message: 'Password reset successful' });
   } catch (error) {

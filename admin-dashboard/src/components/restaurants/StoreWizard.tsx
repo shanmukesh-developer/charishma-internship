@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useId, useMemo, useRef, useState, ReactNode } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState, ReactNode } from 'react';
 import {
   Store, VENDOR_TYPES, VendorGroup, adminRequest, formatINR, formatWhatsapp, isBookingOnlyStore, isLocalVendorType,
   isValidIndianMobile, readBrandTheme, readTags, storeId, tenDigits, vendorLabel,
@@ -181,6 +181,7 @@ export function buildPayload(s: WizardState, existing: Store | null): Record<str
     commissionRate: local ? Number(existing?.commissionRate ?? 0) : Number(s.commissionRate),
   };
   if (s.zone.trim()) body.zone = s.zone.trim();
+  else if (existing && existing.zone) body.zone = null; // emptied: the server puts back the default zone
   if (s.password.trim()) body.password = s.password.trim();
   return body;
 }
@@ -205,6 +206,9 @@ export function StoreWizard({ mode, initial, startStep, stores, onClose, onSaved
   const [visited, setVisited] = useState<Set<StepKey>>(() => new Set(mode === 'edit' ? (Object.keys(STEP_META) as StepKey[]) : ['basics']));
   const [errors, setErrors] = useState<Errors>({});
   const [saving, setSaving] = useState<null | 'draft' | 'publish' | 'save'>(null);
+  // Photos still uploading (cover + logo): saving now would store the store without the new photo.
+  const [photoUploads, setPhotoUploads] = useState(0);
+  const onPhotoBusy = useCallback((busy: boolean) => setPhotoUploads(n => Math.max(0, n + (busy ? 1 : -1))), []);
   const [saveError, setSaveError] = useState('');
   const [done, setDone] = useState<WizardResult | null>(null);
   const [confirmClose, setConfirmClose] = useState(false);
@@ -270,7 +274,7 @@ export function StoreWizard({ mode, initial, startStep, stores, onClose, onSaved
   const allIssues = useMemo(() => steps.filter(k => k !== 'review').map(k => ({ step: k, errors: validateStep(k, state, mode) })).filter(x => Object.keys(x.errors).length), [steps, state, mode]);
 
   const save = async (kind: 'draft' | 'publish' | 'save') => {
-    if (saving) return;
+    if (saving || photoUploads > 0) return;
     if (allIssues.length) {
       goto(allIssues[0].step);
       setErrors(allIssues[0].errors);
@@ -292,6 +296,7 @@ export function StoreWizard({ mode, initial, startStep, stores, onClose, onSaved
       const msg = e instanceof Error ? e.message : 'Could not save the store.';
       // 409s from the server: duplicate store name or login phone. Jump to the field.
       if (/already called/i.test(msg)) { goto('basics'); setErrors({ name: msg }); }
+      else if (/^This WhatsApp number already signs in/i.test(msg)) { goto('location'); setErrors({ whatsapp: msg }); }
       else if (/phone number already signs in|^Login phone/i.test(msg)) { goto('login'); setErrors({ loginPhone: msg }); }
       else if (/^Packaging fee/i.test(msg)) { goto('hours'); setErrors({ packagingFee: msg }); }
       else if (/^Minimum order/i.test(msg)) { goto('hours'); setErrors({ minOrderValue: msg }); }
@@ -396,7 +401,7 @@ export function StoreWizard({ mode, initial, startStep, stores, onClose, onSaved
               </div>
               {step === 'basics' && <BasicsStep s={state} set={set} errors={errors} stores={stores} editingId={initial ? storeId(initial) : null} />}
               {step === 'location' && <LocationStep s={state} set={set} errors={errors} stores={stores} />}
-              {step === 'branding' && <BrandingStep s={state} set={set} errors={errors} />}
+              {step === 'branding' && <BrandingStep s={state} set={set} errors={errors} onPhotoBusy={onPhotoBusy} />}
               {step === 'hours' && <HoursStep s={state} set={set} errors={errors} />}
               {step === 'login' && <LoginStep s={state} set={set} errors={errors} mode={mode} initial={initial} />}
               {step === 'commission' && <CommissionStep s={state} set={set} errors={errors} />}
@@ -417,14 +422,14 @@ export function StoreWizard({ mode, initial, startStep, stores, onClose, onSaved
             <Button variant="ghost" onClick={index === 0 ? requestClose : back}>{index === 0 ? 'Cancel' : '← Back'}</Button>
             <div className="flex flex-wrap items-center gap-2">
               {mode === 'edit' && (
-                <Button variant={step === 'review' ? 'primary' : 'secondary'} loading={saving === 'save'} disabled={!dirty || !!saving} onClick={() => save('save')}>
+                <Button variant={step === 'review' ? 'primary' : 'secondary'} loading={saving === 'save'} disabled={!dirty || !!saving || photoUploads > 0} title={photoUploads > 0 ? 'Wait for the photo to finish uploading' : undefined} onClick={() => save('save')}>
                   {dirty ? 'Save changes' : 'No changes'}
                 </Button>
               )}
               {mode === 'create' && step === 'review' && (
                 <>
-                  <Button loading={saving === 'draft'} disabled={!!saving} onClick={() => save('draft')} title="Hidden from customers until you publish">Save as draft</Button>
-                  <Button variant="primary" loading={saving === 'publish'} disabled={!!saving} onClick={() => save('publish')}>Publish now</Button>
+                  <Button loading={saving === 'draft'} disabled={!!saving || photoUploads > 0} onClick={() => save('draft')} title={photoUploads > 0 ? 'Wait for the photo to finish uploading' : 'Hidden from customers until you publish'}>Save as draft</Button>
+                  <Button variant="primary" loading={saving === 'publish'} disabled={!!saving || photoUploads > 0} title={photoUploads > 0 ? 'Wait for the photo to finish uploading' : undefined} onClick={() => save('publish')}>Publish now</Button>
                 </>
               )}
               {step !== 'review' && <Button variant={mode === 'create' ? 'primary' : 'secondary'} onClick={next}>{index === steps.length - 2 ? 'Review →' : 'Next →'}</Button>}
@@ -632,18 +637,18 @@ function LocationStep({ s, set, errors, stores }: StepProps & { stores: Store[] 
   );
 }
 
-function BrandingStep({ s, set, errors }: StepProps) {
+function BrandingStep({ s, set, errors, onPhotoBusy }: StepProps & { onPhotoBusy: (busy: boolean) => void }) {
   return (
     <div className="space-y-6">
       <div>
         <p className="mb-2 text-xs font-semibold text-fg-muted">Cover photo <span className="normal-case text-fg-subtle">recommended</span></p>
-        <ImagePicker value={s.imageUrl} onChange={imageUrl => set({ imageUrl })} preset="cover" label="Cover photo" hint="Food or storefront, landscape, bright. JPEG / PNG / WEBP." />
+        <ImagePicker value={s.imageUrl} onChange={imageUrl => set({ imageUrl })} onBusyChange={onPhotoBusy} preset="cover" label="Cover photo" hint="Food or storefront, landscape, bright. JPEG / PNG / WEBP." />
         <p className="mt-2 text-xs text-fg-muted">Used on the Home card, the store page header and Home banners. Avoid text-heavy menus or logos only.</p>
       </div>
       <div className="grid gap-5 md:grid-cols-[180px_1fr]">
         <div>
           <p className="mb-2 text-xs font-semibold text-fg-muted">Logo <span className="normal-case text-fg-subtle">optional</span></p>
-          <ImagePicker value={s.logoUrl} onChange={logoUrl => set({ logoUrl })} preset="logo" label="Logo" hint="Square, transparent PNG works best." aspect="aspect-square" />
+          <ImagePicker value={s.logoUrl} onChange={logoUrl => set({ logoUrl })} onBusyChange={onPhotoBusy} preset="logo" label="Logo" hint="Square, transparent PNG works best." aspect="aspect-square" />
         </div>
         <p className="self-center text-xs leading-relaxed text-fg-muted">Shown next to the store name in listings and on the store page. It does not need a brand kit.</p>
       </div>

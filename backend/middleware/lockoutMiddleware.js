@@ -94,6 +94,16 @@ const clearAccountFailures = (key) => { shareClear(key); return failedLogins.del
 /** Call (await) before isAccountLocked() so a lock set on another instance applies here too. */
 const syncAccountLock = (key) => (redis.isConfigured() ? syncFromShared(key).catch(() => {}) : Promise.resolve());
 
+// Only a wrong password counts towards the lock: a 401 without a code, or INVALID_CREDENTIALS (Auto Driver / PG
+// Partner). A missing field (400), an unknown number (ACCOUNT_NOT_FOUND) or an expired code never tested a password.
+const isPasswordFailure = (statusCode, body) => {
+  if (statusCode !== 401) return false;
+  let parsed = body;
+  if (typeof body === 'string') { try { parsed = JSON.parse(body); } catch { parsed = null; } }
+  const code = parsed && typeof parsed === 'object' ? parsed.code : null;
+  return !code || code === 'INVALID_CREDENTIALS';
+};
+
 const accountLockout = (req, res, next) => {
   // B1: merge the shared count first (only when REDIS_URL is set; bounded by the command timeout).
   if (redis.isConfigured() && redis.isReady()) {
@@ -124,7 +134,7 @@ const accountLockoutLocal = (req, res, next) => {
     if (statusCode >= 200 && statusCode < 300) {
       failedLogins.delete(key);
       shareClear(key);
-    } else if (statusCode === 401 || statusCode === 400) {
+    } else if (isPasswordFailure(statusCode, body)) {
       const current = failedLogins.get(key) || { count: 0, lockTime: 0 };
       current.count += 1;
       current.lastAt = Date.now();
@@ -140,4 +150,4 @@ const accountLockoutLocal = (req, res, next) => {
   next();
 };
 
-module.exports = { accountLockout, isAccountLocked, recordAccountFailure, clearAccountFailures, syncAccountLock };
+module.exports = { accountLockout, isAccountLocked, recordAccountFailure, clearAccountFailures, syncAccountLock, lockoutKey, isPasswordFailure };

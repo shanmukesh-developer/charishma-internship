@@ -62,7 +62,10 @@ const normalizeOptions = (raw) => {
         if (!Number.isFinite(mrp) || mrp <= 0 || mrp > MAX_PRICE) throw new OptionsInputError(`"${name}" - "${label}": enter an MRP between 1 and ${MAX_PRICE}, or leave it empty.`);
         if (mrp < price) throw new OptionsInputError(`"${name}" - "${label}": the MRP (${mrp}) cannot be lower than the price (${price}).`);
       }
-      choices.push(mrp && mrp > price ? { label, price, mrp } : { label, price });
+      const choice = mrp && mrp > price ? { label, price, mrp } : { label, price };
+      // Weight / size: the one choice the app pre-selects and lists show (else the first listed one).
+      if (type === VARIANT && c && c.isDefault === true && !choices.some((x) => x.isDefault)) choice.isDefault = true;
+      choices.push(choice);
     }
     const group = { name, type, choices };
     if (type === VARIANT) group.required = true;
@@ -110,7 +113,8 @@ const readOptions = (specs) => {
 // later admin correct it") ─────────────────────────────────────────────────────────────────────────────────────
 // A grocery / bakery product sold by weight (pack size in g / kg, at least 250 g) that has NO admin-set choices gets
 // a Weight group of 250 g / 500 g / 1 kg (plus its own pack size), priced from its own price per gram, whole rupees.
-// Its own pack keeps exactly its current price and is the default pick. The admin's own choices always replace it.
+// Its own pack keeps exactly its current price and is the default pick. The admin's own choices always replace it,
+// and specs.autoWeights === false (admin removed them: a sealed pack sold only as it is) turns it off.
 const AUTO_WEIGHT_TYPES = ['GROCERY', 'BAKERY'];
 const AUTO_SIZES = [250, 500, 1000];
 
@@ -160,6 +164,7 @@ const autoWeightOptions = (item, vendorType) => {
   let specs = item.specs;
   if (typeof specs === 'string') { try { specs = JSON.parse(specs); } catch { specs = {}; } }
   specs = specs && typeof specs === 'object' ? specs : {};
+  if (specs.autoWeights === false) return [];
   const grams = packGrams(specs.weight) || packGrams(item.name);
   const price = Number(item.price);
   if (!grams || grams < 250 || !Number.isFinite(price) || price <= 0) return [];

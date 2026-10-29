@@ -1,5 +1,5 @@
 "use client";
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button, INPUT, MenuButton, Toggle, cx, FOCUS_RING } from './ui';
 
 /*
@@ -9,7 +9,7 @@ import { Button, INPUT, MenuButton, Toggle, cx, FOCUS_RING } from './ui';
 
 export type OptionType = 'variant' | 'single' | 'multi' | 'text';
 
-export interface ChoiceDraft { key: string; label: string; price: string; mrp?: string }
+export interface ChoiceDraft { key: string; label: string; price: string; mrp?: string; isDefault?: boolean }
 export interface GroupDraft {
   key: string;
   name: string;
@@ -66,7 +66,10 @@ export function groupsFromSpecs(specs: Record<string, unknown>): GroupDraft[] {
       maxLength: g.maxLength !== undefined && g.maxLength !== null ? str(g.maxLength) : String(LIMITS.textDefault),
       choices: asArray(g.choices).map(c => {
         const o = asObj(c);
-        return { key: newKey(), label: str(o.label), price: o.price !== undefined && o.price !== null ? str(o.price) : '', mrp: o.mrp !== undefined && o.mrp !== null ? str(o.mrp) : '' };
+        return {
+          key: newKey(), label: str(o.label), price: o.price !== undefined && o.price !== null ? str(o.price) : '', mrp: o.mrp !== undefined && o.mrp !== null ? str(o.mrp) : '',
+          ...(type === 'variant' && o.isDefault === true ? { isDefault: true } : {}),
+        };
       }),
     };
   });
@@ -167,10 +170,14 @@ export function serializeOptions(groups: GroupDraft[]): unknown[] | null {
       const n = Number(g.maxLength.trim());
       return { name, type: 'text', required: g.required, maxLength: g.maxLength.trim() && Number.isInteger(n) ? n : LIMITS.textDefault };
     }
-    const choices = g.choices.filter(c => !isBlankChoice(g, c)).map(c => ({
+    const kept = g.choices.filter(c => !isBlankChoice(g, c));
+    // Weight / size: the one the app pre-selects and lists show (at most one; none = the first listed).
+    const defaultKey = g.type === 'variant' ? kept.find(c => c.isDefault)?.key : undefined;
+    const choices = kept.map(c => ({
       label: c.label.trim(),
       price: toRupees(c.price),
       ...(g.type === 'variant' && (c.mrp || '').trim() ? { mrp: toRupees(c.mrp || '') } : {}),
+      ...(c.key === defaultKey ? { isDefault: true } : {}),
     }));
     if (g.type === 'variant') return { name, type: 'variant', choices };
     if (g.type === 'single') return { name, type: 'single', required: g.required, choices };
@@ -252,19 +259,29 @@ function PriceInput({ value, onChange, onBlur, invalid, describedBy, label, plac
 
 // ─── Suggested weights (same rule as backend/utils/productOptions.autoWeightOptions) ─────────────
 // A grocery / bakery product sold by weight (pack of 250 g or more) with no saved choices is sold with automatic
-// 250 g / 500 g / 1 kg weights priced per gram. The editor starts with those rows filled in, so the admin only
-// corrects prices (or weights) and saves; saving stores them as the admin's own.
+// 250 g / 500 g / 1 kg weights priced per gram. The editor shows those rows (useChoiceGroups below); they are saved
+// as the admin's own only once the admin changes one.
 const AUTO_TYPES = ['GROCERY', 'BAKERY'];
 const packGrams = (text: unknown): number | null => {
-  const m = String(text || '').toLowerCase().match(/(\d+(?:\.\d+)?)\s*(kgs?|kilograms?|kilos?|g|gms?|grams?)(?![a-z])/);
-  if (!m) return null;
-  const n = Number(m[1]) * (m[2].startsWith('k') ? 1000 : 1);
-  return Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+  const t = String(text || '').toLowerCase().trim();
+  const m = t.match(/(\d+(?:\.\d+)?)\s*(kgs?|kilograms?|kilos?|g|gms?|grams?)(?![a-z])/);
+  if (m) {
+    const n = Number(m[1]) * (m[2].startsWith('k') ? 1000 : 1);
+    return Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+  }
+  // A pack size typed as a bare number ("1000", as stores enter it) is grams.
+  const bare = t.match(/^(\d{2,5})$/);
+  if (bare) {
+    const n = Number(bare[1]);
+    return n >= 50 && n <= 10000 ? n : null;
+  }
+  return null;
 };
 export function suggestedWeightGroups(item: { name?: string; price?: number | string; originalPrice?: number | string | null; specs?: unknown } | null, vendorType?: string | null): GroupDraft[] {
   if (!item || !AUTO_TYPES.includes(String(vendorType || '').toUpperCase())) return [];
   const specs = (item.specs && typeof item.specs === 'object' ? item.specs : {}) as Record<string, unknown>;
   if (Array.isArray(specs.options) && specs.options.length) return [];
+  if (specs.autoWeights === false) return [];
   const grams = packGrams(specs.weight) || packGrams(item.name);
   const price = Number(item.price);
   if (!grams || grams < 250 || !Number.isFinite(price) || price <= 0) return [];
@@ -278,9 +295,63 @@ export function suggestedWeightGroups(item: { name?: string; price?: number | st
     choices: sizes.map(g => {
       const p = g === grams ? Math.round(price * 100) / 100 : Math.max(1, Math.round((price / grams) * g));
       const m = mrp ? (g === grams ? mrp : Math.max(p, Math.round((mrp / grams) * g))) : null;
-      return { key: newKey(), label: label(g), price: String(p), mrp: m && m > p ? String(m) : '' };
+      return { key: newKey(), label: label(g), price: String(p), mrp: m && m > p ? String(m) : '', ...(g === grams ? { isDefault: true } : {}) };
     }),
   }];
+}
+
+/**
+ * The choice groups an item editor works on, with the automatic weights above (docs/PRODUCT_OPTIONS.md):
+ *  - own === null: nothing saved. A weight-sold grocery / bakery product then sells in the automatic weights, which
+ *    follow the form's current price, MRP and pack size and are never saved (saving them on any edit made them
+ *    permanent and rewrote the product price to the 250 g price). Changing any of them makes them the admin's own.
+ *  - own === [] while automatic weights would apply: the admin removed them, so the product sells only as its one
+ *    pack (saved as specs.autoWeights false, e.g. a sealed 1 kg packet).
+ */
+export function useChoiceGroups(specs: Record<string, unknown>, form: { name: string; price: string; mrp: string; weight: unknown }, vendorType?: string | null) {
+  const [own, setOwn] = useState<GroupDraft[] | null>(() => {
+    const saved = groupsFromSpecs(specs);
+    return saved.length ? saved : specs.autoWeights === false ? [] : null;
+  });
+  const autoGroups = useMemo(
+    () => suggestedWeightGroups({ name: form.name, price: form.price, originalPrice: form.mrp.trim() || null, specs: { weight: form.weight } }, vendorType),
+    [form.name, form.price, form.mrp, form.weight, vendorType],
+  );
+  const usingAuto = own === null && autoGroups.length > 0;
+  const autoOff = own !== null && own.length === 0 && autoGroups.length > 0;
+  return {
+    groups: own ?? autoGroups,
+    setGroups: (next: GroupDraft[]) => setOwn(next),
+    usingAuto,
+    autoOff,
+    /** Back to the automatic weights (and, in a fresh form, to nothing). */
+    useAutomatic: () => setOwn(null),
+    /** specs keys to save: options (null removes the admin's own) and autoWeights (false = off, null = default). */
+    specsPatch: () => ({ options: own === null ? null : serializeOptions(own), autoWeights: autoOff ? false : null }),
+    /** Pack the automatic weights start from, for messages ("1 kg"). */
+    packLabel: autoGroups[0]?.choices.find(c => c.isDefault)?.label || null,
+  };
+}
+
+/** Explains the automatic weights state above the choices editor (both item editors). */
+export function AutoWeightsNote({ usingAuto, autoOff, packLabel, onUseAutomatic }: { usingAuto: boolean; autoOff: boolean; packLabel: string | null; onUseAutomatic: () => void }) {
+  if (usingAuto) {
+    return (
+      <div className="rounded-lg border border-warning/30 bg-warning-soft px-3 py-2.5 text-sm leading-relaxed text-fg-muted">
+        <p className="mb-0.5 font-medium text-warning-text">Automatic weights</p>
+        Customers can buy this in the weights below, worked out from the selling price{packLabel ? ` of the ${packLabel} pack` : ''}. They follow the price until you change one; change any weight or price to set your own, or remove the Weight group to sell only the {packLabel || 'one'} pack.
+      </div>
+    );
+  }
+  if (autoOff) {
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-info/25 bg-info-soft px-3 py-2.5 text-sm leading-relaxed text-fg-muted">
+        <span>No weight choices: customers buy only the {packLabel || 'one'} pack at the selling price.</span>
+        <Button size="sm" onClick={onUseAutomatic}>Use automatic weights</Button>
+      </div>
+    );
+  }
+  return null;
 }
 
 // ─── Choices the customer picks ─────────────────────────────────────────────
@@ -429,7 +500,7 @@ export function OptionGroupsEditor({ groups, onChange, errors, showAllErrors }: 
                 {/* Choices */}
                 {g.type !== 'text' && (
                   <div className="space-y-2">
-                    <div className={cx('grid gap-2 px-0.5 text-xs font-medium text-fg-muted', g.type === 'variant' ? 'grid-cols-[minmax(0,1fr)_110px_110px_84px]' : 'grid-cols-[minmax(0,1fr)_120px_84px]')} aria-hidden>
+                    <div className={cx('grid gap-2 px-0.5 text-xs font-medium text-fg-muted', g.type === 'variant' ? 'grid-cols-[minmax(0,1fr)_110px_110px_112px]' : 'grid-cols-[minmax(0,1fr)_120px_84px]')} aria-hidden>
                       <span>{g.type === 'variant' ? 'Weight / size' : 'Choice'}</span>
                       <span>{g.type === 'variant' ? 'Selling price (₹)' : `${priceHead} (₹)`}</span>
                       {g.type === 'variant' && <span>MRP (₹, optional)</span>}
@@ -441,7 +512,7 @@ export function OptionGroupsEditor({ groups, onChange, errors, showAllErrors }: 
                         const labelErr = err(`c:${c.key}:label`);
                         const priceErr = err(`c:${c.key}:price`);
                         return (
-                          <li key={c.key} className={cx('grid items-start gap-2', g.type === 'variant' ? 'grid-cols-[minmax(0,1fr)_110px_110px_84px]' : 'grid-cols-[minmax(0,1fr)_120px_84px]')}>
+                          <li key={c.key} className={cx('grid items-start gap-2', g.type === 'variant' ? 'grid-cols-[minmax(0,1fr)_110px_110px_112px]' : 'grid-cols-[minmax(0,1fr)_120px_84px]')}>
                             <div>
                               <input
                                 aria-label={`${what}: choice ${ci + 1} label`}
@@ -483,6 +554,16 @@ export function OptionGroupsEditor({ groups, onChange, errors, showAllErrors }: 
                               </div>
                             )}
                             <span className="flex">
+                              {g.type === 'variant' && (
+                                <button
+                                  type="button"
+                                  className={cx(ICON_BTN, c.isDefault && 'text-warning-text hover:text-warning-text')}
+                                  aria-pressed={!!c.isDefault}
+                                  aria-label={`Pre-select ${cWhat} in the app`}
+                                  title={c.isDefault ? 'Pre-selected in the app and shown in lists (click to undo)' : 'Pre-select this one in the app'}
+                                  onClick={() => setGroup(g.key, { choices: g.choices.map(x => ({ ...x, isDefault: x.key === c.key ? !c.isDefault : false })) })}
+                                >{c.isDefault ? '★' : '☆'}</button>
+                              )}
                               <MoveButtons index={ci} count={g.choices.length} what={cWhat} onMove={dir => setGroup(g.key, { choices: move(g.choices, ci, dir) })} />
                               <RemoveButton what={cWhat} onClick={() => setGroup(g.key, { choices: g.choices.filter(x => x.key !== c.key) })} />
                             </span>
@@ -491,6 +572,7 @@ export function OptionGroupsEditor({ groups, onChange, errors, showAllErrors }: 
                       })}
                     </ul>
                     {(showAllErrors || g.choices.length === 0) && <ErrorText>{errors[`g:${g.key}:choices`]}</ErrorText>}
+                    {g.type === 'variant' && <p className="text-xs text-fg-subtle">★ marks the weight / size the app pre-selects and lists show; without one, the first.</p>}
                     <Button size="sm" variant="ghost" disabled={g.choices.length >= LIMITS.choices} onClick={() => setGroup(g.key, { choices: [...g.choices, blankChoice()] })}>
                       + Add {g.type === 'variant' ? 'weight / size' : 'choice'}
                     </Button>

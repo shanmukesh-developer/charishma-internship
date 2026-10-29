@@ -537,6 +537,8 @@ const publicRestaurant = (r) => {
 const pickRestaurantFields = (body = {}, { creating = false } = {}) => {
   const out = {};
   for (const key of RESTAURANT_FIELDS) if (body[key] !== undefined) out[key] = body[key];
+  // Delivery zone (rider dispatch): an emptied field means the default zone, never NULL.
+  if (out.zone !== undefined) out.zone = String(out.zone || '').trim().slice(0, 60) || 'Amaravathi_Central';
   if (out.phone === undefined && body.partnerPhone !== undefined) out.phone = body.partnerPhone;
   if (out.phone !== undefined) {
     const ten = tenDigitPhone(out.phone);
@@ -613,7 +615,8 @@ const readItemSpecs = (specs) => {
 };
 
 // specs are merged into the stored ones (bookingOnly, weight, brand, extraFor... are kept); a key sent as null is removed.
-const pickMenuItemFields = (body = {}, existing = null) => {
+// opts.allowFree: a service store's product (booking-only: ₹0 means "priced after a quote"); everything else needs a price.
+const pickMenuItemFields = (body = {}, existing = null, opts = {}) => {
   const out = {};
   for (const key of MENU_ITEM_FIELDS) if (body[key] !== undefined) out[key] = body[key];
   if (out.imageUrl === undefined && body.image !== undefined) out.imageUrl = body.image;
@@ -627,6 +630,20 @@ const pickMenuItemFields = (body = {}, existing = null) => {
     const price = Number(out.price);
     if (!Number.isFinite(price) || price < 0 || price > 100000) throw new AdminInputError('Price must be between ₹0 and ₹1,00,000.');
     out.price = Math.round(price * 100) / 100;
+    // A ₹0 product would be given away free (a typo, or a CSV cell left at 0). Booking-only services are exempt.
+    const bookingOnly = !!(readItemSpecs(body.specs).bookingOnly || readItemSpecs(existing && existing.specs).bookingOnly);
+    const ownWeights = out.specs !== undefined && Array.isArray(readItemSpecs(out.specs).options) && readItemSpecs(out.specs).options.length;
+    if (out.price === 0 && !opts.allowFree && !bookingOnly && !ownWeights) {
+      throw new AdminInputError(`${out.name || (existing && existing.name) || 'This product'}: enter a price above ₹0.`);
+    }
+    // A product sold in the admin's own weights / sizes takes its price from them: a bare price change (the
+    // catalogue's quick price edit, a bulk price update) would leave lists out of step with the weights.
+    if (existing && out.specs === undefined) {
+      const fromWeights = require('../utils/productOptions').variantFromPrice(require('../utils/productOptions').readOptions(existing.specs));
+      if (fromWeights !== null && out.price !== fromWeights) {
+        throw new AdminInputError(`${existing.name || 'This product'} is sold in weights / sizes, so its price comes from them. Open the product and change the weight prices.`);
+      }
+    }
   }
   if (out.imageUrl !== undefined) out.imageUrl = String(out.imageUrl || '').trim() || null;
   if (out.category !== undefined) out.category = String(out.category || '').trim() || null;
@@ -651,6 +668,8 @@ const pickMenuItemFields = (body = {}, existing = null) => {
     const incoming = readItemSpecs(out.specs);
     // Customer choices (weights, flavours, types) and ordered product details: docs/PRODUCT_OPTIONS.md.
     const po = require('../utils/productOptions');
+    // autoWeights: only false is stored (the admin removed the automatic 250 g / 500 g / 1 kg weights).
+    if (incoming.autoWeights !== undefined) incoming.autoWeights = incoming.autoWeights === false || incoming.autoWeights === 'false' ? false : null;
     try {
       if (incoming.options !== undefined) incoming.options = po.normalizeOptions(incoming.options);
       if (incoming.details !== undefined) incoming.details = po.normalizeDetails(incoming.details);
@@ -682,7 +701,15 @@ const pickMenuItemFields = (body = {}, existing = null) => {
 // Partner sign-in uses the exact store name and the login phone, so both must be unique.
 // Throws a 409-style AdminConflictError. `selfId` is excluded (edits).
 class AdminConflictError extends Error {}
-const assertUniqueStore = async ({ name, phone }, selfId = null) => {
+// Last 10 digits of an Indian mobile ("91XXXXXXXXXX" as stored, +91…, 0…), or null.
+const tenDigitsOf = (v) => {
+  const d = String(v || '').replace(/\D/g, '');
+  const t = d.length === 12 && d.startsWith('91') ? d.slice(2) : (d.length === 11 && d.startsWith('0') ? d.slice(1) : d);
+  return /^\d{10}$/.test(t) ? t : null;
+};
+// signInWhatsapp: a stall without a login phone signs in with its WhatsApp number (restaurantController login looks
+// the phone up first, then such stalls), so that number must not answer for another store either.
+const assertUniqueStore = async ({ name, phone, signInWhatsapp }, selfId = null) => {
   const Restaurant = getRestaurantModel();
   const { fn, col, where: sqlWhere } = require('sequelize');
   const notSelf = selfId ? { id: { [Op.ne]: selfId } } : {};
@@ -693,6 +720,21 @@ const assertUniqueStore = async ({ name, phone }, selfId = null) => {
   if (phone) {
     const clash = await Restaurant.findOne({ where: { phone, ...notSelf }, attributes: ['id', 'name'] });
     if (clash) throw new AdminConflictError(`This phone number already signs in to ${clash.name}.`);
+  }
+  const loginPhone = tenDigitsOf(phone);
+  const wa = tenDigitsOf(signInWhatsapp);
+  const nums = [...new Set([loginPhone, wa].filter(Boolean))];
+  if (nums.length) {
+    const { LOCAL_VENDOR_TYPES } = require('../utils/vendorTypes');
+    const stalls = await Restaurant.findAll({ where: { vendorType: { [Op.in]: LOCAL_VENDOR_TYPES }, whatsappNumber: { [Op.ne]: null }, ...notSelf }, attributes: ['id', 'name', 'phone', 'whatsappNumber'] });
+    for (const n of nums) {
+      const hit = stalls.find((st) => !st.phone && tenDigitsOf(st.whatsappNumber) === n);
+      if (hit) throw new AdminConflictError(`${n === wa && n !== loginPhone ? 'This WhatsApp number' : 'This phone number'} already signs in to ${hit.name} (its WhatsApp number). Use a different number, or give one of them its own login phone.`);
+    }
+  }
+  if (wa && wa !== loginPhone) {
+    const clash = await Restaurant.findOne({ where: { phone: wa, ...notSelf }, attributes: ['id', 'name'] });
+    if (clash) throw new AdminConflictError(`This WhatsApp number already signs in to ${clash.name}. Give this stall its own login phone.`);
   }
 };
 
@@ -830,7 +872,7 @@ exports.createRestaurant = async (req, res) => {
     if (req.body.password && typeof req.body.password === 'string' && req.body.password.trim().length >= 6) {
       data.password = req.body.password.trim(); // hashed by the model hook
     }
-    await assertUniqueStore({ name: data.name, phone: data.phone });
+    await assertUniqueStore({ name: data.name, phone: data.phone, signInWhatsapp: isLocalVendorStore(data) && !data.phone ? data.whatsappNumber : null });
     // C8: seller compliance fields (legal name, FSSAI, GSTIN, PAN, payout) are validated and audited.
     const comp = require('../utils/storeCompliance');
     const { patch: compPatch, changes: compChanges } = comp.hasComplianceInput(req.body) ? comp.validateCompliance(req.body, {}, { actor: 'admin' }) : { patch: {}, changes: {} };
@@ -862,9 +904,18 @@ exports.updateRestaurant = async (req, res) => {
     const comp = require('../utils/storeCompliance');
     const { patch: compPatch, changes: compChanges } = comp.hasComplianceInput(req.body) ? comp.validateCompliance(req.body, restaurant, { actor: 'admin' }) : { patch: {}, changes: {} };
     Object.assign(updateData, compPatch);
+    // The sign-in numbers are checked only when they change (an older clash never blocks an unrelated edit).
+    const after = {
+      vendorType: updateData.vendorType !== undefined ? updateData.vendorType : restaurant.vendorType,
+      isLocalVendor: restaurant.isLocalVendor,
+      phone: updateData.phone !== undefined ? updateData.phone : restaurant.phone,
+      whatsappNumber: updateData.whatsappNumber !== undefined ? updateData.whatsappNumber : restaurant.whatsappNumber,
+    };
+    const signInChanged = ['vendorType', 'phone', 'whatsappNumber'].some((k) => updateData[k] !== undefined && String(updateData[k] ?? '') !== String(restaurant[k] ?? ''));
     await assertUniqueStore({
       name: updateData.name !== undefined && updateData.name.toLowerCase() !== String(restaurant.name || '').toLowerCase() ? updateData.name : null,
       phone: updateData.phone && updateData.phone !== restaurant.phone ? updateData.phone : null,
+      signInWhatsapp: signInChanged && isLocalVendorStore(after) && !after.phone ? after.whatsappNumber : null,
     }, restaurant.id);
     // Switching a store between stall (Zenvy Vendor app, vendor-delivered) and restaurant / shop
     // (Zenvy Restaurant app, rider-delivered) changes which app and which order flow it uses.
@@ -916,13 +967,17 @@ exports.upsertMenuItem = async (req, res) => {
       if (!UUID_RE.test(String(id))) return res.status(404).json({ message: 'Product not found.' });
       menuItem = await MenuItem.findByPk(id);
       if (!menuItem) return res.status(404).json({ message: 'Product not found.' });
-      await menuItem.update(await mediaizeImageFields(pickMenuItemFields(req.body, menuItem), req, ['imageUrl'], 'menu'));
+      const store = await Restaurant.findByPk(menuItem.restaurantId, { attributes: ['id', 'vendorType'] });
+      const allowFree = !!store && isServiceVendorType(store.vendorType);
+      await menuItem.update(await mediaizeImageFields(pickMenuItemFields(req.body, menuItem, { allowFree }), req, ['imageUrl'], 'menu'));
     } else {
       const restaurantId = String(req.body.restaurantId || '');
-      if (!UUID_RE.test(restaurantId) || !(await Restaurant.findByPk(restaurantId, { attributes: ['id'] }))) {
+      const store = UUID_RE.test(restaurantId) ? await Restaurant.findByPk(restaurantId, { attributes: ['id', 'vendorType'] }) : null;
+      if (!store) {
         return res.status(400).json({ message: 'Pick the store this product belongs to.' });
       }
-      menuItem = await MenuItem.create({ ...(await mediaizeImageFields(pickMenuItemFields(req.body), req, ['imageUrl'], 'menu')), restaurantId });
+      const allowFree = isServiceVendorType(store.vendorType);
+      menuItem = await MenuItem.create({ ...(await mediaizeImageFields(pickMenuItemFields(req.body, null, { allowFree }), req, ['imageUrl'], 'menu')), restaurantId });
     }
     clearRestaurantsCache();
     realtime.publish('product', id && id !== 'new' ? 'updated' : 'created', menuItem.id, { storeId: menuItem.restaurantId });
@@ -2607,16 +2662,18 @@ exports.bulkCreateMenuItems = async (req, res) => {
     const Restaurant = getRestaurantModel();
     const restaurantId = String((req.body || {}).restaurantId || '');
     const items = Array.isArray((req.body || {}).items) ? req.body.items : [];
-    if (!UUID_RE.test(restaurantId) || !(await Restaurant.findByPk(restaurantId, { attributes: ['id'] }))) {
+    const store = UUID_RE.test(restaurantId) ? await Restaurant.findByPk(restaurantId, { attributes: ['id', 'vendorType'] }) : null;
+    if (!store) {
       return res.status(400).json({ message: 'Pick the store these products belong to.' });
     }
+    const allowFree = isServiceVendorType(store.vendorType);
     if (!items.length) return res.status(400).json({ message: 'Add at least one product.' });
     if (items.length > BULK_MAX) return res.status(400).json({ message: `You can add up to ${BULK_MAX} products at a time.` });
     const rows = [];
     const errors = [];
     items.forEach((raw, index) => {
       try {
-        rows.push({ ...pickMenuItemFields(raw || {}), restaurantId });
+        rows.push({ ...pickMenuItemFields(raw || {}, null, { allowFree }), restaurantId });
       } catch (err) {
         errors.push({ index, name: raw && raw.name ? String(raw.name).slice(0, 80) : null, message: err instanceof AdminInputError ? err.message : 'Invalid product.' });
       }
@@ -2654,10 +2711,16 @@ exports.bulkUpdateMenuItems = async (req, res) => {
     const items = await MenuItem.findAll({ where: { id: { [Op.in]: ids } } });
     const { getSequelize } = require('../config/db');
     const storeIds = new Set();
+    // Service stores' products may be ₹0 (priced after a quote); see pickMenuItemFields.
+    const serviceStoreIds = new Set();
+    if (patchIn.price !== undefined && items.length) {
+      const stores = await getRestaurantModel().findAll({ where: { id: { [Op.in]: [...new Set(items.map((i) => i.restaurantId))] } }, attributes: ['id', 'vendorType'] });
+      for (const st of stores) if (isServiceVendorType(st.vendorType)) serviceStoreIds.add(st.id);
+    }
     await getSequelize().transaction(async (t) => {
       for (const item of items) {
         // Same validation as a single edit (name/price only when sent; specs merged per item).
-        const patch = pickMenuItemFields(patchIn, item);
+        const patch = pickMenuItemFields(patchIn, item, { allowFree: serviceStoreIds.has(item.restaurantId) });
         if (patchIn.name === undefined) delete patch.name;
         if (patchIn.price === undefined) delete patch.price;
         await item.update(patch, { transaction: t });

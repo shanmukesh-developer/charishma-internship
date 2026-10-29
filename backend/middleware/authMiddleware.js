@@ -42,6 +42,14 @@ const clearCachedUser = require('../utils/cacheBus').wrap('auth.user', (userId) 
   if (userId !== undefined && userId !== null) for (const cls of ACCOUNT_CLASSES) AUTH_CACHE.delete(cacheKey(cls, userId));
 }, { resync: () => AUTH_CACHE.clear() });
 
+const JWT_ERRORS = ['JsonWebTokenError', 'TokenExpiredError', 'NotBeforeError'];
+
+// An inactive account: deleted (role 'deleted', services/accountDeletion) -> 401 so every signed-in device signs out;
+// suspended by ZCS -> 403 with a code the app shows as a notice (it keeps the session for when it is lifted).
+const refuseInactive = (res, role) => (String(role || '').toLowerCase() === 'deleted'
+  ? res.status(401).json({ message: 'This account was deleted.', code: 'ACCOUNT_DELETED' })
+  : res.status(403).json({ message: 'Account suspended. Please contact support.', code: 'ACCOUNT_SUSPENDED' }));
+
 const protect = async (req, res, next) => {
   let token;
 
@@ -80,7 +88,7 @@ const protect = async (req, res, next) => {
       if ((Number(decoded.tv) || 0) !== (Number(cached.tokenVersion) || 0)) {
         return res.status(401).json({ message: 'Your password was changed. Please sign in again.', code: 'SESSION_REVOKED' });
       }
-      if (cached.isActive === false) return res.status(403).json({ message: 'Account suspended. Please contact support.' });
+      if (cached.isActive === false) return refuseInactive(res, cached.role);
       const { tokenVersion: _tv, twoFactorEnabled: _tf, ...user } = cached;
       // S1: an admin session without the 2-step claim has no admin powers when 2FA is on / required.
       req.user = tokenClass === 'user' ? require('../services/adminTwoFactor').applyTo(user, decoded, _tf) : user;
@@ -124,7 +132,7 @@ const protect = async (req, res, next) => {
     if (User) {
       const dbUser = await User.findByPk(decoded.id, { attributes: ['id', 'role', 'name', 'phone', 'email', 'hostelBlock', 'roomNumber', 'isActive', 'tokenVersion'] });
       if (!dbUser) return res.status(401).json({ message: 'User not found' });
-      if (dbUser.isActive === false) return res.status(403).json({ message: 'Account suspended. Please contact support.' });
+      if (dbUser.isActive === false) return refuseInactive(res, dbUser.role);
       if ((Number(decoded.tv) || 0) !== (Number(dbUser.tokenVersion) || 0)) {
         return res.status(401).json({ message: 'Your password was changed. Please sign in again.', code: 'SESSION_REVOKED' });
       }
@@ -148,6 +156,14 @@ const protect = async (req, res, next) => {
     }
     return next();
   } catch (error) {
+    // Only a bad or expired token means "not signed in". A database / pool failure while looking the account up
+    // used to answer 401 too, and the apps drop their session on a 401: one slow database moment signed students
+    // out (OTP again, favourites and addresses gone, push token detached). Now: 503, try again shortly.
+    if (!JWT_ERRORS.includes(error && error.name)) {
+      console.error('[AUTH_ERROR] Session check failed (not a token problem):', error && error.message);
+      res.set('Retry-After', '2');
+      return res.status(503).json({ message: 'Could not check your sign-in right now. Please try again in a moment.', code: 'AUTH_UNAVAILABLE' });
+    }
     console.warn('[AUTH_WARN] Token verification failed:', error.message);
     return res.status(401).json({ message: 'Not authorized, token failed' });
   }

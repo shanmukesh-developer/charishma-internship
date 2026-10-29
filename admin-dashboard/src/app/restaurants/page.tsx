@@ -27,6 +27,7 @@ const StoreDrawer = dynamic(() => import('@/components/restaurants/StoreDrawer')
 import { useStoreStats } from '@/components/restaurants/useStoreStats';
 import { bulkUpdateStores, describeBulk, duplicateStore, patchStore, removeStoreBanner } from '@/components/restaurants/storeActions';
 import { summarizeWeekly, weeklyFromStore } from '@/components/restaurants/helpers';
+import { QueryChange } from '@/components/shell/QueryChange';
 
 const FILTERS_KEY = 'zenvy.admin.storeFilters.v1';
 const DRAFT_KEY = 'zenvy.admin.storeWizard.v1';
@@ -77,6 +78,18 @@ function StoresScreen() {
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [wizard, setWizard] = useState<{ mode: 'create' | 'edit'; id?: string; step?: StepKey } | null>(null);
   const [drawer, setDrawer] = useState<{ id: string; tab: DrawerTab } | null>(null);
+  // ?new=1 (header New > Store) opens the add-store wizard (once: the flag is dropped from the URL); ?store=<id>
+  // [&tab=] opens that store. Runs on load and when a header / palette link changes the query of this open page.
+  const openFromQuery = useCallback((qs: URLSearchParams) => {
+    if (qs.get('new') === '1') {
+      setWizard({ mode: 'create' });
+      const url = new URL(window.location.href);
+      url.searchParams.delete('new');
+      window.history.replaceState(window.history.state, '', url.toString());
+    }
+    const sid = qs.get('store');
+    if (sid) setDrawer(d => (d && d.id === sid ? d : { id: sid, tab: (qs.get('tab') as DrawerTab) || 'overview' }));
+  }, []);
   const [deleting, setDeleting] = useState<Store | null>(null);
   const [duplicating, setDuplicating] = useState<Store | null>(null);
   const [confirm, setConfirm] = useState<{ title: string; body: React.ReactNode; action: string; danger?: boolean; run: () => Promise<void> } | null>(null);
@@ -103,12 +116,8 @@ function StoresScreen() {
       }
       setHasDraft(!!localStorage.getItem(DRAFT_KEY));
     } catch { /* storage unavailable */ }
-    const params = new URLSearchParams(window.location.search);
-    // ?new=1 (header New > Store) opens the add-store wizard.
-    if (params.get('new') === '1') setWizard({ mode: 'create' });
-    const sid = params.get('store');
-    if (sid) setDrawer({ id: sid, tab: (params.get('tab') as DrawerTab) || 'overview' });
-  }, []);
+    openFromQuery(new URLSearchParams(window.location.search));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     try { const { search: _s, ...rest } = filters; void _s; localStorage.setItem(FILTERS_KEY, JSON.stringify(rest)); } catch { /* ignore */ }
   }, [filters]);
@@ -470,6 +479,7 @@ function StoresScreen() {
 
   return (
     <div className="text-fg">
+      <QueryChange onChange={openFromQuery} />
       <PageHeader
         title="Stores"
         description="Restaurants, shops and campus stalls: details, menus, hours, partner logins and whether customers can order. Changes reach the customer app live."

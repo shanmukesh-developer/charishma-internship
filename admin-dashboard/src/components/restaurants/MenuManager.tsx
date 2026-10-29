@@ -6,8 +6,8 @@ import { parseCsv, timeAgo } from './helpers';
 import { ImagePicker, TagInput } from './inputs';
 import { bulkUpdateItems, describeBulk, duplicateItemPayload } from './storeActions';
 import {
-  DetailDraft, GroupDraft, OptionGroupsEditor, ProductDetailsEditor,
-  detailsFromSpecs, groupsFromSpecs, serializeDetails, serializeOptions, suggestedWeightGroups, validateOptions, variantMinPrice,
+  AutoWeightsNote, DetailDraft, OptionGroupsEditor, ProductDetailsEditor,
+  detailsFromSpecs, serializeDetails, useChoiceGroups, validateOptions, variantMinPrice,
 } from './ProductOptionsEditor';
 import { API_URL } from '@/lib/config';
 import {
@@ -349,6 +349,7 @@ export function MenuManager({ store }: { store: Store }) {
         <CsvImportModal
           storeId={id}
           existing={products}
+          allowFree={bookingOnly}
           onClose={() => setCsvOpen(false)}
           onImported={items => { setProducts(prev => [...prev, ...items]); markFresh(items.map(itemId)); }}
         />
@@ -500,22 +501,38 @@ function ItemEditor({ initial, storeName, vendorType, categories, bookingOnly, n
   const [error, setError] = useState('');
   const set = (patch: Partial<typeof form>) => setForm(prev => ({ ...prev, ...patch }));
   const isBooking = !!specs.bookingOnly || bookingOnly;
+  const [photoBusy, setPhotoBusy] = useState(false);
   // Customer choices (specs.options) and ordered product details (specs.details): docs/PRODUCT_OPTIONS.md.
-  // No saved choices on a weight-sold grocery / bakery product: start from the automatic weights the app shows.
-  const suggested = useMemo(() => (initial ? suggestedWeightGroups(initial as any, vendorType) : []), []); // eslint-disable-line react-hooks/exhaustive-deps
-  const [groups, setGroups] = useState<GroupDraft[]>(() => { const own = groupsFromSpecs(specs); return own.length ? own : suggested; });
+  // A weight-sold grocery / bakery product with no saved choices shows its automatic weights (never saved as they
+  // are; see useChoiceGroups).
+  const choice = useChoiceGroups(specs, form, vendorType);
+  const { groups, setGroups } = choice;
   const [details, setDetails] = useState<DetailDraft[]>(() => detailsFromSpecs(specs));
   const [showOptionErrors, setShowOptionErrors] = useState(false);
   const optionErrors = useMemo(() => validateOptions(groups, details), [groups, details]);
-  const hasVariant = groups.some(g => g.type === 'variant');
+  // The admin's own weight / size group sets the price (its lowest); automatic weights follow the price instead.
+  const hasVariant = groups.some(g => g.type === 'variant') && !choice.usingAuto;
   const fromPrice = variantMinPrice(groups);
+  // Unsaved changes: a stray click outside, Esc or Cancel asks first (a long product entry was lost in one click).
+  const snapshot = JSON.stringify([form, choice.specsPatch(), serializeDetails(details)]);
+  const startSnap = useRef(snapshot);
+  const resetSnap = useRef(false);
+  if (resetSnap.current) { startSnap.current = snapshot; resetSnap.current = false; }
+  const requestClose = () => {
+    if (saving) return;
+    if (snapshot !== startSnap.current && !window.confirm('Discard the changes to this item?')) return;
+    onClose();
+  };
+  const errorRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => { if (error) errorRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, [error]);
 
   const validate = () => {
     const e: Record<string, string> = {};
     const price = hasVariant ? (fromPrice ?? NaN) : Number(form.price);
     if (!form.name.trim()) e.name = 'Name the item as it appears on the menu.';
     if (hasVariant) { if (fromPrice === null) e.price = 'Give each weight / size a price below.'; }
-    else if (form.price.trim() === '' || !Number.isFinite(price) || price < 0 || price > 100000) e.price = 'Enter a price between ₹0 and ₹1,00,000.';
+    // ₹0 only for booking-only services (priced after a quote); a ₹0 product would be given away free.
+    else if (form.price.trim() === '' || !Number.isFinite(price) || price < 0 || (price === 0 && !isBooking) || price > 100000) e.price = isBooking ? 'Enter a price between ₹0 and ₹1,00,000.' : 'Enter a price above ₹0 (up to ₹1,00,000).';
     if (form.mrp.trim() !== '') {
       const mrp = Number(form.mrp);
       if (!Number.isFinite(mrp) || mrp <= 0) e.mrp = 'MRP must be a positive amount, or empty.';
@@ -525,7 +542,7 @@ function ItemEditor({ initial, storeName, vendorType, categories, bookingOnly, n
   };
 
   const submit = async (again: boolean) => {
-    if (saving) return;
+    if (saving || photoBusy) return;
     const e = validate();
     setErrors(e);
     const optionsInvalid = Object.keys(optionErrors).length > 0;
@@ -551,8 +568,9 @@ function ItemEditor({ initial, storeName, vendorType, categories, bookingOnly, n
         originalPrice: form.mrp.trim() === '' ? null : Number(form.mrp),
         specs: {
           weight: form.weight.trim() || null,
-          // null removes the key (the server merges specs keys).
-          options: serializeOptions(groups),
+          // The admin's own choices (null removes them; automatic weights are never saved) and the automatic-weights
+          // switch (false = removed). null removes a key: the server merges specs keys.
+          ...choice.specsPatch(),
           details: serializeDetails(details),
           ...(initial ? {} : { sortOrder: nextSortOrder }),
           // Items added to a booking-only service store carry the flag like its imported items do
@@ -563,8 +581,8 @@ function ItemEditor({ initial, storeName, vendorType, categories, bookingOnly, n
       if (form.isAvailable) payload.outOfStockUntil = null;
       const saved = await onSave(payload, initial);
       if (again) {
-        setForm({ ...blank(), category: form.category }); setErrors({}); setSaving(null);
-        setGroups([]); setDetails([]); setShowOptionErrors(false);
+        setForm({ ...blank(), category: form.category }); setErrors({}); setSaving(null); resetSnap.current = true;
+        choice.useAutomatic(); setDetails([]); setShowOptionErrors(false);
       }
       onSaved(saved, again);
     } catch (err) {
@@ -581,11 +599,11 @@ function ItemEditor({ initial, storeName, vendorType, categories, bookingOnly, n
       title={initial ? `Edit ${initial.name}` : 'Add menu item'}
       description={storeName}
       size="xl"
-      onClose={onClose}
+      onClose={requestClose}
       footer={<>
-        <Button onClick={onClose} disabled={!!saving}>Cancel</Button>
-        {!initial && <Button loading={saving === 'again'} disabled={!!saving} onClick={() => submit(true)}>Save &amp; add another</Button>}
-        <Button variant="primary" loading={saving === 'save'} disabled={!!saving} onClick={() => submit(false)}>{initial ? 'Save item' : 'Add item'}</Button>
+        <Button onClick={requestClose} disabled={!!saving}>Cancel</Button>
+        {!initial && <Button loading={saving === 'again'} disabled={!!saving || photoBusy} onClick={() => submit(true)}>Save &amp; add another</Button>}
+        <Button variant="primary" loading={saving === 'save'} disabled={!!saving || photoBusy} title={photoBusy ? 'Wait for the photo to finish uploading' : undefined} onClick={() => submit(false)}>{initial ? 'Save item' : 'Add item'}</Button>
       </>}
     >
       <form onSubmit={e => { e.preventDefault(); submit(false); }} className="grid gap-6 md:grid-cols-[1fr_220px]">
@@ -638,15 +656,15 @@ function ItemEditor({ initial, storeName, vendorType, categories, bookingOnly, n
             <Toggle tone="amber" checked={form.isEliteOnly} onChange={isEliteOnly => set({ isEliteOnly })} label="Elite members only" description="Only ZCS Elite customers can add it." />
             <Toggle tone="amber" checked={form.isSpecializedCake} onChange={isSpecializedCake => set({ isSpecializedCake })} label="Specialized cake" description="Custom or designer cake: orders close 2½ hours before the delivery slot (normal cakes 2 hours)." />
           </div>
-          {suggested.length > 0 && <Callout tone="amber">These 250 g / 500 g / 1 kg weights are filled in automatically from the price (customers see them now). Correct any price or weight and save to make them your own.</Callout>}
+          <AutoWeightsNote usingAuto={choice.usingAuto} autoOff={choice.autoOff} packLabel={choice.packLabel} onUseAutomatic={choice.useAutomatic} />
           <OptionGroupsEditor groups={groups} onChange={setGroups} errors={optionErrors} showAllErrors={showOptionErrors} />
           <ProductDetailsEditor details={details} onChange={setDetails} errors={optionErrors} showAllErrors={showOptionErrors} />
           {showOptionErrors && Object.keys(optionErrors).length > 0 && <Callout tone="red">Fix the highlighted choices or details before saving.</Callout>}
-          {error && <Callout tone="red">{error}</Callout>}
+          {error && <div ref={errorRef}><Callout tone="red">{error}</Callout></div>}
         </div>
         <div className="space-y-2">
           <p className="text-xs font-semibold text-fg-muted">Photo</p>
-          <ImagePicker value={form.imageUrl} onChange={imageUrl => set({ imageUrl })} preset="item" label="Item photo" hint="Square, close-up, good light." aspect="aspect-square" />
+          <ImagePicker value={form.imageUrl} onChange={imageUrl => set({ imageUrl })} onBusyChange={setPhotoBusy} preset="item" label="Item photo" hint="Square, close-up, good light." aspect="aspect-square" />
           {initial?.createdAt && <p className="pt-2 text-xs text-fg-subtle">Added {timeAgo(initial.createdAt)}</p>}
         </div>
         <button type="submit" className="hidden" aria-hidden tabIndex={-1} />
@@ -667,7 +685,7 @@ const COLUMN_ALIASES: Record<string, string> = {
   price: 'price', 'selling price': 'price', rate: 'price',
   mrp: 'mrp', 'original price': 'mrp',
   category: 'category', section: 'category',
-  veg: 'veg', vegetarian: 'veg', 'veg/non-veg': 'veg', type: 'veg',
+  veg: 'veg', vegetarian: 'veg', 'veg/non-veg': 'veg', 'veg / non-veg': 'veg', diet: 'veg', 'food type': 'veg',
   in_stock: 'in_stock', 'in stock': 'in_stock', stock: 'in_stock', available: 'in_stock',
   weight: 'weight', 'pack size': 'weight', size: 'weight', quantity: 'weight',
   description: 'description', desc: 'description',
@@ -699,22 +717,34 @@ async function fetchBulk(restaurantId: string, items: Record<string, unknown>[])
 
 interface CsvRow { line: number; data: Record<string, unknown>; errors: string[]; duplicate: boolean; status?: 'done' | 'failed'; failReason?: string }
 
-const yes = (v: string, fallback: boolean) => {
-  const s = v.trim().toLowerCase();
-  if (!s) return fallback;
-  if (['yes', 'y', 'true', '1', 'veg', 'v', 'in', 'available'].includes(s)) return true;
-  if (['no', 'n', 'false', '0', 'non-veg', 'nonveg', 'non veg', 'nv', 'egg', 'out'].includes(s)) return false;
-  return fallback;
+// Cells are read strictly: a value the import does not recognise is a row error, never a silent default
+// ("Out of stock" was read as in stock and "Non-Veg Pickle" as veg).
+const cellKey = (v: string) => v.trim().toLowerCase().replace(/[\s_-]+/g, ' ');
+const STOCK_YES = ['yes', 'y', 'true', '1', 'in', 'in stock', 'instock', 'available', 'avl'];
+const STOCK_NO = ['no', 'n', 'false', '0', 'out', 'out of stock', 'outofstock', 'sold out', 'soldout', 'unavailable', 'not available'];
+/** "in_stock" column: yes / no (empty = in stock). null = not recognised. */
+const stockFromCell = (v: string): boolean | null => {
+  const s = cellKey(v);
+  if (!s) return true;
+  if (STOCK_YES.includes(s)) return true;
+  if (STOCK_NO.includes(s)) return false;
+  return null;
 };
-/** "veg" column: yes / no / egg (also veg, non-veg, nv, e). */
-const dietFromCell = (v: string): DietType => {
-  const s = v.trim().toLowerCase();
-  if (['egg', 'e', 'eggetarian', 'contains egg'].includes(s)) return 'egg';
-  return yes(s, true) ? 'veg' : 'nonveg';
+const DIET_VEG = ['yes', 'y', 'true', '1', 'veg', 'v', 'vegetarian', 'pure veg', 'eggless'];
+const DIET_NONVEG = ['no', 'n', 'false', '0', 'non veg', 'nonveg', 'nv', 'non vegetarian', 'nonvegetarian'];
+const DIET_EGG = ['egg', 'e', 'eggetarian', 'contains egg', 'with egg'];
+/** "veg" column: yes / no / egg (also veg, non-veg, nv, e; empty = veg). null = not recognised. */
+const dietFromCell = (v: string): DietType | null => {
+  const s = cellKey(v);
+  if (!s) return 'veg';
+  if (DIET_EGG.includes(s)) return 'egg';
+  if (DIET_NONVEG.includes(s)) return 'nonveg';
+  if (DIET_VEG.includes(s)) return 'veg';
+  return null;
 };
 
-function CsvImportModal({ storeId: sid, existing, onClose, onImported }: {
-  storeId: string; existing: Product[]; onClose: () => void; onImported: (items: Product[]) => void;
+function CsvImportModal({ storeId: sid, existing, allowFree, onClose, onImported }: {
+  storeId: string; existing: Product[]; allowFree: boolean; onClose: () => void; onImported: (items: Product[]) => void;
 }) {
   const toast = useToast();
   const [text, setText] = useState('');
@@ -744,7 +774,13 @@ function CsvImportModal({ storeId: sid, existing, onClose, onImported }: {
       const mrp = mrpRaw ? Number(mrpRaw) : null;
       if (!name) errors.push('Name missing');
       if (name.length > 200) errors.push('Name over 200 characters');
-      if (!priceRaw || !Number.isFinite(price) || price < 0 || price > 100000) errors.push('Price must be 0–1,00,000');
+      // ₹0 only in booking-only service stores (priced after a quote); a ₹0 product would be given away free.
+      if (!priceRaw || !Number.isFinite(price) || price < 0 || price > 100000) errors.push(allowFree ? 'Price must be 0–1,00,000' : 'Price must be above 0, up to 1,00,000');
+      else if (price === 0 && !allowFree) errors.push('Price must be above 0');
+      const diet = dietFromCell(get('veg'));
+      if (diet === null) errors.push(`Veg column "${get('veg').slice(0, 20)}": write yes, no or egg`);
+      const inStock = stockFromCell(get('in_stock'));
+      if (inStock === null) errors.push(`In-stock column "${get('in_stock').slice(0, 20)}": write yes or no`);
       if (mrp !== null && (!Number.isFinite(mrp) || mrp <= 0)) errors.push('MRP is not a number');
       else if (mrp !== null && Number.isFinite(price) && mrp < price) errors.push('MRP below price');
       const image = get('image');
@@ -758,7 +794,7 @@ function CsvImportModal({ storeId: sid, existing, onClose, onImported }: {
         duplicate,
         data: {
           name, price: Math.round(price * 100) / 100, category: get('category') || null, description: get('description') || null,
-          imageUrl: image || null, dietType: dietFromCell(get('veg')), isAvailable: yes(get('in_stock'), true), isEliteOnly: false, tags: [],
+          imageUrl: image || null, dietType: diet || 'veg', isAvailable: inStock !== false, isEliteOnly: false, tags: [],
           ...(mrp !== null && Number.isFinite(mrp) ? { originalPrice: mrp } : {}),
           specs: { ...(get('weight') ? { weight: get('weight') } : {}) },
         },

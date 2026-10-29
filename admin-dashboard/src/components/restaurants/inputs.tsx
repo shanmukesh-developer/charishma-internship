@@ -64,7 +64,7 @@ export function WeeklyHoursEditor({ value, onChange, error }: { value: Weekly; o
 }
 
 // ─── Image picker: drag-drop / click, resize, upload, preview ───────────────
-export function ImagePicker({ value, onChange, preset, label, hint, aspect = 'aspect-video', onError }: {
+export function ImagePicker({ value, onChange, preset, label, hint, aspect = 'aspect-video', onError, onBusyChange }: {
   value: string;
   onChange: (url: string) => void;
   preset: keyof typeof IMAGE_PRESETS;
@@ -72,6 +72,8 @@ export function ImagePicker({ value, onChange, preset, label, hint, aspect = 'as
   hint: string;
   aspect?: string;
   onError?: (msg: string) => void;
+  /** true while a photo is resizing / uploading: the form should not save until it is false again. */
+  onBusyChange?: (busy: boolean) => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [drag, setDrag] = useState(false);
@@ -82,6 +84,7 @@ export function ImagePicker({ value, onChange, preset, label, hint, aspect = 'as
   const handle = async (file?: File | null) => {
     if (!file) return;
     setBusy(true);
+    onBusyChange?.(true);
     setErr('');
     try {
       onChange(await resizeAndUpload(file, preset));
@@ -91,6 +94,7 @@ export function ImagePicker({ value, onChange, preset, label, hint, aspect = 'as
       onError?.(msg);
     } finally {
       setBusy(false);
+      onBusyChange?.(false);
     }
   };
   const onDrop = (e: DragEvent) => {
@@ -108,8 +112,9 @@ export function ImagePicker({ value, onChange, preset, label, hint, aspect = 'as
         className={cx('relative overflow-hidden rounded-xl border-2 border-dashed transition-colors', aspect, drag ? 'border-success/30 bg-success-soft' : 'border-line bg-surface-2/60')}
       >
         {value ? (
+          // A logo is shown whole (cropping cut off its edges); photos fill the frame.
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={value} alt={`${label} preview`} className="absolute inset-0 h-full w-full object-cover" />
+          <img src={value} alt={`${label} preview`} className={cx('absolute inset-0 h-full w-full', preset === 'logo' ? 'object-contain p-2' : 'object-cover')} />
         ) : (
           <button type="button" onClick={() => input.current?.click()} className={cx('absolute inset-0 flex flex-col items-center justify-center gap-1 p-3 text-center', FOCUS_RING)}>
             <span aria-hidden className="text-2xl"></span>

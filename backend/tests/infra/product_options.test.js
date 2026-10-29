@@ -82,3 +82,19 @@ test('weight MRPs: kept when above the price, refused when below, dropped when e
   assert.deepStrictEqual(g[0].choices, [{ label: '250 g', price: 45, mrp: 60 }, { label: '500 g', price: 90 }, { label: '1 kg', price: 170 }]);
   assert.throws(() => po.normalizeOptions([{ name: 'Weight', type: 'variant', choices: [{ label: '1 kg', price: 170, mrp: 100 }] }]), /cannot be lower/);
 });
+
+test('weight / size: one pre-selected choice is kept (the first flagged); other groups never carry it', () => {
+  const g = po.normalizeOptions([
+    { name: 'Weight', type: 'variant', choices: [{ label: '250 g', price: 45 }, { label: '1 kg', price: 170, isDefault: true }, { label: '2 kg', price: 330, isDefault: true }] },
+    { name: 'Flavour', type: 'single', choices: [{ label: 'Plain', price: 0, isDefault: true }] },
+  ]);
+  assert.deepStrictEqual(g[0].choices.map((c) => !!c.isDefault), [false, true, false]);
+  assert.strictEqual(g[1].choices[0].isDefault, undefined);
+  assert.deepStrictEqual(po.listingFromOptions(g), { price: 170, originalPrice: null, weight: '1 kg', discountPercent: null });
+});
+
+test('automatic weights switched off by the admin (specs.autoWeights false): the product sells as its one pack', () => {
+  assert.deepStrictEqual(po.autoWeightOptions({ name: 'Sugar', price: 50, specs: { weight: '1 kg', autoWeights: false } }, 'GROCERY'), []);
+  assert.deepStrictEqual(po.effectiveOptions({ name: 'Sugar', price: 50, specs: JSON.stringify({ weight: '1 kg', autoWeights: false }) }, 'GROCERY'), []);
+  assert.strictEqual(po.autoWeightOptions({ name: 'Sugar', price: 50, specs: { weight: '1000' } }, 'GROCERY')[0].choices.length, 3, 'a bare "1000" pack is 1 kg');
+});

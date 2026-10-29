@@ -82,7 +82,10 @@ const loginValidation = [
 ];
 
 router.post('/register', authLimiter, registerValidation, validate, registerUser);
-router.post('/login', authLimiter, accountLockout, loginValidation, validate, authUser);
+// One-time-code sign-in (firebaseToken) never checks a password (authUser returns before it), so wrong passwords
+// typed earlier must not lock it out: a student who never set a password could not sign in at all.
+const passwordLockout = (req, res, next) => (req.body && req.body.firebaseToken ? next() : accountLockout(req, res, next));
+router.post('/login', authLimiter, passwordLockout, loginValidation, validate, authUser);
 // S1: admin 2-step sign-in, second step ({ mfaToken, code | recoveryCode }); 5 wrong codes lock it 15 min.
 router.post('/login/mfa', authIpLimiter, require('../services/adminTwoFactor').loginMfa);
 router.post('/send-otp', authLimiter, otpSendIpLimiter, sendOtp);

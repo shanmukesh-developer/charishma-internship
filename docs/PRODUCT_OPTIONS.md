@@ -27,13 +27,24 @@ order".
 
 Rules (enforced by `backend/utils/productOptions.js` `normalizeOptions` on every admin save):
 - group `name`: 1-30 chars, unique in the product (case-insensitive). `type`: `variant` | `single` | `multi` | `text`.
-- `variant`: at most one per product, always required, 1-20 choices, each `price` > 0 = the full unit price.
-  The product's own `price` is set to the LOWEST variant price (lists show "from ₹120").
+- `variant`: at most one per product, always required, 1-20 choices, each `price` > 0 = the full unit price, with an
+  optional `mrp` >= price (shown struck through with its % off) and `isDefault: true` on at most one choice (the one
+  the app pre-selects and lists show; none = the first listed). The product's own `price` is set to the LOWEST variant
+  price, and a bare price edit (catalogue quick edit, bulk update) of such a product is refused: change the weights.
 - `single` / `multi`: 1-20 choices, `price` >= 0 = extra per unit. `required` (single only). `max` (multi, >= 1).
 - `text`: `maxLength` 1-100 (default 40), never priced, optional unless `required`.
 - choice `label`: 1-30 chars, unique in its group (case-insensitive). Prices are rupees, at most 2 decimals, <= 100000.
 - `details`: max 20 rows, `label` 1-30 chars, `value` 1-200 chars.
 - Max 8 groups. `options: []` or `null` removes options.
+- Product `price` must be above ₹0, except in booking-only service stores (₹0 = priced after a quote).
+
+## Automatic weights (owner, 29 Oct 2026)
+
+A GROCERY / BAKERY product with no `options`, sold by weight (pack size in `specs.weight` or the name, 250 g or more;
+a bare number such as "1000" is grams) sells in 250 g / 500 g / 1 kg (plus its own pack) priced from its own price per
+gram (`autoWeightOptions`, `auto: true`, own pack `isDefault`). They are worked out on every read, never stored: the
+admin editors show them and save them only once the admin changes one (they then become `options`). Removing them
+saves `specs.autoWeights: false` (a sealed pack sold only as it is); `null` clears it. Only `false` is ever stored.
 
 ## In the basket / order: `customizations`
 
