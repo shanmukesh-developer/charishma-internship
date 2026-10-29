@@ -3,7 +3,7 @@ import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useOrderSheets } from '../components/AcceptReject';
 import { StageTabs } from '../components/Nav';
 import { OrderCard } from '../components/OrderCard';
-import { isTodayIST } from '../lib/model';
+import { isTodayIST, acceptAnchorMs } from '../lib/model';
 import { useStore } from '../state/StoreProvider';
 import { color, font, space } from '../theme';
 import { EmptyState, ErrorStrip, SkeletonCard } from '../ui/kit';
@@ -29,8 +29,9 @@ export default function OrdersScreen({ onOpenOrder }: { onOpenOrder: (o: Order) 
     if (tab === 'past') {
       l = [...l.filter((o) => isTodayIST(o.createdAt)), ...l.filter((o) => !isTodayIST(o.createdAt))];
     } else {
-      // Active queues: oldest first so the kitchen works top-down.
-      l = [...l].sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
+      // Active queues: due first (accept clock: placement, or 60 min before the delivery slot) so the kitchen works
+      // top-down and today's slot comes before tomorrow's even when tomorrow's was booked first.
+      l = [...l].sort((a, b) => (acceptAnchorMs(a) || 0) - (acceptAnchorMs(b) || 0));
     }
     return { counts: c, list: l };
   }, [orders, tab]);

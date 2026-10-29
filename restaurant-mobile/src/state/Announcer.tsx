@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AppState, Platform, Vibration } from 'react-native';
 import { RING_REPEAT_MS } from '../config';
 import { serverNow } from '../lib/http';
-import { TIMED_OUT_REASON } from '../lib/model';
+import { TIMED_OUT_REASON, acceptAnchorMs } from '../lib/model';
 import { playRing, RING_SOUND_MS } from '../lib/push';
 import { cancelNativeOrderAlert, nativeOrderAlert } from '../voice/kitchenService';
 import { announce, cancelAnnouncements, forgetAnnouncement, getVoiceSnapshot, voiceEnabled } from '../voice/voice';
@@ -17,14 +17,16 @@ import type { Order } from '../types';
 
 const RING_PATTERN = [0, 600, 250, 600, 250, 600];
 /**
- * Stop re-ringing an order this long after it was placed. The server auto-cancels a Pending order after
- * PENDING_ORDER_TIMEOUT_MINUTES (default 15); if the app never hears about it (offline, missed event) the
- * order would otherwise ring every RING_REPEAT_MS forever. It stays on screen in New.
+ * Stop re-ringing an order this long after its accept clock started (placement, or 60 minutes before its delivery
+ * slot: lib/model acceptAnchorMs). The server auto-cancels a Pending order a few minutes after that; if the app
+ * never hears about it (offline, missed event) the order would otherwise ring every RING_REPEAT_MS forever. It stays
+ * on screen in New. Aged from placement, a 9:00 order for the 12:30 slot stopped ringing at 9:20 and was silent at
+ * 11:30 when it had to be accepted.
  */
 const RING_MAX_AGE_MS = 20 * 60 * 1000;
 const stillFresh = (o: Order) => {
-  const t = o.createdAt ? new Date(o.createdAt).getTime() : NaN;
-  // createdAt is server time: compare with the server's clock, not a phone clock that may be minutes off.
+  const t = acceptAnchorMs(o);
+  // Server times: compare with the server's clock, not a phone clock that may be minutes off.
   return !Number.isFinite(t) || serverNow() - t < RING_MAX_AGE_MS;
 };
 const PRE_PICKUP = ['Pending', 'Accepted', 'Preparing', 'ReadyForPickup'];

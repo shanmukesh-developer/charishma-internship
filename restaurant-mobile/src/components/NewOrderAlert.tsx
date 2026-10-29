@@ -11,7 +11,7 @@ import { color, font, mono, radius, space } from '../theme';
 import { Button } from '../ui/kit';
 import { KeyboardAwareScrollView } from '../ui/KeyboardAvoidingView';
 import { PrepPicker, RejectPicker } from './AcceptReject';
-import { CampusTag, Elapsed, ItemLines, NoteCallout, PaymentBadge } from './orderParts';
+import { CampusTag, Elapsed, ItemLines, NoteCallout, PaymentBadge, SlotLine } from './orderParts';
 
 export function NewOrderAlert() {
   const { alertOrders, silence, busy, isGhostTap } = useStore();
@@ -55,6 +55,7 @@ export function NewOrderAlert() {
               </View>
               <PaymentBadge order={order} />
             </View>
+            <SlotLine order={order} />
             <ItemLines order={order} />
             <NoteCallout order={order} />
             <View style={[styles.row, styles.total]}>

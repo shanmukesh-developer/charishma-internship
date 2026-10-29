@@ -131,7 +131,21 @@ export function PrepLine({ order }: { order: Order }) {
   if (!Number.isFinite(acceptedMs)) {
     return <Text style={[font.body, { color: color.textSecondary }]}>Prep time {order.estDuration} min</Text>;
   }
-  const due = acceptedMs + order.estDuration * 60000;
+  const prepMs = order.estDuration * 60000;
+  const slotMs = order.slotStart ? new Date(order.slotStart).getTime() : NaN;
+  const due = Number.isFinite(slotMs) ? Math.max(slotMs, acceptedMs + prepMs) : acceptedMs + prepMs;
+  const cookFrom = due - prepMs;
+  if (Number.isFinite(slotMs) && now < cookFrom) {
+    // Accepted early for a later slot: nothing is late yet, say when to start.
+    return (
+      <View style={styles.prep}>
+        <Ionicons name="time-outline" size={20} color={color.textSecondary} />
+        <Text style={[font.body, { color: color.textSecondary, fontWeight: '800', flex: 1 }]}>
+          Start cooking by {clockIST(cookFrom)} · ready by {clockIST(due)}
+        </Text>
+      </View>
+    );
+  }
   const left = Math.round((due - now) / 60000);
   const late = left < 0;
   return (

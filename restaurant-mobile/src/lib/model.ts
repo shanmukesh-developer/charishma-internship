@@ -130,6 +130,20 @@ export function campusOf(address: unknown): string | null {
   return null;
 }
 
+/** Minutes before a delivery slot when the store's accept clock starts (backend STORE_ACCEPT_BEFORE_SLOT_MIN). */
+const ACCEPT_BEFORE_SLOT_MS = 60 * 60 * 1000;
+/**
+ * When the store's accept clock starts (backend utils/deliverySlots.acceptAnchorMs): when the order was placed, or
+ * 60 minutes before its delivery slot, whichever is later. A 9:00 order for the 12:30 slot must be accepted from
+ * 11:30, and is auto-cancelled a few minutes after that if nobody accepts it. NaN when unknown.
+ */
+export function acceptAnchorMs(o: { createdAt?: string | null; slotStart?: string | null }): number {
+  const created = o.createdAt ? new Date(o.createdAt).getTime() : NaN;
+  const fromSlot = o.slotStart ? new Date(o.slotStart).getTime() - ACCEPT_BEFORE_SLOT_MS : NaN;
+  const known = [created, fromSlot].filter(Number.isFinite);
+  return known.length ? Math.max(...known) : NaN;
+}
+
 /** Delivery slot of an order payload: the server label, or nothing for older 'ASAP' orders. */
 export function slotOf(raw: any): { slotLabel: string | null; slotStart: string | null } {
   const label = typeof raw?.slotLabel === 'string' && raw.slotLabel.trim() ? raw.slotLabel.trim()

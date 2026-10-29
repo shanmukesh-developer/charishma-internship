@@ -31,8 +31,9 @@ if (isNative) {
       handleNotification: async (n) => {
         const data = (n?.request?.content?.data as any) || {};
         const ring = data.ring === true;
-        // App open + order push: the socket, the order card, the ring and the voice already cover it.
-        const coveredInApp = data.type === 'NEW_ORDER' || data.type === 'ORDER_CANCELLED';
+        // App open + order push: the socket, the order card, the ring and the voice already cover it. Not a reminder
+        // (reminder '1': the order is still waiting while its accept clock runs; the in-app ring may be off by then).
+        const coveredInApp = (data.type === 'NEW_ORDER' && String(data.reminder || '') !== '1') || data.type === 'ORDER_CANCELLED';
         return {
           shouldShowBanner: !ring && !coveredInApp,
           shouldShowList: !coveredInApp,

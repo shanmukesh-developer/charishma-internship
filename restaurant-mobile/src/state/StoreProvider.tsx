@@ -5,8 +5,8 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { AppState } from 'react-native';
 import { FALLBACK_POLL_MS, SAFETY_POLL_MS, STORAGE } from '../config';
 import * as api from '../lib/api';
-import { ApiError, NetworkError, errorMessage } from '../lib/http';
-import { isEggTag, isTodayIST, normalizeOrder, rupees, stageFor, TIMEOUT_REASON_TEXT, todayNumbers } from '../lib/model';
+import { ApiError, NetworkError, errorMessage, serverNow } from '../lib/http';
+import { acceptAnchorMs, isEggTag, isTodayIST, normalizeOrder, rupees, stageFor, TIMEOUT_REASON_TEXT, todayNumbers } from '../lib/model';
 import { onOrderPush, onPushTokenChange, registerStorePush, type PushState } from '../lib/push';
 import { safeGet, safeSet } from '../lib/storage';
 import { startKitchenService, stopKitchenService } from '../voice/kitchenService';
@@ -425,11 +425,37 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     return () => { on = false; };
   }, [silencedKey]);
 
+  // "Later" tapped before a slot order's accept window opened (60 min before the slot) lasts only until it opens:
+  // the order must be accepted then, or the server cancels it. A timer re-checks at the next such opening.
+  const [windowTick, setWindowTick] = useState(0);
+  const silencedUntilWindow = useCallback((o: Order, now: number) => {
+    const at = silenced[o.id];
+    if (!at) return false;
+    const anchor = acceptAnchorMs(o);
+    return !(Number.isFinite(anchor) && at < anchor && now >= anchor);
+  }, [silenced]);
+  useEffect(() => {
+    const now = serverNow();
+    let next = Infinity;
+    for (const o of orders) {
+      const at = silenced[o.id];
+      const anchor = acceptAnchorMs(o);
+      if (o.stage === 'new' && at && Number.isFinite(anchor) && at < anchor && anchor > now) next = Math.min(next, anchor);
+    }
+    if (!Number.isFinite(next)) return undefined;
+    const t = setTimeout(() => setWindowTick((n) => n + 1), Math.min(next - now + 500, 2147483647));
+    return () => clearTimeout(t);
+  }, [orders, silenced, windowTick]);
   const alertOrders = useMemo(
-    () => (silencedReady ? orders : [])
-      .filter((o) => o.stage === 'new' && !silenced[o.id])
-      .sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()),
-    [orders, silenced, silencedReady],
+    () => {
+      const now = serverNow();
+      return (silencedReady ? orders : [])
+        .filter((o) => o.stage === 'new' && !silencedUntilWindow(o, now))
+        .sort((a, b) => (acceptAnchorMs(a) || 0) - (acceptAnchorMs(b) || 0));
+    },
+    // windowTick: re-evaluated when a silenced order's accept window opens
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [orders, silencedUntilWindow, silencedReady, windowTick],
   );
 
   // The order an action just finished on, and when. When a step succeeds the card leaves its tab (or the
