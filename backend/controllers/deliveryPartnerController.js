@@ -496,7 +496,9 @@ const acceptOrderLocked = async (req, res) => {
       const rawCustomerTokens = Array.isArray(customer?.fcmTokens) ? customer.fcmTokens : [];
       const customerTokenList = rawCustomerTokens.map(t => typeof t === 'string' ? t : t?.token).filter(Boolean);
       if (customer) {
-        await sendPushToTokens(customerTokenList, 'Order Accepted! 🛵', 'Your ZCS rider is on the way.', { orderId: updatedOrder.id, type: 'ORDER_UPDATE' }, { recipients: [customer.id] });
+        // Claimed, not yet picked up: "on the way" is sent at pickup (it used to say so here, before the food was ready).
+        const riderFirst = String((partner && partner.name) || '').trim().split(/\s+/)[0] || 'A ZCS rider';
+        await sendPushToTokens(customerTokenList, 'Rider assigned 🛵', `${riderFirst} will pick up your order from the store.`, { orderId: updatedOrder.id, type: 'ORDER_UPDATE' }, { recipients: [customer.id] });
       }
     } catch (e) {
       console.error('[ACCEPT_ORDER_ERROR]', e);

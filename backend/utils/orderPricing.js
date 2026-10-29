@@ -386,6 +386,14 @@ const computeOrderQuote = async ({ user, items, couponCode }) => {
     const c = couponDiscountFor(coupon, { subtotal, deliveryFee });
     if (c.delivery > 0) addDeliveryDiscount('coupon', `Coupon ${coupon.code}`, c.delivery);
     if (c.items > 0) addItemsDiscount('coupon', `Coupon ${coupon.code}`, c.items);
+    // A coupon that saves nothing on this order (free delivery already from points / tier, or other discounts
+    // used the whole amount) is refused instead of being used up for ₹0: it stays in the customer's coupons.
+    const saved = discounts.filter((d) => d.type === 'coupon').reduce((sum, d) => sum + d.amount, 0);
+    if (saved <= 0) {
+      throw new PricingError(400, 'COUPON_NO_SAVING', coupon.type === 'FREEDEL'
+        ? `You already get free delivery on this order, so coupon ${coupon.code} would save nothing. Remove it to keep it for later.`
+        : `Coupon ${coupon.code} would save nothing on this order. Remove it to keep it for later.`);
+    }
   }
 
   const totalDiscount = money(discounts.reduce((s, d) => s + d.amount, 0));

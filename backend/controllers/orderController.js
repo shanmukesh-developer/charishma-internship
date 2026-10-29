@@ -70,6 +70,12 @@ const broadcastOrderStatus = (req, orderOrId, payload) => {
 
 const isVendorFulfilled = (order) => !!order && order.fulfilment === 'VENDOR';
 
+/** "₹1,250" / "₹123.50": rupees for customer messages (Indian grouping, paise only when there are paise). */
+const inr = (n) => {
+  const v = Math.round((Number(n) || 0) * 100) / 100;
+  return `₹${v.toLocaleString('en-IN', { minimumFractionDigits: Number.isInteger(v) ? 0 : 2, maximumFractionDigits: 2 })}`;
+};
+
 // Stall (VENDOR) orders are marked Delivered by the stall itself, with no PIN and no customer
 // confirmation, and they are COD. To stop a colluding stall + customer farming ZenPoints,
 // completedOrders (spins) and badges with fake orders, loyalty for stall orders needs the order
@@ -406,7 +412,7 @@ const createOrder = async (req, res) => {
           } catch (err) {
             if (!walletLedger.isInsufficient(err)) throw err;
             throw new PricingError(400, 'INSUFFICIENT_WALLET',
-              `Not enough Wallet balance — this order needs ₹${amount} and you have ₹${money(currentUser.walletBalance)}. Choose Cash on Delivery or add money to your Wallet.`,
+              `Not enough Wallet balance — this order needs ₹${amount} and you have ₹${money(currentUser.walletBalance)}. Choose Cash on Delivery to place it.`,
               { needed: amount, walletBalance: money(currentUser.walletBalance) });
           }
         }
@@ -682,7 +688,9 @@ const restaurantAcceptOrder = async (req, res) => {
       console.error('[SMART_DISPATCH_ERROR]', dispatchErr.message);
     }
 
-    await pushCustomer(order, 'Order Confirmed! 👍', `${restaurant?.name || 'The store'} accepted your order${order.estDuration ? ` (about ${order.estDuration} min)` : ''}.`);
+    // A slot order is delivered in its slot: name the slot, never the kitchen's cooking minutes (the app hides them too).
+    const slotWord = order.slotStart && order.slotEnd ? `for ${deliverySlots.rangeLabel(order.slotStart, order.slotEnd)}` : null;
+    await pushCustomer(order, 'Order Confirmed! 👍', `${restaurant?.name || 'The store'} accepted your order${slotWord ? ` ${slotWord}` : order.estDuration ? ` (about ${order.estDuration} min)` : ''}.`);
   } catch (error) {
     console.error('[RESTAURANT_ACCEPT_ERROR]', error);
     if (!res.headersSent) res.status(500).json({ message: 'Server error' });
@@ -1540,7 +1548,8 @@ const cancelOrder = async (req, res) => {
       return res.status(400).json({ message: 'This order is already cancelled.', code: 'ALREADY_CANCELLED' });
     }
     const cancelCode = ownerCancel ? 'CUSTOMER_CANCELLED' : 'ADMIN_CANCELLED';
-    const statusPayload = { id: order.id, status: 'Cancelled', reason: cancelCode };
+    // refundedToWallet: the apps refresh the customer's Wallet balance from it (the bulk cancel already sent it).
+    const statusPayload = { id: order.id, status: 'Cancelled', reason: cancelCode, refundedToWallet: refunded };
     broadcastOrderStatus(req, order, statusPayload);
     const io = req.app.get('io');
     if (io) {
@@ -1555,12 +1564,15 @@ const cancelOrder = async (req, res) => {
     // Support cancelled it: the customer may not have the app open (the auto-cancel and store-decline paths push too).
     if (!ownerCancel) {
       pushCustomer(order, 'Order cancelled', refunded > 0
-        ? `ZCS support cancelled your order${reason ? `: ${reason}` : '.'} ₹${refunded} is back in your Wallet.`
+        ? `ZCS support cancelled your order${reason ? `: ${reason}` : '.'} ${inr(refunded)} is back in your Wallet.`
         : `ZCS support cancelled your order${reason ? `: ${reason}` : '.'} You have not been charged.`);
     }
 
+    // The app shows this under its own "Order cancelled" title: say what happened to the money, not the title again.
     res.json({
-      message: refunded > 0 ? `Order cancelled. ₹${refunded} is back in your Wallet.` : 'Order cancelled.',
+      message: refunded > 0
+        ? `${inr(refunded)} is back in your ZCS Wallet.`
+        : String(order.paymentMethod || '').toUpperCase() === 'COD' ? 'No payment was taken for this Cash on Delivery order.' : 'You have not been charged.',
       orderId: order.id,
       refundedToWallet: refunded
     });
@@ -1977,7 +1989,11 @@ const restaurantReadyOrder = async (req, res) => {
     }
 
     res.json({ message: 'Order marked as Ready for Pickup', orderId: order.id });
-    await pushCustomer(order, 'Order ready! 📦', order.deliveryPartnerId ? 'Your order is packed. Your rider is picking it up.' : 'Your order is packed and waiting for a rider.');
+    await pushCustomer(order, 'Order ready! 📦', order.deliveryPartnerId
+      ? 'Your order is packed. Your rider is picking it up.'
+      : order.slotStart && order.slotEnd
+        ? `Your order is packed for delivery ${deliverySlots.rangeLabel(order.slotStart, order.slotEnd)}.`
+        : 'Your order is packed and waiting for a rider.');
   } catch (error) {
     console.error('[RESTAURANT_READY_ERROR]', error);
     res.status(500).json({ message: 'Server error' });
@@ -2329,7 +2345,7 @@ const approveBill = async (req, res) => {
             });
           } catch (e) {
             if (!walletLedger.isInsufficient(e)) throw e;
-            throw new PricingError(400, 'INSUFFICIENT_WALLET', `The bill is ₹${diff} more than you paid and your Wallet doesn't have enough. Please add money to your Wallet and approve again.`, { needed: diff });
+            throw new PricingError(400, 'INSUFFICIENT_WALLET', `The bill is ₹${diff} more than you paid and your Wallet doesn't have enough. Please contact ZCS support from Help.`, { needed: diff });
           }
         }
       });

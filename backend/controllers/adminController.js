@@ -375,7 +375,7 @@ exports.getMenuItemById = async (req, res) => {
       image: itemObj.imageUrl || itemObj.image,
       originalPrice: itemObj.originalPrice || specs.originalPrice || null,
       dietType: itemObj.dietType || (itemObj.isVegetarian === false ? 'nonveg' : 'veg'),
-      weight: specs.weight || null,
+      weight: require('../utils/productOptions').packLabel(specs.weight) || null, // "1000" -> "1 kg"
       rating: specs.rating || null,
       ratingCount: specs.ratingCount || 0,
       isAvailable: inStock,

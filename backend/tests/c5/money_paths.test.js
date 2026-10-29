@@ -251,7 +251,7 @@ test('customer history: newest first, labels, signed amounts, running balance, o
   assert.equal(refund.label, 'Order refund');
   assert.equal(refund.direction, 'credit');
   assert.equal(refund.balanceAfter, 300);
-  assert.deepEqual(refund.ref, { type: 'ORDER', id: o.body.id, label: `Order #${o.body.id.slice(0, 8).toUpperCase()}`, link: `/tracking/${o.body.id}` });
+  assert.deepEqual(refund.ref, { type: 'ORDER', id: o.body.id, label: `Order #${o.body.id.slice(-6).toUpperCase()}`, link: `/tracking/${o.body.id}` });
   assert.equal(payment.type, 'ORDER_PAYMENT');
   assert.ok(payment.amount < 0);
   assert.equal(payment.direction, 'debit');

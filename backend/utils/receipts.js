@@ -196,7 +196,7 @@ const buildReceipt = (order, { customerName = null } = {}) => {
     receiptNumber: o.receiptNumber || null,
     issuedAt: o.receiptIssuedAt || null,
     orderId: o.id,
-    orderRef: String(o.id || '').slice(-8).toUpperCase(),
+    orderRef: String(o.id || '').slice(-6).toUpperCase(), // the app's order reference (last 6)
     placedAt: o.createdAt || null,
     deliveredAt: o.deliveredAt || null,
     status: o.status,

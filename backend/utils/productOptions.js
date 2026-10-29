@@ -116,10 +116,41 @@ const AUTO_SIZES = [250, 500, 1000];
 
 /** "1000g" / "1 kg" / "500 gms" / "1.5kg" -> grams, or null. */
 const packGrams = (text) => {
-  const m = String(text || '').toLowerCase().match(/(\d+(?:\.\d+)?)\s*(kgs?|kilograms?|kilos?|g|gms?|grams?)(?![a-z])/);
-  if (!m) return null;
-  const n = Number(m[1]) * (m[2].startsWith('k') ? 1000 : 1);
-  return Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+  const t = String(text || '').toLowerCase().trim();
+  const m = t.match(/(\d+(?:\.\d+)?)\s*(kgs?|kilograms?|kilos?|g|gms?|grams?)(?![a-z])/);
+  if (m) {
+    const n = Number(m[1]) * (m[2].startsWith('k') ? 1000 : 1);
+    return Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+  }
+  // A pack size typed as a bare number ("1000", as stores enter it) is grams.
+  const bare = t.match(/^(\d{2,5})$/);
+  if (bare) {
+    const n = Number(bare[1]);
+    return n >= 50 && n <= 10000 ? n : null;
+  }
+  return null;
+};
+
+/** "1000" -> "1 kg", "250" -> "250 g"; any other text unchanged (a bare number is grams, see packGrams). */
+const packLabel = (text) => {
+  const t = String(text || '').trim();
+  if (!/^\d{2,5}$/.test(t)) return t || null;
+  const g = packGrams(t);
+  return g ? (g >= 1000 ? `${Number((g / 1000).toFixed(2))} kg` : `${g} g`) : t;
+};
+
+/**
+ * What a list shows for a product sold in weights: the DEFAULT weight's own price, MRP and size (the one the
+ * product page pre-selects: the pack marked default, else the first listed). Without this a list paired the
+ * lowest weight's price (the product price) with the 1 kg pack's MRP and size: "1000g ₹45 ~~₹185~~ 76% off".
+ * Returns null when the product has no weight / size group.
+ */
+const listingFromOptions = (groups) => {
+  const v = (groups || []).find((g) => g.type === VARIANT && Array.isArray(g.choices) && g.choices.length);
+  if (!v) return null;
+  const d = v.choices.find((c) => c.isDefault) || v.choices[0];
+  const mrp = Number(d.mrp) > Number(d.price) ? Number(d.mrp) : null;
+  return { price: Number(d.price), originalPrice: mrp, weight: d.label, discountPercent: mrp ? Math.round((1 - Number(d.price) / mrp) * 100) : null };
 };
 const weightLabel = (g) => (g >= 1000 ? `${Number((g / 1000).toFixed(2))} kg` : `${g} g`);
 
@@ -200,5 +231,5 @@ const priceWithOptions = (dbItem, groups, picks) => {
 module.exports = {
   VARIANT, SINGLE, MULTI, TEXT, OptionsInputError,
   normalizeOptions, normalizeDetails, readOptions, priceWithOptions, variantFromPrice,
-  autoWeightOptions, effectiveOptions, packGrams,
+  autoWeightOptions, effectiveOptions, packGrams, packLabel, listingFromOptions,
 };

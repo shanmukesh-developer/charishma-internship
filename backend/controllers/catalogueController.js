@@ -60,8 +60,11 @@ const shapeItem = (item, store) => {
   const specs = readSpecs(i);
   const now = new Date();
   const inStock = !!i.isAvailable || !!(i.outOfStockUntil && new Date(i.outOfStockUntil) <= now);
-  const price = Number(i.price);
-  const mrp = Number(i.originalPrice) || Number(specs.originalPrice);
+  const po = require('../utils/productOptions');
+  const groups = po.effectiveOptions(i, store && store.vendorType);
+  const fromWeights = po.listingFromOptions(groups);
+  const price = fromWeights ? fromWeights.price : Number(i.price);
+  const mrp = fromWeights ? fromWeights.originalPrice : (Number(i.originalPrice) || Number(specs.originalPrice));
   const originalPrice = mrp > price ? mrp : null;
   // Service stores (laundry, print, repairs, tailoring) are booked, never ordered, flag or not.
   const bookingOnly = !!specs.bookingOnly || (!!store && isServiceVendorType(store.vendorType));
@@ -78,12 +81,12 @@ const shapeItem = (item, store) => {
     price,
     originalPrice,
     discountPercent: originalPrice ? Math.round((1 - price / originalPrice) * 100) : null,
-    weight: specs.weight || null,
+    weight: fromWeights ? fromWeights.weight : po.packLabel(specs.weight),
     brand: specs.brand || null,
     // Admin-set choices (weights with their own prices, flavours, types) and ordered product details:
-    // docs/PRODUCT_OPTIONS.md. Present only when set.
-    // (admin-set, else automatic 250 g / 500 g / 1 kg for weight-sold grocery / bakery products)
-    ...(() => { const o = require('../utils/productOptions').effectiveOptions(i, store && store.vendorType); return o.length ? { options: o } : {}; })(),
+    // docs/PRODUCT_OPTIONS.md (admin-set, else automatic 250 g / 500 g / 1 kg for weight-sold grocery / bakery
+    // products). Present only when set.
+    ...(groups.length ? { options: groups } : {}),
     ...(Array.isArray(specs.details) && specs.details.length ? { details: specs.details } : {}),
     emoji: specs.emoji || null,
     category: i.category || null,

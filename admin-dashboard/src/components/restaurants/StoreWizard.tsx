@@ -114,7 +114,7 @@ function validateStep(step: StepKey, s: WizardState, mode: 'create' | 'edit'): E
     if (!s.name.trim()) e.name = 'Give the store a name customers will recognise.';
     else if (s.name.trim().length > 120) e.name = 'Keep the name under 120 characters.';
     if (!s.vendorType) e.vendorType = 'Pick what kind of store this is.';
-    if (s.description.length > 500) e.description = 'Keep the description under 500 characters.';
+    if (s.description.length > 3000) e.description = 'Keep the description under 3000 characters.';
   }
   if (step === 'location') {
     if (!s.location.trim()) e.location = 'Add where the store is, e.g. "Food court, Block A".';
@@ -531,9 +531,11 @@ function BasicsStep({ s, set, errors, stores, editingId }: StepProps & { stores:
           {({ id, msgId }) => <TagInput id={id} describedBy={msgId} value={s.tags} onChange={tags => set({ tags })} suggestions={tagSuggestions} placeholder="e.g. Biryani, South Indian" />}
         </Field>
       </div>
-      <Field label="Short description" optional error={errors.description} aside={<span className="text-xs text-fg-subtle">{s.description.length}/500</span>} help="One or two lines about the store. Shown on the store page.">
+      {/* Up to 3000 characters (was 500, which cut pasted descriptions mid-word without a word). The app shows the
+          first paragraph with "More"; headings, lists and **bold** keep their layout there. */}
+      <Field label="Store description" optional error={errors.description} aside={<span className="text-xs text-fg-subtle">{s.description.length}/3000</span>} help="The first paragraph shows on the store page; customers tap More for the rest. Lines starting with ### become headings and - lines become lists.">
         {({ id, msgId, invalid }) => (
-          <textarea id={id} aria-describedby={msgId} aria-invalid={invalid} className={cx(INPUT, 'h-20 resize-none')} maxLength={500} value={s.description} onChange={e => set({ description: e.target.value })} placeholder="e.g. Home-style Andhra meals and evening tiffins since 2012." />
+          <textarea id={id} aria-describedby={msgId} aria-invalid={invalid} className={cx(INPUT, 'h-40 resize-y')} maxLength={3000} value={s.description} onChange={e => set({ description: e.target.value })} placeholder="e.g. Home-style Andhra meals and evening tiffins since 2012." />
         )}
       </Field>
     </div>

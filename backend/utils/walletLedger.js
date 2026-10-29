@@ -344,7 +344,8 @@ const labelFor = (type, amountPaise) => {
 };
 
 const REF_LINKS = {
-  ORDER: (id) => ({ label: `Order #${String(id).slice(0, 8).toUpperCase()}`, link: `/tracking/${id}` }),
+  // Same order reference as the app (last 6 characters), so a refund can be matched to its order.
+  ORDER: (id) => ({ label: `Order #${String(id).slice(-6).toUpperCase()}`, link: `/tracking/${id}` }),
   AUTO_BOOKING: (id) => ({ label: 'Auto booking', link: `/auto-ride/booking/${id}` }),
   AUTO_PRIVATE_REQUEST: () => ({ label: 'Private auto request', link: null }),
   EVENT_REGISTRATION: (id) => ({ label: 'Event registration', link: `/campus-events/registration/${id}` }),
