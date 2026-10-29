@@ -75,8 +75,16 @@ export function StallBookingSettings({ stall, onSaved }: { stall: CampusStall; o
     }
   };
 
+  const stationery = /stationery/i.test(stall.category);
   return (
     <div className="max-w-2xl space-y-5">
+      {/* The section comes from the stall's FIRST tag (Stores > the stall > Edit > Basics). */}
+      <p className="rounded-lg border border-line bg-surface-2/60 px-3 py-2 text-sm text-fg-muted">
+        Students find this stall under <span className="font-medium text-fg">{stall.category}</span>.{' '}
+        {stationery
+          ? 'Students can attach PDFs to print and type page counts (up to 200).'
+          : 'For printing with PDF uploads, make "stationery" or "xerox" its first tag in Stores > Edit > Basics.'}
+      </p>
       <Switch
         checked={form.enabled}
         onChange={(v) => setForm((f) => ({ ...f, enabled: v }))}
