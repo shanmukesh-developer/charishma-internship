@@ -280,6 +280,7 @@ const announceServiceBooking = (booking) => {
 // Retry key (customer-2): Idempotency-Key header or specifications.clientRequestId. A repeat
 // returns the first booking (duplicate: true); 409 only while the first one is still being saved.
 const BOOKING_KEY_WINDOW_MS = 24 * 60 * 60 * 1000;
+const MAX_OPEN_SERVICE_BOOKINGS = 8;
 router.post('/book', protect, async (req, res) => {
   const { readIdempotencyKey, claim } = require('../utils/idempotency');
   const rawSpecs = (req.body || {}).specifications;
@@ -326,6 +327,16 @@ router.post('/book', protect, async (req, res) => {
 
     if (!serviceType || !title) {
       return res.status(400).json({ success: false, message: 'serviceType and title are required' });
+    }
+
+    // At most MAX_OPEN_SERVICE_BOOKINGS bookings in progress per student (29 Oct 2026 security pass): every new
+    // booking reaches every on-duty rider live and pushes ten of them, so a loop of fake bookings flooded riders.
+    {
+      const { Op } = require('sequelize');
+      const open = await ServiceBooking.count({ where: { userId: req.user.id, status: { [Op.in]: ['REQUESTED', 'DIAGNOSED_QUOTED', 'CONFIRMED', 'IN_PROGRESS', 'READY_FOR_DELIVERY'] } } });
+      if (open >= MAX_OPEN_SERVICE_BOOKINGS) {
+        return res.status(409).json({ success: false, code: 'TOO_MANY_OPEN', message: `You already have ${open} service bookings in progress. Wait for one to finish (or cancel one) before booking again.` });
+      }
     }
 
     if (!VALID_SERVICE_TYPES.includes(serviceType)) {
@@ -499,6 +510,10 @@ router.post('/documents', protect, (req, res, next) => {
 }, async (req, res) => {
   try {
     if (!req.file || !req.file.buffer) return res.status(400).json({ success: false, code: 'NO_DOCUMENT', message: 'No PDF received. Please pick it again.' });
+    // Per-account hourly budget (utils/uploadBudget): one account cannot fill the database with PDFs.
+    const budget = require('../utils/uploadBudget');
+    const over = budget.take(req.user.id, req.file.buffer.length, { exempt: budget.isAdmin(req.user) });
+    if (over) return budget.refuse(res, over);
     const { storeServiceDocumentBuffer } = require('../utils/serviceDocuments');
     const name = (req.body && typeof req.body.name === 'string' && req.body.name) || req.file.originalname || '';
     const doc = await storeServiceDocumentBuffer(req.file.buffer, { ownerId: req.user.id, name });

@@ -5,6 +5,7 @@ const realtime = require('../utils/realtime');
 
 // @desc    Create a new support ticket
 // @route   POST /api/tickets
+const TICKETS_PER_DAY = 10;
 const createTicket = async (req, res) => {
   const { subject: rawSubject, description: rawDescription, orderId } = req.body || {};
 
@@ -27,6 +28,16 @@ const createTicket = async (req, res) => {
   try {
     const Ticket = getTicketModel();
     const Order = getOrderModel();
+
+    // At most TICKETS_PER_DAY new tickets per account a day (29 Oct 2026 security pass: one account could flood the
+    // support queue). Staff are not limited.
+    if (!isStaff) {
+      const { Op } = require('sequelize');
+      const today = await Ticket.count({ where: { userId: req.user.id, createdAt: { [Op.gt]: new Date(Date.now() - 24 * 60 * 60 * 1000) } } });
+      if (today >= TICKETS_PER_DAY) {
+        return res.status(429).json({ code: 'TICKET_LIMIT', message: `You have opened ${today} support tickets today. Please reply on an open ticket, or try again tomorrow.` });
+      }
+    }
 
     if (orderId) {
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(orderId))) {

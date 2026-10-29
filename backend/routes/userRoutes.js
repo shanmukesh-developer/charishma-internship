@@ -165,7 +165,8 @@ router.get('/products/:id/reviews', async (req, res) => {
           [Op.or]: [
             { productId: rawId },
             { productId: cleanSlug },
-            { productName: { [Op.like]: `%${rawId.replace(/[-_]/g, ' ')}%` } }
+            // The id is text from the URL: no LIKE wildcards of its own ('%' matched every product's reviews).
+            { productName: { [Op.like]: `%${rawId.slice(0, 120).replace(/[-_]/g, ' ').replace(/[%\\]/g, '')}%` } }
           ]
         },
         order: [['createdAt', 'DESC']],

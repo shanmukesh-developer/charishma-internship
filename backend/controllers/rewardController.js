@@ -113,7 +113,7 @@ const getLeaderboard = async (req, res) => {
     const User = getUserModel();
     const topUsers = await User.findAll({
       where: { role: 'student' },
-      attributes: ['id', 'name', 'badges', 'profileImage', 'zenPoints'],
+      attributes: ['id', 'name', 'badges', 'zenPoints'],
       order: [['completedOrders', 'DESC']],
       limit: 5
     });
@@ -124,12 +124,12 @@ const getLeaderboard = async (req, res) => {
       if (badges.some(b => b && typeof b === 'string' && b.includes('Platinum'))) tier = 'Platinum';
       else if (badges.some(b => b && typeof b === 'string' && b.includes('Gold'))) tier = 'Gold';
 
+      // Public route: first name only, no account id or photo (29 Oct 2026 security pass).
       return {
-        id: u.id,
-        name: u.name,
+        rank: topUsers.indexOf(u) + 1,
+        name: String(u.name || '').trim().split(/\s+/)[0].slice(0, 30) || 'Student',
         badgeCount: badges.length,
         tier,
-        profileImage: u.profileImage,
         zenPoints: u.zenPoints || 0
       };
     });

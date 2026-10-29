@@ -41,7 +41,8 @@ const instanceId = () => {
 };
 
 // ── redaction ─────────────────────────────────────────────────────────────────
-const SENSITIVE_KEY = '(?:password|passwd|pwd|otp|otpCode|pin|token|accessToken|refreshToken|idToken|fcmToken|pushToken|secret|apiKey|api_key|api-key|authorization|cookie|phone|phoneNumber|mobile|email|aadhaar|cardNumber|cvv)';
+// sig: the signature of a signed media / booking-document link (a bearer link for 60-90 minutes).
+const SENSITIVE_KEY = '(?:password|passwd|pwd|otp|otpCode|pin|token|accessToken|refreshToken|idToken|fcmToken|pushToken|secret|apiKey|api_key|api-key|authorization|cookie|phone|phoneNumber|mobile|email|aadhaar|cardNumber|cvv|sig)';
 const RULES = [
   // "key": "value"  /  'key': 'value'
   [new RegExp(`(["']${SENSITIVE_KEY}["']\\s*:\\s*)("(?:[^"\\\\]|\\\\.)*"|'(?:[^'\\\\]|\\\\.)*'|[^,}\\s]+)`, 'gi'), '$1"[REDACTED]"'],

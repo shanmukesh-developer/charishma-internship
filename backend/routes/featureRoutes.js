@@ -42,8 +42,13 @@ router.post('/referral/apply', protect, async (req, res) => {
       { where: { id: currentUser.id, referredBy: null } }
     );
     if (claimed === 0) return res.status(400).json({ message: 'You have already used a referral code' });
+    // The referrer is paid for at most MAX_PAID_REFERRALS friends (utils/referralRules); the count always grows.
+    const { MAX_PAID_REFERRALS } = require('../utils/referralRules');
     await User.update(
-      { referralCount: literal('COALESCE("referralCount", 0) + 1'), zenPoints: literal('COALESCE("zenPoints", 0) + 50') },
+      {
+        referralCount: literal('COALESCE("referralCount", 0) + 1'),
+        zenPoints: literal(`CASE WHEN COALESCE("referralCount", 0) < ${Number(MAX_PAID_REFERRALS)} THEN COALESCE("zenPoints", 0) + 50 ELSE COALESCE("zenPoints", 0) END`),
+      },
       { where: { id: referrer.id } }
     );
     await currentUser.reload();

@@ -682,6 +682,8 @@ const sanitizeXSS = (data) => {
   if (typeof data === 'object' && data !== null) {
     const cleanObj = {};
     for (const key in data) {
+      // A JSON "__proto__" key would become the prototype of the cleaned body (req.body.role read through it).
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
       if (Object.prototype.hasOwnProperty.call(data, key)) {
         cleanObj[key] = sanitizeXSS(data[key]);
       }
@@ -1650,6 +1652,12 @@ const initializeApp = async () => {
       const { orderId } = req.body || {};
       const isProof = !!orderId;
       let imageUrl = null;
+      // Per-account hourly budget (utils/uploadBudget): one account cannot fill the database with uploads.
+      const budget = require('./utils/uploadBudget');
+      const approxBytes = req.file && req.file.buffer ? req.file.buffer.length
+        : (typeof (req.body || {}).image === 'string' ? Math.floor(req.body.image.length * 0.75) : 0);
+      const over = budget.take(req.user.id, approxBytes, { exempt: budget.isAdmin(req.user) });
+      if (over) return budget.refuse(res, over);
       try {
         if (req.file && req.file.buffer) {
           const saved = await saveImageBytes(req.file.buffer, { ownerId: req.user.id, purpose: isProof ? 'delivery_proof' : 'other' });
@@ -2578,7 +2586,12 @@ const initializeApp = async () => {
       // Order chat: only the order's customer, its assigned rider (both must have joined the
       // order room via joinOrder / joinRoom) or an admin. Sender name and role come from the account.
       const orderRoleLabel = () => (socketRole() === 'rider' ? 'rider' : socketRole() === 'admin' ? 'admin' : 'customer');
-      const canTalkInOrderRoom = (room) => !isGuestSocket() && !!room && (socket.rooms.has(room) || isAdminSocket());
+      // Only an order / Mega Basket room (UUID) or a shared-cart code room carries chat: other joined rooms
+      // ('riders_online', 'user_<id>', 'restaurant_<id>' ...) are server-to-app channels, and relaying a chat there
+      // let one socket message every online rider (29 Oct 2026 security pass).
+      const canTalkInOrderRoom = (room) => !isGuestSocket() && !!room
+        && (UUID_PATTERN.test(room) || CART_ROOM_PATTERN.test(room))
+        && (socket.rooms.has(room) || isAdminSocket());
 
       // C9: order chat is persisted (OrderMessages, utils/orderMessages) and report_issue opens a support
       // ticket. For an order / Mega Basket room (UUID) the sender must STILL be the order's customer, its

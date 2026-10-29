@@ -207,8 +207,6 @@ const OTP_PURPOSES = {
   delete_partner_account: 'delete_partner_account'
 };
 
-// Email codes for sign-up / Google completion live under their own purpose, bound to the address.
-const EMAIL_AUTH_PURPOSE = 'auth_email';
 
 const normalizePurpose = (p) => (p === undefined || p === null || p === '' ? 'auth' : OTP_PURPOSES[String(p)] || null);
 
@@ -317,13 +315,12 @@ const consumeOtp = async (phone, purpose, otp, { bind } = {}) => {
  * Resolves { ok: true, method } or { ok: false, status, body }.
  */
 const verifyPhoneProof = async ({ phone, firebaseToken, registrationToken, otp, purpose = 'auth', emailOtp, email }) => {
-  // Email backup (POST /send-email-otp, purpose auth): proves the email address the code was sent to.
-  // Callers allow it only for a new account (or one whose email on file is that address).
+  // An email code proves an email address, never a phone number: accepted here it let anyone create an account
+  // on someone else's number with their own email (29 Oct 2026 security pass). New accounts and number links need
+  // the SMS code or Firebase; email codes stay for password reset / account deletion (they go to the email on file).
   if (emailOtp !== undefined && emailOtp !== null && emailOtp !== '' && !firebaseToken && !registrationToken && !otp) {
-    const bound = typeof email === 'string' ? email.trim().toLowerCase() : '';
-    if (!bound) return { ok: false, status: 400, body: { code: 'EMAIL_REQUIRED', message: 'Enter the email address the code was sent to.' } };
-    const result = await consumeOtp(phone, EMAIL_AUTH_PURPOSE, emailOtp, { bind: bound });
-    return result.ok ? { ok: true, method: 'email' } : result;
+    void email;
+    return { ok: false, status: 400, body: { code: 'PHONE_PROOF_REQUIRED', message: 'Verify this mobile number with the SMS code to continue.' } };
   }
   if (firebaseToken) {
     try {
@@ -413,6 +410,7 @@ const cleanEmailInput = (email) => {
 // @route   POST /api/users/register
 const registerUser = async (req, res) => {
   const { phone, password, hostelBlock, roomNumber, otp, firebaseToken, registrationToken, email, referralCode } = req.body;
+  const { MAX_PAID_REFERRALS, REFERRAL_POINTS } = require('../utils/referralRules');
 
   try {
     const cleanPhone = normalizePhone(phone);
@@ -475,12 +473,13 @@ const registerUser = async (req, res) => {
         password: typeof password === 'string' && password.length >= 6 ? password : randomPassword(),
         hostelBlock: hostelBlock || null,
         roomNumber: roomNumber || null,
-        zenPoints: referrer ? 50 : 0,
+        zenPoints: referrer ? REFERRAL_POINTS : 0,
         referredBy: referrer ? referrer.referralCode : null
       }, { transaction: t });
 
       if (referrer) {
-        referrer.zenPoints = (referrer.zenPoints || 0) + 50;
+        // The referrer is paid for at most MAX_PAID_REFERRALS friends (utils/referralRules).
+        if ((referrer.referralCount || 0) < MAX_PAID_REFERRALS) referrer.zenPoints = (referrer.zenPoints || 0) + REFERRAL_POINTS;
         referrer.referralCount = (referrer.referralCount || 0) + 1;
         await referrer.save({ transaction: t });
       }
@@ -1105,33 +1104,22 @@ const sendEmailOtp = async (req, res) => {
     if (!purpose || !['auth', 'reset_password', 'delete_account'].includes(purpose)) {
       return res.status(400).json({ message: 'Invalid OTP purpose' });
     }
+    // Sign-up codes by email are off: a new account must prove its phone number (see verifyPhoneProof).
+    if (purpose === 'auth') {
+      return res.status(400).json({ code: 'PHONE_PROOF_REQUIRED', message: 'New accounts are verified with the SMS code sent to the mobile number. Please try the SMS code again in a minute.' });
+    }
     if (!otpSecret()) return res.status(500).json({ message: 'Server configuration error. Please try again later.' });
     const mailer = require('../utils/mailer');
     if (!mailer.isMailerConfigured()) return res.status(503).json(EMAIL_OTP_UNAVAILABLE);
 
     const User = getUserModel();
     const account = await User.findOne({ where: { phone: cleanPhone } });
-    let to = '';
-    let storedPurpose = purpose;
-    let bind = null;
-    if (purpose === 'auth') {
-      if (account) {
-        return res.status(409).json({ code: 'PHONE_TAKEN', message: 'This number already has a ZCS account. Log in with your password, or reset it.' });
-      }
-      const cleanEmail = cleanEmailInput(body.email);
-      if (!cleanEmail) return res.status(400).json({ code: 'INVALID_EMAIL', message: 'Enter a valid email address to get the code.' });
-      if (await User.findOne({ where: { email: cleanEmail } })) {
-        return res.status(409).json({ code: 'EMAIL_TAKEN', message: 'This email is already linked to another ZCS account.' });
-      }
-      to = cleanEmail;
-      storedPurpose = EMAIL_AUTH_PURPOSE;
-      bind = cleanEmail;
-    } else {
-      if (!account) return res.status(404).json({ code: 'ACCOUNT_NOT_FOUND', message: 'No ZCS account uses this number.' });
-      to = String(account.email || '').trim().toLowerCase();
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
-        return res.status(404).json({ code: 'NO_EMAIL_ON_FILE', message: "This account has no email address, so we can't email a code. Please try the SMS code again later." });
-      }
+    const storedPurpose = purpose;
+    const bind = null;
+    if (!account) return res.status(404).json({ code: 'ACCOUNT_NOT_FOUND', message: 'No ZCS account uses this number.' });
+    const to = String(account.email || '').trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+      return res.status(404).json({ code: 'NO_EMAIL_ON_FILE', message: "This account has no email address, so we can't email a code. Please try the SMS code again later." });
     }
 
     if (emailOtpInFlight.has(cleanPhone)) {
