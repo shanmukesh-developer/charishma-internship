@@ -251,7 +251,7 @@ function AdEditor({ open, editing, ads, stores, storesError, onReloadStores, onC
       dismissible={!saving}
       size="xl"
       title={editing ? 'Edit splash ad' : 'New splash ad'}
-      description="Shown full screen right after the app intro. Only live stores can run an ad, and each style can be used by one active ad at a time."
+      description="Its store is credited on the customer app's service picker ('Brought to you by ...'); Preview on phone plays the full ad. Only live stores can run an ad, and each style can be used by one active ad at a time."
       footer={(
         <>
           <span className="mr-auto text-xs text-fg-muted">{editing ? (dirty ? 'Unsaved changes' : 'No changes') : 'Not saved yet'}</span>
@@ -535,7 +535,7 @@ export default function SplashAdsPage() {
     <div className="text-fg">
       <PageHeader
         title="Splash ads"
-        description="Full-screen store ads shown right after the customer app intro. Up to 8 run at once (one per style); the app shows them in random order. With none live, the app goes straight to Home."
+        description="Sponsored stores for the customer app. From app 1.0.43 the app opens on the service picker (Food, Bakeries, Groceries, Fruits, Pickles, Tech Services) and credits the next live ad's store at its foot; a tap opens the store. Up to 8 run at once (one per style), in random order. Preview on phone still plays the full ad; app versions before 1.0.43 show it full screen after the intro."
         actions={(
           <>
             <Button leftIcon={<IconRefresh size={14} />} loading={loading} onClick={load}>Refresh</Button>
