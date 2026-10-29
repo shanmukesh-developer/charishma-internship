@@ -18,7 +18,27 @@ interface OrderItem {
   priceAtOrder?: number;
   price?: number;
   lineTotal?: number;
+  /** The customer's picks, e.g. { "Weight": "500 g", "Add-ons": ["Candles"] } (older rows: a note string). */
+  customizations?: Record<string, unknown> | string | null;
 }
+
+/** "Weight: 500 g · Add-ons: Candles" from a line's picks (the customer chose these; the store packs them). */
+const picksText = (c: OrderItem['customizations']): string | null => {
+  let obj: unknown = c;
+  if (typeof obj === 'string') {
+    const t = obj.trim();
+    if (!t) return null;
+    try { obj = JSON.parse(t); } catch { return t.slice(0, 160); }
+  }
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return null;
+  const parts = Object.entries(obj as Record<string, unknown>)
+    .map(([k, v]) => {
+      const text = Array.isArray(v) ? v.map(String).filter(Boolean).join(', ') : v == null ? '' : String(v).trim();
+      return text ? `${k}: ${text}` : '';
+    })
+    .filter(Boolean);
+  return parts.length ? parts.join(' · ').slice(0, 160) : null;
+};
 
 interface PriceBreakdown {
   subtotal?: number;
@@ -64,6 +84,9 @@ interface Order {
   cancellationReason?: string | null;
   estDuration?: number | string | null;
   deliveryPartnerId?: string | null;
+  /** The rider on the order (GET /api/orders includes it). */
+  deliveryPartner?: { id?: string; name?: string | null; phone?: string | null; isOnline?: boolean } | null;
+  cancelledBy?: string | null;
   deliveryPinAttempts?: number;
   /** C8: set when the order is delivered (null before). */
   receiptNumber?: string | null;
@@ -210,6 +233,15 @@ const PaymentCell = ({ order }: { order: Order }) => {
       </div>
     );
   }
+  if (order.status === 'Cancelled' && order.paymentMethod === 'Wallet') {
+    // cancelAndRefund puts the money back in the Wallet exactly once (Finance has the ledger row).
+    return (
+      <div>
+        <p className="text-fg">{method}</p>
+        <p className="text-xs text-fg-muted">Refunded to Wallet</p>
+      </div>
+    );
+  }
   return (
     <div>
       <p className="text-fg">{method}</p>
@@ -239,7 +271,7 @@ export default function OrdersPage() {
   const confirm = useConfirm();
   // Cancel needs a reason for the customer (was a browser prompt): this small form collects it.
   const [cancelling, setCancelling] = useState<Order | null>(null);
-  const [cancelReason, setCancelReason] = useState('Cancelled by ZCS support');
+  const [cancelReason, setCancelReason] = useState('');
   const [orders, setOrders] = useState<Order[]>([]);
   const [totalOrders, setTotalOrders] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -453,7 +485,7 @@ export default function OrdersPage() {
 
   // Opens the cancel form; the request itself is unchanged (same endpoint, status and reason).
   const cancelOrder = (o: Order) => {
-    setCancelReason('Cancelled by ZCS support');
+    setCancelReason('');
     setCancelling(o);
   };
   const confirmCancel = () => {
@@ -477,9 +509,13 @@ export default function OrdersPage() {
   const selectedAssignable = !!selectedOrder && !isVendorOrder(selectedOrder) && ASSIGNABLE.includes(selectedOrder.status);
   const [assignRiders, setAssignRiders] = useState<{ id: string; name: string; isOnline?: boolean }[] | null>(null);
   const [assignPick, setAssignPick] = useState('');
+  const [assignRidersError, setAssignRidersError] = useState(false);
+  const [assignRidersTry, setAssignRidersTry] = useState(0);
   useEffect(() => {
-    if (!selectedAssignable || assignRiders) return;
+    // Fresh on every drawer open (on-duty labels change); a failed load can be retried (it used to stay empty).
+    if (!selectedAssignable) return;
     let live = true;
+    setAssignRidersError(false);
     requestJson<{ riders?: { id?: string; _id?: string; name?: string; isOnline?: boolean }[] }>(`${API_URL}/api/admin/riders?approved=1&limit=100`)
       .then(d => {
         if (!live) return;
@@ -487,16 +523,17 @@ export default function OrdersPage() {
         list.sort((a, b) => Number(!!b.isOnline) - Number(!!a.isOnline) || a.name.localeCompare(b.name));
         setAssignRiders(list);
       })
-      .catch(() => { if (live) setAssignRiders([]); });
+      .catch(() => { if (live) setAssignRidersError(true); });
     return () => { live = false; };
-  }, [selectedAssignable, assignRiders]);
+  }, [selectedAssignable, selectedId, assignRidersTry]);
   const assignRider = async (o: Order, riderId: string | null) => {
     const id = shortId(orderId(o));
     const who = riderId ? (assignRiders || []).find(r => r.id === riderId)?.name || 'this rider' : null;
+    const offDuty = !!riderId && (assignRiders || []).find(r => r.id === riderId)?.isOnline === false;
     if (!(await confirm(riderId
-      ? { title: `Give order ${id} to ${who}?`, description: 'The current rider, if any, loses the order.', confirmLabel: 'Assign rider' }
+      ? { title: `Give order ${id} to ${who}?`, description: offDuty ? `${who} is off duty: no new-order alerts, and may not be on the road. The current rider, if any, loses the order.` : 'The current rider, if any, loses the order.', confirmLabel: offDuty ? 'Assign anyway' : 'Assign rider' }
       : { title: `Remove the rider from order ${id}?`, description: 'The order goes back to all riders.', confirmLabel: 'Remove rider', tone: 'danger' }))) return;
-    runAction(o, riderId ? 'Rider assigned' : 'Rider removed', `${API_URL}/api/admin/orders/${orderId(o)}/rider`, { riderId });
+    runAction(o, riderId ? 'Rider assigned' : 'Rider removed', `${API_URL}/api/admin/orders/${orderId(o)}/rider`, { riderId, ...(offDuty ? { allowOffline: true } : {}) });
     setAssignPick('');
   };
 
@@ -541,7 +578,7 @@ export default function OrdersPage() {
       cell: o => (
         <div className="min-w-0 max-w-[280px]">
           <p className="truncate text-fg">{o.restaurant?.name || '–'}</p>
-          <p className="truncate text-xs text-fg-muted">{(o.items || []).map(i => `${i.name || 'Item'} ×${i.quantity}`).join(', ') || '–'}</p>
+          <p className="truncate text-xs text-fg-muted">{(o.items || []).map(i => { const pk = picksText(i.customizations); return `${i.name || 'Item'}${pk ? ` (${pk})` : ''} ×${i.quantity}`; }).join(', ') || '–'}</p>
           {isVendorOrder(o) && <p className="text-xs text-warning-text" title="The stall delivers this order itself and collects cash. No ZCS rider, no delivery PIN.">Stall delivers, cash to stall</p>}
         </div>
       ),
@@ -673,7 +710,7 @@ export default function OrdersPage() {
             {selectedVendor && ['Accepted', 'Preparing', 'ReadyForPickup'].includes(selectedOrder.status) && (
               <Button disabled={selectedBusy} onClick={() => setStatus(selectedOrder, 'OutForDelivery')}>Out for delivery</Button>
             )}
-            {!selectedVendor && !['Pending', 'PickedUp', 'ArrivedAtGate'].includes(selectedOrder.status) && (
+            {!selectedVendor && !!selectedOrder.deliveryPartnerId && !['Pending', 'PickedUp', 'ArrivedAtGate'].includes(selectedOrder.status) && (
               <Button disabled={selectedBusy} onClick={() => setStatus(selectedOrder, 'PickedUp')}>Mark picked up</Button>
             )}
             {selectedOrder.status !== 'Pending' && (
@@ -754,8 +791,19 @@ export default function OrdersPage() {
               <div className="rounded-lg border border-line p-3">
                 <p className="text-xs text-fg-muted">Rider</p>
                 <p className="mt-0.5 text-sm text-fg">
-                  {selectedOrder.deliveryPartnerId ? ((assignRiders || []).find(r => r.id === selectedOrder.deliveryPartnerId)?.name || 'Assigned') : 'Not assigned yet'}
+                  {selectedOrder.deliveryPartnerId
+                    ? (selectedOrder.deliveryPartner?.name || (assignRiders || []).find(r => r.id === selectedOrder.deliveryPartnerId)?.name || 'Assigned')
+                    : selectedOrder.status === 'Pending' ? 'Waiting for the store to accept' : 'Not assigned yet'}
+                  {selectedOrder.deliveryPartner?.phone && (
+                    <a href={`tel:${selectedOrder.deliveryPartner.phone}`} className="ml-2 text-accent-text underline">{selectedOrder.deliveryPartner.phone}</a>
+                  )}
+                  {selectedOrder.deliveryPartner && selectedOrder.deliveryPartner.isOnline === false && <span className="ml-2 text-xs text-warning-text">off duty</span>}
                 </p>
+                {selectedAssignable && assignRidersError && (
+                  <p className="mt-2 text-xs text-danger-text">
+                    Could not load the riders. <button type="button" className="underline" onClick={() => setAssignRidersTry(n => n + 1)}>Try again</button>
+                  </p>
+                )}
                 {selectedAssignable && (
                   <div className="mt-3 flex flex-wrap items-end gap-2">
                     <Field label="Give the order to" className="min-w-[220px] flex-1">
@@ -788,7 +836,10 @@ export default function OrdersPage() {
                       const line = item.lineTotal ?? (unit != null ? unit * item.quantity : null);
                       return (
                         <li key={i} className="flex items-center justify-between gap-4 px-3 py-2 text-sm">
-                          <span className="text-fg">{item.name || 'Item'} <span className="text-fg-muted">×{item.quantity}</span></span>
+                          <span className="text-fg">
+                            {item.name || 'Item'} <span className="text-fg-muted">×{item.quantity}</span>
+                            {picksText(item.customizations) && <span className="block text-xs text-fg-muted">{picksText(item.customizations)}</span>}
+                          </span>
                           <span className="tabular-nums text-fg">{line != null ? rupees(line) : '–'}</span>
                         </li>
                       );

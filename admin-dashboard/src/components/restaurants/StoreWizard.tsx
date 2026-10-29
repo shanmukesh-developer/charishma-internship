@@ -755,7 +755,7 @@ function LoginStep({ s, set, errors, mode, initial }: StepProps & { mode: 'creat
       )}
       {local && (
         <Callout tone="sky" title="The stall needs this to take orders">
-          Stall orders reach only the {app} app (customer name, phone, room and items). Without a login the stall never sees them and orders time out after 15 minutes.
+          Stall orders reach only the {app} app (customer name, phone, room and items). Without a login the stall never sees them and orders time out after 7 minutes.
         </Callout>
       )}
 

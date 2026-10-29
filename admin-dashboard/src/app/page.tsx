@@ -13,7 +13,7 @@ import { peekCachedJson } from '@/lib/requestCache';
 import { useRouter } from 'next/navigation';
 import {
   Badge, Button, ButtonLink, Card, CardHeader, DataTable, EmptyState, Field, Notice, PageHeader,
-  SegmentedControl, Skeleton, StatTile, StatusDot, StatusPill, Textarea, useConfirm, type Column,
+  SegmentedControl, Skeleton, StatusDot, StatusPill, Textarea, useConfirm, type Column,
   IconChevronRight,
 } from '@/components/ui';
 import { formatINR, formatRelative, formatTime, humanize } from '@/lib/format';
@@ -33,20 +33,25 @@ const INBOX_ITEMS: { key: InboxKey; label: string; area: string; href: string; l
   { key: 'payoutsPending', label: 'Payouts to mark as paid', area: 'Payments', href: '/finance?tab=payouts', liveType: 'payout' },
   { key: 'verifications', label: 'Student IDs to review', area: 'Customers', href: '/student-verification', liveType: 'verification' },
   { key: 'friendsReports', label: 'Reports to review', area: 'Community', href: '/moderation', liveType: 'friends_report' },
-  { key: 'friendsAppeals', label: 'Appeals to decide', area: 'Community', href: '/moderation?tab=appeals', liveType: 'friends_report' },
+  { key: 'friendsAppeals', label: 'Appeals to decide', area: 'Community', href: '/moderation?tab=appeals', liveType: 'friends_appeal' },
   { key: 'wallPending', label: 'Wall photos to approve', area: 'Community', href: '/wall', liveType: 'wall_submission' },
   { key: 'pgBookings', label: 'PG booking requests', area: 'PG and hostels', href: '/pg?tab=bookings', liveType: 'pg_booking' },
   { key: 'serviceRequests', label: 'New service bookings', area: 'Services', href: '/service-bookings', liveType: 'service_booking' },
   { key: 'autoDrivers', label: 'Auto drivers to verify', area: 'Auto-ride', href: '/auto-ride?tab=drivers', liveType: 'auto_driver' },
   { key: 'autoVehicles', label: 'Auto vehicles to verify', area: 'Auto-ride', href: '/auto-ride?tab=vehicles', liveType: 'auto_driver' },
-  { key: 'eventsToReview', label: 'Events submitted for review', area: 'Events', href: '/campus-events?tab=review', liveType: 'campus_event' },
+  { key: 'eventsToReview', label: 'Events submitted for review', area: 'Events', href: '/campus-events?tab=review', liveType: 'campus_event_admin' },
   { key: 'rentalListings', label: 'Rental listings to review', area: 'Rentals', href: '/rentals?tab=listings', liveType: 'rental' },
   { key: 'rentalLicences', label: 'Driving licences to verify', area: 'Rentals', href: '/rentals?tab=licences', liveType: 'rental' },
   { key: 'rentalReports', label: 'Rental reports to handle', area: 'Rentals', href: '/rentals?tab=reports', liveType: 'rental' },
-  { key: 'rentalDisputes', label: 'Disputed rental charges', area: 'Rentals', href: '/rentals?tab=reports', liveType: 'rental' },
+  { key: 'rentalDisputes', label: 'Disputed rental charges', area: 'Rentals', href: '/rentals?tab=disputes', liveType: 'rental' },
 ];
 const EMPTY_INBOX: Inbox = Object.fromEntries(INBOX_ITEMS.map(i => [i.key, null])) as Inbox;
-const LIVE_HOME_TYPES = ['order', 'rider', 'store', 'ticket', 'verification', 'pg_booking', 'wall_submission', 'wall', 'service_booking'] as const;
+// Every queue's live type (and the realtime names some modules use), so a new item lights its row at once; the
+// inbox is also polled with the feed (some queues have no live event at all).
+const LIVE_HOME_TYPES = [...new Set([
+  'order', 'rider', 'store', 'ticket', 'verification', 'pg_booking', 'wall_submission', 'wall', 'service_booking',
+  ...INBOX_ITEMS.map(i => i.liveType), 'rental_booking', 'friends_review',
+])];
 
 // Leaflet (~150 KB) loads only with the map; a skeleton holds the space meanwhile.
 const LiveFleetMap = dynamic(() => import('@/components/LiveFleetMap'), {
@@ -471,6 +476,7 @@ export default function AdminHome() {
   useVisibleInterval(() => {
     fetchOrders();
     throttledFetchStats();
+    fetchInbox();
   }, isConnected ? POLL_LIVE_MS : POLL_OFFLINE_MS, isAuthed);
 
   useEffect(() => {
@@ -779,7 +785,9 @@ export default function AdminHome() {
           ? <span className="text-fg-muted">Assigned</span>
           : ['Delivered', 'Cancelled'].includes(o.status)
             ? <span className="text-fg-subtle">–</span>
-            : <span className="text-fg-muted">Waiting for a rider</span>,
+            : o.status === 'Pending'
+              ? <span className="text-fg-muted">Waiting for the store</span>
+              : <span className="text-fg-muted">Waiting for a rider</span>,
     },
     {
       key: 'amount',
@@ -974,7 +982,7 @@ export default function AdminHome() {
             <CardHeader title="Accept pending orders for stores" />
             <div className="space-y-4 p-4">
               <p className="text-sm text-fg-muted">
-                Pending orders that nobody accepts are cancelled and refunded automatically after the server timeout (15 minutes by default).
+                Pending orders that nobody accepts are cancelled and refunded automatically after the server timeout (7 minutes by default; slot orders count from 60 minutes before their slot).
                 If stores can be reached by phone but cannot use their app, accept all pending ZCS-delivered orders at once. Stall orders and unverified UPI orders are skipped.
               </p>
               <Button variant="secondary" onClick={handleAcceptAllPending} loading={batchRunning}>

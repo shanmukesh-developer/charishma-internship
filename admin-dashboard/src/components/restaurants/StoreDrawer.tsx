@@ -375,7 +375,7 @@ function LoginTab({ store, onChanged }: { store: Store; onChanged: (s: Store) =>
           <CopyButton text={id} label="Copy Store ID" />
         </div>
         <p className="text-xs text-fg-muted">ZCS stores only a hash, so the current password cannot be shown. Reset it to share a new one.</p>
-        {local && !store.hasPassword && <Callout tone="amber">Stall orders reach only the ZCS Vendor app. Until the stall can sign in, its orders wait and are cancelled after 15 minutes.</Callout>}
+        {local && !store.hasPassword && <Callout tone="amber">Stall orders reach only the ZCS Vendor app. Until the stall can sign in, its orders wait and are cancelled after 7 minutes.</Callout>}
       </section>
 
       <section className="space-y-3">
@@ -553,7 +553,7 @@ function PromoteTab({ store, onChanged, onEdit }: { store: Store; onChanged: (s:
             onChange={setWantBanner}
             label="Home hero banner"
             description={store.imageUrl
-              ? `${banner ? 'A banner for this store is live on Home.' : 'Adds a large banner at the top of Home that opens this store.'} Uses the cover photo.`
+              ? `${banner ? 'A Home banner for this store is saved.' : 'Saves a large Home banner that opens this store.'} Uses the cover photo. The current app does not show Home banners yet.`
               : <>Needs a cover photo first. <button type="button" className="font-semibold text-success-text underline" onClick={() => onEdit('branding')}>Add one</button></>}
           />
         </div>

@@ -43,7 +43,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: '/orders', label: 'Orders', icon: 'orders', description: 'Every food and store order: status, rider, payment and refunds.', keywords: 'live orders delivery refund cancel stuck' },
       { href: '/campus-booking', label: 'In-Campus Booking', icon: 'orders', description: 'Pickup bookings paid straight to campus stalls by UPI; each stall: switch, UPI ID and QR.', keywords: 'campus booking pickup stall upi qr payment proof commission' },
       { href: '/restaurants', label: 'Stores', icon: 'store', description: 'Restaurants, local vendors and stalls: details, hours, compliance.', keywords: 'restaurants vendors stalls shops merchants fssai gst' },
-      { href: '/catalogue', label: 'Catalogue', icon: 'catalogue', description: 'Add, edit and delete items for any store or Others category.', keywords: 'menu items products prices stock categories toys fruits groceries stationery' },
+      { href: '/catalogue', label: 'Catalogue', icon: 'catalogue', description: 'Add, edit and delete items for any store or Groceries category.', keywords: 'menu items products prices stock categories toys fruits groceries stationery' },
     ],
   },
   {
@@ -82,7 +82,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: '/coupons', label: 'Coupons', icon: 'tag', description: 'Discount codes and their usage.', keywords: 'coupons discount promo codes offers' },
       { href: '/vault', label: 'Daily deals', icon: 'gift', description: 'Limited daily deals (Vault) that customers claim as coupons.', keywords: 'vault deals daily claim' },
       { href: '/notifications', label: 'Push notifications', icon: 'bell', description: 'Send push notifications to customers.', keywords: 'push notification broadcast message send' },
-      { href: '/cms', label: 'Home screen layout', icon: 'layout', description: 'Banners and sections on the customer app home screen.', keywords: 'cms banners layout home sections' },
+      { href: '/cms', label: 'Home screen layout', icon: 'layout', description: 'Saved Home banners, shortcuts and flags (the current app does not show them yet).', keywords: 'cms banners layout home sections' },
       { href: '/splash-ads', label: 'Splash ads', icon: 'image', description: 'Full-screen store ads shown right after the customer app intro (one per style, up to 8).', keywords: 'splash ads advert sponsored intro full screen promotion store offer' },
     ],
   },

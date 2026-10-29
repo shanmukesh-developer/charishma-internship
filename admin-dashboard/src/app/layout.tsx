@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import SOSAlertModal from '@/components/SOSAlertModal';
+import AdminAlerts from '@/components/AdminAlerts';
 import AppShell from '@/components/shell/AppShell';
 import FetchInterceptor from '@/components/FetchInterceptor';
 import AdminSocketProvider from '@/components/AdminSocketProvider';
@@ -42,6 +43,8 @@ export default function RootLayout({
               <AdminSocketProvider>
                 <FetchInterceptor />
                 <SOSAlertModal />
+                {/* Server alerts (no rider for an order, SMS budget used up, money mismatches) */}
+                <AdminAlerts />
                 <AppShell>
                   {children}
                 </AppShell>

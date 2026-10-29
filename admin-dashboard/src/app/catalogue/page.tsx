@@ -22,7 +22,7 @@ import { formatINR, formatNumber, humanize } from '@/lib/format';
 
 /**
  * Catalogue: one place to add, edit and delete the items of any store: restaurants, local vendors
- * (stalls) and the stores behind the customer app's Others section (Grocery, Toys, Seeds, ...).
+ * (stalls) and the stores behind the customer app's Groceries tab (Grocery, Toys, Seeds, ...).
  * Everything goes through the existing admin endpoints (each write is validated and audited there):
  *   GET  /api/admin/restaurants                       stores (source picker)
  *   GET  /api/admin/menu-items?restaurantId=          items of one store
@@ -339,7 +339,7 @@ export default function CataloguePage() {
   const sourceOptions: { value: Source; label: string; count?: number }[] = [
     { value: 'restaurants', label: 'Restaurants', count: stores.filter(s => sourceOf(s) === 'restaurants').length },
     { value: 'vendors', label: 'Local vendors', count: stores.filter(s => sourceOf(s) === 'vendors').length },
-    { value: 'others', label: 'Others section', count: stores.filter(s => sourceOf(s) === 'others').length },
+    { value: 'others', label: 'Groceries and shops', count: stores.filter(s => sourceOf(s) === 'others').length },
   ];
 
   const inStockCount = items.filter(i => i.isAvailable !== false).length;
@@ -349,7 +349,7 @@ export default function CataloguePage() {
       <QueryChange onChange={onQuery} />
       <PageHeader
         title="Catalogue"
-        description="Add, edit and delete the items customers can order, for any restaurant, local vendor or Others section store."
+        description="Add, edit and delete the items customers can order, for any restaurant, local stall or Groceries shop."
         actions={
           store ? (
             <>
