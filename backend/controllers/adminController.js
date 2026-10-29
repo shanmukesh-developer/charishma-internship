@@ -1446,14 +1446,16 @@ exports.getDashboardStats = async (req, res) => {
       Order.count(),
       DeliveryPartner.count({ where: { isApproved: true } }),
       Restaurant.count({ where: { vendorType: 'LOCAL_VENDOR', isActive: true } }),
+      // Same money as Finance: what the customer paid (finalPrice, else the item total) and each order's own
+      // commission snapshot (the Overview used to show the item total and a flat 10 %).
       Order.findOne({
         where: { status: 'Delivered' },
-        attributes: [[fn('SUM', col('totalPrice')), 'revenue']],
+        attributes: [[fn('SUM', fn('COALESCE', col('finalPrice'), col('totalPrice'))), 'revenue'], [fn('SUM', col('commissionAmountPaise')), 'commissionPaise']],
         raw: true
       }),
       Order.findOne({
         where: { status: { [Op.notIn]: ['Delivered', 'Cancelled'] } },
-        attributes: [[fn('SUM', col('totalPrice')), 'revenue'], [fn('COUNT', col('id')), 'count']],
+        attributes: [[fn('SUM', fn('COALESCE', col('finalPrice'), col('totalPrice'))), 'revenue'], [fn('COUNT', col('id')), 'count']],
         raw: true
       })
     ]);
@@ -1462,12 +1464,13 @@ exports.getDashboardStats = async (req, res) => {
     const activeRevenue = Number(activeStats?.revenue || 0);
     const activeOrdersCount = Number(activeStats?.count || 0);
 
+    const inr = (n) => `₹${(Math.round(n * 100) / 100).toLocaleString('en-IN')}`;
     const body = {
-      revenue: `₹${totalRevenue.toLocaleString()}`,
-      activeRevenue: `₹${activeRevenue.toLocaleString()}`,
+      revenue: inr(totalRevenue),
+      activeRevenue: inr(activeRevenue),
       orderActivity: totalOrders.toString(),
       activeFleet: activeFleet.toString(),
-      commission: `₹${Math.round(totalRevenue * 0.1).toLocaleString()}`,
+      commission: inr(Number(deliveredStats?.commissionPaise || 0) / 100),
       activeOrders: activeOrdersCount.toString(),
       localVendorCount: localVendorCount.toString()
     };
@@ -2958,7 +2961,6 @@ exports.getAttentionCounts = async (req, res) => {
 // Preparing), exactly like a rider release. Stall (VENDOR) orders never have a rider. The write is
 // conditional on the rider + status read here, so a claim / pickup / cancel that lands meanwhile wins (409).
 const ADMIN_ASSIGNABLE = ['Accepted', 'Preparing', 'ReadyForPickup', 'Picking'];
-const ADMIN_MAX_ACTIVE_ORDERS = Math.max(1, parseInt(process.env.RIDER_MAX_ACTIVE_ORDERS, 10) || 3);
 
 /**
  * Take the rider off an order that is still at the store and put it back in the rider pool: the same
@@ -3034,9 +3036,21 @@ exports.assignOrderRider = async (req, res) => {
       rider = await DeliveryPartner.findByPk(newRiderId);
       if (!rider) return res.status(404).json({ message: 'Rider not found' });
       if (!rider.isApproved) return res.status(400).json({ message: `${rider.name || 'This rider'} is not approved.`, code: 'RIDER_NOT_APPROVED' });
-      const held = await Order.count({ where: { deliveryPartnerId: rider.id, status: { [Op.notIn]: ['Delivered', 'Cancelled'] } } });
-      if (held >= ADMIN_MAX_ACTIVE_ORDERS) {
-        return res.status(409).json({ message: `${rider.name || 'This rider'} already carries ${held} orders (the most allowed).`, code: 'MAX_ACTIVE' });
+      // Same limits as a rider's own claim (utils/riderLoad, utils/riderCash): orders, shopping lists and service
+      // pickups together, and the COD cash limit. Counting orders alone let support give a rider 4 jobs.
+      const { activeJobs, MAX_ACTIVE_JOBS } = require('../utils/riderLoad');
+      const load = await activeJobs(rider.id);
+      if (load.total >= MAX_ACTIVE_JOBS) {
+        const parts = [load.orders && `${load.orders} order${load.orders === 1 ? '' : 's'}`, load.baskets && `${load.baskets} shopping list${load.baskets === 1 ? '' : 's'}`, load.services && `${load.services} pickup${load.services === 1 ? '' : 's'}`].filter(Boolean).join(', ');
+        return res.status(409).json({ message: `${rider.name || 'This rider'} already has ${parts || `${load.total} jobs`} (${MAX_ACTIVE_JOBS} at a time).`, code: 'MAX_ACTIVE' });
+      }
+      const cash = await require('../utils/riderCash').claimBlockedByCash({ sequelize: Order.sequelize, riderId: rider.id, orderId: order.id });
+      if (cash) {
+        return res.status(409).json({ message: `${rider.name || 'This rider'} holds ₹${cash.cash.cashHeld} in cash (limit ₹${cash.cash.limit}), so COD orders are paused until they deposit.`, code: 'CASH_LIMIT' });
+      }
+      // Off duty: they get no new-order alerts and may not be on the road. Support confirms first (allowOffline).
+      if (rider.isOnline === false && !(req.body && req.body.allowOffline === true)) {
+        return res.status(409).json({ message: `${rider.name || 'This rider'} is off duty right now. Assign anyway?`, code: 'RIDER_OFFLINE' });
       }
     }
     if (!newRiderId) {

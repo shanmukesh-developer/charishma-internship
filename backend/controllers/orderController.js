@@ -1130,7 +1130,11 @@ const getAllOrders = async (req, res) => {
       offset,
       include: [
         { model: User, as: 'user', attributes: ['name', 'phone'] },
-        { model: Restaurant, as: 'restaurant', attributes: ['id', 'name', 'vendorType', 'whatsappNumber'] } // admin only: stall contact for VENDOR orders
+        { model: Restaurant, as: 'restaurant', attributes: ['id', 'name', 'vendorType', 'whatsappNumber'] }, // admin only: stall contact for VENDOR orders
+        // The rider on the order (support answers "where is my order" with the rider's name and phone).
+        ...(Order.associations && Order.associations.deliveryPartner
+          ? [{ model: Order.associations.deliveryPartner.target, as: 'deliveryPartner', attributes: ['id', 'name', 'phone', 'isOnline'], required: false }]
+          : []),
       ]
     });
 
@@ -1569,14 +1573,18 @@ const cancelOrder = async (req, res) => {
     }
     if (order.deliveryPartnerId) {
       const rd = require('../utils/riderDispatch');
-      rd.pushAssignedRider(order.deliveryPartnerId, 'Order cancelled', `Order #${rd.shortRef(order.id)} was cancelled${ownerCancel ? ' by the customer' : ' by ZCS support'}. Do not pick it up.`, { orderId: order.id, type: 'ORDER_CANCELLED' });
+      // Already carrying it: the rider must not just drop the items (a buy-at-store rider paid for them).
+      const carrying = ['Picking', 'PickedUp', 'ArrivedAtGate', 'OutForDelivery'].includes(order.status);
+      rd.pushAssignedRider(order.deliveryPartnerId, 'Order cancelled', `Order #${rd.shortRef(order.id)} was cancelled${ownerCancel ? ' by the customer' : ' by ZCS support'}. ${carrying ? 'Call ZCS support about the items you have.' : 'Do not pick it up.'}`, { orderId: order.id, type: 'ORDER_CANCELLED' });
     }
     if (order.restaurantId) pushStoreCancelled(order.restaurantId, order, ownerCancel ? 'The customer cancelled an order.' : 'An order was cancelled by ZCS support.');
     // Support cancelled it: the customer may not have the app open (the auto-cancel and store-decline paths push too).
     if (!ownerCancel) {
+      // ": <reason>." with exactly one full stop ("...your order: Cancelled by ZCS support ₹160 is back" read badly).
+      const reasonText = reason ? `: ${String(reason).trim().replace(/[.\s]+$/, '')}.` : '.';
       pushCustomer(order, 'Order cancelled', refunded > 0
-        ? `ZCS support cancelled your order${reason ? `: ${reason}` : '.'} ${inr(refunded)} is back in your Wallet.`
-        : `ZCS support cancelled your order${reason ? `: ${reason}` : '.'} You have not been charged.`);
+        ? `ZCS support cancelled your order${reasonText} ${inr(refunded)} is back in your Wallet.`
+        : `ZCS support cancelled your order${reasonText} You have not been charged.`);
     }
 
     // The app shows this under its own "Order cancelled" title: say what happened to the money, not the title again.
@@ -1627,6 +1635,11 @@ const updateOrderStatus = async (req, res) => {
     }
     if (!isVendorFulfilled(order) && status === 'OutForDelivery') {
       return res.status(400).json({ message: 'OutForDelivery is only for stall-delivered orders. Use PickedUp for rider orders.' });
+    }
+    // A rider order cannot be picked up / at the gate without a rider: it left the pool with nobody carrying it
+    // (no rider could claim it afterwards). Assign a rider first.
+    if (!isVendorFulfilled(order) && RIDER_STEPS.includes(status) && !order.deliveryPartnerId) {
+      return res.status(409).json({ code: 'NO_RIDER', message: 'Assign a rider to this order first, then mark it picked up.' });
     }
 
     // Forward-only: a Delivered order is final, and no step may go backwards (re-delivering a
