@@ -57,7 +57,8 @@ const tokensOf = (rider) => (Array.isArray(rider.fcmTokens) ? rider.fcmTokens : 
 // rider names it explicitly: the old 'delivery-alerts-v2' channel is deleted by the rider app, and relying on
 // the manifest's default-channel fallback breaks the moment that default changes.
 const RIDER_NEW_ORDER_CHANNEL = 'delivery-alerts-v3';
-const RIDER_PUSH_ANDROID = Object.freeze({ priority: 'high', notification: { sound: 'alert', channelId: RIDER_NEW_ORDER_CHANNEL } });
+// ttl: a pool offer older than 15 minutes is taken or cancelled; FCM would otherwise deliver it for 4 weeks.
+const RIDER_PUSH_ANDROID = Object.freeze({ priority: 'high', ttl: 15 * 60 * 1000, notification: { sound: 'alert', channelId: RIDER_NEW_ORDER_CHANNEL } });
 
 // Push NEW_ORDER to the `limit` best-placed riders. Never throws.
 const pushNearestRiders = async ({ restaurant, orderId, title, body, limit = 5, excludeRiderId = null, data = {} }) => {

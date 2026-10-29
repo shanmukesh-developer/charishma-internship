@@ -206,7 +206,7 @@ const updateTicket = async (req, res) => {
               replied ? String(adminResponse).slice(0, 140) : 'Your ticket "' + String(ticket.subject || 'Support request').slice(0, 60) + '" is now ' + ticket.status + '.',
               { type: 'SUPPORT_TICKET', ticketId: String(ticket.id), status: String(ticket.status) },
               // Rider app channel (the default 'delivery-alerts-v2' was deleted by the rider app).
-              { persist: false, android: require('../utils/riderDispatch').RIDER_PUSH_ANDROID }
+              { persist: false, android: { ...require('../utils/riderDispatch').RIDER_PUSH_ANDROID, ttl: 24 * 60 * 60 * 1000 } } // a support reply stays deliverable for a day
             );
           }
         }

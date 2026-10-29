@@ -1,9 +1,12 @@
 // Money, IST day keys and relative times.
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 
+/** ₹ with paise only when there are any ("₹124", "₹123.50"): cash to collect must match the customer's bill exactly. */
 export function rupees(n: number | null | undefined): string {
   if (n === null || n === undefined || !Number.isFinite(n)) return '—';
-  return `₹${Math.round(n).toLocaleString('en-IN')}`;
+  const paise = Math.round(n * 100);
+  const opts = paise % 100 === 0 ? { maximumFractionDigits: 0 } : { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+  return `₹${(paise / 100).toLocaleString('en-IN', opts)}`;
 }
 
 /** YYYY-MM-DD of the IST calendar day. */

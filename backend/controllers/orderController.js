@@ -625,8 +625,15 @@ const restaurantAcceptOrder = async (req, res) => {
 
     // A retried / double-tapped accept (the first one landed but the phone lost the reply) is not an
     // error: answer with the order as it is. Only a cancelled order is refused.
+    // The refusal says who cancelled: the system timed it out (not accepted in time / no rider), the store itself,
+    // or the customer / support (it used to blame the customer for every case).
+    const cancelledText = (o) => (o.cancelledBy === 'system'
+      ? 'This order was cancelled because it was not accepted in time, so it cannot be accepted now.'
+      : o.cancelledBy === 'store'
+        ? 'This order was already declined from your store, so it cannot be accepted.'
+        : 'This order was cancelled (by the customer or support), so it cannot be accepted.');
     const alreadyAccepted = (o) => (o.status === 'Cancelled'
-      ? res.status(400).json({ code: 'ORDER_CANCELLED', message: 'This order was cancelled (by the customer or support), so it cannot be accepted.' })
+      ? res.status(400).json({ code: 'ORDER_CANCELLED', message: cancelledText(o) })
       : res.json({ message: 'Order already accepted', orderId: o.id, status: o.status, alreadyAccepted: true }));
     if (order.status !== 'Pending') return alreadyAccepted(order);
 
@@ -636,7 +643,7 @@ const restaurantAcceptOrder = async (req, res) => {
     // won the race since we read the order; never resurrect a cancelled order.
     const [accepted] = await Order.update(acceptFields, { where: { id: order.id, status: 'Pending' } });
     if (accepted === 0) {
-      const fresh = await Order.findByPk(order.id, { attributes: ['id', 'status'] });
+      const fresh = await Order.findByPk(order.id, { attributes: ['id', 'status', 'cancelledBy'] });
       if (fresh) return alreadyAccepted(fresh);
       return res.status(404).json({ message: 'Order not found' });
     }

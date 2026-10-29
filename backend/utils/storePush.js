@@ -12,6 +12,7 @@ const tokenOf = (t) => (typeof t === 'string' ? t : t && t.token) || null;
 // restaurantOrId: Restaurant row or id. Returns the FCM result or null. Never throws.
 // opts.tag: Android notification tag. A later push with the same tag replaces the earlier one in the tray
 // (and rings again), so an order's reminders never stack up.
+const STORE_PUSH_TTL_MS = 10 * 60 * 1000;
 const pushToStore = async (restaurantOrId, title, body, data = {}, opts = {}) => {
   try {
     const Restaurant = getRestaurantModel();
@@ -29,7 +30,9 @@ const pushToStore = async (restaurantOrId, title, body, data = {}, opts = {}) =>
     if (!tokens.length) return null;
     const result = await sendPushToTokens(tokens, title, body, { ...data, restaurantId: id }, {
       persist: false, // not a customer notification: nothing to save in the in-app list
-      android: { priority: 'high', notification: { sound: 'alert', channelId: 'delivery-alerts-v2', ...(opts && typeof opts.tag === 'string' && opts.tag ? { tag: opts.tag.slice(0, 64) } : {}) } },
+      // Every store alert is about an order happening now: a phone offline longer than 10 minutes must not wake up to
+      // a ringing stack of orders that were already auto-cancelled (FCM keeps undelivered messages for 4 weeks).
+      android: { priority: 'high', ttl: STORE_PUSH_TTL_MS, notification: { sound: 'alert', channelId: 'delivery-alerts-v2', ...(opts && typeof opts.tag === 'string' && opts.tag ? { tag: opts.tag.slice(0, 64) } : {}) } },
     });
     const stale = (result && result.staleTokens) || [];
     if (stale.length) {

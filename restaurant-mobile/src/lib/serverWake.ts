@@ -63,6 +63,8 @@ export function coldStartWait(status: number, data: any): number | null {
   if (status !== 502 && status !== 503 && status !== 504) return null;
   if (data && typeof data === 'object') {
     const code = String(data.code || '');
+    // The sign-in check hit a database hiccup (backend authMiddleware, 503 + Retry-After 2): not signed out, retry.
+    if (code === 'AUTH_UNAVAILABLE') return 2000;
     if (code !== 'SERVER_STARTING' && code !== 'STARTING') return null;
     const after = Number(data.retryAfter);
     return Number.isFinite(after) && after > 0 ? after * 1000 : 0;
