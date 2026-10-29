@@ -158,7 +158,7 @@ export function DeliveryScreen({ orderId, onClose }: { orderId: string; onClose:
             />
           </View>
         ) : null}
-        <ItemChecklist order={order} ticked={ticked} onToggle={toggleTick} />
+        <ItemChecklist order={order} ticked={ticked} onToggle={toggleTick} showPrices={order.buyAtStore} />
         <Instructions items={order.instructions} />
         {callStore ? <Btn title="Call store" icon="phone" variant="outline" size="mid" onPress={callStore} /> : null}
       </>

@@ -69,7 +69,8 @@ export function ItemsLine({ order }: { order: RiderOrder }) {
   );
 }
 
-export function ItemChecklist({ order, ticked, onToggle }: { order: RiderOrder; ticked: Set<number>; onToggle: (i: number) => void }) {
+/** showPrices: buy-at-store orders (the rider pays at the counter): each line's price and the total to check the bill. */
+export function ItemChecklist({ order, ticked, onToggle, showPrices = false }: { order: RiderOrder; ticked: Set<number>; onToggle: (i: number) => void; showPrices?: boolean }) {
   if (!order.items.length) {
     return <Text style={[T.body, { color: C.muted }]}>No item list for this order. Check the bill at the counter.</Text>;
   }
@@ -92,9 +93,16 @@ export function ItemChecklist({ order, ticked, onToggle }: { order: RiderOrder; 
               <Text style={[T.body, { color: C.ink, fontWeight: '700' }]}>{it.name}</Text>
               {it.options ? <Text style={[T.small, { color: C.blue, fontWeight: '700', marginTop: 2 }]}>{it.options}</Text> : null}
             </View>
+            {showPrices && it.price !== null ? <Text style={[T.body, { color: C.ink, fontWeight: '700' }]}>{rupees(it.price * it.quantity)}</Text> : null}
           </Pressable>
         );
       })}
+      {showPrices && order.items.every((it) => it.price !== null) ? (
+        <View style={[styles.check, { justifyContent: 'space-between' }]}>
+          <Text style={[T.body, { color: C.ink2, flex: 1 }]}>Items total: the counter bill should match</Text>
+          <Text style={[T.h3, { color: C.ink }]}>{rupees(order.items.reduce((sum, it) => sum + (it.price || 0) * it.quantity, 0))}</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
