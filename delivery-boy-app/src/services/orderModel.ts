@@ -98,6 +98,26 @@ function toPaymentMethod(v: unknown): PaymentMethod | null {
   return null;
 }
 
+// The customer's picks on a line ({ "Weight": "500 g", "Add-ons": ["Candles"] }, or an older plain-text note):
+// "Weight: 500 g · Add-ons: Candles". A rider buying at the counter or checking the bag needs the exact size.
+function pickText(raw: unknown): string | null {
+  let obj: any = raw;
+  if (typeof obj === 'string') {
+    const t = obj.trim();
+    if (!t) return null;
+    try { obj = JSON.parse(t); } catch { return t.slice(0, 160); }
+  }
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return null;
+  const parts = Object.keys(obj)
+    .map((k) => {
+      const v = obj[k];
+      const text = Array.isArray(v) ? v.map((x) => cleanText(x)).filter(Boolean).join(', ') : cleanText(v);
+      return text ? `${k}: ${text}` : '';
+    })
+    .filter(Boolean);
+  return parts.length ? parts.join(' · ').slice(0, 160) : null;
+}
+
 function toItems(raw: unknown): RiderOrderItem[] {
   let list: any = raw;
   if (typeof list === 'string') {
@@ -113,6 +133,7 @@ function toItems(raw: unknown): RiderOrderItem[] {
       name: cleanText(it?.name) || cleanText(it?.itemName) || 'Item',
       quantity: Math.max(1, Math.round(toNumber(it?.quantity) ?? 1)),
       price: toNumber(it?.priceAtOrder ?? it?.price),
+      options: pickText(it?.customizations),
     }))
     .filter((it) => !!it.name);
 }

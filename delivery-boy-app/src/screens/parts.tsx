@@ -58,7 +58,7 @@ export function ItemsLine({ order }: { order: RiderOrder }) {
   if (!order.items.length) return null;
   const names = order.items
     .slice(0, 3)
-    .map((i) => `${i.quantity} × ${i.name}`)
+    .map((i) => `${i.quantity} × ${i.name}${i.options ? ` (${i.options})` : ''}`)
     .join(', ');
   const more = order.items.length > 3 ? ` +${order.items.length - 3} more` : '';
   return (
@@ -82,13 +82,16 @@ export function ItemChecklist({ order, ticked, onToggle }: { order: RiderOrder; 
             key={i}
             accessibilityRole="checkbox"
             accessibilityState={{ checked: on }}
-            accessibilityLabel={`${it.quantity} ${it.name}`}
+            accessibilityLabel={`${it.quantity} ${it.name}${it.options ? `, ${it.options}` : ''}`}
             onPress={() => onToggle(i)}
             style={[styles.check, on && { backgroundColor: C.greenTint, borderColor: C.green }]}
           >
             <MaterialCommunityIcons name={on ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'} size={30} color={on ? C.green : C.muted} />
             <Text style={[T.h3, { color: C.ink, minWidth: 40 }]}>{it.quantity}×</Text>
-            <Text style={[T.body, { color: C.ink, flex: 1, fontWeight: '700' }]}>{it.name}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={[T.body, { color: C.ink, fontWeight: '700' }]}>{it.name}</Text>
+              {it.options ? <Text style={[T.small, { color: C.blue, fontWeight: '700', marginTop: 2 }]}>{it.options}</Text> : null}
+            </View>
           </Pressable>
         );
       })}

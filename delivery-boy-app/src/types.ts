@@ -19,6 +19,8 @@ export interface RiderOrderItem {
   name: string;
   quantity: number;
   price: number | null;
+  /** The customer's picks, e.g. "Weight: 500 g · Flavour: Chocolate" (what to buy / check), or null. */
+  options: string | null;
 }
 
 export interface RiderOrder {
