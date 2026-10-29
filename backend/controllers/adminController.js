@@ -701,6 +701,8 @@ const sendAdminError = (res, error, fallback) => {
   if (error instanceof require('../utils/storeCompliance').ComplianceInputError) return res.status(400).json({ code: error.code, field: error.field, message: error.message });
   if (error instanceof AdminConflictError) return res.status(409).json({ message: error.message, code: 'CONFLICT' });
   if (error && error.name === 'SequelizeValidationError') return res.status(400).json({ message: error.errors?.[0]?.message || fallback });
+  // A duplicate (coupon code, phone, unique key): say so instead of a raw database error.
+  if (error && error.name === 'SequelizeUniqueConstraintError') return res.status(409).json({ message: 'That already exists. Use a different value.', code: 'CONFLICT' });
   console.error('[ADMIN_CATALOGUE_ERROR]', error);
   return res.status(500).json({ message: fallback });
 };
@@ -1020,7 +1022,7 @@ exports.approveRider = async (req, res) => {
     clearCachedUser(rider.id);
     res.json({ ...withoutPassword(rider), _id: rider.id });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    sendAdminError(res, error, 'Could not update the rider. Please try again.');
   }
 };
 
@@ -1139,7 +1141,7 @@ exports.setEliteStatus = async (req, res) => {
     clearCachedUser(user.id);
     res.json({ ...withoutPassword(user), _id: user.id });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    sendAdminError(res, error, 'Could not update Elite status. Please try again.');
   }
 };
 
@@ -1336,7 +1338,7 @@ exports.updateGlobalConfig = async (req, res) => {
     realtime.publish('config', 'updated', key, { scope: 'global' });
     res.json({ key, value, description, created });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    sendAdminError(res, error, 'Could not save the setting. Please try again.');
   }
 };
 
@@ -2060,7 +2062,7 @@ exports.createCoupon = async (req, res) => {
 
     res.status(201).json({ ...coupon.toJSON(), _id: coupon.id });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    sendAdminError(res, error, 'Could not create the coupon. Please try again.');
   }
 };
 
