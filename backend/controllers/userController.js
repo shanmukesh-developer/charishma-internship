@@ -966,7 +966,7 @@ const sendOtp = async (req, res) => {
     // A signed-in partner deleting their account is not logging in: point them at the password instead.
     const smsDownMessage = purpose === 'delete_partner_account'
       ? "We can't send SMS codes right now. Please confirm with your password instead."
-      : "We couldn't send the SMS right now. Please try again in a minute or log in with your password.";
+      : "We couldn't send the SMS right now. Please try again in a minute, or sign in with Google or your password.";
 
     const User = getUserModel();
     if ((purpose === 'reset_password' || purpose === 'delete_account') && !(await User.findOne({ where: { phone: cleanPhone } }))) {
@@ -1014,7 +1014,7 @@ const sendOtp = async (req, res) => {
       if (sentToday.length >= OTP_DAILY_CAP) {
         const oldest = new Date(sentToday[0].createdAt).getTime();
         const retryAfter = Math.max(60, Math.ceil((oldest + 24 * 60 * 60 * 1000 - now) / 1000));
-        return { refuse: { status: 429, retryAfter, body: { code: 'OTP_DAILY_LIMIT', retryAfter, message: "You've requested too many codes today. Please try again later or log in with your password." } } };
+        return { refuse: { status: 429, retryAfter, body: { code: 'OTP_DAILY_LIMIT', retryAfter, message: "You've requested too many codes today. Please try again later, or sign in with Google or your password." } } };
       }
 
       if (!process.env.FAST2SMS_API_KEY) {
@@ -1045,7 +1045,7 @@ const sendOtp = async (req, res) => {
     if (!budget.ok) {
       await record.destroy().catch(() => {});
       res.set('Retry-After', '3600');
-      return res.status(503).json({ code: 'SMS_BUDGET', message: "We can't send SMS codes right now. Please log in with your password, or try again later." });
+      return res.status(503).json({ code: 'SMS_BUDGET', message: "We can't send SMS codes right now. Please sign in with Google or your password, or try again later." });
     }
 
     const sms = await sendSmsOtp(cleanPhone, code);
@@ -1086,7 +1086,7 @@ const sendOtp = async (req, res) => {
 //      the code goes to `email` and is sent back as { emailOtp } with that same email (bound to it).
 // Same hashing, 5-minute expiry, 60 s cooldown, daily cap and 5-attempt lockout as the SMS code (shared per
 // number). Without BREVO_API_KEY the answer is 503 EMAIL_OTP_UNAVAILABLE, never a crash.
-const EMAIL_OTP_UNAVAILABLE = { code: 'EMAIL_OTP_UNAVAILABLE', message: "Email codes aren't available yet. Please try the SMS code again later, or log in with your password." };
+const EMAIL_OTP_UNAVAILABLE = { code: 'EMAIL_OTP_UNAVAILABLE', message: "Email codes aren't available yet. Please try the SMS code again in a few minutes." };
 const maskEmailAddress = (email) => {
   const [u, d] = String(email || '').split('@');
   if (!d) return '';
@@ -1157,7 +1157,7 @@ const sendEmailOtp = async (req, res) => {
       if (sentToday.length >= OTP_DAILY_CAP) {
         const oldest = new Date(sentToday[0].createdAt).getTime();
         const retryAfter = Math.max(60, Math.ceil((oldest + 24 * 60 * 60 * 1000 - now) / 1000));
-        return { refuse: { status: 429, retryAfter, body: { code: 'OTP_DAILY_LIMIT', retryAfter, message: "You've requested too many codes today. Please try again later or log in with your password." } } };
+        return { refuse: { status: 429, retryAfter, body: { code: 'OTP_DAILY_LIMIT', retryAfter, message: "You've requested too many codes today. Please try again later, or sign in with Google or your password." } } };
       }
       const record = await OtpCode.create({
         phone: cleanPhone,
