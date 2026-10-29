@@ -30,7 +30,7 @@ test('booking pushes go to ZCS Campus Stall devices only; delivery pushes skip t
   const u = await T.mkUser({ fcmTokens: [tok('student')] });
   sent.length = 0;
   const id = (await T.book(u, s)).body.booking.id;
-  await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: 'PSH111222333' });
+  await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: 'PSH111222333', imageUrl: await T.uploadProof(u) });
   await settle();
   const toStall = sent.filter((x) => x.data.type === 'CAMPUS_BOOKING' && x.tokens.some((t) => t.startsWith('stall') || t.startsWith('vendor')));
   assert.strictEqual(toStall.length, 1, JSON.stringify(sent));
@@ -54,7 +54,7 @@ test('every stage pushes the student once (accepted, preparing, ready, collected
   const s = await T.mkStall();
   const u = await T.mkUser({ fcmTokens: [tok('stu2')] });
   const id = (await T.book(u, s)).body.booking.id;
-  await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: 'PSH111222334' });
+  await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: 'PSH111222334', imageUrl: await T.uploadProof(u) });
   await settle();
   sent.length = 0;
   const V = '/api/campus-booking/vendor';

@@ -1,5 +1,6 @@
-// Payment proof: a screenshot (own private upload, purpose campus_payment, max 5 MB), a UPI reference, or both;
-// never none. A reference / screenshot cannot be reused for another booking. The stall gets a signed link.
+// Payment proof: a screenshot (own private upload, purpose campus_payment, max 5 MB) AND a UPI reference (owner,
+// 29 Oct: the stall checks both). A reference / screenshot cannot be reused for another booking. The stall gets a
+// signed link.
 // Also: stall + admin settings (UPI ID format, the switch needs a UPI ID).
 const test = require('node:test');
 const assert = require('node:assert');
@@ -24,7 +25,18 @@ test('no proof at all: 400 PROOF_REQUIRED; bad ref format: 400', async () => {
   assert.strictEqual((await T.ctx.M('CampusBooking').findByPk(id)).status, 'PAYMENT_PENDING');
 });
 
-test('screenshot only: accepted, stored private; the stall sees a signed link, lists carry none', async () => {
+test('screenshot without the reference, or the reference without the screenshot: refused', async () => {
+  const s = await T.mkStall();
+  const u = await T.mkUser();
+  const id = (await T.book(u, s)).body.booking.id;
+  const onlyShot = await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { imageUrl: await T.uploadProof(u) });
+  assert.deepStrictEqual([onlyShot.status, onlyShot.body.code, onlyShot.body.field], [400, 'PROOF_REQUIRED', 'ref']);
+  const onlyRef = await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: '412345678901' });
+  assert.deepStrictEqual([onlyRef.status, onlyRef.body.code, onlyRef.body.field], [400, 'PROOF_REQUIRED', 'shot']);
+  assert.strictEqual((await T.ctx.M('CampusBooking').findByPk(id)).status, 'PAYMENT_PENDING');
+});
+
+test('screenshot is stored private; the stall sees a signed link, lists carry none', async () => {
   const s = await T.mkStall();
   const u = await T.mkUser();
   const id = (await T.book(u, s)).body.booking.id;
@@ -33,10 +45,10 @@ test('screenshot only: accepted, stored private; the stall sees a signed link, l
   const media = await T.ctx.M('CampusMedia').findByPk(url.split('/').pop());
   assert.strictEqual(media.isPrivate, true);
   assert.strictEqual(media.purpose, 'campus_payment');
-  const r = await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { imageUrl: url });
+  const r = await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { imageUrl: url, upiRef: 'PRV111222333' });
   assert.strictEqual(r.status, 200, JSON.stringify(r.body));
   assert.strictEqual(r.body.booking.proof.hasImage, true);
-  assert.strictEqual(r.body.booking.proof.ref, null);
+  assert.strictEqual(r.body.booking.proof.ref, 'PRV111222333');
   const v = (await T.cb('GET', `${V}/bookings/${id}`, s.store.token)).body.booking;
   assert.match(v.proof.imageUrl, /\/api\/campus\/media\/[0-9a-f-]{36}\?exp=\d+&sig=/);
   const list = (await T.cb('GET', `${V}/bookings?tab=pending`, s.store.token)).body.bookings;
@@ -80,10 +92,10 @@ test('a UPI reference or screenshot already used on another booking is refused',
   const b = (await T.book(u, s)).body.booking.id;
   const shot = await T.uploadProof(u);
   await T.cb('POST', `/api/campus-booking/bookings/${a}/proof`, u.token, { upiRef: 'DUP111222333', imageUrl: shot });
-  const dupRef = await T.cb('POST', `/api/campus-booking/bookings/${b}/proof`, u.token, { upiRef: 'dup111222333' });
+  const dupRef = await T.cb('POST', `/api/campus-booking/bookings/${b}/proof`, u.token, { upiRef: 'dup111222333', imageUrl: await T.uploadProof(u) });
   assert.strictEqual(dupRef.status, 409);
   assert.strictEqual(dupRef.body.code, 'REF_ALREADY_USED');
-  const dupShot = await T.cb('POST', `/api/campus-booking/bookings/${b}/proof`, u.token, { imageUrl: shot });
+  const dupShot = await T.cb('POST', `/api/campus-booking/bookings/${b}/proof`, u.token, { imageUrl: shot, upiRef: 'NEW111222333' });
   assert.strictEqual(dupShot.body.code, 'SCREENSHOT_ALREADY_USED');
 });
 
@@ -92,11 +104,11 @@ test('at most 5 proof submissions per booking', async () => {
   const u = await T.mkUser();
   const id = (await T.book(u, s)).body.booking.id;
   for (let i = 0; i < 5; i++) {
-    const p = await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: `LIM11122233${i}` });
+    const p = await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: `LIM11122233${i}`, imageUrl: await T.uploadProof(u) });
     assert.strictEqual(p.status, 200, JSON.stringify(p.body));
     await T.cb('POST', `${V}/bookings/${id}/reject-payment`, s.store.token, { code: 'NOT_RECEIVED' });
   }
-  const sixth = await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: 'LIM111222339' });
+  const sixth = await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: 'LIM111222339', imageUrl: await T.uploadProof(u) });
   assert.strictEqual(sixth.status, 409);
   assert.strictEqual(sixth.body.code, 'PROOF_LIMIT');
   const seen = (await T.cb('GET', `/api/campus-booking/bookings/${id}`, u.token)).body.booking;

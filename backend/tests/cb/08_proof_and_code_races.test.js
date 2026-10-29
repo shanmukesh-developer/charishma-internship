@@ -21,7 +21,8 @@ test('the same UPI reference sent for two bookings at once: one PAYMENT_REVIEW, 
     const b1 = (await T.book(u, s)).body.booking.id;
     const b2 = (await T.book(u, s)).body.booking.id;
     const r = ref();
-    const out = await Promise.all([b1, b2].map((id) => T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: r })));
+    const shots = { [b1]: await T.uploadProof(u), [b2]: await T.uploadProof(u) };
+    const out = await Promise.all([b1, b2].map((id) => T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: r, imageUrl: shots[id] })));
     assert.deepStrictEqual(out.map((x) => x.status).sort(), [200, 409], JSON.stringify(out.map((x) => x.body)));
     assert.strictEqual(out.find((x) => x.status === 409).body.code, 'REF_ALREADY_USED');
     const rows = await T.ctx.M('CampusBooking').findAll({ where: { id: [b1, b2] }, raw: true });
@@ -30,7 +31,7 @@ test('the same UPI reference sent for two bookings at once: one PAYMENT_REVIEW, 
     // The refused booking used no proof attempt and can still be paid with its own reference.
     const loser = rows.find((x) => x.status === 'PAYMENT_PENDING');
     assert.strictEqual(Number(loser.proofAttempts) || 0, 0);
-    assert.strictEqual((await T.cb('POST', `/api/campus-booking/bookings/${loser.id}/proof`, u.token, { upiRef: ref() })).status, 200);
+    assert.strictEqual((await T.cb('POST', `/api/campus-booking/bookings/${loser.id}/proof`, u.token, { upiRef: ref(), imageUrl: await T.uploadProof(u) })).status, 200);
     for (const id of [b1, b2]) await T.cb('POST', `${V}/bookings/${id}/reject-payment`, s.store.token, { code: 'NOT_RECEIVED' });
     for (const id of [b1, b2]) await T.cb('POST', `/api/campus-booking/bookings/${id}/cancel`, u.token, {});
   }
@@ -42,7 +43,7 @@ test('the same screenshot sent for two bookings at once: one PAYMENT_REVIEW, the
   const b1 = (await T.book(u, s)).body.booking.id;
   const b2 = (await T.book(u, s)).body.booking.id;
   const img = await T.uploadProof(u);
-  const out = await Promise.all([b1, b2].map((id) => T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { imageUrl: img })));
+  const out = await Promise.all([b1, b2].map((id, i) => T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { imageUrl: img, upiRef: `${i ? 'B' : 'A'}${ref()}` })));
   assert.deepStrictEqual(out.map((x) => x.status).sort(), [200, 409], JSON.stringify(out.map((x) => x.body)));
   assert.strictEqual(out.find((x) => x.status === 409).body.code, 'SCREENSHOT_ALREADY_USED');
 });
@@ -52,9 +53,9 @@ test('a re-send after a rejection may keep its own reference (no clash with itse
   const u = await T.mkUser();
   const id = (await T.book(u, s)).body.booking.id;
   const r = ref();
-  assert.strictEqual((await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: r })).status, 200);
+  assert.strictEqual((await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: r, imageUrl: await T.uploadProof(u) })).status, 200);
   assert.strictEqual((await T.cb('POST', `${V}/bookings/${id}/reject-payment`, s.store.token, { code: 'UNCLEAR' })).status, 200);
-  const again = await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: r });
+  const again = await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: r, imageUrl: await T.uploadProof(u) });
   assert.strictEqual(again.status, 200, JSON.stringify(again.body));
   assert.strictEqual(again.body.booking.status, 'PAYMENT_REVIEW');
 });
@@ -63,7 +64,7 @@ test('8 wrong pickup codes in parallel: every one counts, checking pauses (429 C
   const s = await T.mkStall();
   const u = await T.mkUser();
   const id = (await T.book(u, s)).body.booking.id;
-  await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: ref() });
+  await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: ref(), imageUrl: await T.uploadProof(u) });
   await T.cb('POST', `${V}/bookings/${id}/confirm-payment`, s.store.token, {});
   await T.cb('POST', `${V}/bookings/${id}/ready`, s.store.token, {});
   const code = (await T.ctx.M('CampusBooking').findByPk(id)).pickupCode;
@@ -83,7 +84,7 @@ test('stall summary "today" counts money by the payment-confirmed day, like the 
   const s = await T.mkStall({ prices: [50] });
   const u = await T.mkUser();
   const id = (await T.book(u, s)).body.booking.id;
-  await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: ref() });
+  await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: ref(), imageUrl: await T.uploadProof(u) });
   assert.strictEqual((await T.cb('POST', `${V}/bookings/${id}/confirm-payment`, s.store.token, {})).status, 200);
   // Placed yesterday (IST), confirmed today.
   await T.ctx.sequelize.query('UPDATE "CampusBookings" SET "createdAt" = :t WHERE id = :id', {

@@ -189,10 +189,12 @@ export function buildPayload(s: WizardState, existing: Store | null): Record<str
 // ─── Wizard ──────────────────────────────────────────────────────────────────
 export interface WizardResult { store: Store; password: string | null; published: boolean }
 
-export function StoreWizard({ mode, initial, startStep, stores, onClose, onSaved, onOpenStore }: {
+export function StoreWizard({ mode, initial, startStep, preset, stores, onClose, onSaved, onOpenStore }: {
   mode: 'create' | 'edit';
   initial: Store | null;
   startStep?: StepKey;
+  /** create only: start with these answers (e.g. vendorType LOCAL_VENDOR from "Add campus stall"); no saved draft is restored. */
+  preset?: Partial<WizardState>;
   stores: Store[];
   onClose: () => void;
   onSaved: (result: WizardResult) => void;
@@ -200,7 +202,8 @@ export function StoreWizard({ mode, initial, startStep, stores, onClose, onSaved
 }) {
   const toast = useToast();
   const titleId = useId();
-  const [state, setState] = useState<WizardState>(() => (initial ? stateFromStore(initial) : emptyState()));
+  const startState = () => (initial ? stateFromStore(initial) : { ...emptyState(), ...(preset || {}) });
+  const [state, setState] = useState<WizardState>(startState);
   const [restoredAt, setRestoredAt] = useState<string | null>(null);
   const [step, setStep] = useState<StepKey>(startStep || 'basics');
   const [visited, setVisited] = useState<Set<StepKey>>(() => new Set(mode === 'edit' ? (Object.keys(STEP_META) as StepKey[]) : ['basics']));
@@ -212,7 +215,7 @@ export function StoreWizard({ mode, initial, startStep, stores, onClose, onSaved
   const [saveError, setSaveError] = useState('');
   const [done, setDone] = useState<WizardResult | null>(null);
   const [confirmClose, setConfirmClose] = useState(false);
-  const initialJson = useRef(JSON.stringify(initial ? stateFromStore(initial) : emptyState()));
+  const initialJson = useRef(JSON.stringify(startState()));
   const mainRef = useRef<HTMLDivElement | null>(null);
 
   const local = isLocalVendorType(state.vendorType);
@@ -225,7 +228,7 @@ export function StoreWizard({ mode, initial, startStep, stores, onClose, onSaved
 
   // Restore / autosave the create draft (never the password).
   useEffect(() => {
-    if (mode !== 'create') return;
+    if (mode !== 'create' || preset) return;
     try {
       const raw = localStorage.getItem(DRAFT_KEY);
       if (!raw) return;
@@ -237,7 +240,7 @@ export function StoreWizard({ mode, initial, startStep, stores, onClose, onSaved
         setRestoredAt(saved.savedAt || null);
       }
     } catch { /* storage unavailable */ }
-  }, [mode]);
+  }, [mode, preset]);
   useEffect(() => {
     if (mode !== 'create' || done) return;
     const t = setTimeout(() => {
@@ -987,6 +990,9 @@ function SuccessPanel({ result, mode, onOpenStore, onClose }: { result: WizardRe
         )}
         <div className="flex flex-wrap justify-center gap-3">
           {mode === 'create' && <Button variant="primary" disabled={!ack} onClick={() => onOpenStore(id, 'menu')}>Add menu items →</Button>}
+          {mode === 'create' && isLocalVendorType(result.store.vendorType) && (
+            <Button disabled={!ack} onClick={() => onOpenStore(id, 'campus')} title="Switch In-Campus Booking on and add the stall's UPI ID">Set up In-Campus Booking →</Button>
+          )}
           <Button disabled={!ack} onClick={() => (mode === 'create' ? onOpenStore(id, 'overview') : onClose())}>{mode === 'create' ? 'Open store page' : 'Done'}</Button>
           {mode === 'create' && <Button variant="ghost" disabled={!ack} onClick={onClose}>Back to all stores</Button>}
         </div>

@@ -5,7 +5,7 @@ import { useAdminAuth } from '@/utils/useAdminAuth';
 import { useLiveSync, useFreshIds, FRESH_ROW_CLASS } from '@/lib/useLiveSync';
 import {
   FSSAI_STATUS_META, FssaiStatus, STATUS_META, Store, StoreStatus, adminRequest, formatINR, fssaiStatusOf, isLocalVendorType, readTags,
-  storeId, storeStatus, vendorLabel,
+  storeId, storeStatus, vendorLabel, VENDOR_TYPES,
 } from './catalogue';
 import {
   Button, Callout, Chip, ConfirmModal, EmptyState, Field, INPUT, MenuButton, Modal, Skeleton, Thumb, Toggle,
@@ -76,15 +76,18 @@ function StoresScreen() {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<Record<string, boolean>>({});
-  const [wizard, setWizard] = useState<{ mode: 'create' | 'edit'; id?: string; step?: StepKey } | null>(null);
+  const [wizard, setWizard] = useState<{ mode: 'create' | 'edit'; id?: string; step?: StepKey; preset?: { vendorType: string } } | null>(null);
   const [drawer, setDrawer] = useState<{ id: string; tab: DrawerTab } | null>(null);
   // ?new=1 (header New > Store) opens the add-store wizard (once: the flag is dropped from the URL); ?store=<id>
   // [&tab=] opens that store. Runs on load and when a header / palette link changes the query of this open page.
   const openFromQuery = useCallback((qs: URLSearchParams) => {
     if (qs.get('new') === '1') {
-      setWizard({ mode: 'create' });
+      // &type=LOCAL_VENDOR ("Add campus stall" on In-Campus Booking) starts the wizard as that store type.
+      const type = String(qs.get('type') || '').toUpperCase();
+      setWizard({ mode: 'create', ...(VENDOR_TYPES.some(v => v.value === type) ? { preset: { vendorType: type } } : {}) });
       const url = new URL(window.location.href);
       url.searchParams.delete('new');
+      url.searchParams.delete('type');
       window.history.replaceState(window.history.state, '', url.toString());
     }
     const sid = qs.get('store');
@@ -588,6 +591,7 @@ function StoresScreen() {
           mode={wizard.mode}
           initial={wizard.mode === 'edit' ? wizardStore : null}
           startStep={wizard.step}
+          preset={wizard.mode === 'create' ? wizard.preset : undefined}
           stores={stores}
           onClose={() => { setWizard(null); try { setHasDraft(!!localStorage.getItem(DRAFT_KEY)); } catch { /* ignore */ } }}
           onSaved={({ store }) => {

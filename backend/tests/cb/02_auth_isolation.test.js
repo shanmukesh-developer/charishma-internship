@@ -14,13 +14,13 @@ test.before(async () => {
   alice = await T.mkUser();
   bob = await T.mkUser();
   id = (await T.book(alice, s1)).body.booking.id;
-  await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, alice.token, { upiRef: 'ISO111222333' });
+  await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, alice.token, { upiRef: 'ISO111222333', imageUrl: await T.uploadProof(alice) });
 });
 test.after(async () => { await T.teardown(); });
 
 test('another student cannot read, pay or cancel the booking (404, nothing changes)', async () => {
   assert.strictEqual((await T.cb('GET', `/api/campus-booking/bookings/${id}`, bob.token)).status, 404);
-  assert.strictEqual((await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, bob.token, { upiRef: 'BOB111222333' })).status, 404);
+  assert.strictEqual((await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, bob.token, { upiRef: 'BOB111222333', imageUrl: await T.uploadProof(bob) })).status, 404);
   assert.strictEqual((await T.cb('POST', `/api/campus-booking/bookings/${id}/cancel`, bob.token, {})).status, 404);
   const list = await T.cb('GET', '/api/campus-booking/bookings', bob.token);
   assert.strictEqual(list.status, 200);

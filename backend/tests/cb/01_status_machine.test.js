@@ -47,7 +47,7 @@ test('happy path: book, pay proof, confirm, preparing, ready, collect (timestamp
   assert.match(b.body.booking.payee.upiLink, /^upi:\/\/pay\?pa=chaiadda%40okaxis&pn=.+&am=40\.00&cu=INR&tn=/);
   assert.ok(b.body.booking.paymentDeadline);
 
-  const p = await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: '412345678901' });
+  const p = await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: '412345678901', imageUrl: await T.uploadProof(u) });
   assert.strictEqual(p.status, 200, JSON.stringify(p.body));
   assert.strictEqual(p.body.booking.status, 'PAYMENT_REVIEW');
 
@@ -77,7 +77,7 @@ test('ACCEPTED -> READY directly stamps preparingAt; stall prep setting drives t
   const s = await T.mkStall({ store: { campusPrepMinutes: 25 } });
   const u = await T.mkUser();
   const id = (await T.book(u, s)).body.booking.id;
-  await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: 'T2026102700001' });
+  await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: 'T2026102700001', imageUrl: await T.uploadProof(u) });
   const c = (await T.cb('POST', `${V}/bookings/${id}/confirm-payment`, s.store.token, {})).body.booking;
   assert.strictEqual(c.prepMinutes, 25);
   assert.strictEqual(Math.round((new Date(c.estimatedReadyAt) - new Date(c.acceptedAt)) / 60000), 25);
@@ -90,7 +90,7 @@ test('rejected payment: student re-sends proof (or cancels); reason shown', asyn
   const s = await T.mkStall();
   const u = await T.mkUser();
   const id = (await T.book(u, s)).body.booking.id;
-  await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: 'AAA111222333' });
+  await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: 'AAA111222333', imageUrl: await T.uploadProof(u) });
   const rj = await T.cb('POST', `${V}/bookings/${id}/reject-payment`, s.store.token, { code: 'AMOUNT_MISMATCH' });
   assert.strictEqual(rj.body.booking.status, 'REJECTED');
   const seen = (await T.cb('GET', `/api/campus-booking/bookings/${id}`, u.token)).body.booking;
@@ -99,7 +99,7 @@ test('rejected payment: student re-sends proof (or cancels); reason shown', asyn
   assert.strictEqual(seen.canSubmitProof, true);
   assert.strictEqual(seen.canCancel, true);
   assert.strictEqual(seen.pickupCode, null);
-  const again = await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: 'AAA111222334' });
+  const again = await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: 'AAA111222334', imageUrl: await T.uploadProof(u) });
   assert.strictEqual(again.body.booking.status, 'PAYMENT_REVIEW');
   assert.strictEqual(again.body.booking.proof.attempts, 2);
   assert.strictEqual(again.body.booking.rejection, null);
@@ -107,7 +107,7 @@ test('rejected payment: student re-sends proof (or cancels); reason shown', asyn
   assert.strictEqual(ok.body.booking.status, 'ACCEPTED');
 
   const id2 = (await T.book(u, s)).body.booking.id;
-  await T.cb('POST', `/api/campus-booking/bookings/${id2}/proof`, u.token, { upiRef: 'BBB111222333' });
+  await T.cb('POST', `/api/campus-booking/bookings/${id2}/proof`, u.token, { upiRef: 'BBB111222333', imageUrl: await T.uploadProof(u) });
   await T.cb('POST', `${V}/bookings/${id2}/reject-payment`, s.store.token, { code: 'OTHER', note: 'Name on the payment does not match' });
   const cx = await T.cb('POST', `/api/campus-booking/bookings/${id2}/cancel`, u.token, {});
   assert.strictEqual(cx.body.booking.status, 'CANCELLED');
@@ -121,7 +121,7 @@ test('refused moves: collect before ready, double confirm, student cancel after 
   const early = await T.cb('POST', `${V}/bookings/${id}/confirm-payment`, s.store.token, {});
   assert.strictEqual(early.status, 409);
   assert.strictEqual(early.body.code, 'BAD_TRANSITION');
-  await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: 'CCC111222333' });
+  await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: 'CCC111222333', imageUrl: await T.uploadProof(u) });
   const studentCancel = await T.cb('POST', `/api/campus-booking/bookings/${id}/cancel`, u.token, {});
   assert.strictEqual(studentCancel.status, 409);
   await T.cb('POST', `${V}/bookings/${id}/confirm-payment`, s.store.token, {});
@@ -129,7 +129,7 @@ test('refused moves: collect before ready, double confirm, student cancel after 
   assert.strictEqual(twice.status, 409);
   const collectEarly = await T.cb('POST', `${V}/bookings/${id}/collect`, s.store.token, { code: 'ABC2' });
   assert.strictEqual(collectEarly.status, 409);
-  const lateProof = await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: 'CCC111222399' });
+  const lateProof = await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: 'CCC111222399', imageUrl: await T.uploadProof(u) });
   assert.strictEqual(lateProof.status, 409);
   const lateCancel = await T.cb('POST', `/api/campus-booking/bookings/${id}/cancel`, u.token, {});
   assert.strictEqual(lateCancel.status, 409);
@@ -146,7 +146,7 @@ test('two taps at once: exactly one confirm wins (version check)', async () => {
   const s = await T.mkStall();
   const u = await T.mkUser();
   const id = (await T.book(u, s)).body.booking.id;
-  await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: 'DDD111222333' });
+  await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: 'DDD111222333', imageUrl: await T.uploadProof(u) });
   const res = await Promise.all([
     T.cb('POST', `${V}/bookings/${id}/confirm-payment`, s.store.token, {}),
     T.cb('POST', `${V}/bookings/${id}/reject-payment`, s.store.token, { code: 'NOT_RECEIVED' }),
@@ -164,10 +164,10 @@ test('lifecycle job: unpaid after 20 min and rejected after 2 h are cancelled by
   const u2 = await T.mkUser();
   const unpaid = (await T.book(u, s)).body.booking.id;
   const rejected = (await T.book(u2, s)).body.booking.id;
-  await T.cb('POST', `/api/campus-booking/bookings/${rejected}/proof`, u2.token, { upiRef: 'EEE111222333' });
+  await T.cb('POST', `/api/campus-booking/bookings/${rejected}/proof`, u2.token, { upiRef: 'EEE111222333', imageUrl: await T.uploadProof(u2) });
   await T.cb('POST', `${V}/bookings/${rejected}/reject-payment`, s.store.token, { code: 'NOT_RECEIVED' });
   const review = (await T.book(u2, s)).body.booking.id;
-  await T.cb('POST', `/api/campus-booking/bookings/${review}/proof`, u2.token, { upiRef: 'EEE111222334' });
+  await T.cb('POST', `/api/campus-booking/bookings/${review}/proof`, u2.token, { upiRef: 'EEE111222334', imageUrl: await T.uploadProof(u2) });
   const { runCampusBookingJobs } = T.r('modules/campusBooking/jobs');
   const early = await runCampusBookingJobs({ now: new Date(Date.now() + 5 * 60000) });
   assert.ok(early.idle);
@@ -200,7 +200,7 @@ test('realtime: student room, stall room and admin get ids-only nudges', async (
   const u = await T.mkUser();
   const before = T.ctx.emitted.length;
   const id = (await T.book(u, s)).body.booking.id;
-  await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: 'FFF111222333' });
+  await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: 'FFF111222333', imageUrl: await T.uploadProof(u) });
   await new Promise((r) => setTimeout(r, 500));
   const evts = T.ctx.emitted.slice(before);
   const user = evts.filter((e) => e.room === `user_${u.id}` && e.ev === 'campusbooking:changed');

@@ -24,7 +24,7 @@ test('format: 4 chars, no 0 / O / 1 / I / L, always letters and digits', () => {
 
 const readyBooking = async (s, u) => {
   const id = (await T.book(u, s)).body.booking.id;
-  await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: `PCK${Date.now()}${Math.floor(Math.random() * 1000)}` });
+  await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: `PCK${Date.now()}${Math.floor(Math.random() * 1000)}`, imageUrl: await T.uploadProof(u) });
   await T.cb('POST', `${V}/bookings/${id}/confirm-payment`, s.store.token, {});
   await T.cb('POST', `${V}/bookings/${id}/ready`, s.store.token, {});
   return id;

@@ -72,7 +72,7 @@ test('stall earnings: paid bookings only (cancelled and unpaid excluded), commis
   const u3 = await T.mkUser();
   const pay = async (u, line, ref) => {
     const id = (await T.book(u, s, [line])).body.booking.id;
-    await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: ref });
+    await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: ref, imageUrl: await T.uploadProof(u) });
     return id;
   };
   const a = await pay(u1, { menuItemId: s.items[0].id, quantity: 1 }, 'ERN111222331'); // ₹80

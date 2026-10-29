@@ -3,13 +3,18 @@
 // the student move them), with the payment proof and the 1.5 % ZCS commission recorded on each; and the stalls'
 // own switch, UPI ID, QR and prep time. Live: admin:changed 'campus_booking' / 'store'.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import { adminRequest } from '@/lib/api';
 import { useAdminAuth } from '@/utils/useAdminAuth';
 import { useLiveSync } from '@/lib/useLiveSync';
 import { formatDateTime, formatINR } from '@/lib/format';
 import {
-  Badge, Button, DataTable, DescriptionList, Drawer, PageHeader, SearchInput, Select, StatTile, StatusPill, Tabs, Toolbar, IconRefresh, type Column,
+  Badge, Button, DataTable, DescriptionList, Drawer, PageHeader, SearchInput, Select, StatTile, StatusPill, Tabs, Toolbar, IconPlus, IconRefresh, buttonClass, type Column,
 } from '@/components/ui';
+
+// A campus stall is a Stores entry of type "Local stall": the wizard opens preset to it, and its success screen
+// leads to the stall's In-Campus Booking tab (switch, UPI ID, QR, prep time).
+const ADD_STALL_HREF = '/restaurants?new=1&type=LOCAL_VENDOR';
 import { StallBookingSettings, type CampusStall } from '@/components/campusBooking/StallBookingSettings';
 
 interface Line { menuItemId: string | null; name: string; unitPrice: number; quantity: number; lineTotal: number }
@@ -147,7 +152,10 @@ export default function CampusBookingPage() {
       <PageHeader
         title="In-Campus Booking"
         description={`Pickup bookings at campus stalls. Students pay the stall directly by UPI (ZCS never holds the money); the stall checks the payment, prepares the order and hands it over with the student's pickup code. ZCS commission ${data?.commissionPct ?? 1.5}% is recorded on each booking.`}
-        actions={<Button leftIcon={<IconRefresh size={14} />} onClick={load} loading={loading}>Refresh</Button>}
+        actions={<>
+          <Button leftIcon={<IconRefresh size={14} />} onClick={load} loading={loading}>Refresh</Button>
+          <Link href={ADD_STALL_HREF} className={buttonClass('primary', 'md', 'inline-flex items-center gap-1.5')}><IconPlus size={14} />Add campus stall</Link>
+        </>}
       />
 
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -208,7 +216,11 @@ export default function CampusBookingPage() {
           onRowClick={(s) => setEditStall(s)}
           noun="stalls"
           initialSort={{ key: 'name', dir: 'asc' }}
-          empty={{ title: 'No campus stalls', description: 'Local vendors (stalls) added under Stores appear here.' }}
+          empty={{
+            title: 'No campus stalls yet',
+            description: 'Add a stall (it is a store of type "Local stall"), then switch In-Campus Booking on and add its UPI ID.',
+            action: <Link href={ADD_STALL_HREF} className={buttonClass('primary', 'md', 'inline-flex items-center gap-1.5')}><IconPlus size={14} />Add campus stall</Link>,
+          }}
         />
       )}
 

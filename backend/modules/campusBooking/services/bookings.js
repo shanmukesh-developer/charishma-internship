@@ -160,7 +160,7 @@ const transitionMessage = (from, to) => {
   return 'This booking cannot be changed that way now.';
 };
 
-/** Proof references (screenshot media path + / or UPI ref) checked for the student. */
+/** Proof (screenshot media path AND UPI reference, owner 29 Oct: the stall checks both) checked for the student. */
 const checkProof = async ({ userId, bookingId, imageUrl, upiRef }) => {
   const { toPath, idOf } = require('../../rentals/services/media');
   let path = null;
@@ -178,7 +178,9 @@ const checkProof = async ({ userId, bookingId, imageUrl, upiRef }) => {
     ref = normalizeRef(upiRef);
     if (!ref) throw fail(400, 'INVALID_REF', 'Enter the UPI reference number exactly as your UPI app shows it (6 to 35 letters or digits).');
   }
-  if (!path && !ref) throw fail(400, 'PROOF_REQUIRED', 'Upload the payment screenshot or enter the UPI reference number.');
+  if (!path && !ref) throw fail(400, 'PROOF_REQUIRED', 'Upload the payment screenshot and enter the transaction ID (UPI reference).');
+  if (!path) throw fail(400, 'PROOF_REQUIRED', 'Upload the payment screenshot too. The stall checks it with the transaction ID.', { field: 'shot' });
+  if (!ref) throw fail(400, 'PROOF_REQUIRED', 'Enter the transaction ID too. Your UPI app shows it as the UTR, UPI Ref No. or Transaction ID.', { field: 'ref' });
   const others = { id: { [Op.ne]: bookingId } };
   if (ref && await Booking().count({ where: { ...others, proofRef: ref } })) {
     throw fail(409, 'REF_ALREADY_USED', 'This UPI reference was already used for another booking. Check the number in your UPI app.');
