@@ -396,7 +396,7 @@ const runCoRideTemplateJobs = async ({ now = new Date() } = {}) => {
 };
 
 module.exports = {
-  validateTemplateInput, validateSkipDate, serializeTemplate, runsFor, nextDepartureOf, cancelPublishedRide,
+  validateTemplateInput, validateSkipDate, serializeTemplate, runsFor, nextDepartureOf, cancelPublishedRide, pushUsers,
   publishDueTemplates, sendDueReminders, runCoRideTemplateJobs, timeLabel, departureOf, addDaysYmd,
   MAX_TEMPLATES_PER_USER, MAX_SKIP_DATES, PUBLISH_LEAD_MIN, REGULAR_PATH,
 };

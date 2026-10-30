@@ -7,6 +7,11 @@ const { Op } = require('sequelize');
 
 const { getPoolRequestModel } = require('../models/PoolRequest');
 const { sendServerError } = require('../utils/httpErrors');
+// Push + inbox row to the other side of a Co-Ride action (never blocks the reply; failures are logged there).
+const notify = (userIds, title, body, data) => { void require('../services/coRideTemplates').pushUsers(userIds, title, body, { screen: 'coride', ...data }); };
+const firstName = (u) => String((u && u.name) || '').trim().split(/\s+/)[0] || 'A student';
+// A ride that left this long ago takes no more approvals (it stays open only until the host marks it complete).
+const APPROVE_AFTER_DEPARTURE_MS = 30 * 60 * 1000;
 const { isFemale, rodeTogetherBefore, WOMEN_ONLY_HOST_MSG, WOMEN_ONLY_JOIN_MSG } = require('../utils/coRide');
 const rateLimit = require('express-rate-limit');
 
@@ -289,8 +294,14 @@ router.post('/posts/:id/join', protect, async (req, res) => {
       await PoolRequest.update({ status: 'Approved' }, { where: { id: requestId } });
       await finishSeatTaken(pool.id, currentUser.id);
       await pool.reload();
+      notify([pool.creatorId], 'New co-rider', `${firstName(currentUser)} joined your ride to ${pool.destination}.`, {
+        type: 'CORIDE_PASSENGER_JOINED', path: '/coride/my-rides', poolId: String(pool.id),
+      });
       return res.json({ message: 'Successfully joined ride!', pool, autoAccepted: knownRider ? 'known' : 'auto' });
     } else {
+      notify([pool.creatorId], 'New ride request', `${firstName(currentUser)} asked to join your ride to ${pool.destination}. Approve or decline in My rides.`, {
+        type: 'CORIDE_JOIN_REQUEST', path: '/coride/my-rides', poolId: String(pool.id),
+      });
       return res.json({ message: 'Request sent to host for approval.', pool });
     }
   } catch (err) {
@@ -314,6 +325,9 @@ router.post('/posts/:id/requests/:requestId/approve', protect, async (req, res) 
     if (!request || request.poolId !== pool.id) return res.status(404).json({ message: 'Request not found.' });
     if (request.status !== 'Pending') return res.status(400).json({ message: `This request is already ${String(request.status).toLowerCase()}.` });
     if (pool.status !== 'Available') return res.status(400).json({ message: 'This ride is no longer open.' });
+    if (pool.departureTime && Date.now() - new Date(pool.departureTime).getTime() > APPROVE_AFTER_DEPARTURE_MS) {
+      return res.status(400).json({ message: 'This ride has already left. Mark it complete or cancel it in My rides.' });
+    }
 
     const [flipped] = await PoolRequest.update({ status: 'Approved' }, { where: { id: request.id, status: 'Pending' } });
     if (flipped === 0) return res.status(400).json({ message: 'This request was just withdrawn or answered.' });
@@ -323,6 +337,9 @@ router.post('/posts/:id/requests/:requestId/approve', protect, async (req, res) 
     }
     await finishSeatTaken(pool.id, request.passengerId);
     await pool.reload();
+    notify([request.passengerId], 'Ride confirmed', `Your seat on the ride to ${pool.destination} is confirmed.`, {
+      type: 'CORIDE_REQUEST_APPROVED', poolId: String(pool.id),
+    });
 
     res.json({ message: 'Request approved.', pool });
   } catch (err) {
@@ -347,6 +364,9 @@ router.post('/posts/:id/requests/:requestId/reject', protect, async (req, res) =
     if (request.status !== 'Pending') return res.status(400).json({ message: `This request is already ${String(request.status).toLowerCase()}.` });
     request.status = 'Rejected';
     await request.save();
+    notify([request.passengerId], 'Ride request declined', `The host could not take you on the ride to ${pool.destination}. Find another ride in Co-Ride.`, {
+      type: 'CORIDE_REQUEST_DECLINED', path: '/coride/find', poolId: String(pool.id),
+    });
 
     res.json({ message: 'Request rejected.' });
   } catch (err) {
@@ -470,10 +490,17 @@ router.post('/posts/:id/cancel', protect, async (req, res) => {
       const [closed] = await BikePool.update({ status: 'Cancelled' }, { where: { id: pool.id, status: { [Op.notIn]: ['Completed', 'Cancelled'] } } });
       if (!closed) return res.status(409).json({ message: 'This ride was just completed or cancelled. Please refresh.' });
       pool.status = 'Cancelled';
+      const released = await PoolRequest.findAll({ where: { poolId: pool.id, status: { [Op.in]: ['Pending', 'Approved'] } }, attributes: ['passengerId'] });
       await PoolRequest.update(
         { status: 'Cancelled' },
         { where: { poolId: pool.id, status: { [Op.in]: ['Pending', 'Approved'] } } }
       );
+      // Passengers used to keep seeing "Confirmed" and could turn up for a ride that was not happening.
+      if (released.length) {
+        notify(released.map((r) => r.passengerId), 'Ride cancelled', `Your ride to ${pool.destination} was cancelled by the host. Find another ride in Co-Ride.`, {
+          type: 'CORIDE_RIDE_CANCELLED', poolId: String(pool.id),
+        });
+      }
       return res.json({ message: 'Ride cancelled. Your co-riders have been released.', pool });
     }
 
@@ -501,6 +528,9 @@ router.post('/posts/:id/cancel', protect, async (req, res) => {
         await BikePool.update({ coRiderId: next ? next.passengerId : null }, { where: { id: pool.id } });
       }
       await pool.reload();
+      notify([pool.creatorId], 'A co-rider left', `${firstName(req.user)} left your ride to ${pool.destination}. The seat is open again.`, {
+        type: 'CORIDE_PASSENGER_LEFT', path: '/coride/my-rides', poolId: String(pool.id),
+      });
     }
     return res.json({ message: wasApproved ? 'You left this ride. Your seat is free again.' : 'Your join request was withdrawn.', pool });
   } catch (err) {
