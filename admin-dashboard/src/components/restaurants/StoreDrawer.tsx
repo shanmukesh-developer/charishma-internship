@@ -143,7 +143,7 @@ function OverviewTab({ store, stats, orders, ordersState, onTab, onEdit, onPubli
     { ok: (store.itemCount ?? 0) > 0, text: `Menu has ${store.itemCount ?? 0} item${store.itemCount === 1 ? '' : 's'}`, fix: () => onTab('menu'), fixLabel: 'Add items' },
     { ok: !!store.imageUrl, text: 'Cover photo', fix: () => onEdit('branding'), fixLabel: 'Add photo' },
     { ok: !!store.whatsappNumber || !local, text: local ? 'WhatsApp number for orders' : 'Contact number', fix: () => onEdit('location'), fixLabel: 'Add number' },
-    { ok: store.lat != null && store.lon != null, text: 'Map pin for riders', fix: () => onEdit('location'), fixLabel: 'Set pin' },
+    { ok: store.lat != null && store.lon != null, text: isBookingStall(store) ? 'Map pin' : 'Map pin for riders', fix: () => onEdit('location'), fixLabel: 'Set pin' },
     { ok: (store.tags || []).length > 0, text: 'Cuisine tags', fix: () => onEdit('basics'), fixLabel: 'Add tags' },
     { ok: !!store.hasPassword || (!local && !!store.isOffline), text: local ? `Stall can sign in to ${partnerAppName(store)}` : 'Partner can sign in (or managed by ZCS)', fix: () => onTab('login'), fixLabel: 'Set password' },
   ];
@@ -244,7 +244,7 @@ function OverviewTab({ store, stats, orders, ordersState, onTab, onEdit, onPubli
             name: store.name, imageUrl: store.imageUrl, tags: store.tags || [], description: store.stallDescription,
             deliveryTime: store.deliveryTime, isOpen: store.isOpen !== false && store.isActive, opensAt: store.opensAt,
             rating: store.rating, isFeatured: store.isFeatured, featuredBadge: store.featuredBadge, promoOffer: store.promoOffer,
-            isLocal: local, whatsappNumber: store.whatsappNumber, logoUrl: store.logoUrl, brand: readBrandTheme(store.brandTheme),
+            isLocal: local, isBooking: isBookingStall(store), whatsappNumber: store.whatsappNumber, logoUrl: store.logoUrl, brand: readBrandTheme(store.brandTheme),
           }} />
         </div>
       </div>

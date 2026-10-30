@@ -272,7 +272,7 @@ function StoresScreen() {
         run: async () => { const saved = await patchStore(storeId(store), { isActive: true }); merge(saved); setConfirm(null); toast.success(`${store.name} is live.`); },
       });
     } else {
-      quickPatch(store, { isActive: true }, `${store.name} is live${local && !store.hasPassword ? '. Set a ZCS Vendor password so the stall can take orders' : ''}.`, { isActive: false });
+      quickPatch(store, { isActive: true }, `${store.name} is live${local && !store.hasPassword ? `. Set a ${partnerAppName(store)} password so the stall can take ${isBookingStall(store) ? 'bookings' : 'orders'}` : ''}.`, { isActive: false });
     }
   };
   const toggleOpen = (store: Store) => {

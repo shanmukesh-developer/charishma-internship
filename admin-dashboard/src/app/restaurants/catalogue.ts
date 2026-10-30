@@ -159,7 +159,7 @@ export type VendorGroup = 'Food' | 'Shops' | 'Services' | 'Campus';
 /** Canonical store types the backend understands (see backend/utils/vendorTypes.js). */
 export const VENDOR_TYPES: { value: string; label: string; group: VendorGroup; hint: string }[] = [
   { value: 'RESTAURANT', label: 'Restaurant', group: 'Food', hint: 'Cooked food. Orders, payment and ZCS riders.' },
-  { value: 'LOCAL_VENDOR', label: 'Local stall (CampusBites)', group: 'Campus', hint: 'Customers order in ZCS and pay the stall cash. The stall delivers with the ZCS Vendor app; no rider.' },
+  { value: 'LOCAL_VENDOR', label: 'Local stall', group: 'Campus', hint: 'Customers order in ZCS and pay the stall cash; the stall delivers with the ZCS Vendor app (no rider). Pickup-only stalls: use Add campus stall on In-Campus Booking.' },
   { value: 'GROCERY', label: 'Grocery / Kirana', group: 'Shops', hint: 'Packaged goods, fruits, pickles and late-night mart.' },
   { value: 'BAKERY', label: 'Bakery & cakes', group: 'Shops', hint: 'Cakes, breads and bakes. Shows under Bakery in Groceries; set weights and flavours per product.' },
   { value: 'PHARMACY', label: 'Pharmacy', group: 'Shops', hint: 'Medicines and health essentials.' },

@@ -16,6 +16,8 @@ export interface PreviewData {
   featuredBadge?: string | null;
   promoOffer?: string | null;
   isLocal?: boolean;
+  /** In-Campus Booking stall: pickup at the counter, UPI to the stall (not delivery / cash). */
+  isBooking?: boolean;
   whatsappNumber?: string | null;
   logoUrl?: string | null;
   brand?: { primaryColor?: string; secondaryColor?: string; accentColor?: string; logoUrl?: string } | null;
@@ -85,13 +87,15 @@ export function StorePreviewCard({ data, showToggle = true }: { data: PreviewDat
               <p className={cx('mt-1.5 flex items-center gap-1 truncate border-t border-dashed pt-1.5 text-[9.5px] font-semibold', dark ? 'border-line text-fg-muted' : 'border-line text-fg-muted')}>🏷️ {offer}</p>
             )}
             {data.isLocal && (
-              <p className={cx('mt-1.5 truncate text-[9.5px] font-semibold', dark ? 'text-success-text' : 'text-success-text')}>Cash on delivery · stall delivers</p>
+              <p className={cx('mt-1.5 truncate text-[9.5px] font-semibold', dark ? 'text-success-text' : 'text-success-text')}>{data.isBooking ? 'Pickup at the counter · UPI to the stall' : 'Cash on delivery · stall delivers'}</p>
             )}
           </div>
         </div>
       </div>
       {data.isLocal && (
-        <p className="text-xs text-fg-muted">Local stalls appear in the CampusBites section. Customers order in ZCS and pay cash; the stall gets the order in ZCS Vendor{data.whatsappNumber ? ` and can be reached on ${formatWhatsapp(data.whatsappNumber)}` : ''}.</p>
+        <p className="text-xs text-fg-muted">{data.isBooking
+          ? `Listed under In-Campus Booking. Students pre-book, pay the stall by UPI and collect at the counter; the stall manages bookings in ZCS Campus Stall${data.whatsappNumber ? ` and can be reached on ${formatWhatsapp(data.whatsappNumber)}` : ''}.`
+          : `Local stalls appear in the Stalls near campus section. Customers order in ZCS and pay cash; the stall gets the order in ZCS Vendor${data.whatsappNumber ? ` and can be reached on ${formatWhatsapp(data.whatsappNumber)}` : ''}.`}</p>
       )}
       {data.brand && (
         <div className="flex items-center gap-2 text-xs text-fg-muted">

@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useId, useMemo, useRef, useState, ReactNode } from 'react';
 import {
-  Store, VENDOR_TYPES, VendorGroup, adminRequest, formatINR, formatWhatsapp, isBookingOnlyStore, isLocalVendorType,
+  Store, VENDOR_TYPES, VendorGroup, adminRequest, formatINR, formatWhatsapp, isBookingOnlyStore, isBookingStall, isLocalVendorType,
   isValidIndianMobile, readBrandTheme, readTags, storeId, tenDigits, vendorLabel,
 } from '@/app/restaurants/catalogue';
 import {
@@ -103,7 +103,8 @@ export function stateFromStore(s: Store): WizardState {
     minOrderValue: s.minOrderValue ? String(s.minOrderValue) : '',
     commissionType: s.commissionType === 'flat' ? 'flat' : 'percentage',
     commissionRate: String(s.commissionRate ?? 10),
-    campusBooking: false, upiId: '', upiName: '', prepMinutes: '',
+    // An existing In-Campus stall keeps its wording when edited (its booking settings live in its In-Campus tab).
+    campusBooking: isBookingStall(s), upiId: '', upiName: '', prepMinutes: '',
   };
 }
 
@@ -364,7 +365,7 @@ export function StoreWizard({ mode, initial, startStep, preset, stores, onClose,
       deliveryTime: !local && state.deliveryTime ? Number(state.deliveryTime) || null : null,
       isOpen: state.isOpenNow && isOpenByHours(state.weekly), opensAt: primaryWindow(state.weekly).start,
       rating: initial?.rating ?? null, isFeatured: initial?.isFeatured, featuredBadge: initial?.featuredBadge, promoOffer: initial?.promoOffer,
-      isLocal: local, whatsappNumber: state.whatsapp, logoUrl: state.logoUrl,
+      isLocal: local, isBooking: local && state.campusBooking, whatsappNumber: state.whatsapp, logoUrl: state.logoUrl,
       brand: state.brandOn ? { primaryColor: state.primaryColor, secondaryColor: state.secondaryColor, accentColor: state.accentColor, logoUrl: state.logoUrl } : null,
     }} />
   );
@@ -650,7 +651,7 @@ function LocationStep({ s, set, errors, stores }: StepProps & { stores: Store[] 
   const wa = tenDigits(s.whatsapp);
   return (
     <div className="space-y-6">
-      <Field label="Address / landmark" required error={errors.location} help="What a rider needs to find the counter, e.g. “Food court, Block A, ground floor”.">
+      <Field label="Address / landmark" required error={errors.location} help={s.campusBooking ? 'Where students collect, e.g. “Food court, Block A, ground floor”.' : 'What a rider needs to find the counter, e.g. “Food court, Block A, ground floor”.'}>
         {({ id, msgId, invalid }) => (
           <>
             <input id={id} data-autofocus aria-describedby={msgId} aria-invalid={invalid} list="wizard-locations" className={INPUT} value={s.location} onChange={e => set({ location: e.target.value })} />
@@ -676,7 +677,7 @@ function LocationStep({ s, set, errors, stores }: StepProps & { stores: Store[] 
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h4 id="pin-title" className="text-sm font-semibold">Map pin <span className="font-normal text-fg-muted">(optional)</span></h4>
-            <p className="text-xs text-fg-muted">Gives riders exact pickup directions and distance.</p>
+            <p className="text-xs text-fg-muted">{s.campusBooking ? 'Shows students exactly where the counter is.' : 'Gives riders exact pickup directions and distance.'}</p>
           </div>
           {hasPin && <a href={mapsUrl(Number(s.lat), Number(s.lon))} target="_blank" rel="noreferrer" className="text-xs font-semibold text-success-text hover:underline">Check on Google Maps ↗</a>}
         </div>
@@ -701,7 +702,11 @@ function LocationStep({ s, set, errors, stores }: StepProps & { stores: Store[] 
         required={isLocalVendorType(s.vendorType)}
         optional={!isLocalVendorType(s.vendorType)}
         error={errors.whatsapp}
-        help={isLocalVendorType(s.vendorType) ? 'Customers can WhatsApp or call the stall about their order. The vendor can also sign in to ZCS Vendor with this number.' : 'ZCS support and riders use it to reach the store. Not shown to customers for regular stores.'}
+        help={isLocalVendorType(s.vendorType)
+          ? s.campusBooking
+            ? 'Students can call or WhatsApp the stall about their booking. The stall can also sign in to ZCS Campus Stall with this number.'
+            : 'Customers can WhatsApp or call the stall about their order. The vendor can also sign in to ZCS Vendor with this number.'
+          : 'ZCS support and riders use it to reach the store. Not shown to customers for regular stores.'}
         aside={wa.length === 10 && isValidIndianMobile(wa) ? <a className="text-xs font-semibold text-success-text hover:underline" href={`https://wa.me/91${wa}`} target="_blank" rel="noreferrer">Test on WhatsApp ↗</a> : null}
       >
         {({ id, msgId, invalid }) => (
@@ -942,14 +947,15 @@ function ReviewStep({ s, issues, goto, mode, initial, preview }: {
   s: WizardState; issues: { step: StepKey; errors: Errors }[]; goto: (k: StepKey) => void; mode: 'create' | 'edit'; initial: Store | null; preview: ReactNode;
 }) {
   const local = isLocalVendorType(s.vendorType);
-  const campus = local && mode === 'create' && s.campusBooking;
-  const app = campus ? 'ZCS Campus Stall' : 'ZCS Vendor';
+  const bookingStall = local && s.campusBooking;
+  const campus = bookingStall && mode === 'create';
+  const app = bookingStall ? 'ZCS Campus Stall' : 'ZCS Vendor';
   const checks: { ok: boolean; text: string; step: StepKey; optional?: boolean }[] = [
     ...(campus ? [{ ok: UPI_RE.test(s.upiId.trim().toLowerCase()), text: 'UPI ID for student payments', step: 'booking' as StepKey }] : []),
     { ok: !!s.imageUrl, text: 'Cover photo added', step: 'branding', optional: true },
     { ok: s.tags.length > 0, text: 'Cuisines / categories tagged', step: 'basics', optional: true },
     { ok: !!s.whatsapp, text: 'Contact number', step: 'location', optional: !local },
-    { ok: !!s.lat && !!s.lon, text: 'Map pin for riders', step: 'location', optional: true },
+    { ok: !!s.lat && !!s.lon, text: bookingStall ? 'Map pin' : 'Map pin for riders', step: 'location', optional: true },
     local
       ? { ok: !!s.password || (mode === 'edit' && !!initial?.hasPassword), text: `Stall can sign in to ${app}`, step: 'login' as StepKey }
       : { ok: s.managedByZenvy || !!s.password || (mode === 'edit' && !!initial?.hasPassword), text: 'Partner can sign in (or managed by ZCS)', step: 'login' as StepKey },
@@ -967,7 +973,7 @@ function ReviewStep({ s, issues, goto, mode, initial, preview }: {
     { step: 'branding', items: [['Cover photo', s.imageUrl ? 'Added' : 'Missing'], ['Logo', s.logoUrl ? 'Added' : 'None'], ['Brand colours', s.brandOn ? 'On' : 'Off']] },
     { step: 'hours', items: [['Hours', summarizeWeekly(s.weekly)], ['Accepting orders', s.isOpenNow ? 'Yes' : 'Paused'], ...(local ? [] : [['Delivery time', s.deliveryTime ? `${s.deliveryTime} min` : 'Hidden'] as [string, ReactNode]]), ...fees] },
     { step: 'login', items: local
-      ? [['App', app], ['Login phone', loginPhone], ['Password', password], ['Payment', campus ? 'UPI to the stall, collected at the counter' : 'Cash on delivery to the stall']]
+      ? [['App', app], ['Login phone', loginPhone], ['Password', password], ['Payment', bookingStall ? 'UPI to the stall, collected at the counter' : 'Cash on delivery to the stall']]
       : [['Mode', s.managedByZenvy ? 'Managed by ZCS' : 'ZCS Restaurant app'], ['Login phone', loginPhone], ['Password', password]] },
     ...(local ? [] : [
       { step: 'commission' as StepKey, items: [['Commission', s.commissionType === 'flat' ? `₹${s.commissionRate} per order` : `${s.commissionRate}% of order`]] as [string, ReactNode][] },
@@ -1031,7 +1037,8 @@ function SuccessPanel({ result, mode, onOpenStore, onClose }: { result: WizardRe
   const id = storeId(result.store);
   const [ack, setAck] = useState(!result.password);
   const local = isLocalVendorType(result.store.vendorType);
-  const campus = !!result.booking;
+  // A new campus stall, or an existing In-Campus stall whose password was just reset: its login is for ZCS Campus Stall.
+  const campus = !!result.booking || isBookingStall(result.store);
   const app = local ? (campus ? 'ZCS Campus Stall' : 'ZCS Vendor') : 'ZCS Restaurant';
   const phone = tenDigits(result.store.partnerPhone || result.store.phone || (local ? result.store.whatsappNumber : '') || '');
   // WhatsApp link text never carries the password: a wa.me URL lands in browser history and link logs.
