@@ -20,7 +20,7 @@ const istDayStart = (now = new Date()) => {
 
 const storeOnly = (req, res, next) => {
   if (String((req.user && req.user.role) || '').toLowerCase() !== 'restaurant') {
-    return res.status(403).json({ code: 'STALLS_ONLY', message: 'Sign in with your stall account in ZCS Vendor.' });
+    return res.status(403).json({ code: 'STALLS_ONLY', message: "Sign in with your stall's account: the stall's phone number and its password from ZCS." });
   }
   return next();
 };
