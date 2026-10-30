@@ -1260,11 +1260,20 @@ const initializeApp = async () => {
         // Embedded in a web page (iframe): hand the result to the parent window only. Never display tokens.
         // frame-ancestors (CSP above) already limits who can embed this page; also address the
         // message to the embedding page's own origin when the browser tells us what it is.
+        // Never '*': only ZCS's own origins (the same list as frame-ancestors) receive it.
         try {
           if (window.parent && window.parent !== window) {
-            var target = '*';
-            try { if (document.referrer) target = new URL(document.referrer).origin; } catch (e) {}
-            window.parent.postMessage(JSON.stringify(data), target);
+            var allowed = ${JSON.stringify(PRODUCTION_ORIGINS)}.concat([location.origin]);
+            var devHosts = ${require('./utils/env').isProduction() ? 'false' : 'true'};
+            var msg = JSON.stringify(data);
+            var target = null;
+            try {
+              var o = document.referrer ? new URL(document.referrer).origin : '';
+              var local = o === 'http://localhost' || o.indexOf('http://localhost:') === 0 || o === 'http://127.0.0.1' || o.indexOf('http://127.0.0.1:') === 0;
+              if (o && (allowed.indexOf(o) !== -1 || (devHosts && local))) target = o;
+            } catch (e) {}
+            if (target) window.parent.postMessage(msg, target);
+            else allowed.forEach(function (a) { try { window.parent.postMessage(msg, a); } catch (e) {} });
           }
         } catch (e) {}
       }
