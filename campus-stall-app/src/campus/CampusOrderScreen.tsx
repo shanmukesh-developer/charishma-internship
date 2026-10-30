@@ -210,7 +210,7 @@ export default function CampusOrderScreen({ bookingId, onBack }: { bookingId: st
             <Button label="Mark as ready" variant="accept" icon="checkmark-done" onPress={() => run('ready', () => campusApi.ready(b.id), 'Marked ready. The student was told.')} loading={busy === 'ready'} />
           ) : null}
           {/* The student has the code from the moment the order is accepted: the stall can hand over from here too
-              (the order is marked ready first, then the code is checked). */}
+              (the server checks the code, then completes the order). */}
           {b.status === 'ACCEPTED' || b.status === 'PREPARING' || b.status === 'READY' ? (
             <Button label="Hand over (enter pickup code)" variant={b.status === 'READY' ? 'accept' : 'secondary'} icon="key-outline" onPress={() => { setActionErr(null); setSheet('code'); }} />
           ) : null}
@@ -257,14 +257,9 @@ export default function CampusOrderScreen({ bookingId, onBack }: { bookingId: st
           error={actionErr}
           lockedUntil={codeLockedUntil}
           onSubmit={async (code) => {
-            const ok = await run('collect', async () => {
-              // Not marked ready yet (the student is already at the counter): mark it ready, then check the code.
-              if (b.status === 'ACCEPTED' || b.status === 'PREPARING') {
-                const r = await campusApi.ready(b.id);
-                setB(r.booking);
-              }
-              return campusApi.collect(b.id, code);
-            }, 'Handed over. Order complete.', (e) => {
+            // Also from Accepted / Preparing (the student is already at the counter): the server checks the code first
+            // and only then completes it, so a wrong code (say, on the wrong booking) never marks it ready.
+            const ok = await run('collect', () => campusApi.collect(b.id, code), 'Handed over. Order complete.', (e) => {
               if (!(e instanceof ApiError)) return;
               if (e.code === 'CODE_LOCKED') {
                 const sec = Number(e.data?.retryAfter);

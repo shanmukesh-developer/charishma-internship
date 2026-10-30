@@ -6,7 +6,7 @@
     "name": "ZCS Campus Stall",
     "slug": "zcs-campus-stall",
     "scheme": "zcsstall",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -21,7 +21,7 @@
     },
     "android": {
       "package": "com.srm.zcscampusstall",
-      "versionCode": 5,
+      "versionCode": 6,
       "allowBackup": false,
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
