@@ -1747,18 +1747,20 @@ const updateOrderStatus = async (req, res) => {
       const User = getUserModel();
       const customer = await User.findByPk(order.userId);
       if (customer) {
+        // Store orders (groceries, pickles, bakes: Order.category is the store type) get neutral words, not kitchen ones.
+        const storeOrder = require('../utils/vendorTypes').isStoreVendorType(order.category);
         const titles = {
           'Accepted': 'Order Confirmed! 👍',
-          'Preparing': 'Kitchen is cooking! 🍳',
+          'Preparing': storeOrder ? 'Your order is being packed 📦' : 'Kitchen is cooking! 🍳',
           'ReadyForPickup': 'Order ready! 📦',
           'PickedUp': 'Out for Delivery! 🛵',
           'OutForDelivery': 'On the way 🛵',
-          'Delivered': 'Enjoy your meal! 🎉',
+          'Delivered': storeOrder ? 'Order delivered 🎉' : 'Enjoy your meal! 🎉',
           'Cancelled': 'Order Cancelled 🛑'
         };
         const bodies = {
           'Accepted': 'Your order was accepted by the merchant.',
-          'Preparing': 'Your order has been sent to the kitchen.',
+          'Preparing': storeOrder ? 'The store is packing your order.' : 'Your order has been sent to the kitchen.',
           'ReadyForPickup': 'The merchant prepared your order and is waiting for a rider.',
           'PickedUp': 'Rider has picked up your order and is heading your way.',
           'OutForDelivery': 'The stall is bringing your order. Keep the cash ready.',
@@ -2073,7 +2075,8 @@ const restaurantUpdateOrderStatus = async (req, res) => {
       try {
         const customer = await getUserModel().findByPk(order.userId, { attributes: ['id', 'fcmTokens'] });
         if (customer) {
-          await sendPushToTokens(customer.fcmTokens, 'Kitchen is cooking! 🍳', 'Your order is being prepared.', { orderId: order.id, type: 'ORDER_UPDATE' }, { recipients: [customer.id] });
+          const storeOrder = require('../utils/vendorTypes').isStoreVendorType(order.category);
+          await sendPushToTokens(customer.fcmTokens, storeOrder ? 'Your order is being packed 📦' : 'Kitchen is cooking! 🍳', 'Your order is being prepared.', { orderId: order.id, type: 'ORDER_UPDATE' }, { recipients: [customer.id] });
         }
       } catch (pushErr) { console.warn('[REST_STATUS_PUSH_WARN]', pushErr.message); }
       return;

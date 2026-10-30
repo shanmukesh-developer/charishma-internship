@@ -22,7 +22,7 @@ const APP_ALIASES = { delivery: 'rider', 'delivery-boy': 'rider', autodriver: 'a
 const PACKAGES = {
   customer: 'com.srm.hostelbites',
   rider: 'com.srm.hostelbitesdelivery',
-  restaurant: 'com.anonymous.restaurantmobile',
+  restaurant: 'com.zenvy.restaurant', // restaurant-mobile/app.json android.package (the old id has no store listing)
   vendor: 'com.srm.zenvyvendor',
   autodriver: 'com.srm.zenvyautodriver',
   pgowner: 'com.srm.zenvypgowner',

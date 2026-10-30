@@ -159,9 +159,13 @@ const restaurantLogin = async (req, res) => {
     if (appKind === 'vendor' && !isLocalVendorStore(restaurant)) {
       return res.status(403).json({ code: 'NOT_A_VENDOR_ACCOUNT', message: 'This is a restaurant account. Use the ZCS Restaurant app.' });
     }
-    // Stalls deliver their own orders and use the Zenvy Vendor app (the restaurant app has no stall flow).
+    // Stalls use their own partner app (the restaurant app has no stall flow): In-Campus Booking stalls (pickup only)
+    // ZCS Campus Stall, the others ZCS Vendor.
     if (appKind === 'restaurant' && isLocalVendorStore(restaurant)) {
-      return res.status(403).json({ code: 'USE_VENDOR_APP', message: 'This is a stall account. Use the ZCS Vendor app.' });
+      const message = restaurant.campusBookingEnabled === true
+        ? 'This stall takes In-Campus Bookings. Use the ZCS Campus Stall app.'
+        : 'This is a stall account. Use the ZCS Vendor app.';
+      return res.status(403).json({ code: 'USE_VENDOR_APP', message });
     }
 
     const secret = process.env.JWT_SECRET;

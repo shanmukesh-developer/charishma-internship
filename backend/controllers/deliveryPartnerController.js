@@ -817,7 +817,8 @@ const updateOrderStatus = async (req, res) => {
           Picking: 'Your rider is at the store picking up your items.',
           PickedUp: 'Rider is on the way!',
           ArrivedAtGate: 'Rider is waiting at your gate.',
-          Delivered: 'Enjoy your meal!'
+          // A store order (groceries, pickles...) is not a meal.
+          Delivered: require('../utils/vendorTypes').isStoreVendorType(order.category) ? 'Thanks for ordering with ZCS.' : 'Enjoy your meal!'
         };
         if (titles[status]) {
           await sendPushToTokens(customerTokenList, titles[status], bodies[status], { orderId: order.id, type: 'ORDER_UPDATE' }, { recipients: [customer.id] });
@@ -1550,7 +1551,7 @@ const notifyArrivalAtGate = async (req, res) => {
         await sendPushToTokens(
           customer.fcmTokens,
           'Rider Arrived at Gate! 🛎️',
-          'Your rider is waiting at the hostel gate. Please collect your order.',
+          'Your rider is waiting at the hostel gate. Keep your Delivery PIN ready.',
           { orderId: order.id, type: 'GATE_ARRIVAL' },
           { recipients: [customer.id] }
         );
@@ -1565,7 +1566,7 @@ const notifyArrivalAtGate = async (req, res) => {
       if (customer && customer.phone) {
         await sendWhatsAppMessage(
           customer.phone,
-          `🛎️ *Rider Arrived at Gate!*\n\nYour Zenvy rider is waiting at your hostel gate. Please collect your order.\n\n📍 *Tracking:* ${require('../utils/publicUrl').orderTrackingUrl(order.id)}`,
+          `🛎️ *Rider Arrived at Gate!*\n\nYour ZCS rider is waiting at your hostel gate. Keep your 4-digit Delivery PIN from the ZCS app ready.\n\n📍 *Tracking:* ${require('../utils/publicUrl').orderTrackingUrl(order.id)}`,
           'GATE_ARRIVAL'
         );
       }

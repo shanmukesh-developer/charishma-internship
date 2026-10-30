@@ -84,9 +84,12 @@ const RATE = {
   book: { max: 12, windowMs: 60 * 60 * 1000, message: 'Too many bookings in a short time. Please wait a while and try again.' },
   proof: { max: 15, windowMs: 60 * 60 * 1000, message: 'Too many payment proofs sent. Please wait a while and try again.' },
   cancel: { max: 20, windowMs: 60 * 60 * 1000, message: 'Too many changes. Please wait a while and try again.' },
-  vendor_action: { max: 300, windowMs: 60 * 60 * 1000, message: 'Too many updates in a short time. Please wait a minute.' },
+  // A busy stall at lunch makes 3-4 updates per booking (confirm, preparing, ready, hand over): 600 an hour, not 300.
+  vendor_action: { max: 600, windowMs: 60 * 60 * 1000, message: 'Too many updates in a short time. Please wait a minute.' },
   vendor_settings: { max: 30, windowMs: 60 * 60 * 1000, message: 'Too many changes. Please try again later.' },
-  pickup_code: { max: 40, windowMs: 15 * 60 * 1000, message: 'Too many pickup code checks. Please wait a few minutes.' },
+  // Every hand-over (right or wrong code) counts: 40 per 15 minutes refused even correct codes at a busy counter. Guessing
+  // is already stopped per booking (6 wrong codes pause that booking's checks), so this is only a flood guard.
+  pickup_code: { max: 200, windowMs: 15 * 60 * 1000, message: 'Too many pickup code checks. Please wait a few minutes.' },
 };
 
 const hit = (kind, accountId) => {

@@ -115,7 +115,7 @@ const jurisdictionText = (s) => (s.jurisdictionCity
 // ─── Index ────────────────────────────────────────────────────────────────────
 const INDEX = (f) => page(f, 'Legal', `
 <h1>${esc(f.settings.businessName)} policies</h1>
-<p>These pages explain the rules for using ${esc(f.settings.businessName)} and how we handle your data. They apply to the ZCS (Zenvy Community and Services) customer app and the ZCS partner apps (Rider, Restaurant, Vendor and Auto Driver).</p>
+<p>These pages explain the rules for using ${esc(f.settings.businessName)} and how we handle your data. They apply to the ZCS (Zenvy Community and Services) customer app and the ZCS partner apps (Rider, Restaurant, Vendor, Campus Stall, Auto Driver and PG Partner).</p>
 <ul>
 ${NAV.map(([href, label]) => `<li><a href="${href}">${esc(label)}</a></li>`).join('\n')}
 </ul>
@@ -394,7 +394,7 @@ const REFUNDS = (f) => {
   const o = f.orders;
   return page(f, 'Cancellation & Refund Policy', `
 <h1>Cancellation &amp; Refund Policy</h1>
-<p>This policy explains when you can cancel and what you get back, feature by feature. ${biz} accepts <b>cash on delivery</b> and <b>ZCS Wallet</b> payments only, so refunds are made to your ZCS Wallet; if you paid cash and nothing was delivered, there is nothing to refund. ZCS Wallet credit is non-withdrawable, non-transferable in-app credit (see the <a href="/legal/terms">Terms</a>).</p>
+<p>This policy explains when you can cancel and what you get back, feature by feature. For orders ${biz} accepts <b>cash on delivery</b> and <b>ZCS Wallet</b> payments only, so order refunds are made to your ZCS Wallet; if you paid cash and nothing was delivered, there is nothing to refund. In-Campus Booking is different: you pay the stall directly (section 5). ZCS Wallet credit is non-withdrawable, non-transferable in-app credit (see the <a href="/legal/terms">Terms</a>).</p>
 
 <h2>1. Food, grocery and essentials orders</h2>
 <table>
@@ -440,14 +440,22 @@ ${f.autoRideWallet ? `<li>Where you paid from your ZCS Wallet:
 <li>Other damage, no-show, late return, safety or payment problems: report them in the app. We review reports, may ask both sides for photos and documents, and may restrict accounts, but the final settlement is between the two students. ${biz} is not an insurer.</li>
 </ul>
 
-<h2>5. ZCS Wallet</h2>
+<h2>5. In-Campus Booking (pickup at campus stalls)</h2>
+<ul>
+<li>You pay the stall directly by UPI and send the payment screenshot and transaction ID in the app. ${biz} never holds this money.</li>
+<li>You can cancel before you send your payment proof, or after the stall says it could not verify it. Once your proof is sent, only the stall can cancel.</li>
+<li>If the stall cannot verify your payment, rejects it or cancels the booking after you paid, the stall returns the amount to you directly. If it does not, contact ${biz} support from the booking and we will follow up with the stall.</li>
+<li>A booking you do not collect is not refunded unless the stall agrees.</li>
+</ul>
+
+<h2>6. ZCS Wallet</h2>
 <ul>
 <li>Wallet balance can only be spent inside ${biz}. It cannot be withdrawn to a bank account or as cash${f.walletTransfers ? '' : ', and it cannot be transferred'}.</li>
 <li>Credits given by mistake or obtained through fraud or abuse may be reversed.</li>
 <li>Any balance is forfeited when you delete your account, so please use it first.</li>
 </ul>
 
-<h2>6. Questions and complaints</h2>
+<h2>7. Questions and complaints</h2>
 <p>Contact support from the order or booking in the app, or email ${mail(s.contactEmail, 'Refund')}. Complaints are acknowledged within 24 hours and resolved within 15 days. See <a href="/legal/grievance">Grievance Redressal</a>.</p>
 `);
 };
@@ -545,7 +553,7 @@ const DELETE = (f) => {
   const biz = esc(s.businessName);
   return page(f, 'Delete your account', `
 <h1>Delete your ${biz} account</h1>
-<p class="muted">Applies to the ZCS app (com.srm.hostelbites) and the partner apps: ZCS Rider (com.srm.hostelbitesdelivery), ZCS Auto Driver (com.srm.zenvyautodriver), ZCS Restaurant (com.zenvy.restaurant) and ZCS Vendor (com.srm.zenvyvendor). <a href="#riders">Riders and auto drivers</a> · <a href="#stores">Restaurants and vendors</a></p>
+<p class="muted">Applies to the ZCS app (com.srm.hostelbites) and the partner apps: ZCS Rider (com.srm.hostelbitesdelivery), ZCS Auto Driver (com.srm.zenvyautodriver), ZCS Restaurant (com.zenvy.restaurant), ZCS Vendor (com.srm.zenvyvendor), ZCS Campus Stall (com.srm.zcscampusstall) and ZCS PG Partner (com.srm.zenvypgowner). <a href="#riders">Riders and auto drivers</a> · <a href="#stores">Restaurants and vendors</a></p>
 
 <h2>Option 1: in the app (fastest)</h2>
 <ol>

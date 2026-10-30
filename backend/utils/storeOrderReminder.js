@@ -84,6 +84,9 @@ const remindPendingStoreOrders = async ({ now = Date.now(), push = null } = {}) 
       const n = itemCount(o.items);
       const slotText = o.slotStart ? ` For ${o.deliverySlot}.` : '';
       const body = `${n} item${n === 1 ? '' : 's'} · ₹${rupees(o.finalPrice)}${o.paymentMethod === 'COD' ? ' (cash)' : ''}.${slotText} Accept it in the next ${leftMin} min or it will be cancelled.`;
+      // Accepted (or cancelled) while this loop was sending the earlier reminders: no "still waiting" for it.
+      const stillPending = await Order.count({ where: { id: o.id, status: 'Pending', deliveryPartnerId: null } });
+      if (!stillPending) continue;
       sent.set(id, { count: s.count + 1, at: now });
       try {
         await send(o.restaurantId, 'Order still waiting', body, { orderId: id, type: 'NEW_ORDER', reminder: '1' }, { tag: `order-${id}` });

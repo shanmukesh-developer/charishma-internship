@@ -2,6 +2,9 @@ const { getRestaurantModel } = require('../models/Restaurant');
 const { getMenuItemModel } = require('../models/MenuItem');
 const { Op } = require('sequelize');
 const { stripItemSecrets } = require('../utils/publicFields');
+// In-Campus Booking stalls are pickup-only (owner, 30 Oct 2026): they are found under In-Campus Booking, never in
+// search, which opens the delivery store page (a dish added there was refused at checkout as BOOKING_ONLY_STALL).
+const NOT_BOOKING_STALL = { [Op.or]: [{ campusBookingEnabled: false }, { campusBookingEnabled: null }] };
 
 // Real rating only (0 = not rated yet → null, the app shows "New").
 const realRating = (r) => (Number(r) > 0 ? Number(r) : null);
@@ -36,14 +39,14 @@ const globalSearch = async (req, res) => {
       // Independent reads: one round trip of wall time, not two.
       const [trendingRestaurants, trendingItems] = await Promise.all([
         Restaurant.findAll({
-          where: { isActive: true, ...(await require('../utils/receiptSettings').listingWhere()) },
+          where: { isActive: true, ...(await require('../utils/receiptSettings').listingWhere()), [Op.and]: [NOT_BOOKING_STALL] },
           order: [['rating', 'DESC NULLS LAST']], // Postgres puts NULL first on plain DESC
           limit: 4
         }),
         MenuItem.findAll({
           where: { isAvailable: true },
           limit: 6,
-          include: [{ model: Restaurant, as: 'restaurant', attributes: ['id', 'name', 'imageUrl', 'vendorType'], where: { isActive: true, ...(await require('../utils/receiptSettings').listingWhere()) } }]
+          include: [{ model: Restaurant, as: 'restaurant', attributes: ['id', 'name', 'imageUrl', 'vendorType'], where: { isActive: true, ...(await require('../utils/receiptSettings').listingWhere()), [Op.and]: [NOT_BOOKING_STALL] } }]
         }),
       ]);
 
@@ -68,7 +71,7 @@ const globalSearch = async (req, res) => {
     const [restaurants, menuItems] = await Promise.all([Restaurant.findAll({
       where: {
         name: { [likeOp]: `%${q}%` },
-        isActive: true, ...(await require('../utils/receiptSettings').listingWhere())
+        isActive: true, ...(await require('../utils/receiptSettings').listingWhere()), [Op.and]: [NOT_BOOKING_STALL]
       },
       limit: 5
     }), MenuItem.findAll({
@@ -84,7 +87,7 @@ const globalSearch = async (req, res) => {
           }
         ]
       },
-      include: [{ model: Restaurant, as: 'restaurant', attributes: ['id', 'name', 'imageUrl', 'vendorType'], where: { isActive: true, ...(await require('../utils/receiptSettings').listingWhere()) } }],
+      include: [{ model: Restaurant, as: 'restaurant', attributes: ['id', 'name', 'imageUrl', 'vendorType'], where: { isActive: true, ...(await require('../utils/receiptSettings').listingWhere()), [Op.and]: [NOT_BOOKING_STALL] } }],
       limit: 15
     })]);
 

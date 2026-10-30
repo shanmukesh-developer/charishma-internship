@@ -24,7 +24,9 @@ router.post('/:id/click', incrementClickCount);
 router.get('/menu/item/:itemId', catalogCache, getMenuItemById);
 
 router.get('/', catalogCache, getRestaurants);
-router.get('/:id/menu', catalogCache, getRestaurantMenu);
+// The store's own menu read (and admins) skips the cache: a stock toggle / price edit within a few seconds of another
+// catalog change was otherwise answered from the cached copy and flipped back in the store's own app.
+router.get('/:id/menu', cacheGet('catalog', { ttlMs: 30 * 1000, bypass: (req) => require('../controllers/adminController').storeViewerPrivileged(req, req.params.id) }), getRestaurantMenu);
 router.post('/login', authLimiter, accountLockout, restaurantLogin);
 router.post('/refresh-token', protect, refreshStoreToken); // sliding store / vendor session (B28)
 router.get('/:id/orders', protect, vendor, getRestaurantOrders); 
