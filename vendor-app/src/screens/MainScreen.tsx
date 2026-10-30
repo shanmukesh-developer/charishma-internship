@@ -21,7 +21,9 @@ export default function MainScreen({ navigation }: NativeStackScreenProps<RootSt
   const [tab, setTab] = useState<MainTab>('orders');
   const [visited, setVisited] = useState<Record<MainTab, boolean>>({ orders: true, menu: false, shop: false, settings: false });
   const { orders } = useStore();
-  const activeCount = orders.filter((o) => o.stage === 'new' || o.stage === 'accepted' || o.stage === 'outForDelivery').length;
+  // The red badge means "needs you now" (as in ZCS Restaurant): new orders only. Counting accepted and on-the-way
+  // orders too made an accepted order look still pending.
+  const activeCount = orders.filter((o) => o.stage === 'new').length;
   const openOrder = useCallback((o: Order) => navigation.navigate('OrderDetail', { orderId: o.id }), [navigation]);
   const go = useCallback((t: MainTab) => {
     setTab(t);

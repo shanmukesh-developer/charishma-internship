@@ -1,7 +1,7 @@
 // Pickup tab (In-Campus Booking, owner board vendor screens 1 and 2): today's real numbers (bookings, payments to
 // check, earnings), then Pending / Accepted / History. Pending puts payments to review first; bookings still
 // waiting for the student to pay are shown below them, dimmed. Tap a booking to verify, prepare and hand over.
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -32,18 +32,23 @@ export default function CampusScreen({ onSummary, onOpenTab }: { onSummary?: (s:
   const [counts, setCounts] = useState<{ pending: number; accepted: number }>({ pending: 0, accepted: 0 });
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  // Only the newest load applies: a poll that started before "Confirm payment" used to answer last and put the
+  // booking back under Pending.
+  const loadSeq = useRef(0);
 
   const load = useCallback(async (which: CbTab = tab, pull = false) => {
     if (pull) setRefreshing(true);
+    const seq = ++loadSeq.current;
     try {
       const [s, l] = await Promise.all([campusApi.summary(), campusApi.list(which)]);
+      if (seq !== loadSeq.current) return;
       setSummary(s);
       onSummary?.(s);
       setLists((prev) => ({ ...prev, [which]: l.bookings }));
       setCounts(l.counts);
       setError(null);
     } catch (e) {
-      setError(errorMessage(e, "Couldn't load bookings."));
+      if (seq === loadSeq.current) setError(errorMessage(e, "Couldn't load bookings."));
     } finally {
       setRefreshing(false);
     }

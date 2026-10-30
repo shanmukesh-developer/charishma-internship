@@ -232,17 +232,22 @@ const wakeVerdict = (err: unknown): WakeVerdict => {
   }
   return null;
 };
-const inflightGets = new Map<string, Promise<any>>();
+const inflightGets = new Map<string, { promise: Promise<any>; startedAt: number }>();
+// When the last write (claim, picked up, delivered...) finished. A GET that started before it may carry the state from
+// before that write, so a GET asked for afterwards never joins it: the active list refreshed right after a claim used
+// to come back without the order (a false "Order cancelled") and the offers with it still in.
+let lastWriteAt = 0;
 
 export async function apiFetch<T = unknown>(path: string, opts: RequestOptions = {}): Promise<T> {
-  if ((opts.method || 'GET') !== 'GET' || false) return apiFetchOnce<T>(path, opts);
-  const key = `${(opts.token ?? getToken()) || ''}|${path}|${opts.auth === false ? 0 : 1}`;
-  let shared = inflightGets.get(key) as Promise<T> | undefined;
-  if (!shared) {
-    shared = withWakeRetry(() => apiFetchOnce<T>(path, opts), wakeVerdict);
-    inflightGets.set(key, shared);
-    const clear = () => { if (inflightGets.get(key) === shared) inflightGets.delete(key); };
-    shared.then(clear, clear);
+  if ((opts.method || 'GET') !== 'GET') {
+    try { return await apiFetchOnce<T>(path, opts); } finally { lastWriteAt = Date.now(); }
   }
-  return shared;
+  const key = `${(opts.token ?? getToken()) || ''}|${path}|${opts.auth === false ? 0 : 1}`;
+  const entry = inflightGets.get(key);
+  if (entry && entry.startedAt > lastWriteAt) return entry.promise as Promise<T>;
+  const own = { promise: withWakeRetry(() => apiFetchOnce<T>(path, opts), wakeVerdict), startedAt: Date.now() };
+  inflightGets.set(key, own);
+  const clear = () => { if (inflightGets.get(key) === own) inflightGets.delete(key); };
+  own.promise.then(clear, clear);
+  return own.promise;
 }

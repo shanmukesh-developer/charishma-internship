@@ -158,6 +158,10 @@ export function RiderProvider({ children }: { children: React.ReactNode }) {
   const finishedIds = useRef<Set<string>>(new Set()); // delivered / released by us
   const inFlightIds = useRef<Set<string>>(new Set()); // deliver / release request still running
   const activeSeq = useRef(0); // drops out-of-order /orders/active responses
+  // Orders this rider claimed in the last 20 s (claim time): kept out of the offers and never counted as vanished
+  // while the server's lists catch up.
+  const claimedAt = useRef(new Map<string, number>());
+  const justClaimed = (id: string) => Date.now() - (claimedAt.current.get(id) ?? 0) < 20000;
   const pendingSeq = useRef(0); // same for /orders/pending (and drops a pool answer that lands after going off duty)
   /** Bumps on logout / session end: any response that started in an older session is ignored. */
   const epoch = useRef(0);
@@ -474,10 +478,14 @@ export function RiderProvider({ children }: { children: React.ReactNode }) {
   const refreshActive = useCallback(async (): Promise<RiderOrder[] | null> => {
     const seq = ++activeSeq.current;
     try {
-      const list = await api.fetchActive();
+      const fetched = await api.fetchActive();
       // A newer request already answered (or we logged out): this response is stale.
       if (seq !== activeSeq.current || !tokenRef.current) return null;
       const prev = activeRef.current;
+      // An order claimed seconds ago that a lagging list does not show yet stays on screen; it is never "vanished".
+      const fetchedIds = new Set(fetched.map((o) => o.id));
+      const keep = prev.filter((o) => !fetchedIds.has(o.id) && justClaimed(o.id));
+      const list = keep.length ? [...fetched, ...keep] : fetched;
       const nextIds = new Set(list.map((o) => o.id));
       const vanished = prev.filter(
         (o) => !nextIds.has(o.id) && !finishedIds.current.has(o.id) && !inFlightIds.current.has(o.id),
@@ -524,7 +532,8 @@ export function RiderProvider({ children }: { children: React.ReactNode }) {
   const refreshPending = useCallback(async () => {
     const seq = ++pendingSeq.current;
     try {
-      const list = await api.fetchPending();
+      // An order this rider just claimed never comes back into the offers from a lagging pool list.
+      const list = (await api.fetchPending()).filter((o) => !justClaimed(o.id));
       // Out of order (an older poll answering after a newer socket-triggered one), logged out, or went off
       // duty meanwhile: this pool list is stale.
       if (seq !== pendingSeq.current || !tokenRef.current || !isOnlineRef.current) return;
@@ -994,6 +1003,8 @@ export function RiderProvider({ children }: { children: React.ReactNode }) {
       cancelAnnouncement(`new:${order.id}`);
       try {
         const claimed = await api.acceptOrder(order.id);
+        claimedAt.current.set(order.id, Date.now());
+        pendingSeq.current++; // a pool refresh already in flight would bring this order back
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
         announce('accepted', {}, { dedupeKey: `accepted:${order.id}`, chime: 'info' });
         setPending((p) => ({ ...p, data: p.data.filter((o) => o.id !== order.id) }));

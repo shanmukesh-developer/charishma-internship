@@ -17,6 +17,11 @@ import { LegalLine } from '../lib/legal';
 
 type ServerState = 'checking' | 'up' | 'waking';
 
+/** Which partner app a stall account belongs to: In-Campus Booking stalls use ZCS Campus Stall, the others ZCS Vendor. */
+const stallAppMessage = (r: any) => (r && r.campusBookingEnabled === true
+  ? 'This stall takes In-Campus Bookings. Please log in with the ZCS Campus Stall app.'
+  : 'This is a stall account. Please log in with the ZCS Vendor app.');
+
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const { signIn, notice, clearNotice } = useSession();
@@ -65,14 +70,15 @@ export default function LoginScreen() {
       const data = await login(id, password);
       if (!data?.token || !data?.restaurant) throw new Error('bad response');
       if (isStallAccount(data.restaurant)) {
-        setError('This is a stall account. Please log in with the ZCS Vendor app.');
+        setError(stallAppMessage(data.restaurant));
         return;
       }
       await setSavedId(remember ? id : null);
       await signIn(data.token, data.restaurant);
     } catch (e) {
       if (e instanceof ApiError && e.code === 'USE_VENDOR_APP') {
-        setError('This is a stall account. Please log in with the ZCS Vendor app.');
+        // The server names the right app (ZCS Campus Stall for In-Campus Booking stalls, else ZCS Vendor).
+        setError(e.message || 'This is a stall account. Please log in with the ZCS Vendor app.');
       } else if (e instanceof ApiError && e.status === 401 && /invalid credentials/i.test(e.message)) {
         setError('Wrong store login ID or password. Check and try again.');
       } else if (e instanceof ApiError) {

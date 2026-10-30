@@ -209,8 +209,16 @@ export default function CampusOrderScreen({ bookingId, onBack }: { bookingId: st
           {b.status === 'PREPARING' ? (
             <Button label="Mark as ready" variant="accept" icon="checkmark-done" onPress={() => run('ready', () => campusApi.ready(b.id), 'Marked ready. The student was told.')} loading={busy === 'ready'} />
           ) : null}
-          {b.status === 'READY' ? (
-            <Button label="Hand over (enter pickup code)" variant="accept" icon="key-outline" onPress={() => { setActionErr(null); setSheet('code'); }} disabled={b.pickupLocked} />
+          {/* The student has the code from the moment the order is accepted: the stall can hand over from here too
+              (the order is marked ready first, then the code is checked). */}
+          {b.status === 'ACCEPTED' || b.status === 'PREPARING' || b.status === 'READY' ? (
+            <Button label="Hand over (enter pickup code)" variant={b.status === 'READY' ? 'accept' : 'secondary'} icon="key-outline" onPress={() => { setActionErr(null); setSheet('code'); }} />
+          ) : null}
+          {(b.status === 'ACCEPTED' || b.status === 'PREPARING') ? (
+            <Text style={[font.small, { color: color.textMuted }]}>When the student comes to collect, tap Hand over and type the 4-character code on their phone.</Text>
+          ) : null}
+          {b.pickupLocked ? (
+            <Text style={[font.small, { color: color.alertDark, fontWeight: '700' }]}>Code checking is paused after too many wrong codes. Try again in a few minutes.</Text>
           ) : null}
           {canCancel && !review ? <Button label="Cancel order" variant="ghost" onPress={() => setSheet('cancel')} disabled={!!busy} style={{ minHeight: touch.secondary }} /> : null}
           {review ? <Button label="Can't take this order" variant="ghost" onPress={() => setSheet('cancel')} disabled={!!busy} style={{ minHeight: touch.secondary }} /> : null}
@@ -249,7 +257,14 @@ export default function CampusOrderScreen({ bookingId, onBack }: { bookingId: st
           error={actionErr}
           lockedUntil={codeLockedUntil}
           onSubmit={async (code) => {
-            const ok = await run('collect', () => campusApi.collect(b.id, code), 'Handed over. Order complete.', (e) => {
+            const ok = await run('collect', async () => {
+              // Not marked ready yet (the student is already at the counter): mark it ready, then check the code.
+              if (b.status === 'ACCEPTED' || b.status === 'PREPARING') {
+                const r = await campusApi.ready(b.id);
+                setB(r.booking);
+              }
+              return campusApi.collect(b.id, code);
+            }, 'Handed over. Order complete.', (e) => {
               if (!(e instanceof ApiError)) return;
               if (e.code === 'CODE_LOCKED') {
                 const sec = Number(e.data?.retryAfter);

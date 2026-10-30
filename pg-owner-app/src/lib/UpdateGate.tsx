@@ -104,7 +104,7 @@ export default function UpdateGate({ children }: { children: React.ReactNode }) 
           <Pressable style={({ pressed }) => [styles.primary, pressed && styles.pressed]} onPress={onUpdate} accessibilityRole="button" accessibilityLabel="Update the app">
             <Text style={styles.primaryText}>Update</Text>
           </Pressable>
-          {openFailed && <Text style={styles.error}>Could not open the store. Search for &quot;{p ? p.appName : 'ZCS'}&quot; in the Play Store.</Text>}
+          {openFailed && <Text style={styles.error}>{client && client.packageId === 'com.srm.hostelbites' ? `Could not open the store. Search for "${p ? p.appName : 'ZCS'}" in the Play Store.` : `Could not open the link. Ask ZCS for the latest "${p ? p.appName : 'ZCS'}" app.`}</Text>}
           <Pressable style={({ pressed }) => [styles.secondary, pressed && styles.pressed]} onPress={onRetry} disabled={retrying} accessibilityRole="button" accessibilityLabel="Check again">
             {retrying ? <ActivityIndicator color="#E5E7EB" /> : <Text style={styles.secondaryText}>Retry</Text>}
           </Pressable>

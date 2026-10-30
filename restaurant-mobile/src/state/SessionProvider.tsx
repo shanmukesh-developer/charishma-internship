@@ -111,7 +111,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         if (t && isStallAccount(r)) {
           // A stall session saved by an older build: its orders cannot be completed in this app.
           clearSession();
-          setNotice('This is a stall account. Please log in with the ZCS Vendor app.');
+          setNotice(r && (r as any).campusBookingEnabled === true
+            ? 'This stall takes In-Campus Bookings. Please log in with the ZCS Campus Stall app.'
+            : 'This is a stall account. Please log in with the ZCS Vendor app.');
           return;
         }
         tokenRef.current = t;

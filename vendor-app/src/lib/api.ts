@@ -78,7 +78,8 @@ export function setOrderStatus(orderId: string, status: VendorStatus, reason?: s
 }
 
 export async function getMenu(id: string): Promise<MenuItem[]> {
-  const rows = await apiFetch<any[]>(`/api/restaurants/${enc(id)}/menu`, { auth: false });
+  // Signed in: the server skips its public cache for the store's own menu (an Out of stock tap used to flip back).
+  const rows = await apiFetch<any[]>(`/api/restaurants/${enc(id)}/menu`);
   return (Array.isArray(rows) ? rows : []).map(normalizeMenuItem).filter((m): m is MenuItem => !!m);
 }
 

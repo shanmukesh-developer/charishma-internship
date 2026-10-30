@@ -122,7 +122,7 @@ export default function LoginScreen() {
         <View style={styles.brand}>
           <Image source={require('../../assets/icon.png')} style={styles.logo} accessibilityIgnoresInvertColors />
           <Text style={[font.h1, { color: color.text }]}>ZCS Campus Stall</Text>
-          <Text style={[font.body, { color: color.textSecondary, textAlign: 'center' }]}>In-Campus Booking for your stall. Log in with your ZCS Vendor phone number and password.</Text>
+          <Text style={[font.body, { color: color.textSecondary, textAlign: 'center' }]}>In-Campus Booking for your stall. Log in with your stall&apos;s phone number and the password from ZCS.</Text>
         </View>
 
         {notice ? (

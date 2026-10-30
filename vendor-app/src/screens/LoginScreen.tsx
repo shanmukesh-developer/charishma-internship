@@ -95,6 +95,12 @@ export default function LoginScreen() {
         setError('This is a restaurant account. Please use the ZCS Restaurant app.');
         return;
       }
+      // In-Campus Booking stalls are pickup-only: their bookings, payments and pickup codes live in ZCS Campus Stall
+      // (signing in here showed an empty order list forever).
+      if ((data.restaurant as any).campusBookingEnabled === true) {
+        setError('This stall takes In-Campus Bookings. Please log in with the ZCS Campus Stall app.');
+        return;
+      }
       // Saved as 10 digits: the field already shows +91 in front ("+91 +91 98765…" otherwise).
       await setSavedPhone(remember ? (normalizePhone(id) || id) : null);
       await signIn(data.token, data.restaurant);

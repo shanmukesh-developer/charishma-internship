@@ -162,19 +162,24 @@ const wakeVerdict = (err: unknown): WakeVerdict => {
   }
   return null;
 };
-const inflightGets = new Map<string, Promise<any>>();
+const inflightGets = new Map<string, { promise: Promise<any>; startedAt: number }>();
+// When the last write (accept, ready, confirm payment...) finished. A GET that started before it may carry the state
+// from before that write, so a GET asked for afterwards never joins it: the list refreshed right after an action used
+// to come back with the old status and overwrite the newer one (a confirmed booking stayed under Pending).
+let lastWriteAt = 0;
 
 export async function apiFetch<T = any>(path: string, opts: RequestOptions = {}): Promise<T> {
-  if ((opts.method || 'GET') !== 'GET' || (opts as any).form) return apiFetchOnce<T>(path, opts);
-  const key = `${getToken() || ''}|${path}|${opts.auth === false ? 0 : 1}`;
-  let shared = inflightGets.get(key) as Promise<T> | undefined;
-  if (!shared) {
-    shared = withWakeRetry(() => apiFetchOnce<T>(path, opts), wakeVerdict);
-    inflightGets.set(key, shared);
-    const clear = () => { if (inflightGets.get(key) === shared) inflightGets.delete(key); };
-    shared.then(clear, clear);
+  if ((opts.method || 'GET') !== 'GET' || (opts as any).form) {
+    try { return await apiFetchOnce<T>(path, opts); } finally { lastWriteAt = Date.now(); }
   }
-  return shared;
+  const key = `${getToken() || ''}|${path}|${opts.auth === false ? 0 : 1}`;
+  const entry = inflightGets.get(key);
+  if (entry && entry.startedAt > lastWriteAt) return entry.promise as Promise<T>;
+  const own = { promise: withWakeRetry(() => apiFetchOnce<T>(path, opts), wakeVerdict), startedAt: Date.now() };
+  inflightGets.set(key, own);
+  const clear = () => { if (inflightGets.get(key) === own) inflightGets.delete(key); };
+  own.promise.then(clear, clear);
+  return own.promise;
 }
 
 /** The message for an upload the server answered with an error status. */
