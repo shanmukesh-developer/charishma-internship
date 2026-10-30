@@ -1,6 +1,6 @@
 "use client";
 import { useRef, useState, KeyboardEvent, DragEvent } from 'react';
-import { DAYS, DAY_LABEL, DAY_SHORT, DayKey, Weekly, isUniform, resizeAndUpload, summarizeWeekly, IMAGE_PRESETS } from './helpers';
+import { DAYS, DAY_LABEL, DAY_SHORT, DayKey, Weekly, isUniform, resizeAndUpload, summarizeWeekly, IMAGE_PRESETS, photoLinkNote } from './helpers';
 import { Button, INPUT, Spinner, Toggle, cx, FOCUS_RING } from './ui';
 
 // ─── Weekly hours ────────────────────────────────────────────────────────────
@@ -79,7 +79,10 @@ export function ImagePicker({ value, onChange, preset, label, hint, aspect = 'as
   const [drag, setDrag] = useState(false);
   const [err, setErr] = useState('');
   const [urlMode, setUrlMode] = useState(false);
+  // The link whose preview failed to load (a new value clears it).
+  const [broken, setBroken] = useState('');
   const input = useRef<HTMLInputElement | null>(null);
+  const linkNote = photoLinkNote(value);
 
   const handle = async (file?: File | null) => {
     if (!file) return;
@@ -114,7 +117,7 @@ export function ImagePicker({ value, onChange, preset, label, hint, aspect = 'as
         {value ? (
           // A logo is shown whole (cropping cut off its edges); photos fill the frame.
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={value} alt={`${label} preview`} className={cx('absolute inset-0 h-full w-full', preset === 'logo' ? 'object-contain p-2' : 'object-cover')} />
+          <img src={value} alt={`${label} preview`} onError={() => setBroken(value)} className={cx('absolute inset-0 h-full w-full', preset === 'logo' ? 'object-contain p-2' : 'object-cover')} />
         ) : (
           <button type="button" onClick={() => input.current?.click()} className={cx('absolute inset-0 flex flex-col items-center justify-center gap-1 p-3 text-center', FOCUS_RING)}>
             <span aria-hidden className="text-2xl"></span>
@@ -136,6 +139,11 @@ export function ImagePicker({ value, onChange, preset, label, hint, aspect = 'as
       {urlMode && (
         <input className={INPUT} aria-label={`${label} image link`} placeholder="https://…" value={value.startsWith('data:') ? '' : value} onChange={e => onChange(e.target.value.trim())} />
       )}
+      {value && broken === value ? (
+        <p role="alert" className="text-xs text-danger-text">This photo does not load (the link is broken or blocked). Upload the photo instead.</p>
+      ) : linkNote ? (
+        <p className={cx('text-xs', linkNote.tone === 'danger' ? 'text-danger-text' : 'text-warning-text')}>{linkNote.text}</p>
+      ) : null}
       {err && <p role="alert" className="text-xs text-danger-text">{err}</p>}
     </div>
   );

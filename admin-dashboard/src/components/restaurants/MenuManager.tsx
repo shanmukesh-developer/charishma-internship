@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DietType, Product, Store, adminRequest, dietOf, isBookingOnlyStore, isBookingStall, isLocalVendorType, mrpOf, readSpecs, storeId } from '@/app/restaurants/catalogue';
 import { useLiveSync, useFreshIds, FRESH_ROW_CLASS, LiveEvent } from '@/lib/useLiveSync';
-import { parseCsv, timeAgo } from './helpers';
+import { parseCsv, photoLinkNote, timeAgo } from './helpers';
 import { ImagePicker, TagInput } from './inputs';
 import { bulkUpdateItems, describeBulk, duplicateItemPayload } from './storeActions';
 import {
@@ -409,6 +409,10 @@ function ItemRow({ p, fresh, busy, selected, onSelect, canUp, canDown, onMove, o
   const off = Number.isFinite(mrp) && mrp > price ? Math.round((1 - price / mrp) * 100) : 0;
   const until = p.outOfStockUntil ? new Date(p.outOfStockUntil) : null;
   const img = p.imageUrl || p.image;
+  // A photo that fails to load, or one borrowed from another website, is flagged so it gets replaced.
+  const [brokenImg, setBrokenImg] = useState('');
+  const imgBroken = !!img && brokenImg === img;
+  const linkNote = photoLinkNote(img);
   const twoHours = () => new Date(Date.now() + 2 * 3600 * 1000);
   const tomorrow9 = () => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0); return d; };
   return (
@@ -419,9 +423,11 @@ function ItemRow({ p, fresh, busy, selected, onSelect, canUp, canDown, onMove, o
         <button type="button" disabled={!canDown} onClick={() => onMove(1)} aria-label={`Move ${p.name} down`} className={cx('rounded px-1 text-xs leading-4 text-fg-muted hover:text-fg disabled:opacity-20', FOCUS_RING)}>▼</button>
       </span>
       <button type="button" onClick={onEdit} className={cx('flex min-w-0 flex-1 items-center gap-3 rounded-lg text-left', FOCUS_RING)}>
-        {img ? (
+        {img && !imgBroken ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={img} alt="" loading="lazy" className={cx('h-12 w-12 shrink-0 rounded-lg border border-line object-cover', !p.isAvailable && 'grayscale')} />
+          <img src={img} alt="" loading="lazy" onError={() => setBrokenImg(img)} className={cx('h-12 w-12 shrink-0 rounded-lg border border-line object-cover', !p.isAvailable && 'grayscale')} />
+        ) : imgBroken ? (
+          <span aria-hidden className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-dashed border-danger/40 text-[10px] font-semibold text-danger-text">Broken</span>
         ) : (
           <span aria-hidden className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-dashed border-line text-xs text-fg-subtle">No photo</span>
         )}
@@ -438,6 +444,11 @@ function ItemRow({ p, fresh, busy, selected, onSelect, canUp, canDown, onMove, o
             {p.isSpecializedCake && <Chip tone="amber">Specialized cake</Chip>}
             {!!specs.bookingOnly && <Chip tone="sky">Booking</Chip>}
             {!img && <span className="text-warning-text">· add a photo</span>}
+            {imgBroken ? (
+              <span className="text-danger-text">· photo does not load: replace it</span>
+            ) : linkNote ? (
+              <span className={linkNote.tone === 'danger' ? 'text-danger-text' : 'text-warning-text'} title={linkNote.text}>· {linkNote.short}</span>
+            ) : null}
           </span>
         </span>
       </button>
@@ -787,6 +798,7 @@ function CsvImportModal({ storeId: sid, existing, allowFree, onClose, onImported
       else if (mrp !== null && Number.isFinite(price) && mrp < price) errors.push('MRP below price');
       const image = get('image');
       if (image && !/^https?:\/\//i.test(image)) errors.push('Image must be an http(s) link');
+      else if (image && photoLinkNote(image)?.tone === 'danger') errors.push(`Image: ${photoLinkNote(image)?.text}`);
       const key = name.toLowerCase();
       const duplicate = !!name && (existingNames.has(key) || seen.has(key));
       seen.add(key);

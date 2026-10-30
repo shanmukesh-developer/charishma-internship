@@ -1,6 +1,7 @@
 import type { OperatingHours } from '@/app/restaurants/catalogue';
 import { formatTime } from '@/app/restaurants/catalogue';
 import { uploadImage } from '@/lib/api';
+import { API_URL } from '@/lib/config';
 
 // ─── Weekly hours ────────────────────────────────────────────────────────────
 export const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
@@ -145,6 +146,33 @@ export const IMAGE_PRESETS = {
 export async function resizeAndUpload(file: File, preset: keyof typeof IMAGE_PRESETS): Promise<string> {
   const resized = await resizeImage(file, IMAGE_PRESETS[preset]);
   return uploadImage(resized);
+}
+
+// ─── Photo links ─────────────────────────────────────────────────────────────
+// Same rules as the server (utils/imageStore.imageLinkProblem): a temporary link expires and a Google Images
+// preview is not the photo itself, so new ones are refused when saved. Photos linked from other websites are
+// allowed but flagged: they can disappear, and the photo must be the store's own to use (31 Oct 2026: one
+// pickle photo had already stopped showing; five others came from blogs, Amazon and other brands' sites).
+const TEMP_LINK_KEYS = ['x-amz-expires', 'x-amz-signature', 'x-goog-expires', 'x-goog-signature', 'expires', 'signature', 'key-pair-id'];
+const FREE_STOCK_HOST = /(^|\.)(images\.unsplash\.com|images\.pexels\.com)$/;
+const API_HOST = (() => { try { return new URL(API_URL).hostname.toLowerCase(); } catch { return ''; } })();
+export interface PhotoLinkNote { tone: 'danger' | 'warning'; short: string; text: string }
+export function photoLinkNote(url?: string | null): PhotoLinkNote | null {
+  const v = String(url || '').trim();
+  if (!/^https?:\/\//i.test(v) || /\/api\/campus\/media\/[0-9a-f-]{36}/i.test(v)) return null;
+  let u: URL;
+  try { u = new URL(v); } catch { return null; }
+  const host = u.hostname.toLowerCase();
+  if (host === API_HOST || FREE_STOCK_HOST.test(host)) return null;
+  const keys = new Set(Array.from(u.searchParams.keys(), k => k.toLowerCase()));
+  if (/(^|\.)flow-content\.google$/.test(host) || TEMP_LINK_KEYS.some(k => keys.has(k)) || (keys.has('se') && keys.has('sig')) || (keys.has('oe') && keys.has('oh'))) {
+    return { tone: 'danger', short: 'photo link expires', text: 'This link is temporary: it expires and the photo stops showing. Save the photo and upload it instead.' };
+  }
+  if (/^encrypted-tbn\d*\.gstatic\.com$/.test(host)) {
+    return { tone: 'danger', short: 'Google preview, not a photo', text: 'This is a small Google Images preview, not the photo itself. Upload your own photo instead.' };
+  }
+  const site = host.replace(/^www\./, '');
+  return { tone: 'warning', short: `photo from ${site}`, text: `Linked from ${site}. Photos from other websites can disappear, and the photo must be yours to use. Upload the store's own photo.` };
 }
 
 // ─── Passwords ───────────────────────────────────────────────────────────────
