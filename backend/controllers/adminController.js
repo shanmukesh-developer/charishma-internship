@@ -475,12 +475,14 @@ class AdminInputError extends Error {}
 
 // Image fields from the dashboard (imageUrl / logoUrl): a media URL or hosted https image is
 // kept; inline base64 is sniffed and moved to the media table (short URL stored); anything else
-// (data:text/html, SVG, huge strings) is rejected.
-const mediaizeImageFields = async (out, req, keys, purpose) => {
+// (data:text/html, SVG, huge strings) is rejected. `existing` = the row being edited: its current
+// photo links pass unchanged (an old temporary link never blocks a price edit; the list flags it).
+const mediaizeImageFields = async (out, req, keys, purpose, existing = null) => {
   const { storeImageRef } = require('../utils/imageStore');
   for (const key of keys) {
     if (out[key] === undefined) continue;
-    const r = await storeImageRef(out[key], { req, ownerId: req.user && req.user.id, purpose });
+    const keep = existing ? (typeof existing.get === 'function' ? existing.get(key) : existing[key]) : null;
+    const r = await storeImageRef(out[key], { req, ownerId: req.user && req.user.id, purpose, keep });
     if (!r.ok) throw new AdminInputError(`${key === 'logoUrl' ? 'Logo' : 'Photo'}: ${r.message}`);
     out[key] = r.value;
   }
@@ -916,7 +918,7 @@ exports.updateRestaurant = async (req, res) => {
     const restaurant = await Restaurant.findByPk(req.params.id);
     if (!restaurant) return res.status(404).json({ message: 'Store not found.' });
 
-    const updateData = await mediaizeBrandTheme(await mediaizeImageFields(pickRestaurantFields(req.body), req, ['imageUrl', 'logoUrl'], 'store'), req);
+    const updateData = await mediaizeBrandTheme(await mediaizeImageFields(pickRestaurantFields(req.body), req, ['imageUrl', 'logoUrl'], 'store', restaurant), req);
     if (req.body.password && typeof req.body.password === 'string' && req.body.password.trim().length >= 6) {
       updateData.password = req.body.password.trim(); // hashed by the model hook
     }
@@ -989,7 +991,7 @@ exports.upsertMenuItem = async (req, res) => {
       if (!menuItem) return res.status(404).json({ message: 'Product not found.' });
       const store = await Restaurant.findByPk(menuItem.restaurantId, { attributes: ['id', 'vendorType'] });
       const allowFree = !!store && isServiceVendorType(store.vendorType);
-      await menuItem.update(await mediaizeImageFields(pickMenuItemFields(req.body, menuItem, { allowFree }), req, ['imageUrl'], 'menu'));
+      await menuItem.update(await mediaizeImageFields(pickMenuItemFields(req.body, menuItem, { allowFree }), req, ['imageUrl'], 'menu', menuItem));
     } else {
       const restaurantId = String(req.body.restaurantId || '');
       const store = UUID_RE.test(restaurantId) ? await Restaurant.findByPk(restaurantId, { attributes: ['id', 'vendorType'] }) : null;
@@ -1777,7 +1779,7 @@ exports.upsertVaultItem = async (req, res) => {
       if (!UUID_RE.test(String(id))) return res.status(404).json({ message: 'Deal not found.' });
       item = await VaultItem.findByPk(id);
       if (!item) return res.status(404).json({ message: 'Deal not found.' });
-      await item.update(await mediaizeImageFields(await assertVaultTargets(pickVaultFields(req.body, item), item), req, ['imageUrl'], 'vault'));
+      await item.update(await mediaizeImageFields(await assertVaultTargets(pickVaultFields(req.body, item), item), req, ['imageUrl'], 'vault', item));
     } else {
       item = await VaultItem.create(await mediaizeImageFields(await assertVaultTargets(pickVaultFields(req.body)), req, ['imageUrl'], 'vault'));
     }

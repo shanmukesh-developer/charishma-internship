@@ -556,10 +556,11 @@ const readSpecs = (specs) => {
 
 class ItemInputError extends Error {}
 // Item photos: media URL / hosted https kept; inline base64 sniffed and moved to the media table.
-const mediaizeItemImage = async (out, req) => {
+// `existing` = the item being edited: its current photo link passes unchanged.
+const mediaizeItemImage = async (out, req, existing = null) => {
   if (out.imageUrl === undefined) return out;
   const { storeImageRef } = require('../utils/imageStore');
-  const r = await storeImageRef(out.imageUrl, { req, ownerId: req.user && req.user.id, purpose: 'menu' });
+  const r = await storeImageRef(out.imageUrl, { req, ownerId: req.user && req.user.id, purpose: 'menu', keep: existing ? existing.imageUrl : null });
   if (!r.ok) throw new ItemInputError(r.message);
   out.imageUrl = r.value;
   return out;
@@ -716,7 +717,7 @@ const updateMenuItem = async (req, res) => {
 
     let updateData;
     try {
-      updateData = await mediaizeItemImage(pickItemInput(req.body || {}, item), req);
+      updateData = await mediaizeItemImage(pickItemInput(req.body || {}, item), req, item);
     } catch (err) {
       if (err instanceof ItemInputError) return res.status(400).json({ message: err.message });
       throw err;

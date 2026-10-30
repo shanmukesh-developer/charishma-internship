@@ -90,15 +90,36 @@ const saveImageBytes = async (buf, { ownerId, purpose = 'other', isPrivate = fal
   return { id: row.id, mime, size: buf.length };
 };
 
+// Photo links that are sure to break, or are not the photo itself (31 Oct 2026: a product photo pasted from
+// Google Flow stopped showing when its signed link expired). Temporary links carry their expiry in the query
+// (S3, Google Cloud, CloudFront, Azure, Facebook / Instagram / WhatsApp CDNs); Google Images only serves small
+// previews. Returns { code, message } for such a link, else null.
+const TEMP_LINK_KEYS = ['x-amz-expires', 'x-amz-signature', 'x-goog-expires', 'x-goog-signature', 'expires', 'signature', 'key-pair-id'];
+const imageLinkProblem = (url) => {
+  let u;
+  try { u = new URL(String(url)); } catch { return null; }
+  const host = u.hostname.toLowerCase();
+  const keys = new Set([...u.searchParams.keys()].map((k) => k.toLowerCase()));
+  const temporary = /(^|\.)flow-content\.google$/.test(host)
+    || TEMP_LINK_KEYS.some((k) => keys.has(k))
+    || (keys.has('se') && keys.has('sig'))
+    || (keys.has('oe') && keys.has('oh'));
+  if (temporary) return { code: 'IMAGE_LINK_TEMPORARY', message: 'That photo link is temporary: it expires and the photo stops showing. Save the photo and upload it instead.' };
+  if (/^encrypted-tbn\d*\.gstatic\.com$/.test(host)) return { code: 'IMAGE_LINK_PREVIEW', message: 'That link is a small Google Images preview, not the photo itself. Upload your own photo instead.' };
+  return null;
+};
+
 /**
  * Validates a client image reference and returns what to store in the row.
  *   { ok: true, value: string|null }   value null = the field was cleared ('' / null)
  *   { ok: false, status, code, message }
  * Options: req (for the absolute URL base), ownerId, purpose, isPrivate, maxBytes,
- *          allowExternal (default true: http(s) URLs to other hosts are accepted).
+ *          allowExternal (default true: http(s) URLs to other hosts are accepted),
+ *          keep (the value(s) already on the row: an unchanged link is kept as it is, so editing a
+ *          price never fails over an old photo link that imageLinkProblem would refuse today).
  */
 const storeImageRef = async (value, opts = {}) => {
-  const { req = null, ownerId = null, purpose = 'other', isPrivate = false, maxBytes = DEFAULT_MAX_BYTES, allowExternal = true } = opts;
+  const { req = null, ownerId = null, purpose = 'other', isPrivate = false, maxBytes = DEFAULT_MAX_BYTES, allowExternal = true, keep = null } = opts;
   if (value === null || value === undefined || value === '') return { ok: true, value: null };
   if (typeof value !== 'string') return { ok: false, status: 400, code: 'BAD_IMAGE', message: 'Send the photo as an uploaded image URL.' };
   const v = value.trim();
@@ -116,6 +137,9 @@ const storeImageRef = async (value, opts = {}) => {
   }
   if (HTTP_URL_RE.test(v)) {
     if (!allowExternal) return { ok: false, status: 400, code: 'BAD_IMAGE', message: 'Upload the photo first, then attach it.' };
+    const kept = (Array.isArray(keep) ? keep : [keep]).some((k) => typeof k === 'string' && k.trim() === v);
+    const problem = kept ? null : imageLinkProblem(v);
+    if (problem) return { ok: false, status: 400, ...problem };
     return { ok: true, value: v };
   }
   // Inline base64: move the bytes to the media table.
@@ -159,6 +183,7 @@ module.exports = {
   sendImageError,
   sniffImage,
   mediaIdOf,
+  imageLinkProblem,
   isDataUrl,
   stripDataUrl,
   publicBase,

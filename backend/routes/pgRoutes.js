@@ -504,8 +504,9 @@ router.param('id', (req, res, next, id) => (UUID_RE.test(String(id || '')) ? nex
 router.param('roomId', (req, res, next, id) => (UUID_RE.test(String(id || '')) ? next() : res.status(404).json({ message: 'Room not found.' })));
 router.param('bookingId', (req, res, next, id) => (UUID_RE.test(String(id || '')) ? next() : res.status(404).json({ message: 'Booking not found.' })));
 
-const cleanPgImages = (images, req) =>
-  require('../utils/imageStore').storeImageList(images, { req, ownerId: req.user && req.user.id, purpose: 'pg', maxItems: 12 });
+// `keep` = the listing's current images (edits): links already on it pass unchanged.
+const cleanPgImages = (images, req, keep = null) =>
+  require('../utils/imageStore').storeImageList(images, { req, ownerId: req.user && req.user.id, purpose: 'pg', maxItems: 12, keep });
 
 const cleanArea = (v) => (typeof v === 'string' && v.trim() ? v.replace(/\s+/g, ' ').trim().slice(0, 80) : null);
 const areaError = (v) => (v !== undefined && v !== null && typeof v !== 'string' ? 'Area must be text.' : typeof v === 'string' && v.trim().length > 80 ? 'Area must be at most 80 characters.' : null);
@@ -579,7 +580,7 @@ router.put('/:id', protect, admin, async (req, res) => {
     // Once a structured gallery exists it is the source of truth (PUT /:id/photos); `images` follows it.
     const hasGallery = Array.isArray(pg.photos) && pg.photos.length > 0;
     if (images !== undefined && !hasGallery) {
-      const imgs = await cleanPgImages(images, req);
+      const imgs = await cleanPgImages(images, req, Array.isArray(pg.images) ? pg.images : null);
       if (!imgs.ok) return res.status(imgs.status || 400).json({ message: imgs.message });
       cleanImages = imgs.value;
     }
@@ -717,10 +718,12 @@ router.put('/:id/photos', protect, admin, async (req, res) => {
     if (!pg) return;
     const imageStore = require('../utils/imageStore');
     const { loadMediaMeta } = require('../utils/mediaAccess');
+    // Photos already on the listing pass unchanged (the whole gallery is re-sent on every edit).
+    const keep = (Array.isArray(pg.photos) ? pg.photos : []).map((p) => p && p.url).concat(Array.isArray(pg.images) ? pg.images : []);
     let photos;
     try {
       photos = await pgContent.validatePhotos((req.body || {}).photos, {
-        storeUrl: (url) => imageStore.storeImageRef(url, { req, ownerId: req.user.id, purpose: 'pg', maxBytes: 5 * 1024 * 1024 }),
+        storeUrl: (url) => imageStore.storeImageRef(url, { req, ownerId: req.user.id, purpose: 'pg', maxBytes: 5 * 1024 * 1024, keep }),
         isPrivateMedia: async (url) => {
           const id = imageStore.mediaIdOf(String(url).split('?')[0]);
           if (!id) return false;

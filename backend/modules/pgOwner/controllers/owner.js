@@ -217,8 +217,10 @@ const putPhotos = async (req, res) => {
   const pg = await ownListing(req, req.params.id);
   const imageStore = require('../../../utils/imageStore');
   const { loadMediaMeta } = require('../../../utils/mediaAccess');
+  // Photos already in the gallery pass unchanged (the whole list is re-sent on every edit).
+  const keep = (Array.isArray(pg.photos) ? pg.photos : []).map((p) => p && p.url).concat(Array.isArray(pg.images) ? pg.images : []);
   const photos = await content(() => pgContent.validatePhotos((req.body || {}).photos, {
-    storeUrl: (url) => imageStore.storeImageRef(url, { req, ownerId: req.owner.id, purpose: 'pg', maxBytes: 5 * 1024 * 1024 }),
+    storeUrl: (url) => imageStore.storeImageRef(url, { req, ownerId: req.owner.id, purpose: 'pg', maxBytes: 5 * 1024 * 1024, keep }),
     isPrivateMedia: async (url) => {
       const id = imageStore.mediaIdOf(String(url).split('?')[0]);
       if (!id) return false;
