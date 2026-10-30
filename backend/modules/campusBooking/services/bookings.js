@@ -179,7 +179,7 @@ const transitionMessage = (from, to) => {
   if (to === 'CANCELLED' && ['ACCEPTED', 'PREPARING', 'READY'].includes(from)) return 'The stall already accepted this booking. Talk to the stall to cancel it.';
   if (to === 'CANCELLED' && from === 'PAYMENT_REVIEW') return 'The stall is checking your payment. Wait for it to confirm or reject it.';
   if (to === 'ACCEPTED' || to === 'REJECTED') return 'This payment was already reviewed.';
-  if (to === 'COLLECTED') return 'Mark the order ready before handing it over.';
+  if (to === 'COLLECTED') return 'Confirm the payment before handing the order over.';
   return 'This booking cannot be changed that way now.';
 };
 
@@ -269,9 +269,14 @@ const cancel = (booking, actor, { code, note } = {}, now = new Date()) => {
   return transition(booking, STATUS.CANCELLED, actor, { cancelledAt: now, cancelledBy: actor, cancelCode: r.code, cancelReason: r.reason });
 };
 
-/** The stall types the student's pickup code. Wrong codes are counted; 6 wrong in a row lock it for 15 min. */
+/**
+ * The stall types the student's pickup code. Wrong codes are counted; 6 wrong in a row lock it for 15 min.
+ * Works from READY and, when the student is at the counter before the stall tapped Mark as ready, from ACCEPTED /
+ * PREPARING: the code is checked first, so a wrong code (say, typed on the wrong booking) changes nothing.
+ */
+const COLLECTABLE = [STATUS.READY, STATUS.ACCEPTED, STATUS.PREPARING];
 const vendorCollect = async (booking, { code }, now = new Date()) => {
-  if (booking.status !== STATUS.READY) throw fail(409, 'BAD_TRANSITION', transitionMessage(booking.status, 'COLLECTED'), { status: booking.status });
+  if (!COLLECTABLE.includes(booking.status)) throw fail(409, 'BAD_TRANSITION', transitionMessage(booking.status, 'COLLECTED'), { status: booking.status });
   if (booking.pickupCodeLockedUntil && new Date(booking.pickupCodeLockedUntil) > now) {
     throw fail(429, 'CODE_LOCKED', 'Too many wrong codes. Wait a few minutes, then ask the student for the code again.', { retryAfter: Math.ceil((new Date(booking.pickupCodeLockedUntil) - now) / 1000) });
   }
@@ -286,7 +291,7 @@ const vendorCollect = async (booking, { code }, now = new Date()) => {
     {
       where: {
         id: booking.id,
-        status: STATUS.READY,
+        status: { [Op.in]: COLLECTABLE },
         [Op.and]: [
           { [Op.or]: [{ pickupCodeFails: null }, { pickupCodeFails: { [Op.lt]: max } }] },
           { [Op.or]: [{ pickupCodeLockedUntil: null }, { pickupCodeLockedUntil: { [Op.lte]: now } }] },
@@ -296,7 +301,7 @@ const vendorCollect = async (booking, { code }, now = new Date()) => {
   );
   if (!claimed) {
     const fresh = await M.findByPk(booking.id, { attributes: ['id', 'status', 'pickupCodeLockedUntil'] });
-    if (!fresh || fresh.status !== STATUS.READY) throw fail(409, 'CHANGED', 'This booking was just updated. Showing the latest.', { status: fresh ? fresh.status : null });
+    if (!fresh || !COLLECTABLE.includes(fresh.status)) throw fail(409, 'CHANGED', 'This booking was just updated. Showing the latest.', { status: fresh ? fresh.status : null });
     const until = fresh.pickupCodeLockedUntil && new Date(fresh.pickupCodeLockedUntil) > now ? new Date(fresh.pickupCodeLockedUntil) : new Date(now.getTime() + 15 * 60000);
     throw fail(429, 'CODE_LOCKED', 'Too many wrong codes. Wait a few minutes, then ask the student for the code again.', { retryAfter: Math.ceil((until - now) / 1000) });
   }
@@ -312,7 +317,11 @@ const vendorCollect = async (booking, { code }, now = new Date()) => {
     }
     throw fail(400, 'WRONG_CODE', lock ? 'Wrong code again. Checking is paused for 15 minutes.' : `That code does not match booking ${booking.ref}. Check it with the student.`, { triesLeft: lock ? 0 : max - fails });
   }
-  return transition(booking, STATUS.COLLECTED, 'vendor', { collectedAt: now, pickupCodeFails: 0, pickupCodeLockedUntil: null });
+  // Handed over straight from ACCEPTED / PREPARING: it was ready at the counter, so stamp those times too.
+  return transition(booking, STATUS.COLLECTED, 'vendor', {
+    preparingAt: booking.preparingAt || now, readyAt: booking.readyAt || now,
+    collectedAt: now, pickupCodeFails: 0, pickupCodeLockedUntil: null,
+  });
 };
 
 module.exports = {

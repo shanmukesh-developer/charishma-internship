@@ -17,12 +17,14 @@ const STATUS = Object.freeze({
 
 // Who may move a booking from one status to the next. Everything else is refused (409 BAD_TRANSITION).
 // ACCEPTED -> READY is allowed (a quick item is ready at once); preparingAt is stamped on the way.
+// ACCEPTED / PREPARING -> COLLECTED: the student is already at the counter with the code; the code is checked first
+// (services/bookings.vendorCollect), so a wrong code never marks the order ready or tells the student it is.
 const TRANSITIONS = Object.freeze({
   PAYMENT_PENDING: { PAYMENT_REVIEW: ['student'], CANCELLED: ['student', 'system'] },
   PAYMENT_REVIEW: { ACCEPTED: ['vendor'], REJECTED: ['vendor'], CANCELLED: ['vendor'] },
   REJECTED: { PAYMENT_REVIEW: ['student'], CANCELLED: ['student', 'system'] },
-  ACCEPTED: { PREPARING: ['vendor'], READY: ['vendor'], CANCELLED: ['vendor'] },
-  PREPARING: { READY: ['vendor'], CANCELLED: ['vendor'] },
+  ACCEPTED: { PREPARING: ['vendor'], READY: ['vendor'], COLLECTED: ['vendor'], CANCELLED: ['vendor'] },
+  PREPARING: { READY: ['vendor'], COLLECTED: ['vendor'], CANCELLED: ['vendor'] },
   READY: { COLLECTED: ['vendor'], CANCELLED: ['vendor'] },
   COLLECTED: {},
   CANCELLED: {},

@@ -21,7 +21,12 @@ test('transition table: only the listed actor may make each move', () => {
   assert.ok(E.canTransition('ACCEPTED', 'READY', 'vendor'));
   assert.ok(E.canTransition('PREPARING', 'READY', 'vendor'));
   assert.ok(E.canTransition('READY', 'COLLECTED', 'vendor'));
-  assert.ok(!E.canTransition('PREPARING', 'COLLECTED', 'vendor'));
+  // Hand-over straight from ACCEPTED / PREPARING (the code is checked first): the stall only, never before payment.
+  assert.ok(E.canTransition('PREPARING', 'COLLECTED', 'vendor'));
+  assert.ok(E.canTransition('ACCEPTED', 'COLLECTED', 'vendor'));
+  assert.ok(!E.canTransition('PREPARING', 'COLLECTED', 'student'));
+  assert.ok(!E.canTransition('PAYMENT_REVIEW', 'COLLECTED', 'vendor'));
+  assert.ok(!E.canTransition('PAYMENT_PENDING', 'COLLECTED', 'vendor'));
   assert.ok(!E.canTransition('ACCEPTED', 'CANCELLED', 'student'));
   assert.ok(!E.canTransition('PAYMENT_REVIEW', 'CANCELLED', 'student'));
   assert.ok(E.canTransition('PAYMENT_PENDING', 'CANCELLED', 'system'));
@@ -122,13 +127,21 @@ test('refused moves: collect before ready, double confirm, student cancel after 
   assert.strictEqual(early.status, 409);
   assert.strictEqual(early.body.code, 'BAD_TRANSITION');
   await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: 'CCC111222333', imageUrl: await T.uploadProof(u) });
+  // No hand-over before the stall confirms the payment.
+  const collectUnpaid = await T.cb('POST', `${V}/bookings/${id}/collect`, s.store.token, { code: 'ABC2' });
+  assert.strictEqual(collectUnpaid.status, 409);
+  assert.match(collectUnpaid.body.message, /Confirm the payment/);
   const studentCancel = await T.cb('POST', `/api/campus-booking/bookings/${id}/cancel`, u.token, {});
   assert.strictEqual(studentCancel.status, 409);
   await T.cb('POST', `${V}/bookings/${id}/confirm-payment`, s.store.token, {});
   const twice = await T.cb('POST', `${V}/bookings/${id}/confirm-payment`, s.store.token, {});
   assert.strictEqual(twice.status, 409);
-  const collectEarly = await T.cb('POST', `${V}/bookings/${id}/collect`, s.store.token, { code: 'ABC2' });
-  assert.strictEqual(collectEarly.status, 409);
+  // Accepted: a wrong code is refused as a wrong code and the booking does not move (no "ready" for the student).
+  const pickup = (await T.ctx.M('CampusBooking').findByPk(id)).pickupCode;
+  const collectEarly = await T.cb('POST', `${V}/bookings/${id}/collect`, s.store.token, { code: pickup === 'ABC2' ? 'ABC3' : 'ABC2' });
+  assert.strictEqual(collectEarly.status, 400);
+  assert.strictEqual(collectEarly.body.code, 'WRONG_CODE');
+  assert.strictEqual((await T.ctx.M('CampusBooking').findByPk(id)).status, 'ACCEPTED');
   const lateProof = await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: 'CCC111222399', imageUrl: await T.uploadProof(u) });
   assert.strictEqual(lateProof.status, 409);
   const lateCancel = await T.cb('POST', `/api/campus-booking/bookings/${id}/cancel`, u.token, {});

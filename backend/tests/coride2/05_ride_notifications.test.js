@@ -86,3 +86,34 @@ test('a ride that left over 30 minutes ago takes no more approvals', async () =>
   assert.match(r.body.message, /already left/);
   assert.equal((await req.reload()).status, 'Pending');
 });
+
+test('join -> withdraw -> join again (or join / leave on an auto-approve ride) tells the host once, not every time', async () => {
+  const host = await H.mkUser();
+  const spammer = await H.mkUser();
+  const ride = await H.mkRide(host.id, { departureTime: new Date(Date.now() + 2 * 3600 * 1000), availableSeats: 2 });
+  for (let i = 0; i < 4; i++) {
+    const j = await H.api('POST', `/api/bikepool/posts/${ride.id}/join`, spammer.token);
+    assert.equal(j.status, 200, JSON.stringify(j.body));
+    const w = await H.api('POST', `/api/bikepool/posts/${ride.id}/cancel`, spammer.token);
+    assert.equal(w.status, 200, JSON.stringify(w.body));
+  }
+  await settle();
+  const asks = H.pushes.filter((p) => p.data && p.data.type === 'CORIDE_JOIN_REQUEST' && p.recipients.map(String).includes(String(host.id)));
+  assert.equal(asks.length, 1, 'one request push for four join / withdraw rounds');
+
+  const autoHost = await H.mkUser();
+  const auto = await H.mkRide(autoHost.id, { departureTime: new Date(Date.now() + 2 * 3600 * 1000), availableSeats: 2, autoApprove: true });
+  for (let i = 0; i < 3; i++) {
+    assert.equal((await H.api('POST', `/api/bikepool/posts/${auto.id}/join`, spammer.token)).status, 200);
+    assert.equal((await H.api('POST', `/api/bikepool/posts/${auto.id}/cancel`, spammer.token)).status, 200);
+  }
+  await settle();
+  const typesTo = (u, t) => H.pushes.filter((p) => p.data && p.data.type === t && p.recipients.map(String).includes(String(u.id))).length;
+  assert.equal(typesTo(autoHost, 'CORIDE_PASSENGER_JOINED'), 1);
+  assert.equal(typesTo(autoHost, 'CORIDE_PASSENGER_LEFT'), 1);
+  // Another passenger is still announced.
+  const second = await H.mkUser();
+  assert.equal((await H.api('POST', `/api/bikepool/posts/${auto.id}/join`, second.token)).status, 200);
+  await settle();
+  assert.equal(typesTo(autoHost, 'CORIDE_PASSENGER_JOINED'), 2);
+});

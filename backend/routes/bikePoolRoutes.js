@@ -9,6 +9,19 @@ const { getPoolRequestModel } = require('../models/PoolRequest');
 const { sendServerError } = require('../utils/httpErrors');
 // Push + inbox row to the other side of a Co-Ride action (never blocks the reply; failures are logged there).
 const notify = (userIds, title, body, data) => { void require('../services/coRideTemplates').pushUsers(userIds, title, body, { screen: 'coride', ...data }); };
+// Pushes a passenger can trigger again and again (join -> withdraw -> join, join -> leave on an auto-approve ride) reach
+// the host once per passenger, ride and kind in NOTIFY_ONCE_MS; the request list in My rides always shows the current
+// state. In memory: after a restart at most one more push.
+const NOTIFY_ONCE_MS = 10 * 60 * 1000;
+const notifiedAt = new Map();
+const notifyOnce = (key, userIds, title, body, data, now = Date.now()) => {
+  const last = notifiedAt.get(key);
+  if (last && now - last < NOTIFY_ONCE_MS) return false;
+  notifiedAt.set(key, now);
+  if (notifiedAt.size > 5000) for (const [k, t] of notifiedAt) if (now - t >= NOTIFY_ONCE_MS) notifiedAt.delete(k);
+  notify(userIds, title, body, data);
+  return true;
+};
 const firstName = (u) => String((u && u.name) || '').trim().split(/\s+/)[0] || 'A student';
 // A ride that left this long ago takes no more approvals (it stays open only until the host marks it complete).
 const APPROVE_AFTER_DEPARTURE_MS = 30 * 60 * 1000;
@@ -294,12 +307,12 @@ router.post('/posts/:id/join', protect, async (req, res) => {
       await PoolRequest.update({ status: 'Approved' }, { where: { id: requestId } });
       await finishSeatTaken(pool.id, currentUser.id);
       await pool.reload();
-      notify([pool.creatorId], 'New co-rider', `${firstName(currentUser)} joined your ride to ${pool.destination}.`, {
+      notifyOnce(`joined:${pool.id}:${currentUser.id}`, [pool.creatorId], 'New co-rider', `${firstName(currentUser)} joined your ride to ${pool.destination}.`, {
         type: 'CORIDE_PASSENGER_JOINED', path: '/coride/my-rides', poolId: String(pool.id),
       });
       return res.json({ message: 'Successfully joined ride!', pool, autoAccepted: knownRider ? 'known' : 'auto' });
     } else {
-      notify([pool.creatorId], 'New ride request', `${firstName(currentUser)} asked to join your ride to ${pool.destination}. Approve or decline in My rides.`, {
+      notifyOnce(`request:${pool.id}:${currentUser.id}`, [pool.creatorId], 'New ride request', `${firstName(currentUser)} asked to join your ride to ${pool.destination}. Approve or decline in My rides.`, {
         type: 'CORIDE_JOIN_REQUEST', path: '/coride/my-rides', poolId: String(pool.id),
       });
       return res.json({ message: 'Request sent to host for approval.', pool });
@@ -528,7 +541,7 @@ router.post('/posts/:id/cancel', protect, async (req, res) => {
         await BikePool.update({ coRiderId: next ? next.passengerId : null }, { where: { id: pool.id } });
       }
       await pool.reload();
-      notify([pool.creatorId], 'A co-rider left', `${firstName(req.user)} left your ride to ${pool.destination}. The seat is open again.`, {
+      notifyOnce(`left:${pool.id}:${req.user.id}`, [pool.creatorId], 'A co-rider left', `${firstName(req.user)} left your ride to ${pool.destination}. The seat is open again.`, {
         type: 'CORIDE_PASSENGER_LEFT', path: '/coride/my-rides', poolId: String(pool.id),
       });
     }

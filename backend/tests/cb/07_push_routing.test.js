@@ -69,6 +69,31 @@ test('every stage pushes the student once (accepted, preparing, ready, collected
   for (const x of sent) assert.ok(!JSON.stringify(x).includes(code), 'the pickup code is never in a push');
 });
 
+test('hand-over straight from Preparing: a wrong code tells nobody; the right code collects with no false "ready" push', async () => {
+  const s = await T.mkStall();
+  const u = await T.mkUser({ fcmTokens: [tok('stu3')] });
+  const id = (await T.book(u, s)).body.booking.id;
+  await T.cb('POST', `/api/campus-booking/bookings/${id}/proof`, u.token, { upiRef: 'PSH111222335', imageUrl: await T.uploadProof(u) });
+  const V = '/api/campus-booking/vendor';
+  await T.cb('POST', `${V}/bookings/${id}/confirm-payment`, s.store.token, {});
+  await T.cb('POST', `${V}/bookings/${id}/preparing`, s.store.token, {});
+  await settle();
+  sent.length = 0;
+  const code = (await T.ctx.M('CampusBooking').findByPk(id)).pickupCode;
+  const wrong = await T.cb('POST', `${V}/bookings/${id}/collect`, s.store.token, { code: code === 'A3F7' ? 'B4G8' : 'A3F7' });
+  assert.strictEqual(wrong.body.code, 'WRONG_CODE');
+  await settle();
+  assert.strictEqual(sent.filter((x) => x.tokens.includes(tok('stu3'))).length, 0, 'a wrong code pushes nothing');
+  assert.strictEqual((await T.ctx.M('CampusBooking').findByPk(id)).status, 'PREPARING');
+  const ok = await T.cb('POST', `${V}/bookings/${id}/collect`, s.store.token, { code });
+  assert.strictEqual(ok.status, 200, JSON.stringify(ok.body));
+  assert.strictEqual(ok.body.booking.status, 'COLLECTED');
+  const row = await T.ctx.M('CampusBooking').findByPk(id);
+  assert.ok(row.readyAt && row.collectedAt, 'ready and collected times stamped');
+  await settle();
+  assert.deepStrictEqual(sent.filter((x) => x.tokens.includes(tok('stu3'))).map((x) => x.title), ['Order collected']);
+});
+
 test("a stall token registers with app 'campusstall'", async () => {
   const { registerStoreToken } = T.r('utils/storePush');
   const s = await T.mkStall();
