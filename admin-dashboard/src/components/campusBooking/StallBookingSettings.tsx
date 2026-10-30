@@ -3,6 +3,7 @@
 // UPI account, the stall's own UPI QR photo (optional) and its usual prep time. PUT /api/admin/campus-booking/stores/:id
 // (audited on the server). Used on the In-Campus Booking page and in the store drawer of a local vendor.
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { adminRequest, uploadImage } from '@/lib/api';
 import { Button, Field, Input, Notice, Switch, useToast } from '@/components/ui';
 
@@ -113,6 +114,11 @@ export function StallBookingSettings({ stall, onSaved }: { stall: CampusStall; o
           {form.qrUrl ? <button type="button" className="text-sm text-fg-muted hover:text-fg" onClick={() => setForm((f) => ({ ...f, qrUrl: '' }))}>Remove</button> : null}
         </div>
       </Field>
+      <div className="rounded-lg border border-line p-3 text-sm">
+        <p className="font-medium text-fg">Stall login (ZCS Campus Stall app)</p>
+        <p className="mt-0.5 text-fg-muted">The stall signs in with its phone number and a password, then checks payments, accepts and marks orders ready.</p>
+        <Link href={`/restaurants/?store=${encodeURIComponent(stall.id)}&tab=login`} className="mt-1.5 inline-block font-semibold text-accent-text hover:underline">Set or reset the login →</Link>
+      </div>
       {error ? <Notice tone="danger">{error}</Notice> : null}
       {!stall.isActive ? <Notice tone="warning">This stall is hidden from customers. It takes bookings only once it is live.</Notice> : null}
       <div className="flex items-center gap-3">

@@ -55,6 +55,8 @@ export interface Store {
   partnerPhone?: string | null;
   /** A partner password is set (the hash is never sent). */
   hasPassword?: boolean;
+  /** In-Campus Booking on: a pickup-only stall that students pre-book; it signs in to ZCS Campus Stall. */
+  campusBookingEnabled?: boolean | null;
   /** Phones with the partner / vendor app registered for push. */
   pushDevices?: number;
   /** First time the store went live. null = never published (a draft). */
@@ -179,6 +181,10 @@ export const BOOKING_ONLY_VENDOR_TYPES = ['REPAIRS', 'PRINT', 'LAUNDRY', 'TAILOR
 export const isBookingOnlyStore = (type?: string | null) => BOOKING_ONLY_VENDOR_TYPES.includes(String(type || '').toUpperCase());
 /** CampusBites stalls: orders are placed in Zenvy, COD to the stall, the stall delivers (mirror of backend LOCAL_VENDOR_TYPES). */
 export const isLocalVendorType = (type?: string | null) => ['LOCAL_VENDOR', 'LOCAL', 'STALL'].includes(String(type || '').toUpperCase());
+/** A campus stall with In-Campus Booking on: pickup only (no delivery), run from the ZCS Campus Stall app. */
+export const isBookingStall = (s: Pick<Store, 'vendorType' | 'campusBookingEnabled'>) => isLocalVendorType(s.vendorType) && s.campusBookingEnabled === true;
+/** The app a store's partner signs in to. */
+export const partnerAppName = (s: Pick<Store, 'vendorType' | 'campusBookingEnabled'>) => (isBookingStall(s) ? 'ZCS Campus Stall' : isLocalVendorType(s.vendorType) ? 'ZCS Vendor' : 'ZCS Restaurant');
 
 const LEGACY_LABELS: Record<string, string> = {
   STATIONARY: 'Stationery (old spelling)',

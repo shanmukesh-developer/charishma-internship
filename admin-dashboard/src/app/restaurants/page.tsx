@@ -4,8 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAdminAuth } from '@/utils/useAdminAuth';
 import { useLiveSync, useFreshIds, FRESH_ROW_CLASS } from '@/lib/useLiveSync';
 import {
-  FSSAI_STATUS_META, FssaiStatus, STATUS_META, Store, StoreStatus, adminRequest, formatINR, fssaiStatusOf, isLocalVendorType, readTags,
-  storeId, storeStatus, vendorLabel, VENDOR_TYPES,
+  FSSAI_STATUS_META, FssaiStatus, STATUS_META, Store, StoreStatus, adminRequest, formatINR, fssaiStatusOf, isBookingStall, isLocalVendorType,
+  partnerAppName, readTags, storeId, storeStatus, vendorLabel, VENDOR_TYPES,
 } from './catalogue';
 import {
   Button, Callout, Chip, ConfirmModal, EmptyState, Field, INPUT, MenuButton, Modal, Skeleton, Thumb, Toggle,
@@ -398,9 +398,11 @@ function StoresScreen() {
                 <Chip tone={STATUS_TONE[status]} dot title={status === 'closed' && store.closedReason ? store.closedReason : STATUS_META[status].help}>{status === 'closed' && store.isOpenNow === false ? 'Paused' : STATUS_META[status].label}</Chip>
                 {store.isFeatured && <Chip tone="amber">{store.featuredBadge || 'Featured'}</Chip>}
                 {store.isOffline && !local && <Chip title="No partner app; ZCS handles orders">Managed</Chip>}
-                {local && <Chip tone="sky" title="Customers pay the stall cash; the stall delivers with ZCS Vendor">Stall, cash</Chip>}
+                {local && (isBookingStall(store)
+                  ? <Chip tone="sky" title="In-Campus Booking: students pre-book and collect at the stall, paying it by UPI">Pickup, UPI</Chip>
+                  : <Chip tone="sky" title="Customers pay the stall cash; the stall delivers with ZCS Vendor">Stall, cash</Chip>)}
                 <FssaiChip store={store} />
-                {!store.hasPassword && !(store.isOffline && !local) && <Chip tone="amber" title={local ? 'The stall cannot see its orders until it can sign in to ZCS Vendor' : 'The partner cannot sign in to accept orders'}>No login</Chip>}
+                {!store.hasPassword && !(store.isOffline && !local) && <Chip tone="amber" title={local ? `The stall cannot see its orders until it can sign in to ${partnerAppName(store)}` : 'The partner cannot sign in to accept orders'}>No login</Chip>}
               </span>
               <span className="mt-0.5 block truncate text-xs text-fg-muted">{vendorLabel(store.vendorType)} · {[store.location, store.campus].filter(Boolean).join(' · ')}</span>
               <span className="block truncate text-xs text-fg-subtle">{summarizeWeekly(weeklyFromStore(store.operatingHours))}{!local && store.deliveryTime ? ` · ${store.deliveryTime} min` : ''}</span>

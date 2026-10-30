@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { DietType, Product, Store, adminRequest, dietOf, isBookingOnlyStore, isLocalVendorType, mrpOf, readSpecs, storeId } from '@/app/restaurants/catalogue';
+import { DietType, Product, Store, adminRequest, dietOf, isBookingOnlyStore, isBookingStall, isLocalVendorType, mrpOf, readSpecs, storeId } from '@/app/restaurants/catalogue';
 import { useLiveSync, useFreshIds, FRESH_ROW_CLASS, LiveEvent } from '@/lib/useLiveSync';
 import { parseCsv, timeAgo } from './helpers';
 import { ImagePicker, TagInput } from './inputs';
@@ -228,7 +228,9 @@ export function MenuManager({ store }: { store: Store }) {
 
   return (
     <div className="space-y-4">
-      {local && <Callout tone="amber">Stall menu: customers order these in ZCS and pay the stall cash on delivery. The stall can also mark items in or out of stock from ZCS Vendor.</Callout>}
+      {local && (isBookingStall(store)
+        ? <Callout tone="amber">In-Campus Booking menu: students pre-book these in ZCS, pay the stall by UPI and collect at the counter. The stall can also mark items in or out of stock from the ZCS Campus Stall app.</Callout>
+        : <Callout tone="amber">Stall menu: customers order these in ZCS and pay the stall cash on delivery. The stall can also mark items in or out of stock from ZCS Vendor.</Callout>)}
       {bookingOnly && <Callout tone="sky">Booking-only service: these prices are what service bookings are charged (print jobs use the per-page and binding rows).</Callout>}
 
       {/* Toolbar */}
