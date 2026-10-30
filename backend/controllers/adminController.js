@@ -1392,6 +1392,20 @@ exports.updateGlobalConfig = async (req, res) => {
       realtime.publish('config', 'updated', key, { scope: 'retention' });
       return res.json({ key, value: n, created: createdR });
     }
+    // Orders per delivery slot (whole orders, 0 = no limit): utils/deliverySlots applyCapacity.
+    const slotsLib = require('../utils/deliverySlots');
+    if (key === slotsLib.CAP_KEY) {
+      const n = typeof value === 'number' || (typeof value === 'string' && value.trim() !== '') ? Number(value) : NaN;
+      if (!Number.isInteger(n) || n < 0 || n > slotsLib.MAX_CAP) {
+        return res.status(400).json({ message: `${key} must be a whole number of orders from 0 to ${slotsLib.MAX_CAP} (0 = no limit).` });
+      }
+      const [, createdS] = await GlobalConfig.upsert({ key, value: n, description: description || 'Orders each delivery slot takes before it shows Full (0 = no limit)' });
+      await slotsLib.loadConfig({ fresh: true });
+      await logAuditAction(req, key, 'SLOT_MAX_ORDERS_SET', { value: n });
+      broadcastSystemUpdate(req, 'GLOBAL_CONFIG_UPDATED', { key, value: n });
+      realtime.publish('config', 'updated', key, { scope: 'global' });
+      return res.json({ key, value: n, created: createdS });
+    }
     // C6: rider cash limit (whole rupees, 0 = off) and the ledger start marker (never edited).
     const riderCash = require('../utils/riderCash');
     if (key === riderCash.START_KEY || key === 'C6_COMMISSION_BACKFILL') {

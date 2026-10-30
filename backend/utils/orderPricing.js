@@ -271,11 +271,15 @@ const computeOrderQuote = async ({ user, items, couponCode }) => {
   // ordered while open, as before slots.
   let deliverySlots = null;
   if (slotsLib.slotsEnabled() && !isStall) {
-    deliverySlots = slotsLib.slotsForOrder({ items: lines.map((l) => l.dbItem), store, at: slotNow });
+    // Slots already holding SLOT_MAX_ORDERS orders show "Full" (utils/deliverySlots applyCapacity).
+    deliverySlots = await slotsLib.applyCapacity(slotsLib.slotsForOrder({ items: lines.map((l) => l.dbItem), store, at: slotNow }));
     if (!deliverySlots.nextSlot) {
+      const allFull = deliverySlots.slots.some((s) => s.closedReason === 'full');
       const message = !openState.isOpen
         ? openState.message
-        : `${store.name} is not taking orders for today's or tomorrow's delivery slots.`;
+        : allFull
+          ? "Today's and tomorrow's delivery slots are full. Please check again later."
+          : `${store.name} is not taking orders for today's or tomorrow's delivery slots.`;
       throw new PricingError(400, 'STORE_CLOSED', message, { storeId: store.id, opensAt: openState.opensAt || null });
     }
   } else if (!openState.isOpen) {

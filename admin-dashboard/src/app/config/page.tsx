@@ -44,6 +44,9 @@ const RETENTION = [
 // C6: RIDER_CASH_LIMIT is edited in the Rider cash limit card; the other two are server markers.
 const CASH_LIMIT_KEY = 'RIDER_CASH_LIMIT';
 const MAX_CASH_LIMIT = 100000;
+// Orders each delivery slot takes before it shows "Full" (backend utils/deliverySlots, 0 = no limit).
+const SLOT_CAP_KEY = 'SLOT_MAX_ORDERS';
+const MAX_SLOT_CAP = 500;
 const MANAGED_KEYS: string[] = [...RETENTION.map(r => r.key), 'CAMPUS_SPOTS_DEFAULTS_RETIRED', 'APP_VERSION_POLICY', 'LEGAL_SETTINGS', CASH_LIMIT_KEY, 'RIDER_CASH_LEDGER_START', 'C6_COMMISSION_BACKFILL'];
 // Keys the backend DOES read, but that are edited on their own page (listing them under "not read"
 // told admins the rentals on/off switch did nothing).
@@ -104,6 +107,9 @@ export default function ConfigTerminal() {
   const [limitInput, setLimitInput] = useState('');
   const [savingLimit, setSavingLimit] = useState(false);
   const [limitMsg, setLimitMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
+  const [slotCapInput, setSlotCapInput] = useState('');
+  const [savingSlotCap, setSavingSlotCap] = useState(false);
+  const [slotCapMsg, setSlotCapMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
 
   const [retInputs, setRetInputs] = useState<Record<string, string>>({});
   const [savingRet, setSavingRet] = useState<string | null>(null);
@@ -124,6 +130,7 @@ export default function ConfigTerminal() {
       const fee = list.find(c => c.key === DELIVERY_FEE_KEY)?.value;
       setFeeInput(String(fee ?? DEFAULT_DELIVERY_FEE));
       setLimitInput(String(list.find(c => c.key === CASH_LIMIT_KEY)?.value ?? 0));
+      setSlotCapInput(String(list.find(c => c.key === SLOT_CAP_KEY)?.value ?? 0));
       const ret: Record<string, string> = {};
       for (const r of RETENTION) ret[r.key] = String(list.find(c => c.key === r.key)?.value ?? r.def);
       setRetInputs(ret);
@@ -215,6 +222,25 @@ export default function ConfigTerminal() {
       setFeeError(err instanceof Error ? err.message : 'Could not save the delivery fee.');
     } finally {
       setSavingFee(false);
+    }
+  };
+
+  const currentSlotCap = Number(configs.find(c => c.key === SLOT_CAP_KEY)?.value ?? 0) || 0;
+  const handleSaveSlotCap = async () => {
+    if (savingSlotCap) return;
+    setSlotCapMsg(null);
+    const n = slotCapInput.trim() === '' ? NaN : Number(slotCapInput);
+    if (!Number.isInteger(n) || n < 0 || n > MAX_SLOT_CAP) { setSlotCapMsg({ kind: 'err', text: `Enter a whole number of orders from 0 to ${MAX_SLOT_CAP} (0 = no limit).` }); return; }
+    if (n === currentSlotCap) { setSlotCapMsg({ kind: 'ok', text: 'No change to save.' }); return; }
+    setSavingSlotCap(true);
+    try {
+      await apiRequest('/api/admin/config', { method: 'POST', body: JSON.stringify({ key: SLOT_CAP_KEY, value: n }) });
+      setSlotCapMsg({ kind: 'ok', text: n === 0 ? 'No limit: every open slot takes orders.' : `Each delivery slot now takes up to ${n} orders, then shows Full.` });
+      await fetchAll();
+    } catch (err) {
+      setSlotCapMsg({ kind: 'err', text: err instanceof Error ? err.message : 'Could not save the slot limit.' });
+    } finally {
+      setSavingSlotCap(false);
     }
   };
 
@@ -361,6 +387,30 @@ export default function ConfigTerminal() {
                 )}
               </Field>
               {limitMsg?.kind === 'ok' && <p className="text-sm text-success-text">{limitMsg.text}</p>}
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader title="Orders per delivery slot" description="How many orders one delivery slot takes before it shows Full. Set it to what your riders can deliver in a slot; 0 = no limit." />
+            <CardBody className="space-y-3">
+              <Field
+                label="Max orders per slot"
+                hint={<>Current: {currentSlotCap > 0 ? `${currentSlotCap} orders per slot` : 'No limit'}. One rider delivers about 6 to 9 orders an hour on campus. A full slot shows &quot;Full: please pick another slot&quot; and students choose the next one, instead of ordering into a slot no rider can reach (those orders were cancelled).</>}
+                error={slotCapMsg?.kind === 'err' ? slotCapMsg.text : undefined}
+              >
+                {saveRow(
+                  <Input
+                    type="number"
+                    min={0}
+                    max={MAX_SLOT_CAP}
+                    step={1}
+                    value={slotCapInput}
+                    onChange={(e) => { setSlotCapInput(e.target.value); setSlotCapMsg(null); }}
+                  />,
+                  <Button variant="primary" loading={savingSlotCap} onClick={handleSaveSlotCap}>Save</Button>,
+                )}
+              </Field>
+              {slotCapMsg?.kind === 'ok' && <p className="text-sm text-success-text">{slotCapMsg.text}</p>}
             </CardBody>
           </Card>
         </div>

@@ -214,7 +214,7 @@ const getDeliverySlots = async (req, res) => {
       return res.json({ enabled: false, slots: [], nextSlot: null, defaultSlotId: null });
     }
     const lead = deliverySlots.leadForType((req.query || {}).type);
-    res.json({ ...deliverySlots.slotsForOrder({ store, lead, at: deliverySlots.now() }), type: String((req.query || {}).type || 'food') });
+    res.json({ ...(await deliverySlots.applyCapacity(deliverySlots.slotsForOrder({ store, lead, at: deliverySlots.now() }))), type: String((req.query || {}).type || 'food') });
   } catch (err) {
     console.error('[DELIVERY_SLOTS_ERROR]', err);
     res.status(500).json({ message: 'We could not load the delivery slots right now. Please try again.' });

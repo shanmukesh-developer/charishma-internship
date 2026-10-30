@@ -67,7 +67,12 @@ const _setNow = (fnOrDate) => {
 // ── Config ──────────────────────────────────────────────────────────────────────────────────────
 const CONFIG_KEY = 'DELIVERY_SLOTS';
 const CONFIG_TTL_MS = 30 * 1000;
-let cfgCache = { at: 0, enabled: true, slots: DEFAULT_SLOTS };
+// Orders per slot (owner, 30 Oct 2026, launch audit: "100 orders with 1 rider" were cancelled at slot time for want of
+// a rider): GlobalConfig SLOT_MAX_ORDERS, whole orders, 0 = no limit. A slot already holding that many orders (any
+// status but Cancelled) shows "Full" and takes no more, so a slot never sells more than the riders can deliver.
+const CAP_KEY = 'SLOT_MAX_ORDERS';
+const MAX_CAP = 500;
+let cfgCache = { at: 0, enabled: true, slots: DEFAULT_SLOTS, maxOrdersPerSlot: 0 };
 
 const envOff = () => ['0', 'off', 'false', 'no'].includes(String(process.env.DELIVERY_SLOTS || '').trim().toLowerCase());
 
@@ -98,6 +103,7 @@ const loadConfig = async ({ fresh = false } = {}) => {
   if (!fresh && Date.now() - cfgCache.at < CONFIG_TTL_MS) return cfgCache;
   let enabled = true;
   let slots = DEFAULT_SLOTS;
+  let cap = 0;
   try {
     const GlobalConfig = require('../models/GlobalConfig').getGlobalConfigModel();
     const row = GlobalConfig ? await GlobalConfig.findOne({ where: { key: CONFIG_KEY } }) : null;
@@ -109,11 +115,16 @@ const loadConfig = async ({ fresh = false } = {}) => {
       if (t) slots = t;
       else if (v.slots !== undefined) console.warn('[DELIVERY_SLOTS] GlobalConfig DELIVERY_SLOTS.slots is invalid; using the default slots.');
     }
+    const capRow = GlobalConfig ? await GlobalConfig.findOne({ where: { key: CAP_KEY } }) : null;
+    const capN = capRow ? Number(capRow.value) : 0;
+    if (Number.isInteger(capN) && capN > 0 && capN <= MAX_CAP) cap = capN;
   } catch { /* keep defaults */ }
-  cfgCache = { at: Date.now(), enabled, slots };
+  cfgCache = { at: Date.now(), enabled, slots, maxOrdersPerSlot: cap };
   return cfgCache;
 };
-const _resetConfig = () => { cfgCache = { at: 0, enabled: true, slots: DEFAULT_SLOTS }; };
+const _resetConfig = () => { cfgCache = { at: 0, enabled: true, slots: DEFAULT_SLOTS, maxOrdersPerSlot: 0 }; };
+/** SLOT_MAX_ORDERS from the cached config (0 = no limit). Sync. */
+const maxOrdersPerSlot = () => cfgCache.maxOrdersPerSlot || 0;
 
 /** Are delivery slots in force? (env kill switch first, then the cached GlobalConfig flag). Sync. */
 const slotsEnabled = () => !envOff() && cfgCache.enabled !== false;
@@ -261,6 +272,36 @@ const slotsForOrder = ({ items = [], store = null, at = now(), lead = null } = {
 };
 
 /**
+ * Marks the open slots of a slotsForOrder() result that already hold SLOT_MAX_ORDERS orders (open: false,
+ * closedReason 'full', closedText shown by the apps' slot picker); nextSlot / defaultSlotId move to the next open
+ * slot. No limit set: the result unchanged. Never throws: if the count fails the slots stay as they were.
+ */
+const applyCapacity = async (info) => {
+  const cap = maxOrdersPerSlot();
+  if (!info || !info.enabled || cap <= 0 || !Array.isArray(info.slots) || !info.slots.some((s) => s.open)) return info;
+  try {
+    const Order = require('../models/Order').getOrderModel();
+    const { fn, col } = Order.sequelize;
+    const starts = info.slots.filter((s) => s.open).map((s) => new Date(s.startISO));
+    const rows = await Order.findAll({
+      attributes: ['slotStart', [fn('COUNT', col('id')), 'n']],
+      where: { slotStart: { [Op.in]: starts }, status: { [Op.ne]: 'Cancelled' } },
+      group: ['slotStart'],
+      raw: true,
+    });
+    const taken = new Map(rows.map((r) => [new Date(r.slotStart).toISOString(), Number(r.n) || 0]));
+    const slots = info.slots.map((s) => (s.open && (taken.get(new Date(s.startISO).toISOString()) || 0) >= cap
+      ? { ...s, open: false, closedReason: 'full', closedText: 'Full: please pick another slot' }
+      : s));
+    const next = slots.find((s) => s.open) || null;
+    return { ...info, slots, nextSlot: next, defaultSlotId: next ? next.id : null };
+  } catch (e) {
+    console.warn('[SLOT_CAPACITY]', e && e.message);
+    return info;
+  }
+};
+
+/**
  * Validates a requested slot against a slotsForOrder() result.
  *  { ok: true, slot, legacy }                     slot to store (legacy: assigned because the app sent 'ASAP' / nothing)
  *  { ok: false, status: 409, body: { code: 'SLOT_CLOSED', message, slots, nextSlot, ... } }
@@ -290,7 +331,9 @@ const resolveSlot = (requested, info) => {
   if (!slot.open) {
     const why = slot.closedReason === 'store_closed'
       ? `${slot.closedText} (${slot.label}).`
-      : `Booking for ${slot.label} closed at ${slot.closesAtLabel}${info.leadReason ? ` (${info.leadReason.toLowerCase()})` : ''}.`;
+      : slot.closedReason === 'full'
+        ? `${slot.label} is full.`
+        : `Booking for ${slot.label} closed at ${slot.closesAtLabel}${info.leadReason ? ` (${info.leadReason.toLowerCase()})` : ''}.`;
     return refuse(`${why}${nextText}`);
   }
   return { ok: true, slot, legacy: false };
@@ -405,6 +448,10 @@ module.exports = {
   STORE_ACCEPT_BEFORE_SLOT_MIN,
   SLOT_UNCLAIMED_GRACE_MIN,
   CONFIG_KEY,
+  CAP_KEY,
+  MAX_CAP,
+  maxOrdersPerSlot,
+  applyCapacity,
   now,
   _setNow,
   loadConfig,
