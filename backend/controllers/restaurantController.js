@@ -774,6 +774,8 @@ const getLocalVendors = async (req, res) => {
 
     const where = { vendorType: { [Op.in]: LOCAL_VENDOR_TYPES }, isActive: true, ...(await require('../utils/receiptSettings').listingWhere()) };
     if (campus) where.campus = String(campus);
+    // In-Campus Booking stalls are pickup-only (no delivery): they are listed under In-Campus Booking, not here.
+    where[Op.and] = [{ [Op.or]: [{ campusBookingEnabled: false }, { campusBookingEnabled: null }] }];
 
     // Public list: legacy inline base64 photos are nulled in SQL (media URLs pass through).
     const { dataUrlSafeColumns } = require('../utils/imageStore');

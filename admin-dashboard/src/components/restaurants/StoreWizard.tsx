@@ -43,12 +43,19 @@ export interface WizardState {
   minOrderValue: string;
   commissionType: 'percentage' | 'flat';
   commissionRate: string;
+  /** "Add campus stall": created with In-Campus Booking on (create only; later changes live in the stall's
+   * In-Campus Booking tab). Students pre-book and collect at the stall, paying it by UPI. */
+  campusBooking: boolean;
+  upiId: string;
+  upiName: string;
+  prepMinutes: string;
 }
 
-export type StepKey = 'basics' | 'location' | 'branding' | 'hours' | 'login' | 'commission' | 'review';
+export type StepKey = 'basics' | 'location' | 'booking' | 'branding' | 'hours' | 'login' | 'commission' | 'review';
 const STEP_META: Record<StepKey, { title: string; sub: string }> = {
   basics: { title: 'Basics', sub: 'Name, type, campus' },
   location: { title: 'Location & contact', sub: 'Address, map pin, WhatsApp' },
+  booking: { title: 'In-Campus Booking', sub: 'UPI ID, prep time' },
   branding: { title: 'Branding', sub: 'Cover photo, logo, colours' },
   hours: { title: 'Hours & delivery', sub: 'Weekly hours, delivery time' },
   login: { title: 'Partner login', sub: 'App sign-in: phone + password' },
@@ -64,6 +71,7 @@ const emptyState = (): WizardState => ({
   imageUrl: '', brandOn: false, logoUrl: '', primaryColor: '#E23744', secondaryColor: '#111111', accentColor: '#FFC72C',
   weekly: uniformWeekly('09:00', '22:00'), isOpenNow: true, deliveryTime: '30',
   managedByZenvy: false, password: '', loginPhone: '', packagingFee: '', minOrderValue: '', commissionType: 'percentage', commissionRate: '10',
+  campusBooking: false, upiId: '', upiName: '', prepMinutes: '',
 });
 
 export function stateFromStore(s: Store): WizardState {
@@ -95,10 +103,13 @@ export function stateFromStore(s: Store): WizardState {
     minOrderValue: s.minOrderValue ? String(s.minOrderValue) : '',
     commissionType: s.commissionType === 'flat' ? 'flat' : 'percentage',
     commissionRate: String(s.commissionRate ?? 10),
+    campusBooking: false, upiId: '', upiName: '', prepMinutes: '',
   };
 }
 
 const HEX = /^#[0-9a-f]{6}$/i;
+// Same rule as the stall's In-Campus Booking tab (components/campusBooking/StallBookingSettings.tsx).
+const UPI_RE = /^[a-z0-9][a-z0-9._-]{1,255}@[a-z][a-z0-9.-]{1,63}$/;
 type Errors = Partial<Record<keyof WizardState | 'coords', string>>;
 
 const feeError = (raw: string, max: number, label: string) => {
@@ -124,6 +135,16 @@ function validateStep(step: StepKey, s: WizardState, mode: 'create' | 'edit'): E
     if (s.whatsapp.trim() && !isValidIndianMobile(s.whatsapp)) e.whatsapp = 'Use a 10-digit Indian mobile number starting with 6–9.';
     if (local && !s.whatsapp.trim()) e.whatsapp = 'Customers reach the stall about their order on this number, so it is required.';
   }
+  if (step === 'booking' && s.campusBooking) {
+    const upi = s.upiId.trim().toLowerCase();
+    if (!upi) e.upiId = "Add the stall's UPI ID. Students pay the stall on it.";
+    else if (!UPI_RE.test(upi)) e.upiId = 'Enter the UPI ID like stallname@okaxis.';
+    if (s.upiName.trim().length > 120) e.upiName = 'Keep the name under 120 characters.';
+    if (s.prepMinutes.trim() !== '') {
+      const n = Number(s.prepMinutes);
+      if (!Number.isInteger(n) || n < 2 || n > 90) e.prepMinutes = 'Whole minutes from 2 to 90, or empty for the 10 minute default.';
+    }
+  }
   if (step === 'branding' && s.brandOn) {
     if (!HEX.test(s.primaryColor) || !HEX.test(s.secondaryColor) || !HEX.test(s.accentColor)) e.primaryColor = 'Colours must be hex values like #E23744.';
   }
@@ -143,7 +164,9 @@ function validateStep(step: StepKey, s: WizardState, mode: 'create' | 'edit'): E
     const pw = s.password.trim();
     if (s.loginPhone.trim() && !isValidIndianMobile(s.loginPhone)) e.loginPhone = 'Use a 10-digit Indian mobile number starting with 6–9.';
     if (pw && pw.length < 6) e.password = 'At least 6 characters (12+ recommended).';
-    else if (mode === 'create' && local && !pw) e.password = 'Generate a password so the stall can sign in to the ZCS Vendor app and take orders.';
+    else if (mode === 'create' && local && !pw) e.password = s.campusBooking
+      ? 'Generate a password so the stall can sign in to the ZCS Campus Stall app and take bookings.'
+      : 'Generate a password so the stall can sign in to the ZCS Vendor app and take orders.';
     else if (mode === 'create' && !local && !s.managedByZenvy && !pw) e.password = 'Generate a password so the partner can sign in, or switch on "Managed by ZCS".';
   }
   if (step === 'commission' && !local) {
@@ -187,7 +210,11 @@ export function buildPayload(s: WizardState, existing: Store | null): Record<str
 }
 
 // ─── Wizard ──────────────────────────────────────────────────────────────────
-export interface WizardResult { store: Store; password: string | null; published: boolean }
+export interface WizardResult {
+  store: Store; password: string | null; published: boolean;
+  /** "Add campus stall" only: In-Campus Booking switched on after the save (or why not). */
+  booking?: { on: boolean; error?: string };
+}
 
 export function StoreWizard({ mode, initial, startStep, preset, stores, onClose, onSaved, onOpenStore }: {
   mode: 'create' | 'edit';
@@ -219,9 +246,10 @@ export function StoreWizard({ mode, initial, startStep, preset, stores, onClose,
   const mainRef = useRef<HTMLDivElement | null>(null);
 
   const local = isLocalVendorType(state.vendorType);
+  const campus = local && mode === 'create' && state.campusBooking;
   const steps = useMemo<StepKey[]>(() => (local
-    ? ['basics', 'location', 'branding', 'hours', 'login', 'review']
-    : ['basics', 'location', 'branding', 'hours', 'login', 'commission', 'review']), [local]);
+    ? ['basics', 'location', ...(campus ? ['booking' as StepKey] : []), 'branding', 'hours', 'login', 'review']
+    : ['basics', 'location', 'branding', 'hours', 'login', 'commission', 'review']), [local, campus]);
   const index = Math.max(0, steps.indexOf(step));
   const set = (patch: Partial<WizardState>) => setState(prev => ({ ...prev, ...patch }));
   const dirty = JSON.stringify(state) !== initialJson.current;
@@ -290,7 +318,21 @@ export function StoreWizard({ mode, initial, startStep, preset, stores, onClose,
       if (kind !== 'save') body.isActive = kind === 'publish';
       const path = initial ? `/api/admin/restaurants/${storeId(initial)}` : '/api/admin/restaurants';
       const saved = await adminRequest<Store>(path, { method: 'POST', body: JSON.stringify(body) });
-      const result: WizardResult = { store: saved, password: body.password ? String(body.password) : null, published: kind === 'publish' || (kind === 'save' && !!initial?.isActive) };
+      // "Add campus stall": In-Campus Booking goes on with the UPI ID entered here (the same call as the stall's
+      // In-Campus Booking tab). The stall is saved either way; a failure is shown with a button to finish it.
+      let booking: WizardResult['booking'];
+      if (campus) {
+        try {
+          await adminRequest(`/api/admin/campus-booking/stores/${storeId(saved)}`, {
+            method: 'PUT',
+            body: JSON.stringify({ enabled: true, upiId: state.upiId.trim().toLowerCase(), upiName: state.upiName.trim() || null, prepMinutes: state.prepMinutes.trim() === '' ? null : Number(state.prepMinutes) }),
+          });
+          booking = { on: true };
+        } catch (err) {
+          booking = { on: false, error: err instanceof Error ? err.message : 'In-Campus Booking could not be switched on.' };
+        }
+      }
+      const result: WizardResult = { store: saved, password: body.password ? String(body.password) : null, published: kind === 'publish' || (kind === 'save' && !!initial?.isActive), ...(booking ? { booking } : {}) };
       if (mode === 'create') clearDraft();
       onSaved(result);
       if (mode === 'create' || result.password) setDone(result);
@@ -332,8 +374,8 @@ export function StoreWizard({ mode, initial, startStep, preset, stores, onClose,
       {/* Header */}
       <div className="flex items-center justify-between gap-4 border-b border-line px-5 py-4">
         <div className="min-w-0">
-          <p className="text-xs font-semibold text-success-text">{mode === 'create' ? 'New partner' : 'Edit partner'}</p>
-          <h2 id={titleId} className="truncate text-lg font-semibold">{done ? 'All set' : mode === 'create' ? (state.name.trim() || 'Add a store') : `Edit ${initial?.name}`}</h2>
+          <p className="text-xs font-semibold text-success-text">{mode === 'create' ? (campus ? 'New campus stall' : 'New partner') : 'Edit partner'}</p>
+          <h2 id={titleId} className="truncate text-lg font-semibold">{done ? 'All set' : mode === 'create' ? (state.name.trim() || (campus ? 'Add a campus stall' : 'Add a store')) : `Edit ${initial?.name}`}</h2>
         </div>
         <div className="flex items-center gap-2">
           {mode === 'create' && !done && dirty && <span className="hidden text-xs text-fg-muted sm:inline">Draft autosaved on this device</span>}
@@ -387,7 +429,9 @@ export function StoreWizard({ mode, initial, startStep, preset, stores, onClose,
                   );
                 })}
               </ol>
-              {local && <p className="mt-4 px-2 text-xs leading-relaxed text-fg-muted">Commission is skipped: customers pay the stall cash on delivery and the stall delivers itself.</p>}
+              {local && <p className="mt-4 px-2 text-xs leading-relaxed text-fg-muted">{campus
+                ? 'No delivery: students pre-book in ZCS, pay the stall by UPI and collect at the counter.'
+                : 'Commission is skipped: customers pay the stall cash on delivery and the stall delivers itself.'}</p>}
             </nav>
 
             {/* Step body */}
@@ -404,6 +448,7 @@ export function StoreWizard({ mode, initial, startStep, preset, stores, onClose,
               </div>
               {step === 'basics' && <BasicsStep s={state} set={set} errors={errors} stores={stores} editingId={initial ? storeId(initial) : null} />}
               {step === 'location' && <LocationStep s={state} set={set} errors={errors} stores={stores} />}
+              {step === 'booking' && <BookingStep s={state} set={set} errors={errors} />}
               {step === 'branding' && <BrandingStep s={state} set={set} errors={errors} onPhotoBusy={onPhotoBusy} />}
               {step === 'hours' && <HoursStep s={state} set={set} errors={errors} />}
               {step === 'login' && <LoginStep s={state} set={set} errors={errors} mode={mode} initial={initial} />}
@@ -457,6 +502,7 @@ export function StoreWizard({ mode, initial, startStep, preset, stores, onClose,
 const STEP_HELP: Record<StepKey, string> = {
   basics: 'Who is this partner? The type decides how customers buy from them.',
   location: 'Where riders pick up (or the stall sets off from), and how customers or ZCS reach the store.',
+  booking: 'Students pre-book this stall in the ZCS app and collect at the counter: no delivery. They pay the stall directly by UPI.',
   branding: 'Photos sell. A clear cover photo is the single biggest boost to orders.',
   hours: 'When customers can order, and the bill rules. Outside these hours the app shows "Closed — opens at …".',
   login: 'How the partner signs in to accept orders: the ZCS Restaurant app, or ZCS Vendor for stalls.',
@@ -467,6 +513,33 @@ const STEP_HELP: Record<StepKey, string> = {
 type StepProps = { s: WizardState; set: (p: Partial<WizardState>) => void; errors: Errors };
 
 // ─── Steps ───────────────────────────────────────────────────────────────────
+/** "Add campus stall": the UPI ID students pay and the prep time; In-Campus Booking is switched on when saved. */
+function BookingStep({ s, set, errors }: StepProps) {
+  return (
+    <div className="space-y-5">
+      <Callout tone="sky" title="How In-Campus Booking works">
+        The student picks items and pays the stall directly by UPI, then sends the payment screenshot and the transaction ID in ZCS. The stall checks the payment in the ZCS Campus Stall app, accepts, prepares and marks it ready; the student tracks it and collects it at the counter with a pickup code. No delivery. ZCS never holds the money.
+      </Callout>
+      <Field label="Stall UPI ID" required error={errors.upiId} help="Students pay this UPI ID directly, e.g. stallname@okaxis.">
+        {({ id, msgId, invalid }) => (
+          <input id={id} data-autofocus aria-describedby={msgId} aria-invalid={invalid} className={INPUT} value={s.upiId} onChange={e => set({ upiId: e.target.value.replace(/\s/g, '') })} placeholder="stallname@okaxis" autoComplete="off" spellCheck={false} />
+        )}
+      </Field>
+      <Field label="Name on the UPI account" optional error={errors.upiName} help="Shown to students so they can check they are paying the right person.">
+        {({ id, msgId, invalid }) => (
+          <input id={id} aria-describedby={msgId} aria-invalid={invalid} className={INPUT} maxLength={120} value={s.upiName} onChange={e => set({ upiName: e.target.value })} placeholder="e.g. Ravi Kumar" />
+        )}
+      </Field>
+      <Field label="Prep time (minutes)" optional error={errors.prepMinutes} help="How long an order takes once accepted. Empty uses 10 minutes.">
+        {({ id, msgId, invalid }) => (
+          <input id={id} aria-describedby={msgId} aria-invalid={invalid} className={INPUT} inputMode="numeric" value={s.prepMinutes} onChange={e => set({ prepMinutes: e.target.value.replace(/[^0-9]/g, '').slice(0, 2) })} placeholder="10" />
+        )}
+      </Field>
+      <p className="text-xs text-fg-muted">The first tag on Basics decides the In-Campus section (snacks, stationery and print, more); &quot;stationery&quot;, &quot;xerox&quot; or &quot;print&quot; first turns on PDF uploads. A UPI QR code can be added later in the stall&apos;s In-Campus Booking tab.</p>
+    </div>
+  );
+}
+
 function BasicsStep({ s, set, errors, stores, editingId }: StepProps & { stores: Store[]; editingId: string | null }) {
   const campuses = useMemo(() => uniq(stores.map(x => x.campus).filter(Boolean) as string[]), [stores]);
   const tagSuggestions = useMemo(() => {
@@ -519,9 +592,11 @@ function BasicsStep({ s, set, errors, stores, editingId }: StepProps & { stores:
         </div>
       </fieldset>
 
-      {isLocalVendorType(s.vendorType) && (
+      {isLocalVendorType(s.vendorType) && (s.campusBooking ? (
+        <Callout tone="amber" title="In-Campus Booking stall">Students pre-book in ZCS and collect at the stall: no delivery. They pay the stall by UPI and send the payment screenshot and transaction ID; the stall checks the payment in the ZCS Campus Stall app, accepts, prepares and marks the order ready, and the student tracks it and collects it with a pickup code.</Callout>
+      ) : (
         <Callout tone="amber" title="Stall orders in ZCS">Customers order the stall&apos;s items in ZCS and pay the stall cash on delivery. The stall gets the order (customer name, phone and room) in the ZCS Vendor app and delivers it itself. No ZCS rider, no delivery PIN, no coupons.</Callout>
-      )}
+      ))}
       {isBookingOnlyStore(s.vendorType) && (
         <Callout tone="sky" title="Booking-only service">Customers book this service from the app; it is never added to the basket.</Callout>
       )}
@@ -738,7 +813,7 @@ function LoginStep({ s, set, errors, mode, initial }: StepProps & { mode: 'creat
   const strength = passwordStrength(s.password);
   const id = initial ? storeId(initial) : null;
   const local = isLocalVendorType(s.vendorType);
-  const app = local ? 'ZCS Vendor' : 'ZCS Restaurant';
+  const app = local ? (s.campusBooking ? 'ZCS Campus Stall' : 'ZCS Vendor') : 'ZCS Restaurant';
   const effectivePhone = s.loginPhone.trim() ? tenDigits(s.loginPhone) : local ? tenDigits(s.whatsapp) : '';
   const phoneOk = !!effectivePhone && isValidIndianMobile(effectivePhone);
   return (
@@ -753,11 +828,15 @@ function LoginStep({ s, set, errors, mode, initial }: StepProps & { mode: 'creat
           />
         </section>
       )}
-      {local && (
+      {local && (s.campusBooking ? (
+        <Callout tone="sky" title="The stall needs this to take bookings">
+          Bookings reach only the {app} app, where the stall checks each payment screenshot and transaction ID, accepts, and marks orders ready. Without a login the stall never sees them.
+        </Callout>
+      ) : (
         <Callout tone="sky" title="The stall needs this to take orders">
           Stall orders reach only the {app} app (customer name, phone, room and items). Without a login the stall never sees them and orders time out after 7 minutes.
         </Callout>
-      )}
+      ))}
 
       {local || !s.managedByZenvy || s.password ? (
         <section className="space-y-5">
@@ -863,13 +942,16 @@ function ReviewStep({ s, issues, goto, mode, initial, preview }: {
   s: WizardState; issues: { step: StepKey; errors: Errors }[]; goto: (k: StepKey) => void; mode: 'create' | 'edit'; initial: Store | null; preview: ReactNode;
 }) {
   const local = isLocalVendorType(s.vendorType);
+  const campus = local && mode === 'create' && s.campusBooking;
+  const app = campus ? 'ZCS Campus Stall' : 'ZCS Vendor';
   const checks: { ok: boolean; text: string; step: StepKey; optional?: boolean }[] = [
+    ...(campus ? [{ ok: UPI_RE.test(s.upiId.trim().toLowerCase()), text: 'UPI ID for student payments', step: 'booking' as StepKey }] : []),
     { ok: !!s.imageUrl, text: 'Cover photo added', step: 'branding', optional: true },
     { ok: s.tags.length > 0, text: 'Cuisines / categories tagged', step: 'basics', optional: true },
     { ok: !!s.whatsapp, text: 'Contact number', step: 'location', optional: !local },
     { ok: !!s.lat && !!s.lon, text: 'Map pin for riders', step: 'location', optional: true },
     local
-      ? { ok: !!s.password || (mode === 'edit' && !!initial?.hasPassword), text: 'Stall can sign in to ZCS Vendor', step: 'login' as StepKey }
+      ? { ok: !!s.password || (mode === 'edit' && !!initial?.hasPassword), text: `Stall can sign in to ${app}`, step: 'login' as StepKey }
       : { ok: s.managedByZenvy || !!s.password || (mode === 'edit' && !!initial?.hasPassword), text: 'Partner can sign in (or managed by ZCS)', step: 'login' as StepKey },
   ];
   const loginPhone = s.loginPhone.trim() ? `+91 ${formatWhatsapp(s.loginPhone)}` : local && s.whatsapp ? `WhatsApp number (+91 ${formatWhatsapp(s.whatsapp)})` : 'Not set';
@@ -881,10 +963,11 @@ function ReviewStep({ s, issues, goto, mode, initial, preview }: {
   const rows: { step: StepKey; items: [string, ReactNode][] }[] = [
     { step: 'basics', items: [['Name', s.name || '—'], ['Type', vendorLabel(s.vendorType)], ['Campus', s.campus || '—'], ['Tags', s.tags.join(', ') || '—']] },
     { step: 'location', items: [['Address', s.location || '—'], ['Zone', s.zone || 'Default'], ['Map pin', s.lat && s.lon ? `${s.lat}, ${s.lon}` : 'Not set'], ['WhatsApp', s.whatsapp ? `+91 ${formatWhatsapp(s.whatsapp)}` : '—']] },
+    ...(campus ? [{ step: 'booking' as StepKey, items: [['In-Campus Booking', 'On when saved'], ['UPI ID', s.upiId.trim().toLowerCase() || '—'], ['Name on UPI', s.upiName.trim() || '—'], ['Prep time', s.prepMinutes.trim() ? `${s.prepMinutes.trim()} min` : '10 min (default)']] as [string, ReactNode][] }] : []),
     { step: 'branding', items: [['Cover photo', s.imageUrl ? 'Added' : 'Missing'], ['Logo', s.logoUrl ? 'Added' : 'None'], ['Brand colours', s.brandOn ? 'On' : 'Off']] },
     { step: 'hours', items: [['Hours', summarizeWeekly(s.weekly)], ['Accepting orders', s.isOpenNow ? 'Yes' : 'Paused'], ...(local ? [] : [['Delivery time', s.deliveryTime ? `${s.deliveryTime} min` : 'Hidden'] as [string, ReactNode]]), ...fees] },
     { step: 'login', items: local
-      ? [['App', 'ZCS Vendor'], ['Login phone', loginPhone], ['Password', password], ['Payment', 'Cash on delivery to the stall']]
+      ? [['App', app], ['Login phone', loginPhone], ['Password', password], ['Payment', campus ? 'UPI to the stall, collected at the counter' : 'Cash on delivery to the stall']]
       : [['Mode', s.managedByZenvy ? 'Managed by ZCS' : 'ZCS Restaurant app'], ['Login phone', loginPhone], ['Password', password]] },
     ...(local ? [] : [
       { step: 'commission' as StepKey, items: [['Commission', s.commissionType === 'flat' ? `₹${s.commissionRate} per order` : `${s.commissionRate}% of order`]] as [string, ReactNode][] },
@@ -934,7 +1017,7 @@ function ReviewStep({ s, issues, goto, mode, initial, preview }: {
           </section>
         ))}
         {mode === 'create' ? (
-          <Callout tone="sky"><b>Save as draft</b> keeps the store hidden while you add the menu. <b>Publish now</b> makes it visible to customers immediately and it starts taking orders during its hours{local ? ' (the stall accepts and delivers them in ZCS Vendor)' : ''}.</Callout>
+          <Callout tone="sky"><b>Save as draft</b> keeps the store hidden while you add the menu. <b>Publish now</b> makes it visible to customers immediately and it starts taking orders during its hours{campus ? ' (students book it under In-Campus Booking; the stall manages bookings in ZCS Campus Stall)' : local ? ' (the stall accepts and delivers them in ZCS Vendor)' : ''}.</Callout>
         ) : (
           <p className="text-xs text-fg-muted">Saving keeps the store {initial?.isActive ? 'live' : 'hidden'}; switch it on or off from the store list or the store page.</p>
         )}
@@ -948,7 +1031,8 @@ function SuccessPanel({ result, mode, onOpenStore, onClose }: { result: WizardRe
   const id = storeId(result.store);
   const [ack, setAck] = useState(!result.password);
   const local = isLocalVendorType(result.store.vendorType);
-  const app = local ? 'ZCS Vendor' : 'ZCS Restaurant';
+  const campus = !!result.booking;
+  const app = local ? (campus ? 'ZCS Campus Stall' : 'ZCS Vendor') : 'ZCS Restaurant';
   const phone = tenDigits(result.store.partnerPhone || result.store.phone || (local ? result.store.whatsappNumber : '') || '');
   // WhatsApp link text never carries the password: a wa.me URL lands in browser history and link logs.
   const waText = `${app} app login\nStore: ${result.store.name}${phone ? `\nPhone: ${phone}` : ''}\nStore ID: ${id}\nOpen the ${app} app and sign in with ${phone ? 'your phone number' : 'the Store ID'}. Your password follows in a separate message.`;
@@ -961,10 +1045,17 @@ function SuccessPanel({ result, mode, onOpenStore, onClose }: { result: WizardRe
           <h3 className="text-2xl font-semibold">{mode === 'create' ? `${result.store.name} is ${result.published ? 'live' : 'saved as a draft'}` : 'Changes saved'}</h3>
           <p className="mt-2 text-sm text-fg-muted">
             {mode === 'create'
-              ? result.published ? 'Customers can see it now. Add the menu so they can order.' : 'It is hidden from customers. Add the menu, then publish from the store page.'
+              ? campus
+                ? result.published ? 'Students can pre-book it under In-Campus Booking once it has menu items.' : 'It is hidden from students. Add the menu, then publish from the store page.'
+                : result.published ? 'Customers can see it now. Add the menu so they can order.' : 'It is hidden from customers. Add the menu, then publish from the store page.'
               : 'The new password is active now.'}
           </p>
         </div>
+        {result.booking && !result.booking.on && (
+          <Callout tone="red" title="In-Campus Booking is not on yet">
+            {result.booking.error || 'In-Campus Booking could not be switched on.'} The stall is saved: finish it with &quot;Finish In-Campus Booking&quot; below.
+          </Callout>
+        )}
         {(result.password || mode === 'create') && (
           <section className="space-y-3 rounded-xl border border-warning/30 bg-warning-soft p-4" aria-labelledby="creds-title">
             <div className="flex items-center justify-between gap-2">
@@ -990,8 +1081,10 @@ function SuccessPanel({ result, mode, onOpenStore, onClose }: { result: WizardRe
         )}
         <div className="flex flex-wrap justify-center gap-3">
           {mode === 'create' && <Button variant="primary" disabled={!ack} onClick={() => onOpenStore(id, 'menu')}>Add menu items →</Button>}
-          {mode === 'create' && isLocalVendorType(result.store.vendorType) && (
-            <Button disabled={!ack} onClick={() => onOpenStore(id, 'campus')} title="Switch In-Campus Booking on and add the stall's UPI ID">Set up In-Campus Booking →</Button>
+          {mode === 'create' && campus && (
+            <Button disabled={!ack} onClick={() => onOpenStore(id, 'campus')} title="The stall's UPI ID, QR code, prep time and the bookings switch">
+              {result.booking?.on ? 'In-Campus Booking settings' : 'Finish In-Campus Booking →'}
+            </Button>
           )}
           <Button disabled={!ack} onClick={() => (mode === 'create' ? onOpenStore(id, 'overview') : onClose())}>{mode === 'create' ? 'Open store page' : 'Done'}</Button>
           {mode === 'create' && <Button variant="ghost" disabled={!ack} onClick={onClose}>Back to all stores</Button>}

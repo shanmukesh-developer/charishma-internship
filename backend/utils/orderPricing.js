@@ -253,6 +253,11 @@ const computeOrderQuote = async ({ user, items, couponCode }) => {
   if (isStall && couponCode) {
     throw new PricingError(400, 'COUPON_NOT_FOR_STALL', `Coupons can't be used on ${store.name} orders — you pay the stall in cash. Remove the coupon to continue.`);
   }
+  // In-Campus Booking stall (owner, 30 Oct 2026: "in-campus means no delivery"): students pre-book it under In-Campus
+  // Booking, pay the stall by UPI and collect it there. It never takes a delivery order.
+  if (isStall && store.campusBookingEnabled === true) {
+    throw new PricingError(400, 'BOOKING_ONLY_STALL', `${store.name} takes In-Campus pre-bookings only. Book it from In-Campus Booking and collect it at the stall.`, { storeId: store.id });
+  }
   const slotsLib = require('./deliverySlots');
   await slotsLib.loadConfig();
   const slotNow = slotsLib.now();

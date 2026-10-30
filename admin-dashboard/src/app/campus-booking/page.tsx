@@ -14,7 +14,7 @@ import {
 
 // A campus stall is a Stores entry of type "Local stall": the wizard opens preset to it, and its success screen
 // leads to the stall's In-Campus Booking tab (switch, UPI ID, QR, prep time).
-const ADD_STALL_HREF = '/restaurants?new=1&type=LOCAL_VENDOR';
+const ADD_STALL_HREF = '/restaurants?new=1&type=LOCAL_VENDOR&booking=1';
 import { StallBookingSettings, type CampusStall } from '@/components/campusBooking/StallBookingSettings';
 
 interface Line { menuItemId: string | null; name: string; unitPrice: number; quantity: number; lineTotal: number }

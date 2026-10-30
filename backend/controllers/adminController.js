@@ -183,7 +183,12 @@ exports.getRestaurants = async (req, res) => {
 
     // Batch-fetch all restaurants and their menu items in 2 queries (eliminates N+1)
     // Secrets are stripped from the response anyway: never read them (or push tokens) per listing.
-    const restaurants = await Restaurant.findAll({ where: { isActive: true, ...(await require('../utils/receiptSettings').listingWhere()) }, attributes: { exclude: STORE_LISTING_EXCLUDE } });
+    // In-Campus Booking stalls are pickup-only (owner, 30 Oct 2026): listed under In-Campus Booking, never with the
+    // delivery stores here.
+    const restaurants = await Restaurant.findAll({
+      where: { isActive: true, ...(await require('../utils/receiptSettings').listingWhere()), [Op.and]: [{ [Op.or]: [{ campusBookingEnabled: false }, { campusBookingEnabled: null }] }] },
+      attributes: { exclude: STORE_LISTING_EXCLUDE },
+    });
     const restaurantIds = restaurants.map(r => r.id);
 
     const allMenuItems = restaurantIds.length > 0

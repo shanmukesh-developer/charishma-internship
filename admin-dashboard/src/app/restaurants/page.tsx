@@ -76,18 +76,21 @@ function StoresScreen() {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<Record<string, boolean>>({});
-  const [wizard, setWizard] = useState<{ mode: 'create' | 'edit'; id?: string; step?: StepKey; preset?: { vendorType: string } } | null>(null);
+  const [wizard, setWizard] = useState<{ mode: 'create' | 'edit'; id?: string; step?: StepKey; preset?: { vendorType: string; campusBooking?: boolean } } | null>(null);
   const [drawer, setDrawer] = useState<{ id: string; tab: DrawerTab } | null>(null);
   // ?new=1 (header New > Store) opens the add-store wizard (once: the flag is dropped from the URL); ?store=<id>
   // [&tab=] opens that store. Runs on load and when a header / palette link changes the query of this open page.
   const openFromQuery = useCallback((qs: URLSearchParams) => {
     if (qs.get('new') === '1') {
-      // &type=LOCAL_VENDOR ("Add campus stall" on In-Campus Booking) starts the wizard as that store type.
+      // &type=LOCAL_VENDOR starts the wizard as that store type; &booking=1 ("Add campus stall" on In-Campus Booking)
+      // adds the In-Campus Booking step (UPI ID) and switches bookings on when the stall is saved.
       const type = String(qs.get('type') || '').toUpperCase();
-      setWizard({ mode: 'create', ...(VENDOR_TYPES.some(v => v.value === type) ? { preset: { vendorType: type } } : {}) });
+      const campusBooking = qs.get('booking') === '1' && ['LOCAL_VENDOR', 'LOCAL', 'STALL'].includes(type);
+      setWizard({ mode: 'create', ...(VENDOR_TYPES.some(v => v.value === type) ? { preset: { vendorType: type, ...(campusBooking ? { campusBooking: true } : {}) } } : {}) });
       const url = new URL(window.location.href);
       url.searchParams.delete('new');
       url.searchParams.delete('type');
+      url.searchParams.delete('booking');
       window.history.replaceState(window.history.state, '', url.toString());
     }
     const sid = qs.get('store');

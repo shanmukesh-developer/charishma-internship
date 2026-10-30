@@ -89,7 +89,7 @@ export function StallBookingSettings({ stall, onSaved }: { stall: CampusStall; o
         checked={form.enabled}
         onChange={(v) => setForm((f) => ({ ...f, enabled: v }))}
         label="In-Campus Booking"
-        description={form.enabled ? 'Students can book this stall for pickup while it is open, and pay the stall directly by UPI.' : 'Off: the stall is not listed for In-Campus Booking.'}
+        description={form.enabled ? 'Students pre-book this stall for pickup while it is open and pay the stall directly by UPI. It is pickup-only: it is not listed with the delivery stalls.' : 'Off: the stall is not listed for In-Campus Booking.'}
       />
       <Field label="Stall UPI ID" hint="Students pay this UPI ID directly. ZCS never holds the money." required={form.enabled}>
         <Input value={form.upiId} onChange={(e) => setForm((f) => ({ ...f, upiId: e.target.value.replace(/\s/g, '') }))} placeholder="stallname@okaxis" autoComplete="off" />
