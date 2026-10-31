@@ -4,7 +4,6 @@
 // Backend: /api/admin/campus-events/* (backend/modules/campusEvents, protect + admin; works while the feature is
 // off). Live via admin:changed 'campus_event_admin' and the public data:changed 'campus_event'.
 // The gate scanner lives at /campus-events/scan.
-import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAdminAuth } from '@/utils/useAdminAuth';
 import { useLiveSync } from '@/lib/useLiveSync';

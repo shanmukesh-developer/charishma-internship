@@ -305,7 +305,6 @@ export default function UserManagement() {
   const onToggleElite = useCallback((u: User) => handlersRef.current.toggleElite(u), []);
   const onToggleBan = useCallback((u: User) => handlersRef.current.toggleBan(u), []);
   const onAdjustWallet = useCallback((u: User, amount: number, reason: string) => handlersRef.current.adjustWallet(u, amount, reason), []);
-  const onShowWallet = useCallback((u: User) => setWalletOf(u), []);
 
   const filteredUsers = users;
 

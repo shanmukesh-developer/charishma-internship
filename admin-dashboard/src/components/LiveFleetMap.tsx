@@ -81,7 +81,6 @@ export default function LiveFleetMap({ riders, checkpoints }: LiveFleetMapProps)
     if (container && (container as any)._leaflet_id) {
       // If Leaflet already initialized on this container, destroy it first
       try {
-        const leafletId = (container as any)._leaflet_id;
         if (L.Map && (L as any).Map.prototype && (L as any).Map.prototype._mapId) {
           // Leaflet global cleanup
         }

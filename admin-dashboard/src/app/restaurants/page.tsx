@@ -219,8 +219,6 @@ function StoresScreen() {
   }, [stores, filters, stats]);
 
   const filtered = filters.search.trim() !== '' || filters.type !== 'ALL' || filters.campus !== 'ALL' || filters.status !== 'all' || filters.fssai !== 'ALL';
-  const visibleIds = visible.map(storeId);
-  const allSelected = visibleIds.length > 0 && visibleIds.every(id => selected.has(id));
   const drawerStore = drawer ? stores.find(s => storeId(s) === drawer.id) || null : null;
   const wizardStore = wizard?.id ? stores.find(s => storeId(s) === wizard.id) || null : null;
 

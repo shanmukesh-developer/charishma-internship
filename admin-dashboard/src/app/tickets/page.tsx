@@ -157,22 +157,6 @@ export default function SupportTickets() {
     if (ok) setReplies(prev => { const next = { ...prev }; delete next[ticket.id]; return next; });
   };
 
-  const getSlaStatus = (breachAt: string | null) => {
-    if (!breachAt) return { text: 'No SLA', color: 'text-fg-muted' };
-    const diffMs = new Date(breachAt).getTime() - Date.now();
-    if (diffMs < 0) return { text: 'BREACHED', color: 'text-danger-text font-semibold bg-danger-soft px-2 py-1 rounded border border-danger/30' };
-    const hours = Math.floor(diffMs / 3600000);
-    const mins = Math.floor((diffMs % 3600000) / 60000);
-    return { text: `${hours}h ${mins}m left`, color: hours < 2 ? 'text-warning-text' : 'text-success-text' };
-  };
-
-  const priorityColors: Record<string, string> = {
-    Critical: 'text-danger-text',
-    High: 'text-warning-text',
-    Medium: 'text-warning-text',
-    Low: 'text-success-text',
-  };
-
   const isActive = (t: Ticket) => t.status === 'Open' || t.status === 'In Progress';
   const activeCount = useMemo(() => tickets.filter(isActive).length, [tickets]);
   const visible = useMemo(
