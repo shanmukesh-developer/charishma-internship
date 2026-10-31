@@ -157,3 +157,23 @@ test('book -> cancel -> book again tells the owner once; the 11th request in a d
   assert.strictEqual(over.status, 429, JSON.stringify(over.body));
   assert.strictEqual(over.body.code, 'BOOKING_LIMIT');
 });
+
+test('an owner decision reaches the student live (pg:changed, ids and status only)', async () => {
+  const realtime = H.r('utils/realtime');
+  const seen = [];
+  const noop = { emit() {}, socketsJoin() {}, socketsLeave() {}, fetchSockets: async () => [] };
+  realtime.init({ to: (room) => ({ ...noop, emit: (ev, p) => seen.push({ room, ev, p }) }), in: () => noop, emit() {}, of: () => ({ to: () => noop, in: () => noop, fetchSockets: async () => [] }), fetchSockets: async () => [], sockets: { adapter: { rooms: new Map() }, sockets: new Map() } });
+  try {
+    const student = await H.mkUser({ name: 'Live Student' });
+    const b = await H.book(student, room.id, {});
+    assert.strictEqual(b.status, 201, JSON.stringify(b.body));
+    const r = await H.api('POST', `/api/pg-owner/bookings/${b.body.booking.id}/accept`, owner.token, {});
+    assert.strictEqual(r.status, 200, JSON.stringify(r.body));
+    const ev = seen.find((e) => e.room === `user_${student.id}` && e.ev === 'pg:changed');
+    assert.ok(ev, JSON.stringify(seen.map((e) => e.ev)));
+    assert.strictEqual(ev.p.bookingId, String(b.body.booking.id));
+    assert.strictEqual(ev.p.status, 'Confirmed');
+  } finally {
+    realtime.init({ to: () => ({ emit: () => {} }), emit: () => {}, in: () => ({ socketsJoin() {}, socketsLeave() {}, fetchSockets: async () => [] }), fetchSockets: async () => [], of: () => ({ fetchSockets: async () => [], in: () => ({ fetchSockets: async () => [] }) }), sockets: { adapter: { rooms: new Map() }, sockets: new Map() } });
+  }
+});

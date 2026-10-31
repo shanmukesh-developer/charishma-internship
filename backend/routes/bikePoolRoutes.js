@@ -7,6 +7,12 @@ const { Op } = require('sequelize');
 
 const { getPoolRequestModel } = require('../models/PoolRequest');
 const { sendServerError } = require('../utils/httpErrors');
+// Live "something changed" to each person's own sockets (ids only). pushUsers sends it with every Co-Ride push; this is
+// for the repeated pushes notifyOnce holds back, so an open My rides still reloads (31 Oct 2026).
+const liveRide = (userIds, data) => {
+  const realtime = require('../utils/realtime');
+  for (const uid of userIds || []) realtime.toUser(uid, 'coride:changed', { poolId: data && data.poolId ? String(data.poolId) : null, type: (data && data.type) || null });
+};
 // Push + inbox row to the other side of a Co-Ride action (never blocks the reply; failures are logged there).
 const notify = (userIds, title, body, data) => { void require('../services/coRideTemplates').pushUsers(userIds, title, body, { screen: 'coride', ...data }); };
 // Pushes a passenger can trigger again and again (join -> withdraw -> join, join -> leave on an auto-approve ride) reach
@@ -16,7 +22,7 @@ const NOTIFY_ONCE_MS = 10 * 60 * 1000;
 const notifiedAt = new Map();
 const notifyOnce = (key, userIds, title, body, data, now = Date.now()) => {
   const last = notifiedAt.get(key);
-  if (last && now - last < NOTIFY_ONCE_MS) return false;
+  if (last && now - last < NOTIFY_ONCE_MS) { liveRide(userIds, data); return false; }
   notifiedAt.set(key, now);
   if (notifiedAt.size > 5000) for (const [k, t] of notifiedAt) if (now - t >= NOTIFY_ONCE_MS) notifiedAt.delete(k);
   notify(userIds, title, body, data);

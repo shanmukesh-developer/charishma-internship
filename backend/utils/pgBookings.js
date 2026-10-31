@@ -93,6 +93,8 @@ const STATUS_PUSH = {
  */
 async function notifyStudentOfStatus(booking, { pgName, roomNumber, reason } = {}) {
   try {
+    // An open "My PG bookings" reloads at once (ids / status only; 31 Oct 2026), whatever the push does.
+    require('./realtime').toUser(booking.userId, 'pg:changed', { bookingId: String(booking.id), status: booking.status });
     const tpl = STATUS_PUSH[booking.status];
     if (!tpl) return false;
     const { getUserModel } = require('../models/User');

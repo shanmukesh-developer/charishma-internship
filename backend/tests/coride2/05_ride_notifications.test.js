@@ -138,3 +138,26 @@ test('women-only rides always wait for the host, even with auto-approve on; no p
   const man = await H.mkUser({ gender: 'Male' });
   assert.equal((await H.api('POST', `/api/bikepool/posts/${ride.id}/join`, man.token)).status, 403);
 });
+
+test('every request reaches the host live (coride:changed), also when its push is held back', async () => {
+  const realtime = H.r('utils/realtime');
+  const seen = [];
+  const noop = { emit() {}, socketsJoin() {}, socketsLeave() {}, fetchSockets: async () => [] };
+  realtime.init({ to: (room) => ({ ...noop, emit: (ev, p) => seen.push({ room, ev, p }) }), in: () => noop, emit() {}, of: () => ({ to: () => noop, in: () => noop, fetchSockets: async () => [] }), fetchSockets: async () => [], sockets: { adapter: { rooms: new Map() }, sockets: new Map() } });
+  try {
+    const host = await H.mkUser();
+    const rider = await H.mkUser();
+    const ride = await H.mkRide(host.id, { departureTime: new Date(Date.now() + 2 * 3600 * 1000), availableSeats: 2 });
+    for (let i = 0; i < 2; i++) {
+      assert.equal((await H.api('POST', `/api/bikepool/posts/${ride.id}/join`, rider.token)).status, 200);
+      assert.equal((await H.api('POST', `/api/bikepool/posts/${ride.id}/cancel`, rider.token)).status, 200);
+    }
+    await settle();
+    const live = seen.filter((e) => e.room === `user_${host.id}` && e.ev === 'coride:changed');
+    assert.equal(live.length, 2, 'one live update per request (the second push was held back)');
+    assert.equal(live[0].p.poolId, String(ride.id));
+    for (const e of live) assert.deepEqual(Object.keys(e.p).sort(), ['at', 'poolId', 'type'], 'ids only');
+  } finally {
+    realtime.init({ to: () => ({ emit() {} }), in: () => ({ socketsJoin() {}, socketsLeave() {}, fetchSockets: async () => [] }), emit() {}, of: () => ({ to: () => ({ emit() {} }), in: () => ({ fetchSockets: async () => [] }), fetchSockets: async () => [] }), fetchSockets: async () => [], sockets: { adapter: { rooms: new Map() }, sockets: new Map() } });
+  }
+});

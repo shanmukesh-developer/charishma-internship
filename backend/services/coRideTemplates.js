@@ -223,11 +223,14 @@ const runsFor = async (templateIds, now = new Date()) => {
 };
 
 // ── Pushes ───────────────────────────────────────────────────────────────────────────────────────
-// Saved in the in-app list even without a device token; never throws.
+// Saved in the in-app list even without a device token; never throws. Every Co-Ride push also tells the person's own
+// sockets "coride:changed" (ids only), so an open My rides reloads at once (31 Oct 2026).
 const pushUsers = async (userIds, title, body, data) => {
   try {
     const ids = [...new Set((userIds || []).filter(Boolean).map(String))];
     if (!ids.length) return;
+    const realtime = require('../utils/realtime');
+    for (const uid of ids) realtime.toUser(uid, 'coride:changed', { poolId: data && data.poolId ? String(data.poolId) : null, type: (data && data.type) || null });
     const { User } = M();
     const rows = await User.findAll({ where: { id: { [Op.in]: ids } }, attributes: ['id', 'fcmTokens'] });
     const tokens = rows.flatMap((u) => (Array.isArray(u.fcmTokens) ? u.fcmTokens : []));
