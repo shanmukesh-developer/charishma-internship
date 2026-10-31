@@ -24,6 +24,7 @@ const INLINE_PHOTO_ROUTES = [
   ['POST', '/api/upload'], // server.js JSON { image } fallback
   ['POST', '/api/campus/media'], // mediaController JSON { image } fallback
   ['POST', '/api/auto-ride/driver/media'], // driverProfile.uploadMedia JSON { image }
+  ['POST', '/api/pg-owner/media'], // PG Partner app JSON { image } retry of a timed-out upload
   ['PUT', '/api/users/profile'], // userController profileImage
   ['PUT', '/api/delivery/profile'], // deliveryPartnerController photoUrl
   ['PUT', `/api/orders/${UUID}/upload-item-photo`],

@@ -157,6 +157,20 @@ router.get('/:id', async (req, res) => {
 
 const { sendWhatsAppMessage } = require('../utils/whatsappUtil');
 
+// Booking request limits (31 Oct 2026). A student sends at most PG_DAILY_REQUESTS requests a day, and the admins / the
+// PG owner / the WhatsApp desk hear about one student's requests for one residence once per PG_NOTIFY_ONCE_MS (in
+// memory: after a restart at most one more round).
+const PG_DAILY_REQUESTS = 10;
+const PG_NOTIFY_ONCE_MS = 30 * 60 * 1000;
+const pgNotifiedAt = new Map();
+const pgNotifyFirst = (key, now = Date.now()) => {
+  const last = pgNotifiedAt.get(key);
+  if (last && now - last < PG_NOTIFY_ONCE_MS) return false;
+  pgNotifiedAt.set(key, now);
+  if (pgNotifiedAt.size > 5000) for (const [k, t] of pgNotifiedAt) if (now - t >= PG_NOTIFY_ONCE_MS) pgNotifiedAt.delete(k);
+  return true;
+};
+
 // POST Book a room
 router.post('/:roomId/book', protect, async (req, res) => {
   try {
@@ -221,6 +235,16 @@ router.post('/:roomId/book', protect, async (req, res) => {
       });
     }
 
+    // At most PG_DAILY_REQUESTS requests a day per student, cancelled ones included (31 Oct 2026): book -> cancel ->
+    // book loops pushed every admin and the PG owner each time. Counted in the database, so a restart never resets it.
+    const lastDay = await PGBooking.count({ where: { userId: req.user.id, createdAt: { [Op.gt]: new Date(Date.now() - 24 * 3600 * 1000) } } });
+    if (lastDay >= PG_DAILY_REQUESTS) {
+      return res.status(429).json({
+        code: 'BOOKING_LIMIT',
+        message: 'You have sent a lot of booking requests today. Please try again tomorrow, or talk to the ZCS housing team.',
+      });
+    }
+
     // In-process guard + partial unique index (config/db.js) so a double tap cannot create two
     // Pending requests (two admin pushes, two WhatsApp messages).
     const pgKey = `${req.user.id}:${room.hostelId}`;
@@ -273,19 +297,23 @@ router.post('/:roomId/book', protect, async (req, res) => {
       `⚡ _Sent automatically via ZCS Super Ecosystem._`;
 
     // Real notifications: admin push + live dashboard alert. WhatsApp only when a provider is configured.
-    await notifyAdminsOfBooking(req, `${userName} requested ${sharingType} room ${room.roomNumber} at ${pgName}.`, {
-      id: booking.id, hostelId: room.hostelId, roomId: room.id, userName, pgName, checkInDate: booking.checkInDate
-    });
-    // The PG's owner (ZCS PG Partner app), when the listing is linked to an owner account: first name only.
-    await require('../modules/pgOwner/services/notify').toListingOwners(room.hostelId, 'New booking request',
-      `${pgContent.firstNameOf(userName)} asked for a ${sharingType.toLowerCase()} bed at ${pgName} from ${checkIn}.`,
-      { type: 'PG_OWNER_BOOKING', bookingId: String(booking.id), hostelId: String(room.hostelId) });
+    // Once per student and residence in PG_NOTIFY_ONCE_MS: a request withdrawn and sent again is still listed in
+    // admin and in the PG Partner app, without a second round of pushes and WhatsApp messages.
     let whatsappSent = false;
-    try {
-      const wa = await sendWhatsAppMessage(PG_DESK_WHATSAPP, whatsappMessage, 'PG_BOOKING');
-      whatsappSent = !!wa?.success;
-    } catch (waErr) {
-      console.error('[PG_WHATSAPP_ERROR]', waErr.message);
+    if (pgNotifyFirst(`${req.user.id}:${room.hostelId}`)) {
+      await notifyAdminsOfBooking(req, `${userName} requested ${sharingType} room ${room.roomNumber} at ${pgName}.`, {
+        id: booking.id, hostelId: room.hostelId, roomId: room.id, userName, pgName, checkInDate: booking.checkInDate
+      });
+      // The PG's owner (ZCS PG Partner app), when the listing is linked to an owner account: first name only.
+      await require('../modules/pgOwner/services/notify').toListingOwners(room.hostelId, 'New booking request',
+        `${pgContent.firstNameOf(userName)} asked for a ${sharingType.toLowerCase()} bed at ${pgName} from ${checkIn}.`,
+        { type: 'PG_OWNER_BOOKING', bookingId: String(booking.id), hostelId: String(room.hostelId) });
+      try {
+        const wa = await sendWhatsAppMessage(PG_DESK_WHATSAPP, whatsappMessage, 'PG_BOOKING');
+        whatsappSent = !!wa?.success;
+      } catch (waErr) {
+        console.error('[PG_WHATSAPP_ERROR]', waErr.message);
+      }
     }
 
     // Lets the student message the housing desk themselves from WhatsApp.

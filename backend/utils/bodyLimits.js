@@ -29,6 +29,7 @@ const RAISED_ROUTES = [
   ['POST', '/api/upload', 'upload', 'JSON { image: base64 } fallback of the photo upload (multipart is separate)'],
   ['POST', '/api/campus/media', 'upload', 'customer-mobile web / multipart-fallback sends { image: dataUrl }'],
   ['POST', '/api/auto-ride/driver/media', 'upload', 'documented JSON { image: base64 } variant of the driver photo upload'],
+  ['POST', '/api/pg-owner/media', 'upload', 'PG Partner app retries a timed-out photo upload as JSON { image: base64 } (up to 5 MB)'],
   ['PUT', '/api/users/profile', 'upload', 'profileImage may still be a legacy / pasted data URL (2 MB photo)'],
   ['PUT', '/api/delivery/profile', 'upload', 'rider photoUrl may be a data URL (2 MB photo)'],
   ['PUT', `/api/orders/${SEG}/upload-item-photo`, 'upload', 'Mega Basket item photo as data URL'],

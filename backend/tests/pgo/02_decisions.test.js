@@ -133,3 +133,27 @@ test('move-out frees the bed and the tenant leaves the tenants list', async () =
   const pending = await H.book(await H.mkUser(), room.id);
   assert.strictEqual((await H.api('POST', `/api/pg-owner/bookings/${pending.body.booking.id}/move-out`, owner.token, {})).status, 409);
 });
+
+test('book -> cancel -> book again tells the owner once; the 11th request in a day is refused', async () => {
+  const student = await H.mkUser({ name: 'Loop Tester' });
+  const ownerRows = async () => (await H.notificationsFor(owner.id)).filter((n) => n.type === 'PG_OWNER_BOOKING').length;
+  const before = await ownerRows();
+  let made = 0;
+  for (let i = 0; i < 3; i++) {
+    const b = await H.book(student, room.id, {});
+    assert.strictEqual(b.status, 201, JSON.stringify(b.body));
+    made += 1;
+    const c = await H.api('PUT', `/api/pg/bookings/${b.body.booking.id}/cancel`, student.token, {});
+    assert.ok(c.status < 300, JSON.stringify(c.body));
+  }
+  assert.strictEqual(await ownerRows(), before + 1, 'one owner notification for three rounds');
+  while (made < 10) {
+    const b = await H.book(student, room.id, {});
+    assert.strictEqual(b.status, 201, JSON.stringify(b.body));
+    made += 1;
+    await H.api('PUT', `/api/pg/bookings/${b.body.booking.id}/cancel`, student.token, {});
+  }
+  const over = await H.book(student, room.id, {});
+  assert.strictEqual(over.status, 429, JSON.stringify(over.body));
+  assert.strictEqual(over.body.code, 'BOOKING_LIMIT');
+});
