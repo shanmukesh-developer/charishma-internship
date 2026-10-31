@@ -1424,6 +1424,18 @@ exports.updateGlobalConfig = async (req, res) => {
       realtime.publish('config', 'updated', key, { scope: 'global' });
       return res.json({ key, value: n, created: createdL });
     }
+    // Intro sound (owner, 31 Oct 2026): on / off only. The app reads it from GET /api/config/sections (introSound)
+    // and applies it from its next start (the intro plays before the network answers).
+    if (key === 'INTRO_SOUND_ENABLED') {
+      const on = value === true || value === 'true' ? true : value === false || value === 'false' ? false : null;
+      if (on === null) return res.status(400).json({ message: 'INTRO_SOUND_ENABLED must be true or false.' });
+      const [, createdI] = await GlobalConfig.upsert({ key, value: on, description: description || 'Intro sound on app start (on / off)' });
+      try { require('../utils/responseCache').invalidate('sections'); } catch { /* not loaded */ }
+      await logAuditAction(req, key, 'INTRO_SOUND_SET', { value: on });
+      broadcastSystemUpdate(req, 'GLOBAL_CONFIG_UPDATED', { key, value: on });
+      realtime.publish('config', 'updated', key, { scope: 'global' });
+      return res.json({ key, value: on, created: createdI });
+    }
     const [_config, created] = await GlobalConfig.upsert({ key, value, description });
     broadcastSystemUpdate(req, 'GLOBAL_CONFIG_UPDATED', { key, value });
     realtime.publish('config', 'updated', key, { scope: 'global' });

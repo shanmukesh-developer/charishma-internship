@@ -1,6 +1,6 @@
 "use client";
 import {
-  Badge, Button, ButtonLink, Card, CardBody, CardHeader, EmptyState, ErrorState, Field, Input, LoadingState, Notice, PageHeader, StatusPill, Tabs, useConfirm,
+  Badge, Button, ButtonLink, Card, CardBody, CardHeader, EmptyState, ErrorState, Field, Input, LoadingState, Notice, PageHeader, StatusPill, Switch, Tabs, useConfirm,
   IconRefresh,
 } from '@/components/ui';
 import { formatDateTime, formatINR } from '@/lib/format';
@@ -47,7 +47,9 @@ const MAX_CASH_LIMIT = 100000;
 // Orders each delivery slot takes before it shows "Full" (backend utils/deliverySlots, 0 = no limit).
 const SLOT_CAP_KEY = 'SLOT_MAX_ORDERS';
 const MAX_SLOT_CAP = 500;
-const MANAGED_KEYS: string[] = [...RETENTION.map(r => r.key), 'CAMPUS_SPOTS_DEFAULTS_RETIRED', 'APP_VERSION_POLICY', 'LEGAL_SETTINGS', CASH_LIMIT_KEY, 'RIDER_CASH_LEDGER_START', 'C6_COMMISSION_BACKFILL'];
+// Intro sound on app start (customer app): edited with its switch in the Switches tab.
+const INTRO_SOUND_KEY = 'INTRO_SOUND_ENABLED';
+const MANAGED_KEYS: string[] = [...RETENTION.map(r => r.key), 'CAMPUS_SPOTS_DEFAULTS_RETIRED', 'APP_VERSION_POLICY', 'LEGAL_SETTINGS', CASH_LIMIT_KEY, 'RIDER_CASH_LEDGER_START', 'C6_COMMISSION_BACKFILL', INTRO_SOUND_KEY];
 // Keys the backend DOES read, but that are edited on their own page (listing them under "not read"
 // told admins the rentals on/off switch did nothing).
 const MANAGED_ELSEWHERE: Record<string, { label: string; href: string }> = {
@@ -244,6 +246,33 @@ export default function ConfigTerminal() {
     }
   };
 
+  // Intro sound: on unless saved as false. The app applies a change from its next start.
+  const introSoundOn = configs.find(c => c.key === INTRO_SOUND_KEY)?.value !== false;
+  const [savingIntro, setSavingIntro] = useState(false);
+  const [introMsg, setIntroMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
+  const handleIntroSound = async (on: boolean) => {
+    if (savingIntro) return;
+    setIntroMsg(null);
+    const ok = await confirm({
+      title: on ? 'Turn the intro sound on?' : 'Turn the intro sound off?',
+      description: on
+        ? 'Students hear the short ZCS sound with the opening rings (never on silent or vibrate, and never over their music).'
+        : 'The opening rings play without sound for every student.',
+      confirmLabel: on ? 'Turn on' : 'Turn off',
+    });
+    if (!ok) return;
+    setSavingIntro(true);
+    try {
+      await apiRequest('/api/admin/config', { method: 'POST', body: JSON.stringify({ key: INTRO_SOUND_KEY, value: on }) });
+      setIntroMsg({ kind: 'ok', text: on ? 'Intro sound on. Phones pick it up from their next app start.' : 'Intro sound off. Phones pick it up from their next app start.' });
+      await fetchAll();
+    } catch (err) {
+      setIntroMsg({ kind: 'err', text: err instanceof Error ? err.message : 'Could not save the intro sound setting.' });
+    } finally {
+      setSavingIntro(false);
+    }
+  };
+
   const currentLimit = Number(configs.find(c => c.key === CASH_LIMIT_KEY)?.value ?? 0) || 0;
   const handleSaveLimit = async () => {
     if (savingLimit) return;
@@ -417,6 +446,20 @@ export default function ConfigTerminal() {
       )}
 
       {tab === 'switches' && (
+        <div className="space-y-6">
+        <Card>
+          <CardHeader title="Customer app" />
+          <CardBody className="space-y-2">
+            <Switch
+              checked={introSoundOn}
+              disabled={savingIntro}
+              onChange={handleIntroSound}
+              label="Intro sound"
+              description="A short ZCS sound with the opening rings when the app starts. It never plays when the phone is on silent or vibrate, never stops the student's music, and stays off for students who switch App sounds off. A change reaches each phone from its next app start."
+            />
+            {introMsg && <p className={introMsg.kind === 'ok' ? 'text-sm text-success-text' : 'text-sm text-danger-text'}>{introMsg.text}</p>}
+          </CardBody>
+        </Card>
         <Card>
           <CardHeader title="Feature switches" description="Big features are switched on and off on their own pages. Each switch asks you to confirm before it changes anything." />
           <ul className="divide-y divide-line">
@@ -431,6 +474,7 @@ export default function ConfigTerminal() {
             ))}
           </ul>
         </Card>
+        </div>
       )}
 
       {tab === 'retention' && (

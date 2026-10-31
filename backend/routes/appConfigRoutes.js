@@ -23,6 +23,8 @@ router.get('/legal', cacheGet('config', { ttlMs: 30 * 1000 }), require('../contr
 // groceries and services always show. A count that cannot be read is null: the app keeps that section.
 // campus: the admin's Campus (Friends) master switch (Admin > Friends app > Switches); off hides the Home
 // "Campus" button and its promo (owner, 31 Oct 2026: "block the Campus feature for now from the admin").
+// introSound: the admins' Intro sound switch (Admin > Settings > Switches, INTRO_SOUND_ENABLED; on unless set off).
+// The app keeps the last answer and applies it from its next start.
 router.get('/sections', cacheGet('sections', { ttlMs: 60 * 1000 }), async (req, res) => {
   const { getSequelize } = require('../config/db');
   const { Op } = require('sequelize');
@@ -43,7 +45,12 @@ router.get('/sections', cacheGet('sections', { ttlMs: 60 * 1000 }), async (req, 
   const one = (n) => ({ count: n, live: n === null ? true : n > 0 });
   let campusLive = true;
   try { campusLive = !!(await require('../modules/friends/services/featureFlags').getConfig()).enabled; } catch { /* unknown: keep it */ }
-  res.json({ sections: { pg: one(pg), coride: one(coride), rentals: one(rentals), campus: { live: campusLive } } });
+  let introSound = true;
+  try {
+    const row = await models().GlobalConfig?.findOne({ where: { key: 'INTRO_SOUND_ENABLED' }, attributes: ['value'] });
+    if (row && row.value === false) introSound = false;
+  } catch { /* unknown: keep it on */ }
+  res.json({ sections: { pg: one(pg), coride: one(coride), rentals: one(rentals), campus: { live: campusLive }, introSound: { on: introSound } } });
 });
 
 // Update global app configuration (admin only)
