@@ -779,6 +779,9 @@ app.get('/api/health', async (req, res) => {
       dbType: require('./config/dbSettings').dbHostType(),
       dbMs: lastPing && Number.isFinite(lastPing.latencyMs) ? lastPing.latencyMs : null,
       media: require('./utils/mediaStorage').driverName(),
+      // Which commit this instance runs (Render sets RENDER_GIT_COMMIT): after a restart or a manual deploy,
+      // scripts compare it with the latest pushed commit instead of guessing from behaviour.
+      commit: String(process.env.RENDER_GIT_COMMIT || '').slice(0, 8) || null,
     };
   } catch { /* health never fails because of these extras */ }
   res.json(body);
