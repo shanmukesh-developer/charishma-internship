@@ -17,14 +17,22 @@ const cleanQuery = (q) => String(q || '').replace(/[%_]/g, ' ').trim().slice(0, 
 const searchCacheKey = (req) => {
   const raw = req && req.query ? req.query.q : '';
   const q = cleanQuery(Array.isArray(raw) ? raw[raw.length - 1] : raw);
-  if (q.length < 2) return 'search|trending';
-  return `search|q=${/^[ -~]*$/.test(q) ? q.toLowerCase() : q}`;
+  // Results differ per college (?college=srmap: only stores serving it), so the college is part of the key.
+  const college = require('../utils/campuses').normalizeKey(req && req.query && req.query.college) || '';
+  if (q.length < 2) return `search|trending|c=${college}`;
+  return `search|q=${/^[ -~]*$/.test(q) ? q.toLowerCase() : q}|c=${college}`;
 };
 
 // @desc    Global search across restaurants and menu items
 // @route   GET /api/search
 const globalSearch = async (req, res) => {
   const q = cleanQuery(req.query.q);
+  // ?college=srmap: only stores (and their items) that serve the student's college; a few more rows are read so the
+  // filtered list still fills up.
+  const campuses = require('../utils/campuses');
+  const college = campuses.normalizeKey(req.query.college);
+  const more = (n) => (college ? n * 4 : n);
+  const serves = (store) => campuses.storeServes(store, college);
   
   try {
     const Restaurant = getRestaurantModel();
@@ -41,13 +49,13 @@ const globalSearch = async (req, res) => {
         Restaurant.findAll({
           where: { isActive: true, ...(await require('../utils/receiptSettings').listingWhere()), [Op.and]: [NOT_BOOKING_STALL] },
           order: [['rating', 'DESC NULLS LAST']], // Postgres puts NULL first on plain DESC
-          limit: 4
-        }),
+          limit: more(4)
+        }).then((rows) => rows.filter(serves).slice(0, 4)),
         MenuItem.findAll({
           where: { isAvailable: true },
-          limit: 6,
-          include: [{ model: Restaurant, as: 'restaurant', attributes: ['id', 'name', 'imageUrl', 'vendorType'], where: { isActive: true, ...(await require('../utils/receiptSettings').listingWhere()), [Op.and]: [NOT_BOOKING_STALL] } }]
-        }),
+          limit: more(6),
+          include: [{ model: Restaurant, as: 'restaurant', attributes: ['id', 'name', 'imageUrl', 'vendorType', 'visibleCampuses'], where: { isActive: true, ...(await require('../utils/receiptSettings').listingWhere()), [Op.and]: [NOT_BOOKING_STALL] } }]
+        }).then((rows) => rows.filter((it) => serves(it.restaurant)).slice(0, 6)),
       ]);
 
       return res.json({
@@ -73,8 +81,8 @@ const globalSearch = async (req, res) => {
         name: { [likeOp]: `%${q}%` },
         isActive: true, ...(await require('../utils/receiptSettings').listingWhere()), [Op.and]: [NOT_BOOKING_STALL]
       },
-      limit: 5
-    }), MenuItem.findAll({
+      limit: more(5)
+    }).then((rows) => rows.filter(serves).slice(0, 5)), MenuItem.findAll({
       where: {
         [Op.and]: [
           { isAvailable: true },
@@ -87,13 +95,14 @@ const globalSearch = async (req, res) => {
           }
         ]
       },
-      include: [{ model: Restaurant, as: 'restaurant', attributes: ['id', 'name', 'imageUrl', 'vendorType'], where: { isActive: true, ...(await require('../utils/receiptSettings').listingWhere()), [Op.and]: [NOT_BOOKING_STALL] } }],
-      limit: 15
-    })]);
+      include: [{ model: Restaurant, as: 'restaurant', attributes: ['id', 'name', 'imageUrl', 'vendorType', 'visibleCampuses'], where: { isActive: true, ...(await require('../utils/receiptSettings').listingWhere()), [Op.and]: [NOT_BOOKING_STALL] } }],
+      limit: more(15)
+    }).then((rows) => rows.filter((it) => serves(it.restaurant)).slice(0, 15))]);
 
     // Transform menuItems to match the expected format
     const items = menuItems.map(item => {
       const itemJSON = stripItemSecrets(item.toJSON());
+      if (itemJSON.restaurant) delete itemJSON.restaurant.visibleCampuses;
       return {
         ...itemJSON,
         _id: itemJSON.id,

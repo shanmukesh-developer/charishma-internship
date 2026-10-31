@@ -37,6 +37,8 @@ export interface Store {
   commissionType?: 'percentage' | 'flat';
   tags?: string[];
   campus?: string | null;
+  /** Colleges this store serves (backend utils/campuses keys); empty / null = every college. */
+  visibleCampuses?: string[] | null;
   zone?: string | null;
   lat?: number | null;
   lon?: number | null;

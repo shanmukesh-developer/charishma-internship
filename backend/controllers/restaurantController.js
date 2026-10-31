@@ -302,9 +302,16 @@ const getRestaurantOrders = async (req, res) => {
 const HOME_CACHE_MS = 15 * 1000;
 let homeCache = { at: 0, body: null };
 try { require('./adminController').onRestaurantsCacheClear(() => { homeCache = { at: 0, body: null }; }); } catch { /* circular load: cache just expires */ }
+// ?college=srmap: only the stores that serve that college (utils/campuses; a store with no colleges set serves all).
+const forCollege = (req, list) => {
+  const campuses = require('../utils/campuses');
+  const college = campuses.normalizeKey(req.query && req.query.college);
+  return college ? list.filter((r) => campuses.storeServes(r, college)) : list;
+};
+
 const getRestaurants = async (req, res) => {
   try {
-    if (homeCache.body && Date.now() - homeCache.at < HOME_CACHE_MS) return res.json(homeCache.body);
+    if (homeCache.body && Date.now() - homeCache.at < HOME_CACHE_MS) return res.json(forCollege(req, homeCache.body));
     const Restaurant = getRestaurantModel();
     const MenuItem = getMenuItemModel();
     // Legacy inline base64 photos are nulled in SQL (never loaded into memory on the home feed).
@@ -357,7 +364,7 @@ const getRestaurants = async (req, res) => {
     });
 
     homeCache = { at: Date.now(), body: augmentedRestaurants };
-    res.json(augmentedRestaurants);
+    res.json(forCollege(req, augmentedRestaurants));
   } catch (error) {
     console.error('[RESTAURANT_ERROR]', error);
     res.status(500).json({ message: 'Server Error' });
@@ -784,11 +791,11 @@ const getLocalVendors = async (req, res) => {
 
     // Public list: legacy inline base64 photos are nulled in SQL (media URLs pass through).
     const { dataUrlSafeColumns } = require('../utils/imageStore');
-    const vendors = await Restaurant.findAll({
+    const vendors = forCollege(req, await Restaurant.findAll({
       where,
       attributes: { exclude: ['imageUrl', 'logoUrl', ...PUBLIC_STORE_EXCLUDE], include: dataUrlSafeColumns('Restaurant', ['imageUrl', 'logoUrl']) },
       order: [['subscriptionTier', 'DESC'], ['rating', 'DESC']],
-    });
+    }));
     const vendorIds = vendors.map(v => v.id);
 
     // Batch-fetch menu items for all local vendors

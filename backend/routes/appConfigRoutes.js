@@ -17,6 +17,15 @@ router.get('/app-version', cacheGet('config', { ttlMs: 30 * 1000 }), require('..
 
 // C4 legal: current policy version + absolute links to Terms / Privacy / Refunds / Grievance / Guidelines.
 router.get('/legal', cacheGet('config', { ttlMs: 30 * 1000 }), require('../controllers/legalController').getPublicLegal);
+// Colleges ZCS serves and whether each is open, paused or coming soon (utils/campuses; refreshed by an admin change).
+router.get('/campuses', cacheGet('config', { ttlMs: 30 * 1000 }), async (req, res) => {
+  try {
+    res.json({ campuses: await require('../utils/campuses').listCampuses() });
+  } catch (err) {
+    console.error('[CAMPUSES_ERROR]', err.message);
+    res.status(500).json({ message: 'Could not load the colleges right now.' });
+  }
+});
 
 // Which "Others" sections have live listings right now (PG stays, Co-Ride, Rentals). The app hides a
 // section with nothing in it and shows it again as soon as there is a listing (cached 60 s). Food,

@@ -84,6 +84,8 @@ const initRestaurantModel = (sequelize) => {
     featuredBadge: { type: DataTypes.STRING, allowNull: true, defaultValue: 'Sponsored' },
     // ── CampusBites: Local Vendor Fields ──────────────────────
     campus: { type: DataTypes.STRING, allowNull: true }, // e.g. 'SRM', 'VIT', 'KLU'
+    // Colleges this store serves (utils/campuses: ['srmap'], ['vitap'], ...). Empty / null = every college.
+    visibleCampuses: { type: DataTypes.JSON, allowNull: true },
     isOpenNow: { type: DataTypes.BOOLEAN, defaultValue: true },
     whatsappNumber: { type: DataTypes.STRING, allowNull: true },
     subscriptionTier: { type: DataTypes.STRING, defaultValue: 'free' }, // 'free' or 'premium'

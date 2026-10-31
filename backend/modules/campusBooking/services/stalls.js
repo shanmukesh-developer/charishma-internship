@@ -117,12 +117,16 @@ const models = () => {
 
 const ADDON_RE = /add-?ons?|extras?/i;
 
-/** Every stall that takes bookings: open first, then by name. Optional q (name / tag / item) and category. */
-const listStalls = async ({ q = '', category = '', campus = '' } = {}) => {
+/** Every stall that takes bookings: open first, then by name. Optional q (name / tag / item), category and college
+ * (utils/campuses key: only stalls that serve the student's college). */
+const listStalls = async ({ q = '', category = '', campus = '', college = '' } = {}) => {
   const { Restaurant, MenuItem } = models();
   const where = await listWhere();
   if (campus) where.campus = String(campus).slice(0, 40);
-  const rows = await Restaurant.findAll({ where, attributes: { include: imageColumns(), exclude: ['imageUrl', 'logoUrl'] } });
+  const campuses = require('../../../utils/campuses');
+  const collegeKey = campuses.normalizeKey(college);
+  const rows = (await Restaurant.findAll({ where, attributes: { include: imageColumns(), exclude: ['imageUrl', 'logoUrl'] } }))
+    .filter((r) => campuses.storeServes(r, collegeKey));
   const ids = rows.map((r) => r.id);
   const items = ids.length ? require('../../../utils/menuSort').sortMenuItems(await MenuItem.findAll({
     where: { restaurantId: { [Op.in]: ids } },

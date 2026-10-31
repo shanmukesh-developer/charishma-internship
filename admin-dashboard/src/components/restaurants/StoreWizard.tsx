@@ -19,6 +19,8 @@ export interface WizardState {
   name: string;
   vendorType: string;
   campus: string;
+  /** Colleges that see this store (owner, 31 Oct 2026); none ticked = every college. */
+  colleges: string[];
   description: string;
   tags: string[];
   location: string;
@@ -51,6 +53,14 @@ export interface WizardState {
   prepMinutes: string;
 }
 
+// Colleges a store can serve (backend utils/campuses). Amrita is listed so a store can be set up before it opens.
+const COLLEGES: { key: string; label: string }[] = [
+  { key: 'srmap', label: 'SRM AP' },
+  { key: 'vitap', label: 'VIT AP' },
+  { key: 'amrita', label: 'Amrita' },
+];
+const collegesText = (keys: string[]) => (keys.length ? COLLEGES.filter(c => keys.includes(c.key)).map(c => c.label).join(', ') : 'Every college');
+
 export type StepKey = 'basics' | 'location' | 'booking' | 'branding' | 'hours' | 'login' | 'commission' | 'review';
 const STEP_META: Record<StepKey, { title: string; sub: string }> = {
   basics: { title: 'Basics', sub: 'Name, type, campus' },
@@ -66,7 +76,7 @@ const STEP_META: Record<StepKey, { title: string; sub: string }> = {
 const DRAFT_KEY = 'zenvy.admin.storeWizard.v1';
 
 const emptyState = (): WizardState => ({
-  name: '', vendorType: 'RESTAURANT', campus: '', description: '', tags: [],
+  name: '', vendorType: 'RESTAURANT', campus: '', colleges: [], description: '', tags: [],
   location: '', zone: '', lat: '', lon: '', whatsapp: '',
   imageUrl: '', brandOn: false, logoUrl: '', primaryColor: '#E23744', secondaryColor: '#111111', accentColor: '#FFC72C',
   weekly: uniformWeekly('09:00', '22:00'), isOpenNow: true, deliveryTime: '30',
@@ -80,6 +90,7 @@ export function stateFromStore(s: Store): WizardState {
     name: s.name || '',
     vendorType: (s.vendorType || 'RESTAURANT').toUpperCase(),
     campus: s.campus || '',
+    colleges: Array.isArray(s.visibleCampuses) ? s.visibleCampuses.filter(k => COLLEGES.some(c => c.key === k)) : [],
     description: s.stallDescription || '',
     tags: readTags(s.tags),
     location: s.location || '',
@@ -186,6 +197,7 @@ export function buildPayload(s: WizardState, existing: Store | null): Record<str
     vendorType: s.vendorType,
     location: s.location.trim(),
     campus: s.campus.trim() || null,
+    visibleCampuses: s.colleges.length ? s.colleges : null,
     stallDescription: s.description.trim() || null,
     tags: s.tags,
     lat: s.lat.trim() === '' ? null : round6(Number(s.lat)),
@@ -602,6 +614,30 @@ function BasicsStep({ s, set, errors, stores, editingId }: StepProps & { stores:
         <Callout tone="sky" title="Booking-only service">Customers book this service from the app; it is never added to the basket.</Callout>
       )}
 
+      <fieldset>
+        <legend className="mb-1 text-xs font-semibold text-fg-muted">Visible to colleges</legend>
+        <p className="mb-2 text-xs text-fg-muted">Students of the ticked colleges see this store and can order from it; nobody else can. None ticked = every college.</p>
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Visible to colleges">
+          {COLLEGES.map(c => {
+            const on = s.colleges.includes(c.key);
+            return (
+              <button
+                key={c.key}
+                type="button"
+                role="checkbox"
+                aria-checked={on}
+                onClick={() => set({ colleges: on ? s.colleges.filter(k => k !== c.key) : [...s.colleges, c.key] })}
+                className={cx('inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors', on ? 'border-success/30 bg-success-soft text-fg' : 'border-line text-fg-muted hover:border-line-strong hover:bg-surface-2/60', FOCUS_RING)}
+              >
+                <span aria-hidden className={cx('h-3.5 w-3.5 shrink-0 rounded-sm border-2', on ? 'border-success bg-success' : 'border-line-strong')} />
+                {c.label}
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-1.5 text-xs text-fg-subtle">Now: {collegesText(s.colleges)}</p>
+      </fieldset>
+
       <div className="grid gap-5 md:grid-cols-2">
         <Field label="Campus" optional help="Shown to students of this campus first. Pick an existing one to keep names consistent.">
           {({ id, msgId }) => (
@@ -967,7 +1003,7 @@ function ReviewStep({ s, issues, goto, mode, initial, preview }: {
     ['Minimum order', Number(s.minOrderValue) > 0 ? `₹${s.minOrderValue}` : 'None'],
   ];
   const rows: { step: StepKey; items: [string, ReactNode][] }[] = [
-    { step: 'basics', items: [['Name', s.name || '—'], ['Type', vendorLabel(s.vendorType)], ['Campus', s.campus || '—'], ['Tags', s.tags.join(', ') || '—']] },
+    { step: 'basics', items: [['Name', s.name || '—'], ['Type', vendorLabel(s.vendorType)], ['Colleges', collegesText(s.colleges)], ['Campus', s.campus || '—'], ['Tags', s.tags.join(', ') || '—']] },
     { step: 'location', items: [['Address', s.location || '—'], ['Zone', s.zone || 'Default'], ['Map pin', s.lat && s.lon ? `${s.lat}, ${s.lon}` : 'Not set'], ['WhatsApp', s.whatsapp ? `+91 ${formatWhatsapp(s.whatsapp)}` : '—']] },
     ...(campus ? [{ step: 'booking' as StepKey, items: [['In-Campus Booking', 'On when saved'], ['UPI ID', s.upiId.trim().toLowerCase() || '—'], ['Name on UPI', s.upiName.trim() || '—'], ['Prep time', s.prepMinutes.trim() ? `${s.prepMinutes.trim()} min` : '10 min (default)']] as [string, ReactNode][] }] : []),
     { step: 'branding', items: [['Cover photo', s.imageUrl ? 'Added' : 'Missing'], ['Logo', s.logoUrl ? 'Added' : 'None'], ['Brand colours', s.brandOn ? 'On' : 'Off']] },

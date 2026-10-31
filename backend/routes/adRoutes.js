@@ -25,7 +25,7 @@ try { require('../controllers/adminController').onRestaurantsCacheClear(dropCach
 // ── Public ──────────────────────────────────────────────────────────────────────────────────────
 // Every eligible ad (up to 8, one per style), priority DESC then updatedAt DESC: active, inside its window
 // (null start / end = open-ended) and for a store the public store list shows. The app picks at random.
-const liveAds = async () => {
+const liveAds = async ({ college = null } = {}) => {
   const SplashAd = getSplashAdModel();
   const Restaurant = getRestaurantModel();
   const MenuItem = getMenuItemModel();
@@ -43,12 +43,12 @@ const liveAds = async () => {
     limit: 50,
   });
   if (!rows.length) return [];
-  return shapeAds(rows, { listedOnly: true });
+  return shapeAds(rows, { listedOnly: true, college });
 };
 
 // Public shape for ad rows: their stores (listedOnly = only stores the public list shows) and up to two
 // products each. Shared by the live list and the admin preview link.
-const shapeAds = async (rows, { listedOnly }) => {
+const shapeAds = async (rows, { listedOnly, college = null }) => {
   const Restaurant = getRestaurantModel();
   const MenuItem = getMenuItemModel();
   const now = new Date();
@@ -57,7 +57,10 @@ const shapeAds = async (rows, { listedOnly }) => {
     where: { id: { [Op.in]: [...new Set(rows.map((r) => r.restaurantId))] }, ...(listedOnly ? { isActive: true, ...(await require('../utils/receiptSettings').listingWhere()) } : {}) },
     attributes: { exclude: ['imageUrl', 'logoUrl', ...STORE_SECRET_FIELDS], include: dataUrlSafeColumns('Restaurant', ['imageUrl']) },
   });
-  const storeById = new Map(stores.map((s) => [s.id, s]));
+  // ?college=srmap: an ad only for a store that serves the student's college (utils/campuses).
+  const campuses = require('../utils/campuses');
+  const collegeKey = campuses.normalizeKey(college);
+  const storeById = new Map(stores.filter((s) => campuses.storeServes(s, collegeKey)).map((s) => [s.id, s]));
   const seen = new Set();
   const ads = rows.filter((r) => {
     if (!storeById.has(r.restaurantId) || seen.has(r.style)) return false; // one per style even if the index is missing
@@ -84,7 +87,7 @@ const shapeAds = async (rows, { listedOnly }) => {
 const router = express.Router();
 router.get('/splash', responseCache.cacheGet(CACHE_GROUP, { ttlMs: 30 * 1000 }), async (req, res) => {
   try {
-    res.json({ ads: await liveAds() });
+    res.json({ ads: await liveAds({ college: req.query.college }) });
   } catch (err) {
     sendServerError(res, err, '[SPLASH_ADS_ERROR]');
   }

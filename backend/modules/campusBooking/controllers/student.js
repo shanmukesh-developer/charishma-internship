@@ -35,7 +35,7 @@ const ownBooking = async (req) => {
 // GET /api/campus-booking/home -> { categories, stalls, active, commissionPct }
 const home = async (req, res) => {
   const [list, active] = await Promise.all([
-    stalls.listStalls({ campus: req.query.campus }),
+    stalls.listStalls({ campus: req.query.campus, college: req.query.college }),
     B.Booking().findAll({ where: { userId: req.user.id, status: { [Op.in]: OPEN_STATUSES } }, order: [['createdAt', 'DESC']], limit: 5 }),
   ]);
   const stores = await storeBriefs(active.map((b) => b.restaurantId));
@@ -51,7 +51,7 @@ const home = async (req, res) => {
 
 // GET /api/campus-booking/stalls?q=&category=
 const listStalls = async (req, res) => {
-  const list = await stalls.listStalls({ q: req.query.q, category: req.query.category, campus: req.query.campus });
+  const list = await stalls.listStalls({ q: req.query.q, category: req.query.category, campus: req.query.campus, college: req.query.college });
   res.json({ stalls: list, categories: CATEGORIES });
 };
 

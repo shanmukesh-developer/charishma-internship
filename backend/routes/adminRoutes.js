@@ -146,6 +146,9 @@ router.post('/coupons', createCoupon);
 router.delete('/coupons/:id', deleteCoupon);
 
 // Global Configuration
+// Colleges served (utils/campuses): open / paused / soon per college, and how many stores serve each.
+router.get('/campuses', require('../controllers/adminController').getCampuses);
+router.put('/campuses/:key', require('../controllers/adminController').setCampusStatus);
 router.get('/config', getGlobalConfig);
 router.post('/config', updateGlobalConfig);
 // C3 force-update: per-app minimum / latest versions (validated, audited). The generic POST /config

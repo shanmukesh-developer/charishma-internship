@@ -170,9 +170,13 @@ exports.getRestaurants = async (req, res) => {
     // Stores (grocery, pharmacy, add-ons, …) are browsed via /api/catalogue; ?includeStores=true lists them too.
     const includeStores = String(req.query.includeStores || '').toLowerCase() === 'true';
     const summary = String(req.query.fields || '').toLowerCase() === 'summary';
+    // ?college=srmap: only the stores that serve the student's college (utils/campuses; none set = every college).
+    const campuses = require('../utils/campuses');
+    const college = campuses.normalizeKey(req.query.college);
     const send = (full) => {
       const list = summary ? summaryOf(full) : full;
-      return res.json(includeStores ? list : list.filter(r => !STORE_VENDOR_TYPES.includes(String(r.vendorType || '').toUpperCase())));
+      const scoped = college ? list.filter((r) => campuses.storeServes(r, college)) : list;
+      return res.json(includeStores ? scoped : scoped.filter(r => !STORE_VENDOR_TYPES.includes(String(r.vendorType || '').toUpperCase())));
     };
     const fresh = cachedRestaurantsResponse && (Date.now() - cachedRestaurantsAt) < RESTAURANTS_CACHE_TTL_MS;
     if (fresh) return send(cachedRestaurantsResponse);
@@ -511,7 +515,9 @@ const RESTAURANT_FIELDS = [
   'isFeatured', 'featuredUntil', 'featuredBadge', 'promoOffer', 'campus', 'whatsappNumber',
   'subscriptionTier', 'stallDescription', 'brandTheme',
   // 2026-10-12: partner login phone (alias partnerPhone), per-store fees, logo without brand theme
-  'phone', 'packagingFee', 'minOrderValue', 'logoUrl'
+  'phone', 'packagingFee', 'minOrderValue', 'logoUrl',
+  // 31 Oct 2026: the colleges the store serves (utils/campuses; empty = every college)
+  'visibleCampuses'
 ];
 const MENU_ITEM_FIELDS = [
   'name', 'price', 'description', 'imageUrl', 'category', 'tags', 'isVegetarian', 'isAvailable',
@@ -627,6 +633,11 @@ const pickRestaurantFields = (body = {}, { creating = false } = {}) => {
     const n = Number(out[key]);
     if (!Number.isFinite(n)) throw new AdminInputError('Latitude and longitude must be numbers.');
     out[key] = n;
+  }
+  if (out.visibleCampuses !== undefined) {
+    const c = require('../utils/campuses').cleanVisibleCampuses(out.visibleCampuses);
+    if (c.error) throw new AdminInputError(c.error);
+    out.visibleCampuses = c.list.length ? c.list : null;
   }
   return out;
 };
@@ -1377,6 +1388,10 @@ exports.updateGlobalConfig = async (req, res) => {
     if (key === require('../utils/legalSettings').KEY) {
       return res.status(400).json({ message: 'Legal settings are edited on Config → Legal (PUT /api/admin/legal-settings).' });
     }
+    // Colleges only through PUT /api/admin/campuses/:key (validated + audited).
+    if (key === require('../utils/campuses').KEY) {
+      return res.status(400).json({ message: 'Colleges are edited on Config → Colleges (PUT /api/admin/campuses/:key).' });
+    }
     // C8: receipt / tax display settings only through PUT /api/admin/receipt-settings (validated + audited).
     if (key === require('../utils/receiptSettings').KEY) {
       return res.status(400).json({ message: 'Receipt settings are edited on Config → Receipts (PUT /api/admin/receipt-settings).' });
@@ -1442,6 +1457,38 @@ exports.updateGlobalConfig = async (req, res) => {
     res.json({ key, value, description, created });
   } catch (error) {
     sendAdminError(res, error, 'Could not save the setting. Please try again.');
+  }
+};
+
+// ─── Colleges (utils/campuses) ─────────────────────────────────
+// GET /api/admin/campuses: each college with its status and how many active stores serve it (a store with no
+// colleges set serves every college).
+exports.getCampuses = async (req, res) => {
+  try {
+    const campuses = require('../utils/campuses');
+    const list = await campuses.listCampuses();
+    const stores = await getRestaurantModel().findAll({ where: { isActive: true }, attributes: ['id', 'visibleCampuses'] });
+    const out = list.map((c) => ({ ...c, stores: stores.filter((st) => campuses.storeServes(st, c.key)).length }));
+    res.json({ campuses: out, statuses: campuses.STATUSES });
+  } catch (error) {
+    sendServerError(res, error, '[ADMINCONTROLLER_ERROR]');
+  }
+};
+
+// PUT /api/admin/campuses/:key { status: 'open' | 'paused' | 'soon' } (audited).
+exports.setCampusStatus = async (req, res) => {
+  try {
+    const campuses = require('../utils/campuses');
+    const status = typeof req.body?.status === 'string' ? req.body.status.trim().toLowerCase() : '';
+    const r = await campuses.setStatus(req.params.key, status);
+    if (r.error) return res.status(400).json({ message: r.error });
+    const key = campuses.normalizeKey(req.params.key);
+    await logAuditAction(req, key, 'CAMPUS_STATUS_SET', { status });
+    broadcastSystemUpdate(req, 'GLOBAL_CONFIG_UPDATED', { key: campuses.KEY, value: r.statuses });
+    realtime.publish('config', 'updated', campuses.KEY, { scope: 'global' });
+    res.json({ campuses: await campuses.listCampuses() });
+  } catch (error) {
+    sendAdminError(res, error, 'Could not save the college setting. Please try again.');
   }
 };
 

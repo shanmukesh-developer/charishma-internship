@@ -172,6 +172,19 @@ const quoteOrder = async (req, res) => {
     const user = await User.findByPk(req.user.id);
     if (!user) return res.status(401).json({ message: 'Your session has expired. Please log in again.', code: 'ACCOUNT_NOT_FOUND' });
     const quote = await computeOrderQuote({ user, items: (req.body || {}).items, couponCode: (req.body || {}).couponCode });
+    // Colleges: the bill already says when the student's college is paused / not open yet, or the store does not
+    // serve it (createOrder refuses the same; only checked when the app sends the college).
+    if ((req.body || {}).campus !== undefined) {
+      const campuses = require('../utils/campuses');
+      const campusKey = campuses.normalizeKey(req.body.campus);
+      const canOrder = await campuses.orderingCheck(campusKey);
+      if (!canOrder.ok) return res.status(400).json({ code: canOrder.code, message: canOrder.message, campus: campusKey });
+      const store = await getRestaurantModel().findByPk(quote.store.id, { attributes: ['id', 'name', 'visibleCampuses'] });
+      if (store && !campuses.storeServes(store, campusKey)) {
+        const serves = campuses.storeCampuses(store).map(campuses.labelOf).join(' and ');
+        return res.status(400).json({ code: 'STORE_NOT_AT_CAMPUS', message: `${store.name} delivers to ${serves} only. Please order from a store at your college.`, campus: campusKey });
+      }
+    }
     const walletBalance = money(user.walletBalance);
     res.json({
       ...quote,
@@ -358,6 +371,20 @@ const createOrder = async (req, res) => {
 
     const Restaurant = getRestaurantModel();
     const restaurant = await Restaurant.findByPk(quote.store.id);
+    // Colleges (utils/campuses, owner 31 Oct 2026): ordering paused or not started yet at the student's college, or a
+    // store that does not serve that college, is refused here, before any money moves (no cross-college orders).
+    const campuses = require('../utils/campuses');
+    const campusKey = campuses.normalizeKey(campus);
+    const canOrder = await campuses.orderingCheck(campusKey);
+    if (!canOrder.ok) {
+      if (idemClaimed) recentOrderKeys.delete(idemKey);
+      return res.status(400).json({ code: canOrder.code, message: canOrder.message, campus: campusKey });
+    }
+    if (restaurant && !campuses.storeServes(restaurant, campusKey)) {
+      if (idemClaimed) recentOrderKeys.delete(idemKey);
+      const serves = campuses.storeCampuses(restaurant).map(campuses.labelOf).join(' and ');
+      return res.status(400).json({ code: 'STORE_NOT_AT_CAMPUS', message: `${restaurant.name} delivers to ${serves} only. Please order from a store at your college.`, campus: campusKey });
+    }
     // Rider-purchase store: marked offline, or has no partner login (nobody can tap Accept), so the
     // rider goes there, buys the items and delivers. Its orders skip store acceptance and go to riders.
     const riderBuys = require('../utils/riderPurchase').isRiderPurchaseStore(restaurant, 'createOrder');
