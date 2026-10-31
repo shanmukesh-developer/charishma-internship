@@ -720,8 +720,9 @@ const connectDB = async () => {
           syncOk = false;
           console.warn('⚠️ [DB_SYNC_WARN] Standard sync warning:', normalSyncErr.message);
         }
-        await addMissingColumns(sequelize);
-        if (syncOk) await saveSchemaFingerprint(sequelize, fingerprint);
+        const columns = await addMissingColumns(sequelize);
+        // Saved only when everything is in place; otherwise the next boot runs the check again.
+        if (syncOk && columns.failed === 0) await saveSchemaFingerprint(sequelize, fingerprint);
       }
       await ensureOrderIdempotencyIndex(sequelize);
       try {
@@ -971,7 +972,11 @@ async function saveSchemaFingerprint(db, fingerprint) {
 // Additive-only schema catch-up: for every model, add columns the table does not have yet
 // (nullable, model default when it is a plain value). Never alters types, constraints or indexes.
 // Every table's columns come from ONE information_schema query (was a describeTable round trip per model).
-async function addMissingColumns(db) {
+// A column that could not be added (e.g. the connection to the database dropped mid-boot) is retried once; the
+// result says how many still failed, so the boot does not save the schema fingerprint and the next boot checks
+// again (a missing column such as Restaurants.visibleCampuses would otherwise break every query on that table
+// until the models changed again).
+async function addMissingColumns(db, { retryDelayMs = 1500 } = {}) {
   const qi = db.getQueryInterface();
   let added = 0;
   let columnsByTable = null;
@@ -985,6 +990,26 @@ async function addMissingColumns(db) {
   } catch (_err) {
     columnsByTable = null; // fall back to one describeTable per model
   }
+  const tableName = (table) => (typeof table === 'string' ? table : table.tableName);
+  const tryAdd = async (table, field, attr) => {
+    const dv = attr.defaultValue;
+    const plainDefault = dv === undefined || dv === null || ['string', 'number', 'boolean'].includes(typeof dv);
+    try {
+      await qi.addColumn(table, field, {
+        type: attr.type,
+        allowNull: true,
+        ...(plainDefault && dv !== undefined ? { defaultValue: dv } : {}),
+      });
+      console.log(`✅ [DB_MIGRATION] Added ${tableName(table)}.${field}`);
+      return true;
+    } catch (err) {
+      // The first try may have gone through before its answer was lost: the column is there.
+      if (/already exists|duplicate column/i.test(String(err && err.message))) return true;
+      console.warn(`⚠️ [DB_MIGRATION_WARN] Could not add ${tableName(table)}.${field}:`, err.message);
+      return false;
+    }
+  };
+  const pending = [];
   for (const model of Object.values(db.models)) {
     const table = model.getTableName();
     let existing;
@@ -1002,23 +1027,21 @@ async function addMissingColumns(db) {
       const field = attr.field || name;
       if (existing[field]) continue;
       if (attr.type && attr.type.key === 'VIRTUAL') continue;
-      const dv = attr.defaultValue;
-      const plainDefault = dv === undefined || dv === null || ['string', 'number', 'boolean'].includes(typeof dv);
-      try {
-        await qi.addColumn(table, field, {
-          type: attr.type,
-          allowNull: true,
-          ...(plainDefault && dv !== undefined ? { defaultValue: dv } : {}),
-        });
-        added++;
-        console.log(`✅ [DB_MIGRATION] Added ${typeof table === 'string' ? table : table.tableName}.${field}`);
-      } catch (err) {
-        console.warn(`⚠️ [DB_MIGRATION_WARN] Could not add ${field}:`, err.message);
-      }
+      if (await tryAdd(table, field, attr)) added++;
+      else pending.push([table, field, attr]);
     }
   }
-  if (added === 0) console.log('✅ [DB_MIGRATION] Schema up to date (no missing columns).');
-  return added;
+  let failed = 0;
+  if (pending.length) {
+    await new Promise((r) => setTimeout(r, retryDelayMs));
+    for (const [table, field, attr] of pending) {
+      if (await tryAdd(table, field, attr)) added++;
+      else failed++;
+    }
+  }
+  if (added === 0 && failed === 0) console.log('✅ [DB_MIGRATION] Schema up to date (no missing columns).');
+  if (failed) console.warn(`⚠️ [DB_MIGRATION_WARN] ${failed} column(s) still missing; the schema check runs again on the next boot.`);
+  return { added, failed };
 }
 
 // One order per (user, Idempotency-Key). Partial index: orders without a key are unaffected.
@@ -1081,4 +1104,4 @@ const getPgOpenIndexState = () => ({ ...pgOpenIndexState });
 
 const getSequelize = () => sequelize;
 
-module.exports = { connectDB, getSequelize, ensurePgOpenBookingIndex, getPgOpenIndexState };
+module.exports = { connectDB, getSequelize, ensurePgOpenBookingIndex, getPgOpenIndexState, addMissingColumns };
