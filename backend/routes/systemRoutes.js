@@ -29,7 +29,12 @@ const nominatimLimiter = rateLimit({
   ...require('../utils/sharedRateLimit').expressStore('system.nominatimLimiter'),
 });
 
-router.get('/nominatim-proxy', nominatimLimiter, async (req, res) => {
+// Signed-in students only, one lookup in the queue per account at a time (31 Oct 2026): anyone could hold the shared
+// one-per-second queue with about one request a second, and every other student then got "busy". The only caller is
+// the Profile address field (signed in).
+const { protect } = require('../middleware/authMiddleware');
+const pendingLookups = new Set();
+router.get('/nominatim-proxy', protect, nominatimLimiter, async (req, res) => {
   const query = req.query || {};
   const endpoint = query.type === 'reverse' ? 'reverse' : 'search';
   const params = new URLSearchParams();
@@ -47,16 +52,27 @@ router.get('/nominatim-proxy', nominatimLimiter, async (req, res) => {
   const hit = cache.get(url);
   if (hit && Date.now() - hit.at < CACHE_TTL_MS) return res.json(hit.data);
 
-  // Server-wide spacing: take the next free 1.1 s slot, or give up if the queue is too long.
-  const now = Date.now();
-  const slot = Math.max(now, nextSlotAt);
-  if (slot - now > MAX_WAIT_MS) return res.status(503).json({ error: 'Address search is busy. Please try again.' });
-  nextSlotAt = slot + MIN_GAP_MS;
-  if (slot > now) await new Promise((r) => setTimeout(r, slot - now));
+  const who = String(req.user.id);
+  if (pendingLookups.has(who)) return res.status(429).json({ error: 'Please wait for the last address search to finish.' });
+  pendingLookups.add(who);
+  try {
+    // Server-wide spacing: take the next free 1.1 s slot, or give up if the queue is too long.
+    const now = Date.now();
+    const slot = Math.max(now, nextSlotAt);
+    if (slot - now > MAX_WAIT_MS) return res.status(503).json({ error: 'Address search is busy. Please try again.' });
+    nextSlotAt = slot + MIN_GAP_MS;
+    if (slot > now) await new Promise((r) => setTimeout(r, slot - now));
+    return await lookup(url, res);
+  } finally {
+    pendingLookups.delete(who);
+  }
+});
 
+// One upstream request (OpenStreetMap Nominatim asks for an app name and a real contact in the User-Agent).
+const lookup = async (url, res) => {
   try {
     const response = await fetch(url, {
-      headers: { 'User-Agent': 'ZenvyApp/1.0 (contact@zenvy.com)' },
+      headers: { 'User-Agent': 'ZCS-campus-app/1.0 (projectshanmukh@gmail.com)' },
       signal: AbortSignal.timeout(8000),
     });
     if (!response.ok) {
@@ -70,6 +86,6 @@ router.get('/nominatim-proxy', nominatimLimiter, async (req, res) => {
     console.error('[NOMINATIM_PROXY_ERR]', error.message);
     res.status(502).json({ error: 'Address search is unavailable right now.' });
   }
-});
+};
 
 module.exports = router;
