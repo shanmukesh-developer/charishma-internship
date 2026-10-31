@@ -18,6 +18,12 @@ const R = E.REG_STATUS;
 const ES = E.EVENT_STATUS;
 const HOUR = 60 * 60 * 1000;
 
+// The 24 h reminder goes out as soon as a start is less than a day away, so an event published the same morning
+// gets it at once: say "Today" or "Tomorrow" by the IST calendar date, with the start time (was always "Tomorrow").
+const { istYmd } = require('../../utils/istTime');
+const dayWord = (startAt, now) => (istYmd(startAt) === istYmd(now) ? 'Today' : 'Tomorrow');
+const istTime = (d) => new Date(d).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: 'numeric', minute: '2-digit', hour12: true });
+
 const runCampusEventJobs = async (now = clock.now()) => {
   const Event = getModel('CeEvent');
   const Reg = getModel('CeRegistration');
@@ -109,7 +115,14 @@ const runCampusEventJobs = async (now = clock.now()) => {
         const [n] = await Event.update({ [col]: now }, { where: { id: ev.id, [col]: null } });
         if (!n) return;
         out[kind === 24 ? 'reminders24' : 'reminders1']++;
-        notify.eventBroadcast(ev, { title: kind === 24 ? `Tomorrow: ${ev.title}` : `Starting soon: ${ev.title}`, body: `${kind === 24 ? 'Starts within 24 hours' : 'Starts within the hour'} at ${ev.venue || 'the venue'}. Keep your ticket ready.`, type: kind === 24 ? N.REMINDER_24H : N.REMINDER_1H, statuses: confirmedOnly });
+        const day = dayWord(ev.startAt, now);
+        notify.eventBroadcast(ev, {
+          title: kind === 24 ? `${day}: ${ev.title}` : `Starting soon: ${ev.title}`,
+          body: kind === 24
+            ? `Starts ${day.toLowerCase()} at ${istTime(ev.startAt)}, ${ev.venue || 'at the venue'}. Keep your ticket ready.`
+            : `Starts within the hour at ${ev.venue || 'the venue'}. Keep your ticket ready.`,
+          type: kind === 24 ? N.REMINDER_24H : N.REMINDER_1H, statuses: confirmedOnly,
+        });
       });
     }
     const slots = await Slot.findAll({ where: { status: 'OPEN', [col]: null, startAt: { [Op.lte]: new Date(now.getTime() + lead), [Op.gt]: lower } }, limit: 500 });
@@ -120,7 +133,14 @@ const runCampusEventJobs = async (now = clock.now()) => {
         const [n] = await Slot.update({ [col]: now }, { where: { id: sl.id, [col]: null } });
         if (!n) return;
         out[kind === 24 ? 'reminders24' : 'reminders1']++;
-        notify.eventBroadcast(ev, { title: kind === 24 ? `Tomorrow: ${ev.title}` : `Your slot starts soon: ${ev.title}`, body: `${sl.label || 'Your slot'} at ${ev.venue || 'the venue'}. Keep your ticket ready.`, type: kind === 24 ? N.REMINDER_24H : N.REMINDER_1H, statuses: confirmedOnly, slotId: sl.id, dedupe: `${sl.id}:${kind}` });
+        const day = dayWord(sl.startAt, now);
+        notify.eventBroadcast(ev, {
+          title: kind === 24 ? `${day}: ${ev.title}` : `Your slot starts soon: ${ev.title}`,
+          body: kind === 24
+            ? `${sl.label || 'Your slot'} ${day.toLowerCase()} at ${istTime(sl.startAt)}, ${ev.venue || 'at the venue'}. Keep your ticket ready.`
+            : `${sl.label || 'Your slot'} at ${ev.venue || 'the venue'}. Keep your ticket ready.`,
+          type: kind === 24 ? N.REMINDER_24H : N.REMINDER_1H, statuses: confirmedOnly, slotId: sl.id, dedupe: `${sl.id}:${kind}`,
+        });
       });
     }
   };
