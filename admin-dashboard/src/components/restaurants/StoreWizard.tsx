@@ -639,7 +639,7 @@ function BasicsStep({ s, set, errors, stores, editingId }: StepProps & { stores:
       </fieldset>
 
       <div className="grid gap-5 md:grid-cols-2">
-        <Field label="Campus" optional help="Shown to students of this campus first. Pick an existing one to keep names consistent.">
+        <Field label="Campus label" optional help="A short label shown on stall cards, e.g. SRM (pick an existing one to keep names consistent). Which colleges see the store is set in Visible to colleges above.">
           {({ id, msgId }) => (
             <>
               <input id={id} aria-describedby={msgId} list="wizard-campuses" className={INPUT} value={s.campus} onChange={e => set({ campus: e.target.value })} placeholder="e.g. SRM" />
@@ -696,7 +696,7 @@ function LocationStep({ s, set, errors, stores }: StepProps & { stores: Store[] 
         )}
       </Field>
       <div className="grid gap-5 md:grid-cols-2">
-        <Field label="Campus" optional help="Same as in Basics; change here if needed.">
+        <Field label="Campus label" optional help="Same as in Basics (a label on stall cards; Visible to colleges decides who sees the store).">
           {({ id, msgId }) => <input id={id} aria-describedby={msgId} className={INPUT} value={s.campus} onChange={e => set({ campus: e.target.value })} />}
         </Field>
         <Field label="Delivery zone" optional help="Used for rider dispatch. Leave empty for the default zone.">
@@ -1003,7 +1003,7 @@ function ReviewStep({ s, issues, goto, mode, initial, preview }: {
     ['Minimum order', Number(s.minOrderValue) > 0 ? `₹${s.minOrderValue}` : 'None'],
   ];
   const rows: { step: StepKey; items: [string, ReactNode][] }[] = [
-    { step: 'basics', items: [['Name', s.name || '—'], ['Type', vendorLabel(s.vendorType)], ['Colleges', collegesText(s.colleges)], ['Campus', s.campus || '—'], ['Tags', s.tags.join(', ') || '—']] },
+    { step: 'basics', items: [['Name', s.name || '—'], ['Type', vendorLabel(s.vendorType)], ['Colleges', collegesText(s.colleges)], ['Campus label', s.campus || '—'], ['Tags', s.tags.join(', ') || '—']] },
     { step: 'location', items: [['Address', s.location || '—'], ['Zone', s.zone || 'Default'], ['Map pin', s.lat && s.lon ? `${s.lat}, ${s.lon}` : 'Not set'], ['WhatsApp', s.whatsapp ? `+91 ${formatWhatsapp(s.whatsapp)}` : '—']] },
     ...(campus ? [{ step: 'booking' as StepKey, items: [['In-Campus Booking', 'On when saved'], ['UPI ID', s.upiId.trim().toLowerCase() || '—'], ['Name on UPI', s.upiName.trim() || '—'], ['Prep time', s.prepMinutes.trim() ? `${s.prepMinutes.trim()} min` : '10 min (default)']] as [string, ReactNode][] }] : []),
     { step: 'branding', items: [['Cover photo', s.imageUrl ? 'Added' : 'Missing'], ['Logo', s.logoUrl ? 'Added' : 'None'], ['Brand colours', s.brandOn ? 'On' : 'Off']] },
