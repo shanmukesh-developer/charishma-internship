@@ -944,11 +944,19 @@ const toggleRestaurantOffline = async (req, res) => {
   }
 };
 
-// Open-state payload shared by /open and /hours (and the store_status_changed socket event).
+// Open-state payload shared by /open and /hours (and the store_status_changed socket event to the store's own room).
+// The store apps merge the reply over the store they hold, and their normaliser fills a missing field with a default,
+// so the reply carries the fields they show (31 Oct 2026: saving hours hid the Offline / Paused banner and blanked
+// the store name until the next refresh).
 const storeStatusPayload = (restaurant) => {
   const state = getStoreOpenState(restaurant);
   return {
     restaurantId: restaurant.id,
+    name: restaurant.name,
+    location: restaurant.location,
+    deliveryTime: restaurant.deliveryTime,
+    isOffline: !!restaurant.isOffline,
+    isActive: restaurant.isActive !== false,
     isOpenNow: restaurant.isOpenNow,
     isOpen: state.isOpen,
     opensAt: state.opensAt || null,
