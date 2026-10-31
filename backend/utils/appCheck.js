@@ -23,7 +23,9 @@ const UUIDISH = '[^/]+';
 // [method, regex on the full path (no query, no trailing slash), group]
 const PROTECTED = [
   ['POST', /^\/api\/users\/send-(?:email-)?otp$/, 'otp'], // SMS code and its email backup
-  ['POST', /^\/api\/(delivery|auto-ride\/driver)\/account\/delete-otp$/, 'otp'],
+  // Rider / driver account-deletion codes come from the partner apps, which send no App Check token: 'partner' group
+  // (never enforced), not 'otp' (31 Oct 2026: enforcing 'otp' would have blocked partners deleting their accounts).
+  ['POST', /^\/api\/(delivery|auto-ride\/driver)\/account\/delete-otp$/, 'partner'],
   ['POST', /^\/api\/users\/(login|register|verify-otp|google-login|google-complete|reset-password)$/, 'auth'],
   ['POST', /^\/api\/delivery\/(login|register)$/, 'partner'],
   ['POST', /^\/api\/restaurants?\/login$/, 'partner'],

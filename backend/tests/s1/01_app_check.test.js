@@ -43,7 +43,8 @@ test.beforeEach(() => { AC.resetStats(); verifyCalls.length = 0; providerDown = 
 test('route table: abuse-prone POSTs are protected; admin, health, legal, webhooks, reads never', () => {
   const yes = [
     ['POST', '/api/users/send-otp', 'otp'], ['POST', '/api/users/login', 'auth'], ['POST', '/api/users/register', 'auth'],
-    ['POST', '/api/users/verify-otp', 'auth'], ['POST', '/api/delivery/account/delete-otp', 'otp'], ['POST', '/api/auto-ride/driver/account/delete-otp', 'otp'],
+    ['POST', '/api/users/verify-otp', 'auth'], ['POST', '/api/delivery/account/delete-otp', 'partner'], ['POST', '/api/auto-ride/driver/account/delete-otp', 'partner'],
+    ['POST', '/api/users/send-email-otp', 'otp'],
     ['POST', '/api/delivery/login', 'partner'], ['POST', '/api/restaurants/login', 'partner'], ['POST', '/api/auto-ride/driver/auth/login', 'partner'],
     ['POST', '/api/orders', 'order'], ['POST', '/api/orders/', 'order'], ['POST', '/api/mega-basket', 'order'], ['POST', '/api/mega-basket/abc/pay', 'wallet'],
     ['POST', '/api/features/gift', 'wallet'], ['POST', '/api/vault/claim/x1', 'wallet'], ['POST', '/api/rentals/bookings', 'order'],
