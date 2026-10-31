@@ -2,7 +2,7 @@
 // every other owner endpoint until then). Suspended -> Suspended screen. Signed in -> one stack: the five tabs
 // plus the pushed screens. Push taps open Booking requests / Complaints; the offline queue (mark-read only) is
 // flushed whenever the internet comes back.
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { NavigationContainer, DefaultTheme, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -14,7 +14,7 @@ import { SessionProvider, useSession } from './src/state/SessionProvider';
 import { ListingProvider } from './src/state/ListingProvider';
 import { HomeProvider, useHome } from './src/state/HomeProvider';
 import { flushQueue } from './src/lib/offlineQueue';
-import { onOwnerPush } from './src/lib/push';
+import { onOwnerPush, takeLaunchPushTap, type PushData } from './src/lib/push';
 import { color } from './src/theme';
 import type { RootStack } from './src/nav';
 import { FirstPasswordScreen, LoginScreen, SuspendedScreen } from './src/screens/Auth';
@@ -51,26 +51,47 @@ function QueueRunner() {
   return null;
 }
 
-/** Push received -> refresh the badges; push tapped -> the right screen. */
-function PushRouter() {
+const routePush = (data: PushData) => {
+  if (data.type === 'PG_OWNER_COMPLAINT' || data.complaintId) navRef.navigate('Complaints');
+  else if (data.type === 'PG_OWNER_BOOKING' || data.bookingId) navRef.navigate('Requests', { status: 'Pending' });
+  else navRef.navigate('Notifications');
+};
+
+/**
+ * Push received -> refresh the badges; push tapped -> the right screen. A tap before the navigator is ready is kept
+ * and routed on ready; the tap that launched a closed app is read once (takeLaunchPushTap).
+ */
+function PushRouter({ navReady }: { navReady: boolean }) {
   const { refresh } = useHome();
+  const pending = useRef<PushData | null>(null);
   useEffect(() => onOwnerPush((data, tapped) => {
     refresh();
-    if (!tapped || !navRef.isReady()) return;
-    if (data.type === 'PG_OWNER_COMPLAINT' || data.complaintId) navRef.navigate('Complaints');
-    else if (data.type === 'PG_OWNER_BOOKING' || data.bookingId) navRef.navigate('Requests', { status: 'Pending' });
-    else navRef.navigate('Notifications');
+    if (!tapped) return;
+    if (!navRef.isReady()) { pending.current = data; return; }
+    routePush(data);
   }), [refresh]);
+  useEffect(() => {
+    if (!navReady) return;
+    if (pending.current) { const d = pending.current; pending.current = null; routePush(d); }
+    let alive = true;
+    takeLaunchPushTap().then((d) => {
+      if (!alive || !d || !navRef.isReady()) return;
+      refresh();
+      routePush(d);
+    });
+    return () => { alive = false; };
+  }, [navReady, refresh]);
   return null;
 }
 
 function SignedIn() {
+  const [navReady, setNavReady] = useState(false);
   return (
     <ListingProvider>
       <HomeProvider>
         <QueueRunner />
-        <PushRouter />
-        <NavigationContainer theme={navTheme} ref={navRef}>
+        <PushRouter navReady={navReady} />
+        <NavigationContainer theme={navTheme} ref={navRef} onReady={() => setNavReady(true)}>
           <Stack.Navigator screenOptions={screenOpts}>
             <Stack.Screen name="Tabs" component={TabsScreen} />
             <Stack.Screen name="Requests" component={RequestsScreen} />
