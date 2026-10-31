@@ -296,8 +296,10 @@ router.post('/posts/:id/join', protect, async (req, res) => {
     }
 
     // autoAcceptKnown: someone who completed a ride with this host before is let in at once.
-    const knownRider = !pool.autoApprove && pool.autoAcceptKnown ? await rodeTogetherBefore(pool.creatorId, currentUser.id) : false;
-    if (pool.autoApprove || knownRider) {
+    // Women-only rides always wait for the host (31 Oct 2026): the gender check reads a profile field the rider
+    // can edit, so the host sees who is asking before anyone gets in (and before any phone number is shared).
+    const knownRider = !pool.womenOnly && !pool.autoApprove && pool.autoAcceptKnown ? await rodeTogetherBefore(pool.creatorId, currentUser.id) : false;
+    if (!pool.womenOnly && (pool.autoApprove || knownRider)) {
       // Take the seat atomically: two students tapping at once can never overbook.
       const taken = await takeSeat(pool.id);
       if (!taken) {

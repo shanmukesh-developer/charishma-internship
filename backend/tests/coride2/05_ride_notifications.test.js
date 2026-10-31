@@ -117,3 +117,24 @@ test('join -> withdraw -> join again (or join / leave on an auto-approve ride) t
   await settle();
   assert.equal(typesTo(autoHost, 'CORIDE_PASSENGER_JOINED'), 2);
 });
+
+test('women-only rides always wait for the host, even with auto-approve on; no phone number before approval', async () => {
+  const host = await H.mkUser({ gender: 'Female' });
+  const rider = await H.mkUser({ gender: 'Female' });
+  const ride = await H.mkRide(host.id, { departureTime: new Date(Date.now() + 2 * 3600 * 1000), availableSeats: 2, autoApprove: true, autoAcceptKnown: true, womenOnly: true });
+  const j = await H.api('POST', `/api/bikepool/posts/${ride.id}/join`, rider.token);
+  assert.equal(j.status, 200, JSON.stringify(j.body));
+  assert.ok(!j.body.autoAccepted, 'not let in automatically');
+  const req = await M('PoolRequest').findOne({ where: { poolId: ride.id, passengerId: rider.id } });
+  assert.equal(req.status, 'Pending');
+  assert.equal((await ride.reload()).availableSeats, 2, 'no seat taken before the host approves');
+  await settle();
+  assert.ok(pushFor(host, 'CORIDE_JOIN_REQUEST'), 'the host is asked');
+  const mine = await H.api('GET', '/api/bikepool/my-rides', rider.token);
+  const card = (mine.body || []).find((r) => String(r.id) === String(ride.id));
+  assert.ok(card, JSON.stringify(mine.body).slice(0, 300));
+  assert.ok(!card.creator || card.creator.phone === undefined, 'the host phone is hidden until approval');
+  // A man cannot even ask.
+  const man = await H.mkUser({ gender: 'Male' });
+  assert.equal((await H.api('POST', `/api/bikepool/posts/${ride.id}/join`, man.token)).status, 403);
+});

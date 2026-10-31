@@ -38,7 +38,11 @@ router.delete('/requests/:id', cancelFriendRequest);
 router.post('/request', sendFriendRequest);
 router.post('/accept', acceptFriendRequest);
 router.post('/decline', declineFriendRequest);
-router.post('/block', blockUser);
+// At most 20 account blocks a day (31 Oct 2026): blocks hide people across the app (Connect discover included),
+// so unlimited block / unblock let someone probe which pseudonymous profile belongs to which account.
+const friendsLimiter = require('../modules/friends/services/limiter');
+friendsLimiter.define('block', 20, 24 * 60 * 60 * 1000);
+router.post('/block', friendsLimiter.limit('block'), blockUser);
 router.post('/unblock', unblockUser);
 router.get('/blocked', getBlockedUsers);
 router.get('/', getFriends);

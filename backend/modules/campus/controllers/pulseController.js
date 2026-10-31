@@ -229,12 +229,13 @@ const getWhispers = async (req, res) => {
 
     let rows = await Whisper.findAll({ where, order: [['createdAt', 'DESC']], limit: 100 });
     const uid = req.user.id;
-    // C2: moderated (hidden / pending review / removed) whispers and whispers by people blocked either
-    // way are left out. The author id is used on the server only and never sent.
+    // C2: moderated (hidden / pending review / removed) whispers are left out. The author id is used on the
+    // server only and never sent. Blocks are NOT applied here (31 Oct 2026): a whisper's alias is the same for
+    // all of one person's whispers, so hiding a blocked author's whispers let anyone unmask an author by
+    // blocking a suspect and watching that alias disappear. Same rule as the Friends Pulse feed: blocks filter
+    // named content only. An unwanted whisper is reported / hidden like any other.
     const ugc = require('../../friends/services/ugc');
     rows = await ugc.filterVisible('whisper', rows);
-    const blocked = await ugc.blockedIds(uid);
-    if (blocked.size) rows = rows.filter((w) => !blocked.has(String(w.userId)));
     const whispers = rows.map((w) => {
       const hearts = w.hearts || [];
       return {
