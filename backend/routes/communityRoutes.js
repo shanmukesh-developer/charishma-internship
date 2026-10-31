@@ -384,11 +384,49 @@ router.delete('/:id', protect, async (req, res) => {
   }
 });
 
+// Likes (31 Oct 2026): every like used to be broadcast to every connected phone at once, with no limit, so one account
+// toggling a like in a loop reached every phone hundreds of times a minute. Now an account likes / unlikes at most
+// LIKES_PER_MIN times a minute (The Wall's rule), and a post's new count goes out at most once per LIKE_EMIT_MS
+// (the first change at once, later ones in that window as one message with the latest count). The liker's own
+// screen updates from the reply.
+const LIKES_PER_MIN = 30;
+const LIKE_EMIT_MS = 1500;
+const likeTimes = new Map(); // userId -> recent like times (ms)
+const likeAllowed = (userId, now = Date.now()) => {
+  const recent = (likeTimes.get(userId) || []).filter((t) => now - t < 60 * 1000);
+  if (recent.length >= LIKES_PER_MIN) { likeTimes.set(userId, recent); return false; }
+  recent.push(now);
+  likeTimes.set(userId, recent);
+  if (likeTimes.size > 20000) for (const [k, list] of likeTimes) if (!list.length || now - list[list.length - 1] >= 60 * 1000) likeTimes.delete(k);
+  return true;
+};
+const likeEmits = new Map(); // postId -> { at, timer, likes }
+const broadcastLikes = (io, postId, likes, now = Date.now()) => {
+  const key = String(postId);
+  const cur = likeEmits.get(key);
+  if (!cur || (!cur.timer && now - cur.at >= LIKE_EMIT_MS)) {
+    likeEmits.set(key, { at: now, timer: null, likes });
+    io.emit('community_post_liked', { id: postId, likes });
+    return;
+  }
+  cur.likes = likes;
+  if (cur.timer) return;
+  cur.timer = setTimeout(() => {
+    likeEmits.set(key, { at: Date.now(), timer: null, likes: cur.likes });
+    io.emit('community_post_liked', { id: postId, likes: cur.likes });
+  }, Math.max(0, LIKE_EMIT_MS - (now - cur.at)));
+  if (cur.timer.unref) cur.timer.unref();
+  if (likeEmits.size > 5000) for (const [k, v] of likeEmits) if (!v.timer && now - v.at >= LIKE_EMIT_MS) likeEmits.delete(k);
+};
+
 // PUT /api/community/:id/like - Like/unlike a post
 // One CommunityPostLike row per (post, user) behind a unique index (B14): two taps / devices at
 // once can no longer lose or double a like, and the list of likers is never sent to anyone.
 router.put('/:id/like', protect, async (req, res) => {
   try {
+    if (!likeAllowed(String(req.user.id))) {
+      return res.status(429).json({ code: 'RATE_LIMITED', message: 'You are liking too fast. Please wait a moment.' });
+    }
     const CommunityPost = getCommunityPostModel();
     const Like = getCommunityPostLikeModel();
     if (!CommunityPost || !Like) return res.status(500).json({ message: 'DB disconnected.' });
@@ -424,9 +462,7 @@ router.put('/:id/like', protect, async (req, res) => {
     fresh.likes = likes;
 
     const io = req.app.get('io');
-    if (io) {
-      io.emit('community_post_liked', { id: post.id, likes });
-    }
+    if (io) broadcastLikes(io, post.id, likes);
 
     const out = finish(shapePost(fresh, null), null);
     out.likedByMe = likedByMe;

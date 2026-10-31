@@ -107,3 +107,24 @@ test('community_new_post broadcast: public card fields only (no author account /
   // the author's own POST response keeps the full shape
   assert.strictEqual(r.body.userId, student.id);
 });
+
+test('likes: a burst on one post is one broadcast (plus one with the latest count); 30 a minute per account', async () => {
+  const author = await H.mkUser({ name: 'Post Author' });
+  const post = await H.api('POST', '/api/community', author.token, { content: 'like storm test' });
+  assert.strictEqual(post.status, 201, JSON.stringify(post.body));
+  const liker = await H.mkUser({ name: 'Fast Liker' });
+  H.ctx.emitted.length = 0;
+  let last;
+  for (let i = 0; i < 30; i++) {
+    last = await H.api('PUT', `/api/community/${post.body.id}/like`, liker.token);
+    assert.strictEqual(last.status, 200, JSON.stringify(last.body));
+  }
+  const now = H.ctx.emitted.filter((e) => e.ev === 'community_post_liked');
+  assert.strictEqual(now.length, 1, `one immediate broadcast, got ${now.length}`);
+  const over = await H.api('PUT', `/api/community/${post.body.id}/like`, liker.token);
+  assert.strictEqual(over.status, 429, JSON.stringify(over.body));
+  await new Promise((r) => setTimeout(r, 1700));
+  const all = H.ctx.emitted.filter((e) => e.ev === 'community_post_liked');
+  assert.strictEqual(all.length, 2, 'then one more with the latest count');
+  assert.strictEqual(all[1].p.likes, 0, '30 toggles end unliked');
+});
