@@ -172,7 +172,7 @@ export default function FriendsConfigPage() {
   const save = async () => {
     if (!data || !patch.dirty || patch.errors.length) return;
     const lines: string[] = [];
-    if (patch.body.enabled === false) lines.push('Turn OFF Friends for every student.');
+    if (patch.body.enabled === false) lines.push('Turn OFF Campus for every student: the Home "Campus" button goes, and Campus chats and posts close.');
     const g = patch.body.guidelines as { version?: number } | undefined;
     if (g?.version) lines.push(`Publish guidelines v${g.version}: every student must accept them again before posting.`);
     if (typeof patch.body.connectConsentVersion === 'number') lines.push(`Connect consent v${patch.body.connectConsentVersion}: Connect users must consent again.`);
@@ -246,8 +246,8 @@ export default function FriendsConfigPage() {
               <Switch
                 checked={draft.enabled}
                 onChange={(v) => set('enabled', v)}
-                label="Friends tab"
-                description="Master switch. Off hides Friends for every student, including chats started from it."
+                label="Campus (Friends) for students"
+                description="Master switch. Off hides the Home &quot;Campus&quot; button and closes Campus (Friends: Pulse, Forum, Tasks, Connect, Spaces and their chats) for every student. Turn it back on any time."
               />
             </div>
             <ul className="divide-y divide-line">
