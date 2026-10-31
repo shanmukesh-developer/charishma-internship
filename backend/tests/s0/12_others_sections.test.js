@@ -71,3 +71,19 @@ test('one active PG / one upcoming ride brings the section back; past or cancell
   assert.deepStrictEqual(r.body.sections.coride, { count: 1, live: true });
   assert.ok(attrs(M.PGHostel).includes('isActive'));
 });
+
+test('campus: the admin Campus (Friends) master switch is reported, and flipping it shows at once', async () => {
+  const flags = H.r('modules/friends/services/featureFlags');
+  const on = await get();
+  assert.deepStrictEqual(on.body.sections.campus, { live: true }, 'on by default');
+  // The admin switch (Admin > Friends app > Switches > Campus), without the test helper's cache drop.
+  const GlobalConfig = H.ctx.sequelize.models.GlobalConfig;
+  if (GlobalConfig) {
+    const saved = await flags.setConfig({ enabled: false });
+    assert.ok(!saved.errors, JSON.stringify(saved.errors));
+    const res = await fetch(`${base}/api/config/sections`);
+    assert.deepStrictEqual((await res.json()).sections.campus, { live: false }, 'off right after the switch');
+    await flags.setConfig({ enabled: true });
+    assert.deepStrictEqual((await get()).body.sections.campus, { live: true });
+  }
+});

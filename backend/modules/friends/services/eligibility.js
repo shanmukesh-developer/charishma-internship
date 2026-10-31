@@ -101,12 +101,13 @@ const activeSanction = (ctx, feature) => {
 const baseReasons = (ctx, cfg) => {
   const reasons = [];
   if (!ctx.user) return ['ACCOUNT_REQUIRED'];
+  // Switched off by the admin: that is what every student should be told (not "verify your campus first").
+  if (cfg && !cfg.enabled) reasons.push('FRIENDS_OFF');
   if (!ctx.user.isActive) reasons.push('ACCOUNT_SUSPENDED');
   if (!ctx.profile || !ctx.profile.campusId) reasons.push('CAMPUS_REQUIRED');
   if (!ctx.profile || ctx.profile.verificationStatus !== 'verified') reasons.push('VERIFICATION_REQUIRED');
   if (ctx.profile && ctx.profile.campusId && (!ctx.campus || !ctx.campus.isActive)) reasons.push('CAMPUS_INACTIVE');
   if (activeSanction(ctx, null)) reasons.push('FRIENDS_SANCTIONED');
-  if (cfg && !cfg.enabled) reasons.push('FRIENDS_OFF');
   return reasons;
 };
 

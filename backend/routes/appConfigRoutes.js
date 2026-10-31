@@ -21,6 +21,8 @@ router.get('/legal', cacheGet('config', { ttlMs: 30 * 1000 }), require('../contr
 // Which "Others" sections have live listings right now (PG stays, Co-Ride, Rentals). The app hides a
 // section with nothing in it and shows it again as soon as there is a listing (cached 60 s). Food,
 // groceries and services always show. A count that cannot be read is null: the app keeps that section.
+// campus: the admin's Campus (Friends) master switch (Admin > Friends app > Switches); off hides the Home
+// "Campus" button and its promo (owner, 31 Oct 2026: "block the Campus feature for now from the admin").
 router.get('/sections', cacheGet('sections', { ttlMs: 60 * 1000 }), async (req, res) => {
   const { getSequelize } = require('../config/db');
   const { Op } = require('sequelize');
@@ -39,7 +41,9 @@ router.get('/sections', cacheGet('sections', { ttlMs: 60 * 1000 }), async (req, 
     count('RentalListing', { status: 'ACTIVE' }),
   ]);
   const one = (n) => ({ count: n, live: n === null ? true : n > 0 });
-  res.json({ sections: { pg: one(pg), coride: one(coride), rentals: one(rentals) } });
+  let campusLive = true;
+  try { campusLive = !!(await require('../modules/friends/services/featureFlags').getConfig()).enabled; } catch { /* unknown: keep it */ }
+  res.json({ sections: { pg: one(pg), coride: one(coride), rentals: one(rentals), campus: { live: campusLive } } });
 });
 
 // Update global app configuration (admin only)

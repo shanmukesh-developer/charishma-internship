@@ -176,6 +176,9 @@ const setConfig = async (patch) => {
   }
   cache = { at: Date.now(), value: merge(next) };
   require('../../../utils/cacheBus').broadcast('flags.friends'); // B1: other instances re-read it
+  // GET /api/config/sections carries the master switch (campus.live): drop its 60 s cache so the Home "Campus"
+  // button follows the switch at once.
+  try { require('../../../utils/responseCache').invalidate('sections'); } catch { /* not loaded */ }
   return { config: cache.value };
 };
 
