@@ -28,7 +28,7 @@ exports.getConfig = async (req, res) => {
             tagline: 'GROCERIES',
             title1: 'YOUR ESSENTIALS',
             title2: 'DELIVERED TODAY',
-            description: 'DAILY NEEDS FROM CAMPUS STORES, DELIVERED TO YOUR ROOM.',
+            description: 'DAILY NEEDS FROM CAMPUS STORES, DELIVERED TO YOUR HOSTEL GATE.',
             buttonText: 'SHOP NOW',
             redirectUrl: '/others',
             isActive: true
