@@ -62,6 +62,9 @@ const notify = async (type, recipients, p = {}) => {
   try {
     const t = TYPES[type];
     if (!t) throw new Error(`unknown notification type ${type}`);
+    // Campus switched off (Admin > Friends app > Switches): no Campus pushes, so a scheduled job (Space reminders,
+    // task expiry) never sends a student into the closed tab. The API is closed by the same switch (eligibility).
+    if (!(await require('./featureFlags').getConfig()).enabled) return [];
     const now = Date.now();
     const target = p.dedupeKey || p.id || '-';
     const ids = [...new Set((recipients || []).filter(Boolean).map(String))];
