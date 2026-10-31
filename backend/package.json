@@ -29,7 +29,8 @@
     "test:slots": "node tests/slots/run.js",
     "test:dispatch": "node tests/dispatch/run.js",
     "test:cb": "node tests/cb/run.js",
-    "test:ads": "node tests/ads/run.js"
+    "test:ads": "node tests/ads/run.js",
+    "test:coupons": "node tests/coupons/run.js"
   },
   "keywords": [],
   "author": "",

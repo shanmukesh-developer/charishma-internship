@@ -29,6 +29,19 @@ const runWallMediaCleanupJob = async () => {
   }
 };
 
+// The winner's prize coupon: a whole number of rupees, ₹1 to ₹1000 (the admin form's limit, also checked by the
+// event routes). An event saved with a value outside it (an older admin build, a direct API call) is held to it here,
+// so a typo never becomes a ₹10,000 coupon and a negative value never becomes some other discount.
+const WALL_PRIZE_MAX = 1000;
+const wallPrizeValue = (v) => {
+  const n = Number(v);
+  return Number.isInteger(n) && n >= 1 && n <= WALL_PRIZE_MAX ? n : null;
+};
+const prizeFor = (event) => {
+  const n = Math.round(Number(event.couponValue));
+  return Number.isFinite(n) && n >= 1 ? Math.min(WALL_PRIZE_MAX, n) : 100;
+};
+
 const processExpiredWallEvents = async () => {
   const WallEvent = getWallEventModel();
   const WallSubmission = getWallSubmissionModel();
@@ -78,6 +91,7 @@ const processExpiredWallEvents = async () => {
     let winnerUserId = null;
     let winnerName = 'Community Member';
     let couponCode = null;
+    const rewardVal = prizeFor(event);
 
     if (topSubmission && topSubmission.userId) {
       winnerUserId = topSubmission.userId;
@@ -88,7 +102,6 @@ const processExpiredWallEvents = async () => {
       // Generate coupon reward for winner
       const uniqueSuffix = require('crypto').randomBytes(4).toString('hex').slice(0, 6).toUpperCase();
       couponCode = `WALL-${uniqueSuffix}`;
-      const rewardVal = event.couponValue || 100;
 
       if (!Coupon) couponCode = null;
       if (Coupon) {
@@ -121,12 +134,16 @@ const processExpiredWallEvents = async () => {
 
     // Trigger Push Notifications
     try {
-      // 1. Broadcast notification to all users
-      await sendPushToTopic('all_users', '🏆 The Wall Has a Winner!', `Congratulations to ${winnerName} for winning "${event.title}"! Check out the winning photo in the Hall of Fame.`, {
-        type: 'WALL_EVENT_ENDED',
-        eventId: event.id,
-        winnerUserId: winnerUserId || ''
-      });
+      // 1. Broadcast to all users, only when someone won (a contest with no voted photo used to announce
+      //    "Congratulations to Community Member" to every student). First name only, like the public leaderboard.
+      if (winnerUserId) {
+        const firstName = String(winnerName || '').trim().split(/\s+/)[0].slice(0, 30) || 'a student';
+        await sendPushToTopic('all_users', '🏆 The Wall Has a Winner!', `Congratulations to ${firstName} for winning "${event.title}"! Check out the winning photo in the Hall of Fame.`, {
+          type: 'WALL_EVENT_ENDED',
+          eventId: event.id,
+          winnerUserId
+        });
+      }
 
       // 2. Direct winner notification
       if (winnerUserId && topSubmission.user && topSubmission.user.fcmTokens) {
@@ -134,7 +151,7 @@ const processExpiredWallEvents = async () => {
           topSubmission.user.fcmTokens,
           '👑 YOU WON THE WALL PHOTO CONTEST!',
           couponCode
-            ? `Your photo scored ${topSubmission.likeCount} votes! You won a ₹${event.couponValue || 100} coupon. Code: ${couponCode}`
+            ? `Your photo scored ${topSubmission.likeCount} votes! You won a ₹${rewardVal} coupon. Code: ${couponCode}`
             : `Your photo scored ${topSubmission.likeCount} votes! Our team will send your reward shortly.`,
           {
             type: 'WALL_WINNER_REWARD',
@@ -183,4 +200,4 @@ const cleanupOldWallMedia = async () => {
   return purged;
 };
 
-module.exports = { runWallFinalizeJob, runWallMediaCleanupJob, processExpiredWallEvents, cleanupOldWallMedia };
+module.exports = { runWallFinalizeJob, runWallMediaCleanupJob, processExpiredWallEvents, cleanupOldWallMedia, WALL_PRIZE_MAX, wallPrizeValue };

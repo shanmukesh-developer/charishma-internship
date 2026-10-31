@@ -73,15 +73,25 @@ router.post('/events', protect, admin, async (req, res) => {
     if (!title || !startTime || !endTime) {
       return res.status(400).json({ message: 'Title, startTime, and endTime are required.' });
     }
+    // Same checks as the admin form (the server is the last line): real times, the end after the start and still
+    // ahead, and a prize of ₹1 to ₹1000 (a typo used to become a coupon of any size for the winner).
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return res.status(400).json({ message: 'Enter valid start and end times.' });
+    if (end <= start) return res.status(400).json({ message: 'The end time must be after the start time.' });
+    if (end <= new Date()) return res.status(400).json({ message: 'The end time must be in the future.' });
+    const { WALL_PRIZE_MAX, wallPrizeValue } = require('../cron/wallCron');
+    const prize = couponValue === undefined || couponValue === null || couponValue === '' ? 100 : wallPrizeValue(couponValue);
+    if (prize === null) return res.status(400).json({ message: `Prize value must be a whole number from ₹1 to ₹${WALL_PRIZE_MAX}.` });
 
     const event = await WallEvent.create({
       title,
       description: description || '',
-      startTime: new Date(startTime),
-      endTime: new Date(endTime),
+      startTime: start,
+      endTime: end,
       status: 'ACTIVE',
       couponCode: couponCode || null,
-      couponValue: couponValue ? parseInt(couponValue, 10) : 100,
+      couponValue: prize,
       bannerText: bannerText || '🔥 LIVE PHOTO CONTEST: Vote for your favourite photos & win instant discount coupons! 📸✨',
       bannerGradient: bannerGradient || 'fire'
     });
@@ -119,9 +129,19 @@ router.put('/events/:id', protect, admin, async (req, res) => {
     if (description !== undefined) event.description = description;
     if (bannerText !== undefined) event.bannerText = bannerText;
     if (bannerGradient !== undefined) event.bannerGradient = bannerGradient;
-    if (couponValue !== undefined) event.couponValue = parseInt(couponValue, 10);
+    if (couponValue !== undefined) {
+      const { WALL_PRIZE_MAX, wallPrizeValue } = require('../cron/wallCron');
+      const prize = wallPrizeValue(couponValue);
+      if (prize === null) return res.status(400).json({ message: `Prize value must be a whole number from ₹1 to ₹${WALL_PRIZE_MAX}.` });
+      event.couponValue = prize;
+    }
     if (couponCode !== undefined) event.couponCode = couponCode;
-    if (endTime !== undefined) event.endTime = new Date(endTime);
+    if (endTime !== undefined) {
+      const end = new Date(endTime);
+      if (Number.isNaN(end.getTime())) return res.status(400).json({ message: 'Enter a valid end time.' });
+      if (end <= new Date(event.startTime)) return res.status(400).json({ message: 'The end time must be after the start time.' });
+      event.endTime = end;
+    }
 
     await event.save();
     realtime.publish('wall', 'updated', event.id, { scope: 'event' });
