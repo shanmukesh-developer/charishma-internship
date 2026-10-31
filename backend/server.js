@@ -1406,7 +1406,8 @@ const initializeApp = async () => {
     try {
       const { runCatalogueCleanups } = require('./scripts/catalogue_cleanup_import');
       inBootQueue(storeImport(runCatalogueCleanups))
-        .then((r) => console.log('🧽 [CATALOGUE_CLEANUP]', JSON.stringify(Object.fromEntries(Object.entries(r).map(([k, v]) => [k, { ...v, skippedIds: undefined }])))))
+        // Spread only per-version result objects: a skip reason is a string (it used to print letter by letter).
+        .then((r) => console.log('🧽 [CATALOGUE_CLEANUP]', JSON.stringify(Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v && typeof v === 'object' ? { ...v, skippedIds: undefined } : v])))))
         .catch((err) => console.warn('⚠️ [CATALOGUE_CLEANUP] failed:', err.message));
     } catch (cleanErr) {
       console.warn('⚠️ [CATALOGUE_CLEANUP] not started:', cleanErr.message);
