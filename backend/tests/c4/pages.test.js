@@ -171,6 +171,7 @@ test('photo credits page: linked from every legal page, lists each credited dish
   assert.strictEqual(res.status, 200);
   assert.match(res.headers.get('content-type'), /text\/html/);
   assert.ok(!/<script/i.test(res.text), 'no scripts');
+  assert.ok(H.text(res.text).includes("A restaurant's own photos are used with its permission."), 'own photos explained');
   for (const p of ['/legal', '/legal/terms', '/legal/privacy']) {
     assert.ok((await H.api('GET', p)).text.includes('href="/legal/photo-credits"'), `${p} links the photo credits`);
   }

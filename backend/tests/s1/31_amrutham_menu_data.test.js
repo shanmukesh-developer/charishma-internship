@@ -1,6 +1,7 @@
 // The Amrutham menu (owner, 1 Nov 2026, from the printed menu card): every printed dish except the circled Indian
 // Breads, at the printed price; a full description in the pickles layout; one real photo per dish (valid image, no
-// two alike, no camera metadata) and a credit for each. Data only: no database.
+// two alike, no camera metadata) and a credit for each; the store photo is the restaurant's own storefront (used with
+// its permission, owner 1 Nov night) and the store description's facts match the menu. Data only: no database.
 process.env.NODE_ENV = 'test';
 const test = require('node:test');
 const assert = require('node:assert');
@@ -46,8 +47,23 @@ test('full descriptions in the pickles layout', () => {
   }
 });
 
-test('one real photo per dish and a cover: valid JPEG, no two alike, no camera metadata, each credited', () => {
-  const files = ['cover.jpg', ...menu.items.map((i) => i.image)];
+test('the store description: a short intro, then the menu and the facts, which match the menu file', () => {
+  const d = menu.store.description;
+  const [intro, ...rest] = d.split('\n\n');
+  assert.ok(intro.length > 80 && intro.length <= 200 && !intro.includes('\n'), `intro: ${intro}`);
+  assert.ok(rest.some((p) => p.startsWith('**On the menu**\n- ')) && rest.some((p) => p.startsWith('**Good to know**\n- ')), d);
+  const prices = menu.items.map((i) => i.price);
+  assert.ok(d.includes(`${menu.items.length} dishes, from ₹${Math.min(...prices)} to ₹${Math.max(...prices)}`), 'count and price range');
+  const t12 = (hm) => { const [h, m] = hm.split(':').map(Number); return `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`; };
+  assert.ok(d.includes(`${t12(menu.store.operatingHours.start)} to ${t12(menu.store.operatingHours.end)}`), 'hours');
+  for (const dish of ['Thecha', 'Paneer Butter Masala', 'Butter Chicken', 'Egg Bhurji']) {
+    assert.ok(d.includes(dish) && menu.items.some((i) => i.name.includes(dish)), `${dish} named and on the menu`);
+  }
+});
+
+test('one real photo per dish and the store photo: valid JPEG, no two alike, no camera metadata, each credited', () => {
+  assert.strictEqual(menu.store.image, 'storefront.jpg');
+  const files = [menu.store.image, ...menu.items.map((i) => i.image)];
   assert.deepStrictEqual(menu.items.map((i) => i.image), menu.items.map((i) => `${i.slug}.jpg`));
   const hashes = new Set();
   for (const f of files) {
@@ -62,7 +78,11 @@ test('one real photo per dish and a cover: valid JPEG, no two alike, no camera m
   const byFile = new Map(sources.map((s) => [s.file, s]));
   assert.strictEqual(sources.length, files.length);
   const LICENCES = /^(Unsplash License|Pexels License|CC0|Public domain|CC BY(-SA)? [234]\.0)/i;
-  for (const f of files) {
+  // The storefront is the restaurant's own photo (from its EazyDiner listing), used with its permission.
+  const own = byFile.get(menu.store.image);
+  assert.deepStrictEqual([own.author, own.licence, own.match], ['Amrutham Restaurant', 'Used with the permission of Amrutham Restaurant', 'exact']);
+  assert.match(own.sourcePage, /^https:\/\/www\.eazydiner\.com\/vijayawada\/amrutham-mangalagiri-vijayawada-711883\//);
+  for (const f of files.slice(1)) {
     const s = byFile.get(f);
     assert.ok(s, `${f} has a credit`);
     assert.match(s.licence, LICENCES, `${f} licence ${s.licence}`);

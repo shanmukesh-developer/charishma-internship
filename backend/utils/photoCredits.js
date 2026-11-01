@@ -1,6 +1,7 @@
 // Photo credits for the owner's real menus (data/owner-menus): every dish photo comes from Unsplash, Pexels or
 // Wikimedia Commons; the Commons ones (CC BY / CC BY-SA) must name the author, the licence and the source, and say
-// when ZCS changed the photo (crops). Read from each menu's images/<store>/sources.json; shown on /legal/photo-credits.
+// when ZCS changed the photo (crops). A restaurant's own photo (its storefront) is credited to it, "Used with the
+// permission of ..." (no licence link). Read from each menu's images/<store>/sources.json; shown on /legal/photo-credits.
 const fs = require('fs');
 const path = require('path');
 

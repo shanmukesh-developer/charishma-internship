@@ -474,15 +474,13 @@
     "match": "exact"
   },
   {
-    "dish": "Store cover (Amrutham Restaurant)",
-    "file": "cover.jpg",
-    "imageUrl": "https://images.pexels.com/photos/9792458/pexels-photo-9792458.jpeg?auto=compress&cs=tinysrgb&w=1000",
-    "sourcePage": "https://www.pexels.com/photo/9792458/",
-    "author": "Alberta Studios",
-    "licence": "Pexels License",
-    "shows": "Overhead Indian restaurant spread: five curries in handis, a bowl of rice, tandoori chicken, chutneys and cutlery.",
-    "match": "exact",
-    "modified": "cropped",
-    "note": "Cropped by ZCS to the dish only."
+    "dish": "Store photo (Amrutham Restaurant storefront)",
+    "file": "storefront.jpg",
+    "imageUrl": "https://dt4l9bx31tioh.cloudfront.net/eazymedia/restaurant/711883/restaurant269a017d13f650.jpg",
+    "sourcePage": "https://www.eazydiner.com/vijayawada/amrutham-mangalagiri-vijayawada-711883/photos",
+    "author": "Amrutham Restaurant",
+    "licence": "Used with the permission of Amrutham Restaurant",
+    "shows": "The Amrutham storefront: red signboard \"AMRUTHAM - The Taste of Andhra\" with its logo, A/C sign and the biryani window.",
+    "match": "exact"
   }
 ]

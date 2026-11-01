@@ -605,16 +605,17 @@ const DELETE = (f) => {
 };
 
 // ─── Photo credits ──────────────────────────────────────────────────────────────
-// Dish photos of the owner's menus (utils/photoCredits, data/owner-menus): author, licence and source of each, and
-// whether ZCS changed it (Creative Commons BY / BY-SA ask for all of that).
+// Dish and store photos of the owner's menus (utils/photoCredits, data/owner-menus): author, licence and source of
+// each, and whether ZCS changed it (Creative Commons BY / BY-SA ask for all of that). A restaurant's own photos are
+// used with its permission and say so.
 const PHOTO_CREDITS = (f) => {
   const groups = require('../utils/photoCredits').loadPhotoCredits();
   const row = (p) => `<tr><td>${esc(p.dish)}</td><td>${esc(p.author) || '<span class="muted">Not named</span>'}</td><td>${p.licenceUrl ? `<a href="${esc(p.licenceUrl)}">${esc(p.licence)}</a>` : esc(p.licence)}${p.modified ? `<br><span class="muted">${esc(p.modified === 'cropped' ? 'Cropped by ZCS' : `Changed by ZCS: ${p.modified}`)}</span>` : ''}</td><td>${p.sourcePage ? `<a href="${esc(p.sourcePage)}">Source</a>` : ''}</td></tr>`;
   return page(f, 'Photo credits', `
 <h1>Photo credits</h1>
-<p>Some product photos in ${esc(f.settings.businessName)} come from Unsplash, Pexels and Wikimedia Commons. Their photographers and licences are listed here. Photos under a Creative Commons licence are used under that licence; "Cropped by ZCS" means we cut the photo down to the dish.</p>
+<p>Some product photos in ${esc(f.settings.businessName)} come from Unsplash, Pexels and Wikimedia Commons. Their photographers and licences are listed here. Photos under a Creative Commons licence are used under that licence; "Cropped by ZCS" means we cut the photo down to the dish. A restaurant's own photos are used with its permission.</p>
 ${groups.length ? groups.map((g) => `<h2>${esc(g.store)}</h2>
-<table><thead><tr><th>Dish</th><th>Photo by</th><th>Licence</th><th></th></tr></thead><tbody>
+<table><thead><tr><th>Photo</th><th>Photo by</th><th>Licence</th><th></th></tr></thead><tbody>
 ${g.photos.map(row).join('')}
 </tbody></table>`).join('') : '<p class="muted">No credited photos yet.</p>'}
 `, { showVersion: false });

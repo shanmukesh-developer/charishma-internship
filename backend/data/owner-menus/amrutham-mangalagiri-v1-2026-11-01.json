@@ -1,7 +1,7 @@
 {
   "version": 1,
   "key": "owner-menu:amrutham-mangalagiri",
-  "note": "Owner, 1 Nov 2026: 'add this restaurant and add this menu' (photo of the printed menu card) 'and the things which I circled ignore' (Indian Breads: Pulka 7, Chapati 15, Butter Chapati 20 are NOT added) 'and exact images not random each and every product, valid descriptions'; 'use real images everywhere'. Prices exactly as printed. Names as printed, spelling only made consistent (Omlet -> Omelette, Burji -> Bhurji, Moglai -> Mughlai Chicken, Manchuria -> Manchurian, Spl -> Special). Every photo is a real photograph, checked by eye, licence in data/owner-menus/images/amrutham-mangalagiri/sources.json. Address, map point and hours from the restaurant's EazyDiner listing (TKR Food Court, 11-84/A1, Gouthambuddha Road, near NRI Hospital, Mangalagiri; 16.4185622, 80.5625065; 12:30 PM to 10:30 PM daily); the menu card says TKR Food Court, Autonagar, Mangalagiri. No partner login, no phone, no FSSAI number, no rating, no offer are set: the owner adds the login in Admin > Stores > Partner login.",
+  "note": "Owner, 1 Nov 2026: 'add this restaurant and add this menu' (photo of the printed menu card) 'and the things which I circled ignore' (Indian Breads: Pulka 7, Chapati 15, Butter Chapati 20 are NOT added) 'and exact images not random each and every product, valid descriptions'; 'use real images everywhere'. Prices exactly as printed. Names as printed, spelling only made consistent (Omlet -> Omelette, Burji -> Bhurji, Moglai -> Mughlai Chicken, Manchuria -> Manchurian, Spl -> Special). The store photo is the restaurant's own storefront photo, used with its permission (owner, 1 Nov 2026: \"we have licence to keep their original photos\"). Every dish photo is a real photograph, checked by eye, licence in data/owner-menus/images/amrutham-mangalagiri/sources.json. Address, map point and hours from the restaurant's EazyDiner listing (TKR Food Court, 11-84/A1, Gouthambuddha Road, near NRI Hospital, Mangalagiri; 16.4185622, 80.5625065; 12:30 PM to 10:30 PM daily); the menu card says TKR Food Court, Autonagar, Mangalagiri. No partner login, no phone, no FSSAI number, no rating, no offer are set: the owner adds the login in Admin > Stores > Partner login.",
   "imagesDir": "images/amrutham-mangalagiri",
   "store": {
     "name": "Amrutham Restaurant",
@@ -9,7 +9,7 @@
     "lat": 16.4185622,
     "lon": 80.5625065,
     "vendorType": "RESTAURANT",
-    "image": "cover.jpg",
+    "image": "storefront.jpg",
     "tags": [
       "noodles",
       "chinese",
@@ -20,7 +20,7 @@
       "chicken",
       "egg"
     ],
-    "description": "Indo-Chinese noodles and North Indian curries from TKR Food Court, Mangalagiri: veg, egg and chicken.",
+    "description": "Amrutham, \"The Taste of Andhra\", at TKR Food Court, Mangalagiri serves wok-tossed Indo-Chinese noodles and North Indian curries: veg, egg and chicken, all on one menu.\n\n**On the menu**\n- Noodles: Hakka, Schezwan, Peri Peri, Maggi masala, Manchurian, Paneer, Kaju, Mushroom and the house special Thecha noodles\n- Veg curries: Paneer Butter Masala, Kadai Paneer, Shahi Paneer, Kaju Masala, Mushroom and Babycorn curries\n- Chicken and egg: Butter Chicken, Andhra Chicken, Chicken Hyderabadi, Kali Mirch, Afghani and Mughlai chicken, Egg Curry, Egg Bhurji and omelettes\n\n**Good to know**\n- Open every day, 12:30 PM to 10:30 PM\n- 46 dishes, from ₹40 to ₹230\n- Air-conditioned dining room and outdoor seating at TKR Food Court, Gouthambuddha Road, near NRI Hospital",
     "operatingHours": {
       "start": "12:30",
       "end": "22:30"

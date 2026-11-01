@@ -1389,6 +1389,12 @@ const initializeApp = async () => {
     inBootQueue(() => require('./scripts/owner_menu_import').runOwnerMenuImport())
       .then((r) => console.log('🍜 [OWNER_MENUS]', JSON.stringify(r)))
       .catch((err) => console.warn('⚠️ [OWNER_MENUS] failed:', err.message));
+    // 🍜 Owner menu fixes, once (OWNER_MENU_FIXES_V1_DONE): the internal import key out of every dish's details,
+    // Amrutham's own storefront photo and fuller description (each only while the importer's first one is still
+    // there). scripts/owner_menu_fixes_v1.js; DISABLE_OWNER_MENU_FIXES=true switches it off.
+    inBootQueue(() => require('./scripts/owner_menu_fixes_v1').runOwnerMenuFixes())
+      .then((r) => console.log('🍜 [OWNER_MENU_FIXES]', JSON.stringify(r)))
+      .catch((err) => console.warn('⚠️ [OWNER_MENU_FIXES] failed:', err.message));
 
     // 🛒 Catalogue import (idempotent, ledger-keyed): the store products the app used to hardcode.
     // Runs in the background so the port opens immediately; already-imported keys are never touched.

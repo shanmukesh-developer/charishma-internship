@@ -170,7 +170,9 @@ const runOwnerMenuImport = async ({ dataDir = DATA_DIR } = {}) => {
         isVegetarian: it.dietType === 'veg',
         dietType: it.dietType,
         isAvailable: true,
-        specs: { ownerMenuKey: key },
+        // Nothing internal in specs: the customer app lists every spec it does not know as a product detail
+        // ("Owner menu key: ..." showed on the dish page, 1 Nov). The ledger keeps the import key.
+        specs: {},
       }, { transaction: t }));
       if (ok) result.itemsCreated++;
     }
