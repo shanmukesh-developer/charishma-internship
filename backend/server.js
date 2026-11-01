@@ -1378,6 +1378,11 @@ const initializeApp = async () => {
     inBootQueue(() => require('./scripts/test_data_cleanup_v1').runTestDataCleanup())
       .then((r) => console.log('🧪 [TEST_DATA_CLEANUP]', JSON.stringify(r)))
       .catch((err) => console.warn('⚠️ [TEST_DATA_CLEANUP] failed:', err.message));
+    // 🏠 The 20 invented PG listings of an old seed (scripts/demo_pgs_remove_v1.js, once, DEMO_PGS_REMOVED_V1_DONE):
+    // deleted, or hidden when a booking / review / rent record / complaint / partner link points at one.
+    inBootQueue(() => require('./scripts/demo_pgs_remove_v1').runDemoPgRemoval())
+      .then((r) => console.log('🏠 [DEMO_PG_REMOVAL]', JSON.stringify(r)))
+      .catch((err) => console.warn('⚠️ [DEMO_PG_REMOVAL] failed:', err.message));
     // 🍜 Owner menus (data/owner-menus/*.json): real restaurants the owner sent as menu cards, with a checked, licensed
     // photo per dish saved in the media store. Create-only and ledger-keyed (admin edits / deletions win), after the
     // store removal above. DISABLE_OWNER_MENUS=true switches it off.
