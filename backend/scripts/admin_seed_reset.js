@@ -75,4 +75,4 @@ const startAdminSeedReset = (opts = {}) => {
   return runExclusive(JOB_NAME, () => runAdminSeedReset(opts), { timeoutMs: 2 * 60 * 1000 });
 };
 
-module.exports = { runAdminSeedReset, startAdminSeedReset, SEED_ADMIN_PASSWORDS, RESET_ENV_NAMES, maskPhone, JOB_NAME };
+module.exports = { runAdminSeedReset, startAdminSeedReset, usesSeedPassword, SEED_ADMIN_PASSWORDS, RESET_ENV_NAMES, maskPhone, JOB_NAME };

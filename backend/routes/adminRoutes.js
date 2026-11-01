@@ -60,6 +60,27 @@ router.use(protect);
 const twoFactor = require('../services/adminTwoFactor');
 router.use('/2fa', twoFactor.requireAdminAccount, twoFactor.router());
 
+// The signed-in admin's own password is still one the old seed scripts published (C1-1 follow-up, 1 Nov 2026):
+// scripts/admin_seed_reset only warns in the server log while ADMIN_RESET_PASSWORD is unset, which the owner never
+// sees, so /me tells the dashboard (a red banner). bcrypt is slow: one answer per account and password version
+// (a password change bumps tokenVersion). Never throws; false when unsure.
+const weakPasswordCache = new Map();
+const hasSeedPassword = async (id) => {
+  try {
+    const { getUserModel } = require('../models/User');
+    const row = await getUserModel().findByPk(id, { attributes: ['id', 'password', 'tokenVersion'] });
+    if (!row) return false;
+    const key = `${row.id}:${Number(row.tokenVersion) || 0}`;
+    if (weakPasswordCache.has(key)) return weakPasswordCache.get(key);
+    const weak = await require('../scripts/admin_seed_reset').usesSeedPassword(row);
+    if (weakPasswordCache.size > 500) weakPasswordCache.clear();
+    weakPasswordCache.set(key, weak);
+    return weak;
+  } catch {
+    return false;
+  }
+};
+
 // Admin session check for the dashboard: 200 only for a valid admin token
 // (protect -> 401 without/with a bad token, 403 for non-admins).
 router.get('/me', twoFactor.requireAdminAccount, async (req, res) => {
@@ -69,7 +90,7 @@ router.get('/me', twoFactor.requireAdminAccount, async (req, res) => {
   const enabled = await twoFactor.isEnabled(id);
   // 2FA is on but this session never passed the code: sign in again (with the code).
   if (pending && enabled) return res.status(401).json({ code: 'MFA_REQUIRED', message: 'Sign in again with your 2-step code.' });
-  res.json({ id, name: name || 'Admin', phone: phone || null, email: email || null, role: 'admin', mfaSetupRequired: pending, twoFactorEnabled: enabled, twoFactorRequired: twoFactor.required() });
+  res.json({ id, name: name || 'Admin', phone: phone || null, email: email || null, role: 'admin', mfaSetupRequired: pending, twoFactorEnabled: enabled, twoFactorRequired: twoFactor.required(), weakPassword: await hasSeedPassword(id) });
 });
 
 router.use(admin);

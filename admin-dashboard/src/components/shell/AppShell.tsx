@@ -347,6 +347,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
         <main id="main" className="min-w-0 flex-1 px-4 py-6 md:px-8 md:py-8" tabIndex={-1}>
           <div className="mx-auto w-full max-w-[1400px]">
+            {auth.user?.weakPassword && (
+              <Notice tone="danger" title="Change your admin password now" className="mb-6">
+                This admin account still uses a password that the old setup scripts published, so anyone who has seen the code can sign in as you. Change it in the ZCS app: Sign in, then Forgot password (a code comes to this account&apos;s phone). Or set ADMIN_RESET_PASSWORD (12 or more characters) in Render, Environment. Then turn on 2-step sign-in in Account security.
+              </Notice>
+            )}
             {volatile && (
               <Notice tone="danger" title="Storage is temporary on this server" className="mb-6">
                 The backend is not connected to its permanent database, so changes made now will be lost when it restarts. Check the database settings on Render before editing anything.

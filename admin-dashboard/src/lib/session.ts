@@ -25,6 +25,8 @@ export interface AdminUser {
   /** S1: ADMIN_2FA_REQUIRED and 2-step sign-in not set up yet: only the Account security page works. */
   mfaSetupRequired?: boolean;
   twoFactorEnabled?: boolean;
+  /** This account's password is still one the old seed scripts published (server: /api/admin/me). */
+  weakPassword?: boolean;
 }
 
 export interface AuthState {
@@ -174,6 +176,7 @@ const toUser = (b: any): AdminUser => ({
   role: String(b?.role || ''),
   mfaSetupRequired: !!b?.mfaSetupRequired,
   twoFactorEnabled: !!b?.twoFactorEnabled,
+  weakPassword: !!b?.weakPassword,
 });
 
 async function runVerify(): Promise<AuthState> {
