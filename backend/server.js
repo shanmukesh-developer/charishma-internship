@@ -1366,21 +1366,24 @@ const initializeApp = async () => {
     inBootQueue(() => require('./scripts/remove_all_stores_v2').runRemoveAllStoresV2())
       .then((r) => console.log('🧹 [REMOVE_ALL_STORES_V2]', JSON.stringify(r)))
       .catch((err) => console.warn('⚠️ [REMOVE_ALL_STORES_V2] failed:', err.message));
-    // 🧪 Test data, once (owner, 1 Nov 2026; GlobalConfig TEST_DATA_V1_DONE): six "ZCS Test ..." stores with menus,
-    // one per customer-app section (data/test_data_v1_2026-11-01.json). After the store removal above; create-only,
-    // no partner logins. Deleted or edited in the admin like any store. DISABLE_TEST_DATA=true switches it off;
-    // REMOVE_TEST_DATA=true removes them again on every start while set (orders cancelled / stores hidden or deleted).
     // 🔐 Admin 2-step table, early: created / given its email-code columns now instead of at the first admin sign-in
-    // (models/AdminTwoFactor; /api/health?infra=1 reports adminTwoFactor: 'ready' or the error).
+    // (models/AdminTwoFactor; /api/health?infra=1 reports adminTwoFactor: 'ready' or 'error').
     inBootQueue(() => require('./models/AdminTwoFactor').getAdminTwoFactorModel())
       .then((m) => console.log(m ? '🔐 [ADMIN_2FA_TABLE] ready' : '🔐 [ADMIN_2FA_TABLE] models not ready'))
       .catch((err) => console.warn('⚠️ [ADMIN_2FA_TABLE] failed:', err.message));
-    inBootQueue(() => require('./scripts/test_data_seed').removeTestData())
-      .then((r) => { if (!r || r.skipped !== 'not requested') console.log('🧪 [TEST_DATA_REMOVE]', JSON.stringify(r)); })
-      .catch((err) => console.warn('⚠️ [TEST_DATA_REMOVE] failed:', err.message));
-    inBootQueue(() => require('./scripts/test_data_seed').runTestDataSeed())
-      .then((r) => console.log('🧪 [TEST_DATA]', JSON.stringify(r)))
-      .catch((err) => console.warn('⚠️ [TEST_DATA] failed:', err.message));
+    // 🧪 Test data clean-up, once (owner, 1 Nov 2026 evening: "remove all test data, only keep the entered data";
+    // GlobalConfig TEST_DATA_CLEANUP_V1_DONE): the "ZCS Test" stores with their test orders, and the 27 Oct partner
+    // test logins (rider, auto driver, PG owner + listing). The test data seed (scripts/test_data_seed.js) no longer
+    // runs. scripts/test_data_cleanup_v1.js; DISABLE_TEST_DATA_CLEANUP=true switches it off.
+    inBootQueue(() => require('./scripts/test_data_cleanup_v1').runTestDataCleanup())
+      .then((r) => console.log('🧪 [TEST_DATA_CLEANUP]', JSON.stringify(r)))
+      .catch((err) => console.warn('⚠️ [TEST_DATA_CLEANUP] failed:', err.message));
+    // 🍜 Owner menus (data/owner-menus/*.json): real restaurants the owner sent as menu cards, with a checked, licensed
+    // photo per dish saved in the media store. Create-only and ledger-keyed (admin edits / deletions win), after the
+    // store removal above. DISABLE_OWNER_MENUS=true switches it off.
+    inBootQueue(() => require('./scripts/owner_menu_import').runOwnerMenuImport())
+      .then((r) => console.log('🍜 [OWNER_MENUS]', JSON.stringify(r)))
+      .catch((err) => console.warn('⚠️ [OWNER_MENUS] failed:', err.message));
 
     // 🛒 Catalogue import (idempotent, ledger-keyed): the store products the app used to hardcode.
     // Runs in the background so the port opens immediately; already-imported keys are never touched.
