@@ -61,9 +61,14 @@ const readMode = (env = process.env) => {
   const m = String(env.APP_CHECK_MODE || 'off').trim().toLowerCase();
   return ['off', 'monitor', 'enforce'].includes(m) ? m : 'off';
 };
+// Enforced when APP_CHECK_ENFORCE_GROUPS is empty: every group except 'partner'. The partner apps (Restaurant, Vendor,
+// Campus Stall, Rider, Auto Driver) send no App Check token, so enforcing 'partner' would stop every partner sign-in;
+// list it explicitly once those apps send one. Note: the Auto Driver app asks for its sign-up code on the customer
+// 'otp' path without a token, so enforcing 'otp' also stops new driver sign-ups until that app sends one.
+const DEFAULT_ENFORCED = GROUPS.filter((g) => g !== 'partner');
 const enforcedGroups = (env = process.env) => {
   const raw = String(env.APP_CHECK_ENFORCE_GROUPS || '').split(',').map((s) => s.trim().toLowerCase()).filter((g) => GROUPS.includes(g));
-  return new Set(raw.length ? raw : GROUPS);
+  return new Set(raw.length ? raw : DEFAULT_ENFORCED);
 };
 const timeoutMs = (env = process.env) => Math.min(10000, Math.max(200, Number(env.APP_CHECK_TIMEOUT_MS) || 3000));
 

@@ -142,6 +142,25 @@ test('enforce groups: APP_CHECK_ENFORCE_GROUPS limits blocking; the rest stays m
   env({ APP_CHECK_ENFORCE_GROUPS: undefined });
 });
 
+// 1 Nov 2026: enforce with no group list must not lock the partner apps out (they send no App Check token).
+test('enforce, no group list: partner sign-ins stay open, customer calls are blocked; partner only when listed', async () => {
+  env({ APP_CHECK_MODE: 'enforce', APP_CHECK_ENFORCE_GROUPS: undefined });
+  const mw = AC.middleware();
+  const run = (method, p) => new Promise((resolve) => {
+    const req = { method, path: p, headers: {} };
+    const res = { status: (c) => ({ json: (b) => resolve({ c, b }) }) };
+    mw(req, res, () => resolve('next'));
+  });
+  assert.strictEqual(await run('POST', '/api/restaurants/login'), 'next');
+  assert.strictEqual(await run('POST', '/api/delivery/login'), 'next');
+  assert.strictEqual(await run('POST', '/api/auto-ride/driver/auth/login'), 'next');
+  assert.strictEqual(await run('POST', '/api/delivery/account/delete-otp'), 'next');
+  assert.strictEqual((await run('POST', '/api/orders')).c, 401, 'customer order still enforced');
+  env({ APP_CHECK_ENFORCE_GROUPS: 'partner' });
+  assert.strictEqual((await run('POST', '/api/delivery/login')).c, 401, 'listed explicitly: enforced');
+  env({ APP_CHECK_ENFORCE_GROUPS: undefined, APP_CHECK_MODE: undefined });
+});
+
 test('admin web sign-in (X-Zenvy-Client: admin-web) is exempt, and then only admin accounts can sign in there', async () => {
   env({ APP_CHECK_MODE: 'enforce' });
   const admin = await H.mkUser({ role: 'admin' });
