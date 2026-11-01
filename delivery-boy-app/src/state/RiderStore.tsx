@@ -905,6 +905,8 @@ export function RiderProvider({ children }: { children: React.ReactNode }) {
       if (data?.type === 'NEW_ORDER' || data?.orderId) refetchSoon();
     });
     const offTap = push.onPushTapped((data) => {
+      // A reply on the rider's support ticket (server: ticketController SUPPORT_TICKET): open Help & support.
+      if (data?.type === 'SUPPORT_TICKET') { setDeliveryId(null); setOverlay({ kind: 'support' }); return; }
       reoffer(data);
       const id = data?.orderId ? String(data.orderId) : null;
       setOverlay(null);
@@ -919,6 +921,7 @@ export function RiderProvider({ children }: { children: React.ReactNode }) {
     // Active orders may not be loaded yet, so open the order once a fresh fetch contains it.
     push.takeLaunchPushTap().then((data) => {
       if (!data) return;
+      if (data.type === 'SUPPORT_TICKET') { setOverlay({ kind: 'support' }); return; }
       const id = data.orderId ? String(data.orderId) : null;
       setOverlay(null);
       setTab('home');
