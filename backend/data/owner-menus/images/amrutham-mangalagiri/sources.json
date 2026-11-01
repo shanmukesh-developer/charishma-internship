@@ -475,12 +475,13 @@
   },
   {
     "dish": "Store photo (Amrutham Restaurant storefront)",
-    "file": "storefront.jpg",
+    "file": "storefront-banner.jpg",
     "imageUrl": "https://dt4l9bx31tioh.cloudfront.net/eazymedia/restaurant/711883/restaurant269a017d13f650.jpg",
     "sourcePage": "https://www.eazydiner.com/vijayawada/amrutham-mangalagiri-vijayawada-711883/photos",
     "author": "Amrutham Restaurant",
     "licence": "Used with the permission of Amrutham Restaurant",
-    "shows": "The Amrutham storefront: red signboard \"AMRUTHAM - The Taste of Andhra\" with its logo, A/C sign and the biryani window.",
-    "match": "exact"
+    "shows": "The Amrutham storefront: red signboard \"AMRUTHAM - The Taste of Andhra\" with its logo, A/C sign and the biryani window. Cropped to the signboard and the top of the shop front, so the whole sign shows in the store page banner.",
+    "match": "exact",
+    "modified": "cropped"
   }
 ]

@@ -1389,10 +1389,10 @@ const initializeApp = async () => {
     inBootQueue(() => require('./scripts/owner_menu_import').runOwnerMenuImport())
       .then((r) => console.log('🍜 [OWNER_MENUS]', JSON.stringify(r)))
       .catch((err) => console.warn('⚠️ [OWNER_MENUS] failed:', err.message));
-    // 🍜 Owner menu fixes, once (OWNER_MENU_FIXES_V1_DONE): the internal import key out of every dish's details,
-    // Amrutham's own storefront photo and fuller description (each only while the importer's first one is still
-    // there). scripts/owner_menu_fixes_v1.js; DISABLE_OWNER_MENU_FIXES=true switches it off.
-    inBootQueue(() => require('./scripts/owner_menu_fixes_v1').runOwnerMenuFixes())
+    // 🍜 Owner menu fixes, once (OWNER_MENU_FIXES_V2_DONE): the internal import key out of every dish's details,
+    // Amrutham's own storefront photo (banner crop) and fuller description (each only while a photo / text this repo
+    // set is still there). scripts/owner_menu_fixes_v2.js; DISABLE_OWNER_MENU_FIXES=true switches it off.
+    inBootQueue(() => require('./scripts/owner_menu_fixes_v2').runOwnerMenuFixes())
       .then((r) => console.log('🍜 [OWNER_MENU_FIXES]', JSON.stringify(r)))
       .catch((err) => console.warn('⚠️ [OWNER_MENU_FIXES] failed:', err.message));
 

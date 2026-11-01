@@ -1,7 +1,7 @@
 {
   "version": 1,
   "key": "owner-menu:amrutham-mangalagiri",
-  "note": "Owner, 1 Nov 2026: 'add this restaurant and add this menu' (photo of the printed menu card) 'and the things which I circled ignore' (Indian Breads: Pulka 7, Chapati 15, Butter Chapati 20 are NOT added) 'and exact images not random each and every product, valid descriptions'; 'use real images everywhere'. Prices exactly as printed. Names as printed, spelling only made consistent (Omlet -> Omelette, Burji -> Bhurji, Moglai -> Mughlai Chicken, Manchuria -> Manchurian, Spl -> Special). The store photo is the restaurant's own storefront photo, used with its permission (owner, 1 Nov 2026: \"we have licence to keep their original photos\"). Every dish photo is a real photograph, checked by eye, licence in data/owner-menus/images/amrutham-mangalagiri/sources.json. Address, map point and hours from the restaurant's EazyDiner listing (TKR Food Court, 11-84/A1, Gouthambuddha Road, near NRI Hospital, Mangalagiri; 16.4185622, 80.5625065; 12:30 PM to 10:30 PM daily); the menu card says TKR Food Court, Autonagar, Mangalagiri. No partner login, no phone, no FSSAI number, no rating, no offer are set: the owner adds the login in Admin > Stores > Partner login.",
+  "note": "Owner, 1 Nov 2026: 'add this restaurant and add this menu' (photo of the printed menu card) 'and the things which I circled ignore' (Indian Breads: Pulka 7, Chapati 15, Butter Chapati 20 are NOT added) 'and exact images not random each and every product, valid descriptions'; 'use real images everywhere'. Prices exactly as printed. Names as printed, spelling only made consistent (Omlet -> Omelette, Burji -> Bhurji, Moglai -> Mughlai Chicken, Manchuria -> Manchurian, Spl -> Special). The store photo is the restaurant's own storefront photo, used with its permission (owner, 1 Nov 2026: \"we have licence to keep their original photos\"), cropped to the signboard so the whole sign shows in the store page banner (about 2:1). Every dish photo is a real photograph, checked by eye, licence in data/owner-menus/images/amrutham-mangalagiri/sources.json. Address, map point and hours from the restaurant's EazyDiner listing (TKR Food Court, 11-84/A1, Gouthambuddha Road, near NRI Hospital, Mangalagiri; 16.4185622, 80.5625065; 12:30 PM to 10:30 PM daily); the menu card says TKR Food Court, Autonagar, Mangalagiri. No partner login, no phone, no FSSAI number, no rating, no offer are set: the owner adds the login in Admin > Stores > Partner login.",
   "imagesDir": "images/amrutham-mangalagiri",
   "store": {
     "name": "Amrutham Restaurant",
@@ -9,7 +9,7 @@
     "lat": 16.4185622,
     "lon": 80.5625065,
     "vendorType": "RESTAURANT",
-    "image": "storefront.jpg",
+    "image": "storefront-banner.jpg",
     "tags": [
       "noodles",
       "chinese",

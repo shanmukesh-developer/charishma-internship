@@ -61,8 +61,24 @@ test('the store description: a short intro, then the menu and the facts, which m
   }
 });
 
+// Width and height from a JPEG's start-of-frame marker.
+const jpegSize = (buf) => {
+  for (let i = 2; i + 9 < buf.length;) {
+    if (buf[i] !== 0xff) { i++; continue; }
+    const m = buf[i + 1];
+    if (m >= 0xc0 && m <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(m)) return { w: buf.readUInt16BE(i + 7), h: buf.readUInt16BE(i + 5) };
+    i += 2 + buf.readUInt16BE(i + 2);
+  }
+  return null;
+};
+
+test('the store photo is a banner crop: the store page shows it about 2:1, so the whole sign must fit that frame', () => {
+  const { w, h } = jpegSize(fs.readFileSync(path.join(IMG, menu.store.image)));
+  assert.ok(w >= 800 && w / h >= 1.6 && w / h <= 1.85, `${w}x${h}`);
+});
+
 test('one real photo per dish and the store photo: valid JPEG, no two alike, no camera metadata, each credited', () => {
-  assert.strictEqual(menu.store.image, 'storefront.jpg');
+  assert.strictEqual(menu.store.image, 'storefront-banner.jpg');
   const files = [menu.store.image, ...menu.items.map((i) => i.image)];
   assert.deepStrictEqual(menu.items.map((i) => i.image), menu.items.map((i) => `${i.slug}.jpg`));
   const hashes = new Set();
@@ -80,7 +96,7 @@ test('one real photo per dish and the store photo: valid JPEG, no two alike, no 
   const LICENCES = /^(Unsplash License|Pexels License|CC0|Public domain|CC BY(-SA)? [234]\.0)/i;
   // The storefront is the restaurant's own photo (from its EazyDiner listing), used with its permission.
   const own = byFile.get(menu.store.image);
-  assert.deepStrictEqual([own.author, own.licence, own.match], ['Amrutham Restaurant', 'Used with the permission of Amrutham Restaurant', 'exact']);
+  assert.deepStrictEqual([own.author, own.licence, own.match, own.modified], ['Amrutham Restaurant', 'Used with the permission of Amrutham Restaurant', 'exact', 'cropped']);
   assert.match(own.sourcePage, /^https:\/\/www\.eazydiner\.com\/vijayawada\/amrutham-mangalagiri-vijayawada-711883\//);
   for (const f of files.slice(1)) {
     const s = byFile.get(f);
