@@ -277,7 +277,7 @@ const PRIVACY = (f) => {
 <tr><td>Location during orders</td><td>The delivery spot you choose for an order (hostel, gate or a pin on the map), and the live location of the rider delivering it, so you can track the order. Text you type into address search is looked up through OpenStreetMap. The customer app does not read your phone's GPS in the background.</td></tr>
 <tr><td>Orders, wallet and payments</td><td>Items, prices, order history, ZCS Wallet balance and transactions. Payment is cash on delivery or ZCS Wallet; we do not collect card or bank details. If a service asks you to pay a store by UPI, we store the UPI reference (UTR) and any payment screenshot you submit.</td></tr>
 <tr><td>Terms acceptance</td><td>The version of these policies you accepted and when, as a record of your consent.</td></tr>
-<tr><td>Device and app data</td><td>Device push token, platform and app version (to send notifications and to tell you when an update is required).</td></tr>
+<tr><td>Device and app data</td><td>Device push token, platform and app version (to send notifications and to tell you when an update is required). If an app crashes, a crash report (device model, Android version, app version and the error, without your name or number) goes to Firebase Crashlytics so we can fix it.</td></tr>
 <tr><td>Support tickets and reports</td><td>What you write to us, and reports you file about content or users.</td></tr>
 <tr><td>Technical logs</td><td>IP address, device / browser type, app version and request and error logs, used for security, abuse prevention and fixing problems.</td></tr>
 </table>

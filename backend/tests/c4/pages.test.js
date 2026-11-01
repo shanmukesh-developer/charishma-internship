@@ -158,3 +158,10 @@ test('community guidelines: reporting, blocking and the moderation timeline from
   const t = H.text((await H.api('GET', '/legal/community-guidelines')).text);
   for (const p of ['Report', 'Block', 'Threats of violence', '4 hours', '1 day', '2 days', '3 days', 'appeal']) assert.ok(t.includes(p), p);
 });
+
+// Play Data safety (1 Nov 2026): the apps send crash reports to Firebase Crashlytics, so the policy must say so.
+test('privacy policy discloses crash reports (Firebase Crashlytics)', async () => {
+  const t = H.text((await H.api('GET', '/legal/privacy')).text);
+  assert.ok(/crash report/i.test(t), 'crash reports mentioned');
+  assert.ok(t.includes('Crashlytics'), 'Crashlytics named');
+});

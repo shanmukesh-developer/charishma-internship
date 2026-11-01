@@ -20,7 +20,7 @@ const safe = async (fn, dflt) => {
 /** Third parties that actually receive data in this deployment (env-driven). */
 const thirdParties = async (env = process.env) => {
   const list = [];
-  list.push({ key: 'firebase', name: 'Google Firebase', what: 'phone number sign-in (SMS verification when used) and push notifications (device push token, notification content)' });
+  list.push({ key: 'firebase', name: 'Google Firebase', what: 'phone number sign-in (SMS verification when used), push notifications (device push token, notification content) and crash reports from the apps (Crashlytics: device model, OS and app version and the error, not linked to your name or number)' });
   list.push({ key: 'google', name: 'Google Sign-In', what: 'your Google account name, email and profile photo, only if you choose "Continue with Google"' });
   if (String(env.FAST2SMS_API_KEY || '').trim()) list.push({ key: 'fast2sms', name: 'Fast2SMS', what: 'your mobile number and the one-time code, to deliver sign-in and verification SMS' });
   if (String(env.BREVO_API_KEY || '').trim()) list.push({ key: 'brevo', name: 'Brevo', what: 'your email address and the message, for account and service emails' });
