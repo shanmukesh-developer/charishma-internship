@@ -127,3 +127,19 @@ test('deletion request needs the password and is shown to admins', async () => {
   const list = await H.api('GET', '/api/admin/pg-owners?status=DELETION', admin.token);
   assert.ok(list.body.owners.some((x) => x.id === o.id && x.deletionReason === 'Sold the PG'));
 });
+
+// 1 Nov 2026: a handed-over phone. The second owner's device token is taken off the first owner, so the first owner's
+// pushes (new bookings, complaints) stop ringing on that phone. The first owner's other phones keep theirs.
+test('device token: a second owner signing in on the same phone takes it off the first owner', async () => {
+  const a = await H.readyOwner(admin, []);
+  const b = await H.readyOwner(admin, []);
+  const shared = `fcm-shared-owner-phone-${'x'.repeat(40)}`;
+  const own = `fcm-own-phone-of-owner-a-${'y'.repeat(40)}`;
+  for (const t of [own, shared]) assert.strictEqual((await H.api('POST', '/api/pg-owner/fcm-token', a.token, { token: t })).status, 200);
+  assert.strictEqual((await H.api('POST', '/api/pg-owner/fcm-token', b.token, { token: shared })).status, 200);
+  const O = H.r('modules/pgOwner/index').getModel('PgOwner');
+  const ra = await O.findByPk(a.id);
+  const rb = await O.findByPk(b.id);
+  assert.deepStrictEqual(ra.fcmTokens, [own], 'first owner keeps only their own phone');
+  assert.ok(rb.fcmTokens.includes(shared), 'second owner has the shared phone');
+});

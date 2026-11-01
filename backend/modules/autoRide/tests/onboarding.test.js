@@ -237,3 +237,20 @@ test('admin: live summary counts, booking search by code, cancel with audit, inc
   const dn = await H.notificationsFor(t.driver.id);
   assert.ok(dn.some((n) => n.title === 'Trip cancelled by ZCS'));
 });
+
+// 1 Nov 2026: a handed-over phone. The second driver's device token is taken off the first driver, so the first
+// driver's pushes (private requests with fares) stop ringing on that phone. The first driver's other phones keep theirs.
+test('device token: a second driver signing in on the same phone takes it off the first driver', async () => {
+  const a = await H.mkDriver({ name: 'First Driver' });
+  const b = await H.mkDriver({ name: 'Second Driver' });
+  a.id = a.driver.id; b.id = b.driver.id;
+  const shared = `fcm-shared-phone-${'x'.repeat(40)}`;
+  const own = `fcm-own-phone-of-a-${'y'.repeat(40)}`;
+  for (const t of [own, shared]) assert.equal((await api('POST', '/api/auto-ride/driver/fcm-token', a.token, { token: t })).status, 200);
+  assert.equal((await api('POST', '/api/auto-ride/driver/fcm-token', b.token, { token: shared })).status, 200);
+  const D = H.ctx.sequelize.models.AutoDriver;
+  const ra = await D.findByPk(a.id);
+  const rb = await D.findByPk(b.id);
+  assert.deepEqual(ra.fcmTokens, [own], 'first driver keeps only their own phone');
+  assert.ok(rb.fcmTokens.includes(shared), 'second driver has the shared phone');
+});

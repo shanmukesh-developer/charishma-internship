@@ -99,6 +99,8 @@ const saveFcmToken = async (req, res) => {
   const list = (Array.isArray(d.fcmTokens) ? d.fcmTokens : []).filter((t) => t !== token);
   list.push(token);
   await d.update({ fcmTokens: list.slice(-5) });
+  // A handed-over phone: the previous driver's pushes (private requests with fares) stop ringing on it.
+  await require('../../../utils/detachDeviceToken').detachDeviceToken(d.constructor, d.id, token, 'AUTO_DRIVER');
   res.json({ ok: true });
 };
 const removeFcmToken = async (req, res) => {

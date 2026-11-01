@@ -78,6 +78,8 @@ const saveFcmToken = async (req, res) => {
   const list = (Array.isArray(o.fcmTokens) ? o.fcmTokens : []).filter((t) => t !== token);
   list.push(token);
   await o.update({ fcmTokens: list.slice(-5) });
+  // A handed-over phone: the previous owner's pushes (new bookings, complaints) stop ringing on it.
+  await require('../../../utils/detachDeviceToken').detachDeviceToken(o.constructor, o.id, token, 'PG_OWNER');
   res.json({ ok: true });
 };
 const removeFcmToken = async (req, res) => {
