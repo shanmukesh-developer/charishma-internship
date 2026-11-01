@@ -214,7 +214,7 @@ export default function SecurityPage() {
                     type="email"
                     autoComplete="email"
                     value={emailAddr}
-                    onChange={(e) => { setEmailAddr(e.target.value); setEmailSentTo(null); }}
+                    onChange={(e) => { setEmailAddr(e.target.value); setEmailSentTo(null); setResendIn(0); }}
                     onKeyDown={(e) => e.key === 'Enter' && emailAddr.trim() && resendIn <= 0 && sendSetupCode()}
                     placeholder="you@example.com"
                     aria-label="Email address"
@@ -300,8 +300,8 @@ export default function SecurityPage() {
             <CardHeader
               title="Manage"
               description={status.method === 'email'
-                ? 'Email yourself a code (or use a recovery code) to get new recovery codes or turn 2-step sign-in off.'
-                : 'Enter a current 6-digit code, or a recovery code to turn 2-step sign-in off.'}
+                ? 'Email yourself a code to get new recovery codes or to turn 2-step sign-in off. A recovery code also turns it off.'
+                : 'Enter a current 6-digit code to get new recovery codes or to turn 2-step sign-in off. A recovery code also turns it off.'}
             />
             <CardBody className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
@@ -309,7 +309,8 @@ export default function SecurityPage() {
                   <Button disabled={busy || resendIn > 0} onClick={sendManageCode}>{resendIn > 0 ? `Email again in ${resendIn} s` : 'Email me a code'}</Button>
                 )}
                 <Input className="w-48 text-center font-mono" value={offCode} onChange={(e) => setOffCode(e.target.value)} placeholder="Code" aria-label="Code" maxLength={16} />
-                <Button disabled={busy || !offCode.trim()} onClick={newCodes}>New recovery codes</Button>
+                {/* New recovery codes need a 6-digit code (a recovery code is refused there and would count as a wrong code). */}
+                <Button disabled={busy || !/^\d{6}$/.test(offCode.split(' ').join(''))} onClick={newCodes}>New recovery codes</Button>
                 <Button variant="ghost" className="text-danger-text" disabled={busy || !offCode.trim()} onClick={disable}>Turn off</Button>
               </div>
               {status.required && <p className="text-xs text-warning-text">2-step sign-in is required for admins: turning it off removes admin access until you set it up again.</p>}

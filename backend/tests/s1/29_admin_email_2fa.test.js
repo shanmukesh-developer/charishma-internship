@@ -35,6 +35,7 @@ const mfa = (mfaToken, body) => H.api('POST', '/api/users/login/mfa', null, { mf
 const resend = (mfaToken) => H.api('POST', '/api/users/login/mfa/resend', null, { mfaToken });
 const row = (admin) => H.ctx.M.AdminTwoFactor.findOne({ where: { userId: String(admin.id) } });
 const backdateSend = async (admin, ms = 61 * 1000) => (await row(admin)).update({ emailCodeSentAt: new Date(Date.now() - ms) });
+const lockedNow = (r) => !!(r && r.lockedUntil && new Date(r.lockedUntil).getTime() > Date.now());
 
 /** Turns email codes on for `admin` with address `email`. -> { token, recoveryCodes } */
 const enrolEmail = async (admin, email) => {
@@ -243,4 +244,98 @@ test('manage: send-code, then new recovery codes or turn off with the emailed co
   const rs = await resend(l.body.mfaToken);
   assert.strictEqual(rs.status, 400);
   assert.strictEqual(rs.body.code, 'MFA_NOT_EMAIL');
+});
+
+// ── review fixes (1 Nov evening) ──────────────────────────────────────────────────────────────────
+
+test('parallel wrong guesses never get more than 5 compares: the lock holds for email and authenticator codes', async () => {
+  // Email method: 20 wrong codes at once, then the right one.
+  const admin = await H.mkUser({ role: 'admin' });
+  const email = `burst.${admin.id.slice(0, 6)}@example.com`;
+  await enrolEmail(admin, email);
+  const l = await login(admin);
+  const good = lastCode(email);
+  const burst = await Promise.all(Array.from({ length: 20 }, () => mfa(l.body.mfaToken, { code: otherCode(good) })));
+  const compared = burst.filter((r) => r.status === 401).length;
+  assert.ok(compared <= 4, `at most 4 wrong answers before the lock (got ${compared})`);
+  assert.ok(burst.every((r) => [401, 429].includes(r.status)), burst.map((r) => r.status).join(','));
+  const after = await mfa(l.body.mfaToken, { code: good });
+  assert.notStrictEqual(after.status, 200, 'the right code after the burst does not sign in');
+  const fails = (await H.ctx.M.VerificationLog.findAll({ where: { adminId: String(admin.id), action: 'ADMIN_2FA_CODE_FAILED' } })).length;
+  assert.ok(fails <= 4, `wrong codes counted: ${fails}`);
+  assert.ok(lockedNow(await row(admin)), 'locked');
+
+  // Authenticator method: same burst.
+  const a2 = await H.mkUser({ role: 'admin' });
+  const s = await H.api('POST', '/api/admin/2fa/setup', a2.token, {});
+  const secret = s.body.secret.replace(/\s/g, '');
+  const en = await H.api('POST', '/api/admin/2fa/enable', a2.token, { code: T.hotp(T.base32Decode(secret), T.stepAt(Date.now())) });
+  assert.strictEqual(en.status, 200, JSON.stringify(en.body));
+  const l2 = await login(a2);
+  const right = T.hotp(T.base32Decode(secret), T.stepAt(Date.now()) + 1);
+  const wrongT = right === '000000' ? '111111' : '000000';
+  const burst2 = await Promise.all(Array.from({ length: 20 }, () => mfa(l2.body.mfaToken, { code: wrongT })));
+  assert.ok(burst2.filter((r) => r.status === 401).length <= 4, burst2.map((r) => r.status).join(','));
+  assert.strictEqual((await mfa(l2.body.mfaToken, { code: right })).status === 200, false, 'locked: the right app code is refused too');
+});
+
+test('parallel resends send one email; a code renews the recovery codes only once', async () => {
+  const admin = await H.mkUser({ role: 'admin' });
+  const email = `race.${admin.id.slice(0, 6)}@example.com`;
+  let { token } = await enrolEmail(admin, email);
+  const l = await login(admin);
+  await (await row(admin)).update({ emailCodeHash: null, emailCodeExpiresAt: null, emailCodeSentAt: null });
+  const before = outbox.length;
+  const countBefore = Number((await row(admin)).emailSendCount) || 0;
+  const rs = await Promise.all(Array.from({ length: 10 }, () => resend(l.body.mfaToken)));
+  assert.strictEqual(rs.filter((r) => r.status === 200).length, 1, rs.map((r) => r.status).join(','));
+  assert.strictEqual(outbox.length - before, 1, 'one email');
+  assert.strictEqual(Number((await row(admin)).emailSendCount), countBefore + 1);
+  // Two tabs renewing recovery codes with the same emailed code: exactly one wins.
+  const sc = await H.api('POST', '/api/admin/2fa/email/send-code', token, {});
+  assert.ok([200, 429].includes(sc.status), JSON.stringify(sc.body));
+  if (sc.status === 429) { await backdateSend(admin); await (await row(admin)).update({ emailCodeHash: null }); assert.strictEqual((await H.api('POST', '/api/admin/2fa/email/send-code', token, {})).status, 200); }
+  const code = lastCode(email);
+  const two = await Promise.all([1, 2].map(() => H.api('POST', '/api/admin/2fa/recovery-codes', token, { code })));
+  assert.strictEqual(two.filter((r) => r.status === 200).length, 1, two.map((r) => `${r.status}:${r.body && r.body.code}`).join(','));
+});
+
+test('sign-in keeps a code with time left (no second email), sends a new one when it is nearly used up, and says why when it cannot', async () => {
+  const admin = await H.mkUser({ role: 'admin' });
+  const email = `keep.${admin.id.slice(0, 6)}@example.com`;
+  await enrolEmail(admin, email);
+  outbox = [];
+  const l1 = await login(admin);
+  assert.strictEqual(l1.body.mfaExpiresIn, 600, 'the email sign-in step lasts as long as a code');
+  assert.strictEqual(outbox.length, 1);
+  const code = lastCode(email);
+  await backdateSend(admin, 2 * 60 * 1000);
+  const l2 = await login(admin);
+  assert.strictEqual(l2.body.emailSent, true);
+  assert.strictEqual(outbox.length, 1, 'no second email: the code in the inbox still works');
+  assert.match(l2.body.message, /latest/);
+  assert.strictEqual(l2.body.resendAfter, 0, 'sent 2 minutes ago: Resend is open');
+  // Less than 5 minutes left: a new code.
+  await (await row(admin)).update({ emailCodeExpiresAt: new Date(Date.now() + 3 * 60 * 1000) });
+  const l3 = await login(admin);
+  assert.strictEqual(l3.body.emailSent, true);
+  assert.strictEqual(outbox.length, 2, 'new code');
+  assert.notStrictEqual(lastCode(email), null);
+  const ok = await mfa(l3.body.mfaToken, { code: lastCode(email) });
+  assert.strictEqual(ok.status, 200, JSON.stringify(ok.body));
+  void code;
+  // Locked: no email, the reason, and Resend waits until the lock ends.
+  await (await row(admin)).update({ lockedUntil: new Date(Date.now() + 10 * 60 * 1000) });
+  outbox = [];
+  const lk = await login(admin);
+  assert.deepStrictEqual([lk.body.emailSent, lk.body.emailError], [false, 'locked']);
+  assert.match(lk.body.message, /locked/);
+  assert.ok(lk.body.resendAfter > 500, `resendAfter ${lk.body.resendAfter}`);
+  assert.strictEqual(outbox.length, 0);
+  await (await row(admin)).update({ lockedUntil: null, failedCount: 0 });
+  // Hourly limit: the reason too.
+  await (await row(admin)).update({ emailWindowStart: new Date(), emailSendCount: 10, emailCodeHash: null, emailCodeExpiresAt: null });
+  const cap = await login(admin);
+  assert.deepStrictEqual([cap.body.emailSent, cap.body.emailError], [false, 'hourly_cap']);
+  assert.match(cap.body.message, /this hour/);
 });

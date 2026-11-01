@@ -19,6 +19,7 @@
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const T = require('../utils/totp');
+const { Op } = require('sequelize');
 const { getAdminTwoFactorModel } = require('../models/AdminTwoFactor');
 
 const MFA_TOKEN_TTL_S = 5 * 60;
@@ -36,6 +37,8 @@ const MFA_PURPOSE = 'admin_mfa';
 const EMAIL_CODE_TTL_MS = 10 * 60 * 1000;
 const EMAIL_RESEND_MS = 60 * 1000;
 const EMAIL_MAX_PER_HOUR = 10;
+// At sign-in a code with at least this long left is kept (signing in again never kills the code in the inbox).
+const EMAIL_REUSE_MIN_LEFT_MS = 5 * 60 * 1000;
 const EMAIL_RE = /^[^\s@<>()]+@[^\s@<>()]+\.[^\s@<>()]{2,}$/;
 
 const required = (env = process.env) => ['1', 'true', 'yes'].includes(String(env.ADMIN_2FA_REQUIRED || '').trim().toLowerCase());
@@ -121,7 +124,9 @@ const issueEmailCode = async (row, to, purpose, req, { reuseRecent = false } = {
     emailSendCount: count + 1,
   };
   const M = await getAdminTwoFactorModel();
-  await M.update(fields, { where: { id: row.id } });
+  // Only the request that still sees the code and count it read may send: parallel resends send one email.
+  const [won] = await M.update(fields, { where: { id: row.id, emailCodeHash: row.emailCodeHash || null, emailSendCount: row.emailSendCount === undefined ? null : row.emailSendCount } });
+  if (!won) return reuseRecent ? { sent: true, reused: true } : { sent: false, reason: 'too_soon', retryAfter: RESEND_S };
   Object.assign(row, fields);
   const r = await sendCodeEmail(to, code, purpose);
   if (!r || !r.ok) {
@@ -140,7 +145,11 @@ const emailSendError = (r, ctx = 'dashboard') => {
   if (r.reason === 'too_soon') return { status: 429, body: { code: 'MFA_EMAIL_TOO_SOON', message: `A code was just sent. You can ask for a new one in ${r.retryAfter} seconds.`, retryAfter: r.retryAfter } };
   if (r.reason === 'hourly_cap') return { status: 429, body: { code: 'MFA_EMAIL_LIMIT', message: 'Too many code emails this hour. Wait a while or use a recovery code.', retryAfter: r.retryAfter } };
   if (r.reason === 'not_configured') {
-    return { status: 503, body: { code: 'MFA_EMAIL_UNAVAILABLE', message: ctx === 'login' ? 'Code emails are not working on the server right now. Use a recovery code.' : 'Email sending is not set up on the server (Render > Environment > BREVO_API_KEY). Use the authenticator app instead.' } };
+    const message = {
+      login: 'Code emails are not working on the server right now. Use a recovery code.',
+      manage: 'Code emails are not working on the server right now. Use a recovery code to turn 2-step sign-in off.',
+    }[ctx] || 'Email sending is not set up on the server (Render > Environment > BREVO_API_KEY). Use the authenticator app instead.';
+    return { status: 503, body: { code: 'MFA_EMAIL_UNAVAILABLE', message } };
   }
   return { status: 502, body: { code: 'MFA_EMAIL_FAILED', message: ctx === 'login' ? 'The code email could not be sent. Try again in a minute, or use a recovery code.' : 'The email could not be sent. Check the address and try again in a minute.' } };
 };
@@ -193,16 +202,43 @@ const lockInfo = (row) => {
 };
 const lockedBody = (li) => ({ code: 'MFA_LOCKED', message: 'Too many wrong codes. 2-step sign-in is locked for 15 minutes.', retryAfter: li.retryAfter, lockedUntil: new Date(li.until).toISOString() });
 
-/** A wrong code: count it, lock after MAX_FAILS (and void the sign-in challenge). Returns the reply body. */
-const recordFailure = async (row, userId, what, req) => {
+/**
+ * Takes one attempt from the allowance BEFORE a code is compared, in one conditional UPDATE: parallel guesses can
+ * never get more than MAX_FAILS compares per lock (a read-then-check let hundreds through at once; review 1 Nov).
+ * Out of attempts: the lock is set (once) and the sign-in step voided.
+ * -> { ok: true, count } | { ok: false, status: 429, body }
+ */
+const reserveAttempt = async (row, what, req) => {
   const M = await getAdminTwoFactorModel();
-  await M.increment('failedCount', { by: 1, where: { id: row.id } });
+  const qi = M.sequelize.getQueryInterface();
+  const [n] = await M.update({ failedCount: M.sequelize.literal(`${qi.quoteIdentifier('failedCount')} + 1`) }, {
+    where: { id: row.id, failedCount: { [Op.lt]: MAX_FAILS }, [Op.or]: [{ lockedUntil: null }, { lockedUntil: { [Op.lt]: new Date() } }] },
+  });
+  if (n === 1) {
+    const fresh = await M.findByPk(row.id, { attributes: ['failedCount'] });
+    return { ok: true, count: Number(fresh && fresh.failedCount) || 0 };
+  }
   const fresh = await M.findByPk(row.id);
-  const n = Number(fresh.failedCount) || 0;
+  let li = lockInfo(fresh);
+  if (!li.locked) {
+    const until = new Date(Date.now() + LOCK_MS);
+    const [m] = await M.update({ failedCount: 0, lockedUntil: until, mfaJti: null }, { where: { id: row.id, failedCount: { [Op.gte]: MAX_FAILS } } });
+    if (m) await audit(row.userId, 'ADMIN_2FA_LOCKED', { what, fails: MAX_FAILS }, req);
+    li = lockInfo(m ? { lockedUntil: until } : await M.findByPk(row.id));
+    if (!li.locked) li = lockInfo({ lockedUntil: until });
+  }
+  return { ok: false, status: 429, body: lockedBody(li) };
+};
+
+/** A wrong code (its attempt already reserved, `count` = attempts used): lock at MAX_FAILS and void the sign-in step. */
+const recordFailure = async (row, userId, what, req, count) => {
+  const M = await getAdminTwoFactorModel();
+  const n = Number(count) || 0;
   if (n >= MAX_FAILS) {
-    await M.update({ failedCount: 0, lockedUntil: new Date(Date.now() + LOCK_MS), mfaJti: null }, { where: { id: row.id } });
+    const until = new Date(Date.now() + LOCK_MS);
+    await M.update({ failedCount: 0, lockedUntil: until, mfaJti: null }, { where: { id: row.id } });
     await audit(userId, 'ADMIN_2FA_LOCKED', { what, fails: n }, req);
-    return { status: 429, body: lockedBody(lockInfo({ lockedUntil: new Date(Date.now() + LOCK_MS) })) };
+    return { status: 429, body: lockedBody(lockInfo({ lockedUntil: until })) };
   }
   await audit(userId, 'ADMIN_2FA_CODE_FAILED', { what, fails: n }, req);
   const message = isEmailMethod(row) || String(what).startsWith('email')
@@ -219,11 +255,13 @@ const checkEmailCode = async (row, code, { what, req }) => {
   if (!(row.emailCodeHash && row.emailCodeExpiresAt && new Date(row.emailCodeExpiresAt).getTime() > Date.now())) {
     return { ok: false, status: 401, body: { code: 'MFA_CODE_EXPIRED', message: 'That code expired or was already used. Send a new code.' } };
   }
+  const slot = await reserveAttempt(row, what, req);
+  if (!slot.ok) return slot;
   const digits = String(code || '').replace(/\s/g, '');
   const want = Buffer.from(String(row.emailCodeHash));
   const got = Buffer.from(/^\d{6}$/.test(digits) ? hashEmailCode(row.userId, digits) : '');
   if (want.length !== got.length || !crypto.timingSafeEqual(want, got)) {
-    const f = await recordFailure(row, row.userId, what, req);
+    const f = await recordFailure(row, row.userId, what, req, slot.count);
     return { ok: false, ...f };
   }
   return { ok: true, method: 'email', consume: { emailCodeHash: null, emailCodeExpiresAt: null }, prevEmailHash: row.emailCodeHash };
@@ -246,12 +284,14 @@ const checkSecondFactor = async (row, { code, recoveryCode }, { allowRecovery = 
   const li = lockInfo(row);
   if (li.locked) return { ok: false, status: 429, body: lockedBody(li) };
   if (recoveryCode && allowRecovery) {
+    const slot = await reserveAttempt(row, `${what}:recovery`, req);
+    if (!slot.ok) return slot;
     const h = T.hashRecoveryCode(recoveryCode);
     const list = parseRecovery(row);
     // stored values are SHA-256 hashes (fixed length): comparing hashes leaks nothing about the code
     const idx = list.findIndex((x) => x && !x.usedAt && typeof x.h === 'string' && x.h.length === h.length && crypto.timingSafeEqual(Buffer.from(x.h), Buffer.from(h)));
     if (idx === -1 || T.normalizeRecoveryCode(recoveryCode).length !== 10) {
-      const f = await recordFailure(row, row.userId, `${what}:recovery`, req);
+      const f = await recordFailure(row, row.userId, `${what}:recovery`, req, slot.count);
       return { ok: false, ...f };
     }
     list[idx] = { ...list[idx], usedAt: new Date().toISOString() };
@@ -263,9 +303,11 @@ const checkSecondFactor = async (row, { code, recoveryCode }, { allowRecovery = 
     console.error('[ADMIN_2FA_DECRYPT_ERROR]', err.message);
     return { ok: false, status: 500, body: { code: 'MFA_KEY_ERROR', message: 'The 2-step key cannot be read on the server (TOTP_ENC_KEY changed?). Use a recovery code.' } };
   }
+  const slot = await reserveAttempt(row, what, req);
+  if (!slot.ok) return slot;
   const step = T.verify(dec.secret, code, { lastUsedStep: row.lastUsedStep === null || row.lastUsedStep === undefined ? null : Number(row.lastUsedStep) });
   if (step === null) {
-    const f = await recordFailure(row, row.userId, what, req);
+    const f = await recordFailure(row, row.userId, what, req, slot.count);
     return { ok: false, ...f };
   }
   const consume = { lastUsedStep: step };
@@ -276,28 +318,49 @@ const checkSecondFactor = async (row, { code, recoveryCode }, { allowRecovery = 
 // ── sign-in challenge ────────────────────────────────────────────────────────────────────────────
 /**
  * Called by sendSession for admins. -> { mfaRequired, mfaToken, expiresIn, method, emailHint?, emailSent?,
- * resendAfter? } | { setupRequired } | {}. On an email-method row the code is emailed here (a code sent under a
- * minute ago still counts); a failed email still answers mfaRequired, so a recovery code can finish the sign-in.
+ * emailError?, resendAfter?, message? } | { setupRequired } | {}. On an email-method row the code is emailed here;
+ * a code with 5+ minutes left is kept instead (signing in again never kills the code already in the inbox), and
+ * the sign-in step then lasts as long as a code (10 min). When no email goes out (locked, hourly cap, email off,
+ * send failed) the step still opens with the reason: Resend later, or a recovery code, finishes the sign-in.
  */
+const EMAIL_GATE_MESSAGES = {
+  locked: 'Too many wrong codes. 2-step sign-in is locked for 15 minutes. Then sign in again.',
+  hourly_cap: 'Too many code emails this hour. Use a recovery code, or try again later.',
+  not_configured: 'Code emails are not working on the server right now. Use a recovery code.',
+  send_failed: 'The code email could not be sent. Send a new code, or use a recovery code.',
+};
 const loginGate = async (user) => {
   const row = await getRow(user.id);
   if (row && row.enabled) {
     const secret = mfaSecret();
     if (!secret) throw new Error('JWT_SECRET missing');
+    const emailMethod = isEmailMethod(row);
+    const ttl = emailMethod ? Math.round(EMAIL_CODE_TTL_MS / 1000) : MFA_TOKEN_TTL_S;
     const jti = crypto.randomBytes(16).toString('hex');
     const M = await getAdminTwoFactorModel();
     await M.update({ mfaJti: jti }, { where: { id: row.id } });
-    const mfaToken = jwt.sign({ sub: String(user.id), tv: Number(user.tokenVersion) || 0, purpose: MFA_PURPOSE, jti }, secret, { expiresIn: MFA_TOKEN_TTL_S });
-    if (isEmailMethod(row)) {
-      const sent = lockInfo(row).locked ? { sent: false, reason: 'locked' } : await issueEmailCode(row, row.email, 'login', null, { reuseRecent: true });
-      await audit(user.id, 'ADMIN_2FA_CHALLENGE', { method: 'email', emailSent: !!sent.sent });
+    const mfaToken = jwt.sign({ sub: String(user.id), tv: Number(user.tokenVersion) || 0, purpose: MFA_PURPOSE, jti }, secret, { expiresIn: ttl });
+    if (emailMethod) {
+      const now = Date.now();
+      const li = lockInfo(row);
+      const left = row.emailCodeHash && row.emailCodeExpiresAt ? new Date(row.emailCodeExpiresAt).getTime() - now : 0;
+      let sent;
+      if (li.locked) sent = { sent: false, reason: 'locked', retryAfter: li.retryAfter };
+      else if (left >= EMAIL_REUSE_MIN_LEFT_MS) sent = { sent: true, reused: true };
+      else sent = await issueEmailCode(row, row.email, 'login', null, { reuseRecent: true });
+      const sinceSend = row.emailCodeSentAt ? now - new Date(row.emailCodeSentAt).getTime() : EMAIL_RESEND_MS;
+      const hint = maskEmail(row.email);
+      await audit(user.id, 'ADMIN_2FA_CHALLENGE', { method: 'email', emailSent: !!sent.sent, reused: !!sent.reused, reason: sent.reason || null });
       return {
-        mfaRequired: true, mfaToken, expiresIn: MFA_TOKEN_TTL_S, method: 'email', emailHint: maskEmail(row.email),
-        emailSent: !!sent.sent, resendAfter: sent.sent ? RESEND_S : (sent.retryAfter || 0),
+        mfaRequired: true, mfaToken, expiresIn: ttl, method: 'email', emailHint: hint, emailSent: !!sent.sent, emailError: sent.sent ? null : sent.reason,
+        resendAfter: sent.sent ? Math.max(0, Math.ceil((EMAIL_RESEND_MS - sinceSend) / 1000)) : (sent.retryAfter || 0),
+        message: sent.sent
+          ? (sent.reused ? `Enter the latest 6-digit code we emailed to ${hint}.` : `Enter the 6-digit code we emailed to ${hint}.`)
+          : (EMAIL_GATE_MESSAGES[sent.reason] || EMAIL_GATE_MESSAGES.send_failed),
       };
     }
     await audit(user.id, 'ADMIN_2FA_CHALLENGE', {});
-    return { mfaRequired: true, mfaToken, expiresIn: MFA_TOKEN_TTL_S, method: 'totp' };
+    return { mfaRequired: true, mfaToken, expiresIn: ttl, method: 'totp' };
   }
   if (required()) return { setupRequired: true };
   return {};
@@ -429,9 +492,11 @@ const enable = async (req, res) => {
   if (li.locked) return res.status(429).json(lockedBody(li));
   let secret;
   try { secret = T.decryptSecret(row.pendingSecretEnc).secret; } catch { return res.status(409).json({ code: 'MFA_SETUP_REQUIRED', message: 'Start the setup again.' }); }
+  const slot = await reserveAttempt(row, 'enable', req);
+  if (!slot.ok) return res.status(slot.status).json(slot.body);
   const step = T.verify(secret, (req.body || {}).code);
   if (step === null) {
-    const f = await recordFailure(row, req.user.id, 'enable', req);
+    const f = await recordFailure(row, req.user.id, 'enable', req, slot.count);
     return res.status(codeStatus(f.status)).json(f.body);
   }
   const rc = newRecoverySet();
@@ -467,7 +532,12 @@ const regenerateRecoveryCodes = async (req, res) => {
   if (!r.ok) return res.status(codeStatus(r.status)).json(r.body);
   const rc = newRecoverySet();
   const M = await getAdminTwoFactorModel();
-  await M.update({ ...r.consume, recoveryCodes: rc.stored, failedCount: 0 }, { where: { id: row.id } });
+  // One code, one new set: two requests with the same code (two tabs) must not both "succeed" with different sets.
+  const where = { id: row.id };
+  if (r.method === 'email') where.emailCodeHash = r.prevEmailHash;
+  if (r.method === 'totp') where.lastUsedStep = row.lastUsedStep === undefined ? null : row.lastUsedStep;
+  const [n] = await M.update({ ...r.consume, recoveryCodes: rc.stored, failedCount: 0 }, { where });
+  if (!n) return res.status(409).json({ code: 'MFA_CODE_USED', message: 'That code was just used. Get a new code and try again.' });
   await audit(req.user.id, 'ADMIN_2FA_RECOVERY_CODES_RENEWED', {}, req);
   res.set('Cache-Control', 'no-store');
   res.json({ recoveryCodes: rc.codes, message: 'New recovery codes. The old ones no longer work.' });
@@ -528,7 +598,7 @@ const emailSendCode = async (req, res) => {
   if (li.locked) return res.status(429).json(lockedBody(li));
   const r = await issueEmailCode(row, row.email, 'manage', req);
   if (!r.sent) {
-    const e = emailSendError(r);
+    const e = emailSendError(r, 'manage');
     return res.status(e.status).json(e.body);
   }
   res.set('Cache-Control', 'no-store');

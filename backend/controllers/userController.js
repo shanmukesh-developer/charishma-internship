@@ -148,8 +148,8 @@ const sendSession = async (res, user, status = 200, { skipCookie = false, mfaVer
       if (gate.method === 'email') {
         return res.status(200).json({
           mfaRequired: true, mfaToken: gate.mfaToken, mfaExpiresIn: gate.expiresIn, mfaMethod: 'email',
-          emailHint: gate.emailHint, emailSent: gate.emailSent, resendAfter: gate.resendAfter,
-          message: gate.emailSent ? `Enter the 6-digit code we emailed to ${gate.emailHint}.` : 'The code email could not be sent. Send a new code, or use a recovery code.',
+          emailHint: gate.emailHint, emailSent: gate.emailSent, emailError: gate.emailError, resendAfter: gate.resendAfter,
+          message: gate.message,
         });
       }
       return res.status(200).json({ mfaRequired: true, mfaToken: gate.mfaToken, mfaExpiresIn: gate.expiresIn, mfaMethod: 'totp', message: 'Enter the 6-digit code from your authenticator app.' });

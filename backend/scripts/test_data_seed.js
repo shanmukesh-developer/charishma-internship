@@ -157,7 +157,8 @@ const runTestDataSeed = async ({ dataPath = DATA_PATH } = {}) => {
 };
 
 // Owner switch REMOVE_TEST_DATA=true (Render > Environment; saving it restarts the server): every start while it is
-// set removes the test stores the seed created (ledger 'test-store' ids only, never another store), same steps as
+// set removes the test stores the seed created (ledger 'test-store' ids whose name still starts with "ZCS Test"; a
+// renamed one is the owner's and stays; never another store), same steps as
 // scripts/remove_all_stores_v1: open orders on them are cancelled and refunded like any cancel, a store with order
 // history is hidden (isActive false, items unavailable) so its orders keep their store, the rest are deleted with
 // their items. The ledger stays, so the seed never re-creates a removed store.
@@ -177,8 +178,10 @@ const removeTestData = async () => {
   if (!sequelize || !Restaurant || !MenuItem || !Ledger || !Order) return { skipped: 'models not ready' };
 
   const ids = (await Ledger.findAll({ where: { kind: KIND_STORE }, attributes: ['targetId'] })).map((r) => r.targetId);
-  const stores = ids.length ? await Restaurant.findAll({ where: { id: { [Op.in]: ids } }, attributes: ['id', 'name'] }) : [];
-  const result = { stores: stores.length, ordersCancelled: 0, deleted: 0, hidden: 0, failed: [] };
+  const found = ids.length ? await Restaurant.findAll({ where: { id: { [Op.in]: ids } }, attributes: ['id', 'name'] }) : [];
+  // A test store the owner renamed (made into a real store) is theirs now: never removed.
+  const stores = found.filter((s) => /^zcs test /i.test(String(s.name || '')));
+  const result = { stores: stores.length, kept: found.length - stores.length, ordersCancelled: 0, deleted: 0, hidden: 0, failed: [] };
   if (!stores.length) return result;
   const storeIds = stores.map((s) => s.id);
 

@@ -6,7 +6,8 @@ const { DataTypes } = require('sequelize');
 
 let Model = null;
 let ready = null;
-// For /api/health?infra=1: 'ready' once the table and its columns are in place, else the last error.
+// For /api/health?infra=1 (public): 'ready' once the table and its columns are in place, 'error' after a
+// failure (the message goes to the server log only).
 let state = 'not loaded';
 
 const define = (sequelize) => sequelize.define('AdminTwoFactor', {
@@ -70,7 +71,7 @@ const getAdminTwoFactorModel = async () => {
   if (!ready) {
     const m = Model;
     ready = m.sync().then(() => addMissingColumns(m)).then((x) => { state = 'ready'; return x; })
-      .catch((err) => { ready = null; state = `error: ${String(err && err.message).slice(0, 120)}`; throw err; });
+      .catch((err) => { ready = null; state = 'error'; console.error('[ADMIN_2FA_TABLE_ERROR]', err && err.message); throw err; });
   }
   return ready;
 };

@@ -130,7 +130,8 @@ export default function AdminLoginPage() {
         return;
       }
       if (data.code === 'MFA_TOKEN_INVALID' || data.code === 'MFA_TOKEN_USED') backToPassword();
-      if (Number(data.retryAfter) > 0 && data.code === 'MFA_EMAIL_TOO_SOON') setResendIn(Number(data.retryAfter));
+      // Too soon, hourly limit or locked: Resend waits as long as the server says.
+      if (Number(data.retryAfter) > 0) setResendIn(Number(data.retryAfter));
       setError(data.message || 'Could not send a new code. Please try again.');
     } catch {
       setError('Could not reach the ZCS server. Check your connection and try again.');
@@ -172,7 +173,8 @@ export default function AdminLoginPage() {
         setEmailHint(data.emailHint || '');
         setResendIn(Number(data.resendAfter) || 0);
         setInfo('');
-        // The code email did not go out: say so (Resend, or a recovery code, still finishes the sign-in).
+        // No email went out (locked, hourly limit, email off, send failed): the server says which; Resend later, or
+        // a recovery code, still finishes the sign-in.
         if (data.mfaMethod === 'email' && data.emailSent === false) setError(data.message || 'The code email could not be sent. Send a new code, or use a recovery code.');
         return;
       }
@@ -231,7 +233,7 @@ export default function AdminLoginPage() {
                     {useRecovery
                       ? 'Enter one of your recovery codes. Each code works once.'
                       : emailMethod
-                        ? `We emailed a 6-digit code to ${emailHint || 'your email'}. It expires in 10 minutes.`
+                        ? `We emailed a 6-digit code to ${emailHint || 'your email'}. Each code works for 10 minutes: use the latest one.`
                         : 'Open your authenticator app and enter the 6-digit code for ZCS Admin.'}
                   </p>
                 </div>
@@ -265,7 +267,7 @@ export default function AdminLoginPage() {
                     disabled={loading || resendIn > 0}
                     className="inline-flex h-9 w-full items-center justify-center rounded-md border border-line text-sm font-medium text-fg transition-colors hover:bg-surface-2 disabled:opacity-50"
                   >
-                    {resendIn > 0 ? `Resend code in ${resendIn} s` : 'Resend code'}
+                    {resendIn > 120 ? `Resend code in ${Math.ceil(resendIn / 60)} min` : resendIn > 0 ? `Resend code in ${resendIn} s` : 'Resend code'}
                   </button>
                 )}
                 {info && <p role="status" className="text-sm text-success-text">{info}</p>}
