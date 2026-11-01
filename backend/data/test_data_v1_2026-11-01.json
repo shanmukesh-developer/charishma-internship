@@ -1,0 +1,522 @@
+{
+  "version": 1,
+  "note": "Owner, 1 Nov 2026: \"add some mock data for testing things ... in data base not locally\". Six invented test stores (every name starts with ZCS Test, none is a real shop), one per customer-app section: Food (restaurant, cafe, bakery), Groceries (mart, stationery) and the Home local vendor stalls. No partner login, no phone, no WhatsApp number, no UPI ID, no FSSAI number, no rating, no offer. Photos: images.unsplash.com (Unsplash License), the same ones the earlier imports used. Visible to every college, open all day.",
+  "defaults": {
+    "location": "ZCS test store (not a real shop)",
+    "zone": "Amaravathi_Central",
+    "operatingHours": {
+      "start": "00:00",
+      "end": "23:59"
+    }
+  },
+  "stores": [
+    {
+      "key": "test-data-v1:kitchen",
+      "name": "ZCS Test Kitchen",
+      "vendorType": "RESTAURANT",
+      "imageUrl": "https://images.unsplash.com/photo-1625398407796-82650a8c135f?w=600&q=70&auto=format&fit=crop",
+      "tags": [
+        "biryani",
+        "meals",
+        "chinese",
+        "test"
+      ],
+      "deliveryTime": 35,
+      "stallDescription": "Test store for trying the app: biryani, meals and noodles. Orders here are for testing only.",
+      "items": [
+        {
+          "key": "test-data-v1:kitchen:chicken-dum-biryani",
+          "name": "Chicken Dum Biryani",
+          "price": 199,
+          "category": "Biryani",
+          "dietType": "nonveg",
+          "description": "Basmati rice slow-cooked with spiced chicken. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:kitchen:veg-biryani",
+          "name": "Veg Biryani",
+          "price": 149,
+          "category": "Biryani",
+          "dietType": "veg",
+          "description": "Basmati rice with mixed vegetables and whole spices. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1642821373181-696a54913e93?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:kitchen:egg-biryani",
+          "name": "Egg Biryani",
+          "price": 159,
+          "category": "Biryani",
+          "dietType": "egg",
+          "description": "Biryani rice with two masala eggs. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:kitchen:andhra-chicken-meals",
+          "name": "Andhra Chicken Meals",
+          "price": 179,
+          "category": "Meals",
+          "dietType": "nonveg",
+          "description": "Rice, chicken curry, dal, rasam and curd. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:kitchen:veg-fried-rice",
+          "name": "Veg Fried Rice",
+          "price": 129,
+          "category": "Rice and noodles",
+          "dietType": "veg",
+          "description": "Wok-tossed rice with vegetables. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1512058564366-18510be2db19?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:kitchen:veg-hakka-noodles",
+          "name": "Veg Hakka Noodles",
+          "price": 119,
+          "category": "Rice and noodles",
+          "dietType": "veg",
+          "description": "Noodles tossed with cabbage, carrot and capsicum. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1630409346824-4f0e7b080087?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:kitchen:chicken-rice-bowl",
+          "name": "Chicken Rice Bowl",
+          "price": 169,
+          "category": "Rice and noodles",
+          "dietType": "nonveg",
+          "description": "Grilled chicken on rice with salad. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:kitchen:paneer-salad-bowl",
+          "name": "Paneer Salad Bowl",
+          "price": 139,
+          "category": "Healthy",
+          "dietType": "veg",
+          "description": "Paneer cubes with greens and a lemon dressing. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1505576633757-0ac1084af824?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:kitchen:chocolate-brownie",
+          "name": "Chocolate Brownie",
+          "price": 79,
+          "category": "Desserts",
+          "dietType": "veg",
+          "description": "Eggless fudge brownie. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=600&q=70&auto=format&fit=crop"
+        }
+      ]
+    },
+    {
+      "key": "test-data-v1:cafe",
+      "name": "ZCS Test Cafe",
+      "vendorType": "CAFE",
+      "imageUrl": "https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=600&q=70&auto=format&fit=crop",
+      "tags": [
+        "coffee",
+        "shakes",
+        "burgers",
+        "test"
+      ],
+      "deliveryTime": 25,
+      "stallDescription": "Test store for trying the app: tea, coffee, shakes and snacks. Orders here are for testing only.",
+      "items": [
+        {
+          "key": "test-data-v1:cafe:cutting-chai",
+          "name": "Cutting Chai",
+          "price": 15,
+          "category": "Tea and coffee",
+          "dietType": "veg",
+          "description": "Half-glass ginger milk tea. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1630748662359-40a2105640c7?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:cafe:lemon-tea",
+          "name": "Lemon Tea",
+          "price": 25,
+          "category": "Tea and coffee",
+          "dietType": "veg",
+          "description": "Black tea with lemon and a little sugar. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1571934811356-5cc061b6821f?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:cafe:hot-coffee",
+          "name": "Hot Coffee",
+          "price": 30,
+          "category": "Tea and coffee",
+          "dietType": "veg",
+          "description": "Milk coffee, frothed. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:cafe:chocolate-shake",
+          "name": "Chocolate Shake",
+          "price": 99,
+          "category": "Shakes",
+          "dietType": "veg",
+          "description": "Thick chocolate milkshake. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1577805947697-89e18249d767?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:cafe:strawberry-shake",
+          "name": "Strawberry Shake",
+          "price": 99,
+          "category": "Shakes",
+          "dietType": "veg",
+          "description": "Strawberry milkshake. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1579954115545-a95591f28bfc?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:cafe:veg-grilled-sandwich",
+          "name": "Veg Grilled Sandwich",
+          "price": 89,
+          "category": "Snacks",
+          "dietType": "veg",
+          "description": "Grilled sandwich with vegetables and cheese. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1567234669003-dce7a7a88821?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:cafe:veg-burger",
+          "name": "Veg Burger",
+          "price": 99,
+          "category": "Snacks",
+          "dietType": "veg",
+          "description": "Crispy veg patty with lettuce and sauce. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:cafe:peri-peri-fries",
+          "name": "Peri Peri Fries",
+          "price": 89,
+          "category": "Snacks",
+          "dietType": "veg",
+          "description": "Fries with peri peri seasoning. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:cafe:bread-omelette",
+          "name": "Bread Omelette",
+          "price": 59,
+          "category": "Snacks",
+          "dietType": "egg",
+          "description": "Masala omelette in toasted bread. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1525351484163-7529414344d8?w=600&q=70&auto=format&fit=crop"
+        }
+      ]
+    },
+    {
+      "key": "test-data-v1:bakery",
+      "name": "ZCS Test Bakery",
+      "vendorType": "BAKERY",
+      "imageUrl": "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=600&q=70&auto=format&fit=crop",
+      "tags": [
+        "bakery",
+        "desserts",
+        "test"
+      ],
+      "deliveryTime": 30,
+      "stallDescription": "Test store for trying the app: eggless bakes and desserts. Orders here are for testing only.",
+      "items": [
+        {
+          "key": "test-data-v1:bakery:vanilla-cupcake",
+          "name": "Eggless Vanilla Cupcake",
+          "price": 49,
+          "category": "Cakes and pastries",
+          "dietType": "veg",
+          "description": "Vanilla cupcake with buttercream. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1576618148400-f54bed99fcfd?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:bakery:choco-chip-cookies",
+          "name": "Eggless Choco Chip Cookies (4 pcs)",
+          "price": 69,
+          "category": "Cookies",
+          "dietType": "veg",
+          "description": "Four chocolate chip cookies. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1548365328-8c6db3220e4c?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:bakery:whole-wheat-bread",
+          "name": "Whole Wheat Bread",
+          "price": 45,
+          "category": "Breads",
+          "dietType": "veg",
+          "description": "Soft sliced whole wheat loaf. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:bakery:brownie-sundae",
+          "name": "Brownie Sundae",
+          "price": 129,
+          "category": "Desserts",
+          "dietType": "veg",
+          "description": "Warm eggless brownie with vanilla ice cream. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1551024506-0bccd828d307?w=600&q=70&auto=format&fit=crop"
+        }
+      ]
+    },
+    {
+      "key": "test-data-v1:mart",
+      "name": "ZCS Test Mart",
+      "vendorType": "GROCERY",
+      "imageUrl": "https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&q=70&auto=format&fit=crop",
+      "tags": [
+        "grocery",
+        "snacks",
+        "essentials",
+        "test"
+      ],
+      "deliveryTime": 40,
+      "stallDescription": "Test store for trying the app: snacks, staples, fruit and daily needs. Orders here are for testing only.",
+      "items": [
+        {
+          "key": "test-data-v1:mart:instant-noodles",
+          "name": "Instant Masala Noodles (Pack of 4)",
+          "price": 56,
+          "category": "Instant & Frozen Food",
+          "dietType": "veg",
+          "description": "Four packs of masala instant noodles. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1612927601601-6638404737ce?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:mart:tomato-soup-mix",
+          "name": "Tomato Soup Mix",
+          "price": 60,
+          "category": "Instant & Frozen Food",
+          "dietType": "veg",
+          "description": "Instant tomato soup, four servings. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1547592180-85f173990554?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:mart:salted-chips",
+          "name": "Classic Salted Potato Chips",
+          "price": 20,
+          "category": "Chips & Namkeens",
+          "dietType": "veg",
+          "description": "Thin salted potato chips. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:mart:cream-biscuits",
+          "name": "Chocolate Cream Biscuits",
+          "price": 30,
+          "category": "Biscuits & Cakes",
+          "dietType": "veg",
+          "description": "Chocolate sandwich biscuits with cream filling. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:mart:drinking-water",
+          "name": "Packaged Drinking Water (500 ml)",
+          "price": 10,
+          "category": "Drinks & Juices",
+          "dietType": "veg",
+          "description": "Half-litre bottle. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1523362628745-0c100150b504?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:mart:instant-coffee",
+          "name": "Instant Coffee Jar (50 g)",
+          "price": 175,
+          "category": "Tea & Coffee",
+          "dietType": "veg",
+          "description": "Instant coffee powder. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:mart:toned-milk",
+          "name": "Toned Milk (500 ml)",
+          "price": 28,
+          "category": "Dairy",
+          "dietType": "veg",
+          "description": "Pasteurised toned milk. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:mart:wheat-atta",
+          "name": "Whole Wheat Atta (1 kg)",
+          "price": 62,
+          "category": "Atta & Flours",
+          "dietType": "veg",
+          "description": "Stone-ground whole wheat flour. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:mart:kabuli-chana",
+          "name": "Kabuli Chana (500 g)",
+          "price": 85,
+          "category": "Dals & Pulses",
+          "dietType": "veg",
+          "description": "White chickpeas for chole. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:mart:bananas",
+          "name": "Bananas (6 pcs)",
+          "price": 48,
+          "category": "Fresh Fruits",
+          "dietType": "veg",
+          "description": "Ripe robusta bananas. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:mart:apples",
+          "name": "Royal Gala Apples (4 pcs)",
+          "price": 140,
+          "category": "Fresh Fruits",
+          "dietType": "veg",
+          "description": "Crisp red apples. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:mart:detergent",
+          "name": "Detergent Powder (1 kg)",
+          "price": 99,
+          "category": "Detergents & Cleaning",
+          "dietType": null,
+          "description": "Washing powder for hand and machine wash. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:mart:handwash-refill",
+          "name": "Liquid Handwash Refill (750 ml)",
+          "price": 99,
+          "category": "Health",
+          "dietType": null,
+          "description": "Germ-protection handwash refill pouch. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:mart:shampoo",
+          "name": "Anti-dandruff Shampoo (180 ml)",
+          "price": 165,
+          "category": "Bath, Body & Hair",
+          "dietType": null,
+          "description": "Everyday anti-dandruff shampoo. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?w=600&q=70&auto=format&fit=crop"
+        }
+      ]
+    },
+    {
+      "key": "test-data-v1:stationery",
+      "name": "ZCS Test Stationery",
+      "vendorType": "STATIONERY",
+      "imageUrl": "https://images.unsplash.com/photo-1456735190827-d1262f71b8a3?w=600&q=70&auto=format&fit=crop",
+      "tags": [
+        "stationery",
+        "notebooks",
+        "test"
+      ],
+      "deliveryTime": 40,
+      "stallDescription": "Test store for trying the app: notebooks, pens and exam needs. Orders here are for testing only.",
+      "items": [
+        {
+          "key": "test-data-v1:stationery:spiral-notebooks",
+          "name": "Spiral Notebooks (3 pcs)",
+          "price": 150,
+          "category": "Notebooks",
+          "dietType": null,
+          "description": "Three ruled spiral notebooks. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1531346878377-a5be20888e57?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:stationery:ball-pens",
+          "name": "Blue Ball Pens (10 pcs)",
+          "price": 100,
+          "category": "Pens",
+          "dietType": null,
+          "description": "Smooth blue ball pens. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:stationery:calculator",
+          "name": "Scientific Calculator",
+          "price": 950,
+          "category": "Calculators",
+          "dietType": null,
+          "description": "Non-programmable scientific calculator for exams. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1587145820266-a5951ee6f620?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:stationery:a4-paper",
+          "name": "A4 Paper (100 sheets)",
+          "price": 90,
+          "category": "Paper",
+          "dietType": null,
+          "description": "Plain white A4 sheets. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1456735190827-d1262f71b8a3?w=600&q=70&auto=format&fit=crop"
+        }
+      ]
+    },
+    {
+      "key": "test-data-v1:stall",
+      "name": "ZCS Test Chai Stall",
+      "vendorType": "LOCAL_VENDOR",
+      "imageUrl": "https://images.unsplash.com/photo-1630748662359-40a2105640c7?w=600&q=70&auto=format&fit=crop",
+      "tags": [
+        "chai",
+        "tiffin",
+        "dosa",
+        "test"
+      ],
+      "deliveryTime": null,
+      "stallDescription": "Test stall for trying the app: chai, coffee and tiffins. Orders here are for testing only.",
+      "items": [
+        {
+          "key": "test-data-v1:stall:masala-chai",
+          "name": "Masala Chai",
+          "price": 15,
+          "category": "Chai and coffee",
+          "dietType": "veg",
+          "description": "Milk tea with ginger and cardamom. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1630748662359-40a2105640c7?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:stall:filter-coffee",
+          "name": "Filter Coffee",
+          "price": 20,
+          "category": "Chai and coffee",
+          "dietType": "veg",
+          "description": "South Indian filter coffee. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:stall:idli",
+          "name": "Idli (3 pcs)",
+          "price": 40,
+          "category": "Tiffins",
+          "dietType": "veg",
+          "description": "Steamed idlis with chutney and sambar. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:stall:plain-dosa",
+          "name": "Plain Dosa",
+          "price": 50,
+          "category": "Tiffins",
+          "dietType": "veg",
+          "description": "Crisp dosa with chutney and sambar. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1668236543090-82eba5ee5976?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:stall:onion-uttapam",
+          "name": "Onion Uttapam",
+          "price": 60,
+          "category": "Tiffins",
+          "dietType": "veg",
+          "description": "Thick dosa topped with onion. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1567337710282-00832b415979?w=600&q=70&auto=format&fit=crop"
+        },
+        {
+          "key": "test-data-v1:stall:idli-vada",
+          "name": "Idli Vada Combo",
+          "price": 55,
+          "category": "Tiffins",
+          "dietType": "veg",
+          "description": "Two idlis and one vada. Test item.",
+          "imageUrl": "https://images.unsplash.com/photo-1630383249896-424e482df921?w=600&q=70&auto=format&fit=crop"
+        }
+      ]
+    }
+  ]
+}
