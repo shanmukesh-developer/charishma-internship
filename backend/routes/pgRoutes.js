@@ -479,6 +479,8 @@ router.put('/admin/bookings/:bookingId/status', protect, admin, async (req, res)
     if (result.error) return res.status(result.status).json({ message: result.error });
     realtime.notifyAdmin('pg_booking', 'updated', result.booking.id);
     publishPg('updated', result.booking.hostelId, { scope: 'availability' });
+    // The student's open "My PG bookings" reloads at once, as for a PG owner's decision (utils/pgBookings).
+    try { realtime.toUser(result.booking.userId, 'pg:changed', { bookingId: String(result.booking.id), status: result.booking.status }); } catch { /* live update only */ }
     try {
       const student = await getUserModel().findByPk(result.booking.userId, { attributes: ['id', 'fcmTokens'] });
       if (student) {

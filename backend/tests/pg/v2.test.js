@@ -427,3 +427,26 @@ test('home: live promotions only (date window, paused, hidden PG), rails of list
   assert.ok(!home.body.promotions.some((x) => x.id === live.id));
   assert.ok(scheduled.id && paused.id && onB.id);
 });
+
+// 1 Nov 2026: an admin decision reaches the student live too (it only sent the push; owner decisions already did both).
+test('admin confirm reaches the student live (pg:changed, ids and status only)', async () => {
+  const realtime = H.r('utils/realtime');
+  const seen = [];
+  const noop = { emit() {}, socketsJoin() {}, socketsLeave() {}, fetchSockets: async () => [] };
+  realtime.init({ to: (room) => ({ ...noop, emit: (ev, p) => seen.push({ room, ev, p }) }), in: () => noop, emit() {}, of: () => ({ to: () => noop, in: () => noop, fetchSockets: async () => [] }), fetchSockets: async () => [], sockets: { adapter: { rooms: new Map() }, sockets: new Map() } });
+  try {
+    const pg = await H.mkPg(admin);
+    const room = await H.mkRoom(admin, pg.id);
+    const student = await H.mkUser();
+    const b = await H.api('POST', `/api/pg/${room.id}/book`, student.token, { checkInDate: istYmd(1) });
+    assert.strictEqual(b.status, 201, JSON.stringify(b.body));
+    const c = await H.api('PUT', `/api/pg/admin/bookings/${b.body.booking.id}/status`, admin.token, { status: 'Confirmed' });
+    assert.strictEqual(c.status, 200, JSON.stringify(c.body));
+    const ev = seen.find((e) => e.room === `user_${student.id}` && e.ev === 'pg:changed');
+    assert.ok(ev, JSON.stringify(seen.map((e) => `${e.room}:${e.ev}`)));
+    assert.strictEqual(ev.p.bookingId, String(b.body.booking.id));
+    assert.strictEqual(ev.p.status, 'Confirmed');
+  } finally {
+    realtime.init({ to: () => ({ emit: () => {} }), emit: () => {}, in: () => ({ socketsJoin() {}, socketsLeave() {}, fetchSockets: async () => [] }), fetchSockets: async () => [], of: () => ({ fetchSockets: async () => [], in: () => ({ fetchSockets: async () => [] }) }), sockets: { adapter: { rooms: new Map() }, sockets: new Map() } });
+  }
+});
