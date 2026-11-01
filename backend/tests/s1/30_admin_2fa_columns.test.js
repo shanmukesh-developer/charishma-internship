@@ -39,8 +39,10 @@ test.after(async () => {
 test('the email-code columns are added to an old table; the old authenticator row still counts as on', async () => {
   const before = await sequelize.getQueryInterface().describeTable('AdminTwoFactors');
   for (const c of NEW_COLUMNS) assert.ok(!before[c], `${c} missing before`);
-  const { getAdminTwoFactorModel } = r('models/AdminTwoFactor');
+  const { getAdminTwoFactorModel, tableState } = r('models/AdminTwoFactor');
+  assert.strictEqual(tableState(), 'not loaded', '/api/health?infra=1 before the first use');
   const M = await getAdminTwoFactorModel();
+  assert.strictEqual(tableState(), 'ready');
   const after = await sequelize.getQueryInterface().describeTable('AdminTwoFactors');
   for (const c of NEW_COLUMNS) assert.ok(after[c], `${c} added`);
   assert.strictEqual(Object.keys(after).length, Object.keys(before).length + NEW_COLUMNS.length, 'nothing else changed');

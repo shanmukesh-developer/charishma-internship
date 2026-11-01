@@ -782,6 +782,8 @@ app.get('/api/health', async (req, res) => {
       // Which commit this instance runs (Render sets RENDER_GIT_COMMIT): after a restart or a manual deploy,
       // scripts compare it with the latest pushed commit instead of guessing from behaviour.
       commit: String(process.env.RENDER_GIT_COMMIT || '').slice(0, 8) || null,
+      // Admin 2-step table (models/AdminTwoFactor): 'ready' once it and its email-code columns are in place.
+      adminTwoFactor: require('./models/AdminTwoFactor').tableState(),
     };
   } catch { /* health never fails because of these extras */ }
   res.json(body);
@@ -1368,6 +1370,11 @@ const initializeApp = async () => {
     // one per customer-app section (data/test_data_v1_2026-11-01.json). After the store removal above; create-only,
     // no partner logins. Deleted or edited in the admin like any store. DISABLE_TEST_DATA=true switches it off;
     // REMOVE_TEST_DATA=true removes them again on every start while set (orders cancelled / stores hidden or deleted).
+    // 🔐 Admin 2-step table, early: created / given its email-code columns now instead of at the first admin sign-in
+    // (models/AdminTwoFactor; /api/health?infra=1 reports adminTwoFactor: 'ready' or the error).
+    inBootQueue(() => require('./models/AdminTwoFactor').getAdminTwoFactorModel())
+      .then((m) => console.log(m ? '🔐 [ADMIN_2FA_TABLE] ready' : '🔐 [ADMIN_2FA_TABLE] models not ready'))
+      .catch((err) => console.warn('⚠️ [ADMIN_2FA_TABLE] failed:', err.message));
     inBootQueue(() => require('./scripts/test_data_seed').removeTestData())
       .then((r) => { if (!r || r.skipped !== 'not requested') console.log('🧪 [TEST_DATA_REMOVE]', JSON.stringify(r)); })
       .catch((err) => console.warn('⚠️ [TEST_DATA_REMOVE] failed:', err.message));

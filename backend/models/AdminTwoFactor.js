@@ -6,6 +6,8 @@ const { DataTypes } = require('sequelize');
 
 let Model = null;
 let ready = null;
+// For /api/health?infra=1: 'ready' once the table and its columns are in place, else the last error.
+let state = 'not loaded';
 
 const define = (sequelize) => sequelize.define('AdminTwoFactor', {
   id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
@@ -67,9 +69,12 @@ const getAdminTwoFactorModel = async () => {
   }
   if (!ready) {
     const m = Model;
-    ready = m.sync().then(() => addMissingColumns(m)).catch((err) => { ready = null; throw err; });
+    ready = m.sync().then(() => addMissingColumns(m)).then((x) => { state = 'ready'; return x; })
+      .catch((err) => { ready = null; state = `error: ${String(err && err.message).slice(0, 120)}`; throw err; });
   }
   return ready;
 };
 
-module.exports = { getAdminTwoFactorModel };
+const tableState = () => state;
+
+module.exports = { getAdminTwoFactorModel, tableState };
