@@ -34,12 +34,26 @@ export default function AdminLoginPage() {
   const [mfaToken, setMfaToken] = useState<string | null>(null);
   const [mfaCode, setMfaCode] = useState('');
   const [useRecovery, setUseRecovery] = useState(false);
+  // Email-code method: where the code went, seconds until "Resend code" works, the last resend note.
+  const [mfaMethod, setMfaMethod] = useState<'totp' | 'email'>('totp');
+  const [emailHint, setEmailHint] = useState('');
+  const [resendIn, setResendIn] = useState(0);
+  const [info, setInfo] = useState('');
+  const emailMethod = mfaMethod === 'email';
 
   // Explain why the admin landed here (expired session, non-admin account, ...).
   useEffect(() => {
     const reason = getAuthState().message;
     if (reason) setError(reason);
   }, []);
+
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const t = setTimeout(() => setResendIn((s) => Math.max(0, s - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [resendIn]);
+
+  const backToPassword = () => { setMfaToken(null); setMfaCode(''); setInfo(''); setResendIn(0); };
 
   /** Session from a login / login-mfa answer. */
   const finishLogin = (data: any, digits: string) => {
@@ -56,8 +70,7 @@ export default function AdminLoginPage() {
       mfaSetupRequired: !!data.mfaSetupRequired,
     });
     setPassword('');
-    setMfaToken(null);
-    setMfaCode('');
+    backToPassword();
     router.replace(data.mfaSetupRequired ? '/security' : safeNext());
   };
 
@@ -65,7 +78,7 @@ export default function AdminLoginPage() {
     const code = mfaCode.trim();
     if (!mfaToken) return;
     if (!useRecovery && !/^[0-9]{6}$/.test(code.split(' ').join(''))) {
-      setError('Enter the 6-digit code from your authenticator app.');
+      setError(emailMethod ? 'Enter the 6-digit code we emailed you.' : 'Enter the 6-digit code from your authenticator app.');
       return;
     }
     if (useRecovery && code.replace(/[^a-z0-9]/gi, '').length !== 10) {
@@ -74,6 +87,7 @@ export default function AdminLoginPage() {
     }
     setLoading(true);
     setError('');
+    setInfo('');
     try {
       const response = await fetch(`${API_URL}/api/users/login/mfa`, {
         method: 'POST',
@@ -86,11 +100,38 @@ export default function AdminLoginPage() {
         finishLogin(data, normalizePhone(phone));
         return;
       }
-      if (data.code === 'MFA_TOKEN_INVALID' || data.code === 'MFA_TOKEN_USED') {
-        setMfaToken(null);
-        setMfaCode('');
-      }
+      if (data.code === 'MFA_TOKEN_INVALID' || data.code === 'MFA_TOKEN_USED') backToPassword();
       setError(data.message || 'That code did not work. Please try again.');
+    } catch {
+      setError('Could not reach the ZCS server. Check your connection and try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /** Email-code method: a new code for this sign-in step (one a minute). */
+  const handleResend = async () => {
+    if (!mfaToken || resendIn > 0) return;
+    setLoading(true);
+    setError('');
+    setInfo('');
+    try {
+      const response = await fetch(`${API_URL}/api/users/login/mfa/resend`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Zenvy-Client': 'admin-web' },
+        body: JSON.stringify({ mfaToken }),
+      });
+      let data: any = {};
+      try { data = await response.json(); } catch { /* non-JSON */ }
+      if (response.ok) {
+        setResendIn(Number(data.resendAfter) || 60);
+        setMfaCode('');
+        setInfo(data.message || 'A new code was sent.');
+        return;
+      }
+      if (data.code === 'MFA_TOKEN_INVALID' || data.code === 'MFA_TOKEN_USED') backToPassword();
+      if (Number(data.retryAfter) > 0 && data.code === 'MFA_EMAIL_TOO_SOON') setResendIn(Number(data.retryAfter));
+      setError(data.message || 'Could not send a new code. Please try again.');
     } catch {
       setError('Could not reach the ZCS server. Check your connection and try again.');
     } finally {
@@ -127,6 +168,12 @@ export default function AdminLoginPage() {
         setMfaToken(data.mfaToken);
         setMfaCode('');
         setUseRecovery(false);
+        setMfaMethod(data.mfaMethod === 'email' ? 'email' : 'totp');
+        setEmailHint(data.emailHint || '');
+        setResendIn(Number(data.resendAfter) || 0);
+        setInfo('');
+        // The code email did not go out: say so (Resend, or a recovery code, still finishes the sign-in).
+        if (data.mfaMethod === 'email' && data.emailSent === false) setError(data.message || 'The code email could not be sent. Send a new code, or use a recovery code.');
         return;
       }
       if (response.ok && data.token) {
@@ -183,11 +230,13 @@ export default function AdminLoginPage() {
                   <p className="mt-1 text-sm text-fg-muted">
                     {useRecovery
                       ? 'Enter one of your recovery codes. Each code works once.'
-                      : 'Open your authenticator app and enter the 6-digit code for ZCS Admin.'}
+                      : emailMethod
+                        ? `We emailed a 6-digit code to ${emailHint || 'your email'}. It expires in 10 minutes.`
+                        : 'Open your authenticator app and enter the 6-digit code for ZCS Admin.'}
                   </p>
                 </div>
                 <div>
-                  <label htmlFor="admin-mfa" className="mb-1 block text-sm font-medium text-fg">{useRecovery ? 'Recovery code' : 'Authentication code'}</label>
+                  <label htmlFor="admin-mfa" className="mb-1 block text-sm font-medium text-fg">{useRecovery ? 'Recovery code' : emailMethod ? 'Email code' : 'Authentication code'}</label>
                   <input
                     id="admin-mfa"
                     autoFocus
@@ -209,11 +258,22 @@ export default function AdminLoginPage() {
                 >
                   {loading ? 'Checking…' : 'Verify and sign in'}
                 </button>
-                <div className="flex items-center justify-between text-sm">
-                  <button type="button" onClick={() => { setUseRecovery((v) => !v); setMfaCode(''); setError(''); }} className="text-accent-text hover:underline underline-offset-2">
-                    {useRecovery ? 'Use the authenticator code' : 'Use a recovery code'}
+                {emailMethod && !useRecovery && (
+                  <button
+                    type="button"
+                    onClick={handleResend}
+                    disabled={loading || resendIn > 0}
+                    className="inline-flex h-9 w-full items-center justify-center rounded-md border border-line text-sm font-medium text-fg transition-colors hover:bg-surface-2 disabled:opacity-50"
+                  >
+                    {resendIn > 0 ? `Resend code in ${resendIn} s` : 'Resend code'}
                   </button>
-                  <button type="button" onClick={() => { setMfaToken(null); setMfaCode(''); setError(''); }} className="text-fg-muted hover:text-fg">
+                )}
+                {info && <p role="status" className="text-sm text-success-text">{info}</p>}
+                <div className="flex items-center justify-between text-sm">
+                  <button type="button" onClick={() => { setUseRecovery((v) => !v); setMfaCode(''); setError(''); setInfo(''); }} className="text-accent-text hover:underline underline-offset-2">
+                    {useRecovery ? (emailMethod ? 'Use the emailed code' : 'Use the authenticator code') : 'Use a recovery code'}
+                  </button>
+                  <button type="button" onClick={() => { backToPassword(); setError(''); }} className="text-fg-muted hover:text-fg">
                     Back
                   </button>
                 </div>

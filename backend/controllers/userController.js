@@ -145,7 +145,14 @@ const sendSession = async (res, user, status = 200, { skipCookie = false, mfaVer
       return res.status(503).json({ code: 'MFA_UNAVAILABLE', message: 'Admin sign-in is temporarily unavailable. Please try again in a minute.' });
     }
     if (gate.mfaRequired) {
-      return res.status(200).json({ mfaRequired: true, mfaToken: gate.mfaToken, mfaExpiresIn: gate.expiresIn, message: 'Enter the 6-digit code from your authenticator app.' });
+      if (gate.method === 'email') {
+        return res.status(200).json({
+          mfaRequired: true, mfaToken: gate.mfaToken, mfaExpiresIn: gate.expiresIn, mfaMethod: 'email',
+          emailHint: gate.emailHint, emailSent: gate.emailSent, resendAfter: gate.resendAfter,
+          message: gate.emailSent ? `Enter the 6-digit code we emailed to ${gate.emailHint}.` : 'The code email could not be sent. Send a new code, or use a recovery code.',
+        });
+      }
+      return res.status(200).json({ mfaRequired: true, mfaToken: gate.mfaToken, mfaExpiresIn: gate.expiresIn, mfaMethod: 'totp', message: 'Enter the 6-digit code from your authenticator app.' });
     }
     mfaSetupRequired = !!gate.setupRequired;
   }

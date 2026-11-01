@@ -1,7 +1,7 @@
 // S1: admin 2-step sign-in (TOTP) state, one row per admin user. Its own table (AdminTwoFactors), created
-// additively with sync() on first use / at startup on the same Sequelize instance as Users. Never altered
-// or dropped by code. The TOTP secret is stored AES-256-GCM encrypted (utils/totp.js); recovery codes as
-// SHA-256 hashes only.
+// additively with sync() on first use / at startup on the same Sequelize instance as Users. Never dropped by
+// code; columns added later (the email-code method, 1 Nov 2026) are added once with addColumn when missing.
+// The TOTP secret is stored AES-256-GCM encrypted (utils/totp.js); recovery codes and email codes as hashes only.
 const { DataTypes } = require('sequelize');
 
 let Model = null;
@@ -24,7 +24,36 @@ const define = (sequelize) => sequelize.define('AdminTwoFactor', {
   lockedUntil: { type: DataTypes.DATE, allowNull: true },
   // the one outstanding sign-in challenge (mfaToken jti); cleared when used
   mfaJti: { type: DataTypes.STRING(64), allowNull: true },
+  // second step: 'totp' (authenticator app; null on rows from before the email method) or 'email'
+  method: { type: DataTypes.STRING(8), allowNull: true },
+  // email method: the address confirmed with a code at setup (codes go only here) / the one being confirmed
+  email: { type: DataTypes.STRING(254), allowNull: true },
+  pendingEmail: { type: DataTypes.STRING(254), allowNull: true },
+  // the latest emailed code: HMAC-SHA256 hex (never the code), expiry, when it was sent
+  emailCodeHash: { type: DataTypes.STRING(64), allowNull: true },
+  emailCodeExpiresAt: { type: DataTypes.DATE, allowNull: true },
+  emailCodeSentAt: { type: DataTypes.DATE, allowNull: true },
+  // emails sent in the current hour window (a cap against inbox flooding)
+  emailWindowStart: { type: DataTypes.DATE, allowNull: true },
+  emailSendCount: { type: DataTypes.INTEGER, allowNull: true },
 }, { tableName: 'AdminTwoFactors' });
+
+/** Adds the columns this model has but an older AdminTwoFactors table lacks (never changes or drops one). */
+const addMissingColumns = async (m) => {
+  const qi = m.sequelize.getQueryInterface();
+  const have = await qi.describeTable(m.getTableName());
+  for (const [name, attr] of Object.entries(m.rawAttributes)) {
+    const col = attr.field || name;
+    if (have[col]) continue;
+    try {
+      await qi.addColumn(m.getTableName(), col, { type: attr.type, allowNull: true });
+    } catch (err) {
+      // another instance added it first
+      if (!/already exists|duplicate column/i.test(String(err && err.message))) throw err;
+    }
+  }
+  return m;
+};
 
 /** The model, defined on the Users' Sequelize instance and its table created once (CREATE TABLE IF NOT EXISTS). */
 const getAdminTwoFactorModel = async () => {
@@ -38,7 +67,7 @@ const getAdminTwoFactorModel = async () => {
   }
   if (!ready) {
     const m = Model;
-    ready = m.sync().then(() => m).catch((err) => { ready = null; throw err; });
+    ready = m.sync().then(() => addMissingColumns(m)).catch((err) => { ready = null; throw err; });
   }
   return ready;
 };

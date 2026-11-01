@@ -28,6 +28,16 @@ const PENDING_TTL_MS = 30 * 60 * 1000;
 const RECOVERY_CODE_COUNT = 10;
 const MFA_PURPOSE = 'admin_mfa';
 
+// Email codes (method 'email', owner 1 Nov 2026: "add mail or otp verification for admin"): instead of the
+// authenticator app, a 6-digit code to the address the admin confirmed at setup, free through Brevo
+// (utils/mailer). Stored as an HMAC (a database copy cannot be brute-forced offline), valid 10 minutes, once; a
+// new code replaces the old one. One email a minute, at most EMAIL_MAX_PER_HOUR an hour per admin, so someone
+// who knows the password cannot flood the inbox. Same lock, recovery codes and audit log as the app codes.
+const EMAIL_CODE_TTL_MS = 10 * 60 * 1000;
+const EMAIL_RESEND_MS = 60 * 1000;
+const EMAIL_MAX_PER_HOUR = 10;
+const EMAIL_RE = /^[^\s@<>()]+@[^\s@<>()]+\.[^\s@<>()]{2,}$/;
+
 const required = (env = process.env) => ['1', 'true', 'yes'].includes(String(env.ADMIN_2FA_REQUIRED || '').trim().toLowerCase());
 const isAdminRole = (role) => String(role || '').toLowerCase() === 'admin';
 const mfaSecret = () => (process.env.JWT_SECRET ? `${process.env.JWT_SECRET}:admin-mfa-challenge` : null);
@@ -47,6 +57,92 @@ const audit = async (adminId, action, details = {}, req = null) => {
   } catch (err) {
     console.error('[ADMIN_2FA_AUDIT_ERROR]', err.message);
   }
+};
+
+// ── email codes ──────────────────────────────────────────────────────────────────────────────────
+const mailer = () => require('../utils/mailer');
+const emailAvailable = () => { try { return !!mailer().isMailerConfigured(); } catch { return false; } };
+const normEmail = (e) => String(e || '').trim().toLowerCase();
+const maskEmail = (e) => { const [u, d] = normEmail(e).split('@'); return d ? `${u.slice(0, 2)}***@${d}` : '***'; };
+const hashEmailCode = (userId, code) => crypto.createHmac('sha256', `${process.env.JWT_SECRET || ''}:admin-email-code`).update(`${userId}:${code}`).digest('hex');
+const isEmailMethod = (row) => !!row && row.method === 'email';
+const RESEND_S = Math.ceil(EMAIL_RESEND_MS / 1000);
+// Clears the email method (authenticator enabled, 2-step turned off). The hourly send count stays.
+const NO_EMAIL = { email: null, pendingEmail: null, emailCodeHash: null, emailCodeExpiresAt: null };
+
+const PURPOSE_TEXT = { login: 'sign in to ZCS Admin', setup: 'turn on email codes for ZCS Admin', manage: 'change 2-step sign-in for ZCS Admin' };
+const sendCodeEmail = (to, code, purpose) => {
+  const what = PURPOSE_TEXT[purpose] || PURPOSE_TEXT.login;
+  const when = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' });
+  const text = [
+    `Your code to ${what} is: ${code}`,
+    '',
+    `It expires in 10 minutes and works once. Asked for on ${when} IST.`,
+    'If this was not you, someone knows your admin password: change it now. Never share this code.',
+    '',
+    'ZCS',
+  ].join('\n');
+  const html = `<!doctype html><html><body style="margin:0;padding:0;background:#f4f4f7;font-family:Arial,Helvetica,sans-serif;color:#1d1d1f">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f7;padding:24px 12px"><tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:460px;background:#ffffff;border-radius:16px;padding:28px">
+<tr><td style="font-size:20px;font-weight:bold;padding-bottom:16px">ZCS Admin</td></tr>
+<tr><td style="font-size:15px;line-height:22px;padding-bottom:20px">Your code to ${what}:</td></tr>
+<tr><td align="center" style="padding-bottom:20px"><div style="display:inline-block;font-size:32px;letter-spacing:8px;font-weight:bold;background:#f1f2f5;border-radius:12px;padding:14px 22px">${code}</div></td></tr>
+<tr><td style="font-size:13px;line-height:20px;color:#555">It expires in 10 minutes and works once. Asked for on ${when} IST. If this was not you, someone knows your admin password: change it now. Never share this code.</td></tr>
+</table></td></tr></table></body></html>`;
+  return mailer().sendMail({ to, subject: 'Your ZCS Admin verification code', text, html });
+};
+
+/**
+ * Emails a new code to `to` (replacing the old one) within the limits: no new email while an unused code sent
+ * under a minute ago is still valid (with reuseRecent, at sign-in, that code simply counts as sent), and at most
+ * EMAIL_MAX_PER_HOUR an hour. A used or expired code never blocks the next one.
+ * -> { sent: true, reused? } | { sent: false, reason: 'not_configured' | 'too_soon' | 'hourly_cap' | 'send_failed', retryAfter? }
+ */
+const issueEmailCode = async (row, to, purpose, req, { reuseRecent = false } = {}) => {
+  if (!emailAvailable()) return { sent: false, reason: 'not_configured' };
+  const now = Date.now();
+  const last = row.emailCodeSentAt ? new Date(row.emailCodeSentAt).getTime() : 0;
+  const stillValid = !!(row.emailCodeHash && row.emailCodeExpiresAt && new Date(row.emailCodeExpiresAt).getTime() > now);
+  if (stillValid && now - last < EMAIL_RESEND_MS) {
+    if (reuseRecent) return { sent: true, reused: true };
+    return { sent: false, reason: 'too_soon', retryAfter: Math.ceil((EMAIL_RESEND_MS - (now - last)) / 1000) };
+  }
+  const windowStart = row.emailWindowStart ? new Date(row.emailWindowStart).getTime() : 0;
+  const inWindow = now - windowStart < 60 * 60 * 1000;
+  const count = inWindow ? Number(row.emailSendCount) || 0 : 0;
+  if (count >= EMAIL_MAX_PER_HOUR) return { sent: false, reason: 'hourly_cap', retryAfter: Math.ceil((windowStart + 60 * 60 * 1000 - now) / 1000) };
+  const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+  const fields = {
+    emailCodeHash: hashEmailCode(row.userId, code),
+    emailCodeExpiresAt: new Date(now + EMAIL_CODE_TTL_MS),
+    emailCodeSentAt: new Date(now),
+    emailWindowStart: inWindow ? row.emailWindowStart : new Date(now),
+    emailSendCount: count + 1,
+  };
+  const M = await getAdminTwoFactorModel();
+  await M.update(fields, { where: { id: row.id } });
+  Object.assign(row, fields);
+  const r = await sendCodeEmail(to, code, purpose);
+  if (!r || !r.ok) {
+    // It never arrived: a resend may go out at once.
+    await M.update({ emailCodeSentAt: null }, { where: { id: row.id } });
+    row.emailCodeSentAt = null;
+    await audit(row.userId, 'ADMIN_2FA_EMAIL_FAILED', { purpose, reason: (r && r.reason) || 'unknown' }, req);
+    return { sent: false, reason: 'send_failed' };
+  }
+  await audit(row.userId, 'ADMIN_2FA_EMAIL_SENT', { purpose, to: maskEmail(to) }, req);
+  return { sent: true };
+};
+
+/** Reply for an email that did not go out. ctx 'login' (no session yet) or 'dashboard'. */
+const emailSendError = (r, ctx = 'dashboard') => {
+  if (r.reason === 'too_soon') return { status: 429, body: { code: 'MFA_EMAIL_TOO_SOON', message: `A code was just sent. You can ask for a new one in ${r.retryAfter} seconds.`, retryAfter: r.retryAfter } };
+  if (r.reason === 'hourly_cap') return { status: 429, body: { code: 'MFA_EMAIL_LIMIT', message: 'Too many code emails this hour. Wait a while or use a recovery code.', retryAfter: r.retryAfter } };
+  if (r.reason === 'not_configured') {
+    return { status: 503, body: { code: 'MFA_EMAIL_UNAVAILABLE', message: ctx === 'login' ? 'Code emails are not working on the server right now. Use a recovery code.' : 'Email sending is not set up on the server (Render > Environment > BREVO_API_KEY). Use the authenticator app instead.' } };
+  }
+  return { status: 502, body: { code: 'MFA_EMAIL_FAILED', message: ctx === 'login' ? 'The code email could not be sent. Try again in a minute, or use a recovery code.' : 'The email could not be sent. Check the address and try again in a minute.' } };
 };
 
 // ── row helpers ──────────────────────────────────────────────────────────────────────────────────
@@ -109,7 +205,28 @@ const recordFailure = async (row, userId, what, req) => {
     return { status: 429, body: lockedBody(lockInfo({ lockedUntil: new Date(Date.now() + LOCK_MS) })) };
   }
   await audit(userId, 'ADMIN_2FA_CODE_FAILED', { what, fails: n }, req);
-  return { status: 401, body: { code: 'MFA_INVALID_CODE', message: 'That code is not right. Check the time on your phone and try again.', attemptsLeft: MAX_FAILS - n } };
+  const message = isEmailMethod(row) || String(what).startsWith('email')
+    ? 'That code is not right. Use the latest code we emailed you.'
+    : 'That code is not right. Check the time on your phone and try again.';
+  return { status: 401, body: { code: 'MFA_INVALID_CODE', message, attemptsLeft: MAX_FAILS - n } };
+};
+
+/** Checks an emailed code against the row's latest one (unexpired, once). Wrong codes count toward the lock. */
+const checkEmailCode = async (row, code, { what, req }) => {
+  const li = lockInfo(row);
+  if (li.locked) return { ok: false, status: 429, body: lockedBody(li) };
+  // No valid code exists, so nothing can be guessed: not counted as a wrong code.
+  if (!(row.emailCodeHash && row.emailCodeExpiresAt && new Date(row.emailCodeExpiresAt).getTime() > Date.now())) {
+    return { ok: false, status: 401, body: { code: 'MFA_CODE_EXPIRED', message: 'That code expired or was already used. Send a new code.' } };
+  }
+  const digits = String(code || '').replace(/\s/g, '');
+  const want = Buffer.from(String(row.emailCodeHash));
+  const got = Buffer.from(/^\d{6}$/.test(digits) ? hashEmailCode(row.userId, digits) : '');
+  if (want.length !== got.length || !crypto.timingSafeEqual(want, got)) {
+    const f = await recordFailure(row, row.userId, what, req);
+    return { ok: false, ...f };
+  }
+  return { ok: true, method: 'email', consume: { emailCodeHash: null, emailCodeExpiresAt: null }, prevEmailHash: row.emailCodeHash };
 };
 
 const parseRecovery = (row) => {
@@ -121,7 +238,8 @@ const newRecoverySet = () => {
 };
 
 /**
- * Checks a TOTP code (or, when allowRecovery, a one-time recovery code) for an ENABLED row.
+ * Checks a TOTP code or, on an email-method row, the latest emailed code (or, when allowRecovery, a one-time
+ * recovery code) for an ENABLED row.
  * -> { ok: true, method, step?, consume: {fields to save} } | { ok: false, status, body }
  */
 const checkSecondFactor = async (row, { code, recoveryCode }, { allowRecovery = true, what, req } = {}) => {
@@ -139,6 +257,7 @@ const checkSecondFactor = async (row, { code, recoveryCode }, { allowRecovery = 
     list[idx] = { ...list[idx], usedAt: new Date().toISOString() };
     return { ok: true, method: 'recovery', consume: { recoveryCodes: JSON.stringify(list) }, prevRecovery: row.recoveryCodes, left: list.filter((x) => !x.usedAt).length };
   }
+  if (isEmailMethod(row)) return checkEmailCode(row, code, { what, req });
   let dec;
   try { dec = T.decryptSecret(row.secretEnc); } catch (err) {
     console.error('[ADMIN_2FA_DECRYPT_ERROR]', err.message);
@@ -155,7 +274,11 @@ const checkSecondFactor = async (row, { code, recoveryCode }, { allowRecovery = 
 };
 
 // ── sign-in challenge ────────────────────────────────────────────────────────────────────────────
-/** Called by sendSession for admins. -> { mfaRequired, mfaToken, expiresIn } | { setupRequired } | {} */
+/**
+ * Called by sendSession for admins. -> { mfaRequired, mfaToken, expiresIn, method, emailHint?, emailSent?,
+ * resendAfter? } | { setupRequired } | {}. On an email-method row the code is emailed here (a code sent under a
+ * minute ago still counts); a failed email still answers mfaRequired, so a recovery code can finish the sign-in.
+ */
 const loginGate = async (user) => {
   const row = await getRow(user.id);
   if (row && row.enabled) {
@@ -165,40 +288,58 @@ const loginGate = async (user) => {
     const M = await getAdminTwoFactorModel();
     await M.update({ mfaJti: jti }, { where: { id: row.id } });
     const mfaToken = jwt.sign({ sub: String(user.id), tv: Number(user.tokenVersion) || 0, purpose: MFA_PURPOSE, jti }, secret, { expiresIn: MFA_TOKEN_TTL_S });
+    if (isEmailMethod(row)) {
+      const sent = lockInfo(row).locked ? { sent: false, reason: 'locked' } : await issueEmailCode(row, row.email, 'login', null, { reuseRecent: true });
+      await audit(user.id, 'ADMIN_2FA_CHALLENGE', { method: 'email', emailSent: !!sent.sent });
+      return {
+        mfaRequired: true, mfaToken, expiresIn: MFA_TOKEN_TTL_S, method: 'email', emailHint: maskEmail(row.email),
+        emailSent: !!sent.sent, resendAfter: sent.sent ? RESEND_S : (sent.retryAfter || 0),
+      };
+    }
     await audit(user.id, 'ADMIN_2FA_CHALLENGE', {});
-    return { mfaRequired: true, mfaToken, expiresIn: MFA_TOKEN_TTL_S };
+    return { mfaRequired: true, mfaToken, expiresIn: MFA_TOKEN_TTL_S, method: 'totp' };
   }
   if (required()) return { setupRequired: true };
   return {};
+};
+
+/** The open sign-in step behind an mfaToken. -> { ok: true, decoded, user, row } | { ok: false, status, body } */
+const readChallenge = async (mfaToken) => {
+  const again = { ok: false, status: 401, body: { code: 'MFA_TOKEN_INVALID', message: 'Sign in again with your phone and password.' } };
+  let decoded;
+  try {
+    decoded = jwt.verify(String(mfaToken || ''), mfaSecret() || 'missing', { algorithms: ['HS256'] });
+  } catch (err) {
+    if (err && err.name === 'TokenExpiredError') return { ...again, body: { ...again.body, message: 'The sign-in step expired. Enter your phone and password again.' } };
+    return again;
+  }
+  if (!decoded || decoded.purpose !== MFA_PURPOSE || !decoded.sub || !decoded.jti) return again;
+  const { getUserModel } = require('../models/User');
+  const user = await getUserModel().findByPk(decoded.sub);
+  if (!user || !isAdminRole(user.role) || (Number(user.tokenVersion) || 0) !== (Number(decoded.tv) || 0)) return again;
+  if (user.isActive === false) return { ok: false, status: 403, body: { code: 'ACCOUNT_SUSPENDED', message: 'This account has been suspended. Please contact ZCS support.' } };
+  const row = await getRow(user.id);
+  if (!row || !row.enabled) return again;
+  if (row.mfaJti !== decoded.jti) return { ok: false, status: 401, body: { code: 'MFA_TOKEN_USED', message: 'This sign-in step was already used. Sign in again.' } };
+  return { ok: true, decoded, user, row };
 };
 
 /** POST /api/users/login/mfa { mfaToken, code | recoveryCode } */
 const loginMfa = async (req, res) => {
   try {
     const { mfaToken, code, recoveryCode } = req.body || {};
-    const secret = mfaSecret();
-    let decoded;
-    try {
-      decoded = jwt.verify(String(mfaToken || ''), secret || 'missing', { algorithms: ['HS256'] });
-    } catch (err) {
-      return res.status(401).json({ code: 'MFA_TOKEN_INVALID', message: err && err.name === 'TokenExpiredError' ? 'The sign-in step expired. Enter your phone and password again.' : 'Sign in again with your phone and password.' });
+    const ch = await readChallenge(mfaToken);
+    if (!ch.ok) return res.status(ch.status).json(ch.body);
+    const { decoded, user, row } = ch;
+    if (!code && !recoveryCode) {
+      return res.status(400).json({ code: 'MFA_CODE_REQUIRED', message: isEmailMethod(row) ? 'Enter the 6-digit code we emailed you.' : 'Enter the 6-digit code from your authenticator app.' });
     }
-    if (!decoded || decoded.purpose !== MFA_PURPOSE || !decoded.sub || !decoded.jti) return res.status(401).json({ code: 'MFA_TOKEN_INVALID', message: 'Sign in again with your phone and password.' });
-    const { getUserModel } = require('../models/User');
-    const user = await getUserModel().findByPk(decoded.sub);
-    if (!user || !isAdminRole(user.role) || (Number(user.tokenVersion) || 0) !== (Number(decoded.tv) || 0)) {
-      return res.status(401).json({ code: 'MFA_TOKEN_INVALID', message: 'Sign in again with your phone and password.' });
-    }
-    if (user.isActive === false) return res.status(403).json({ code: 'ACCOUNT_SUSPENDED', message: 'This account has been suspended. Please contact ZCS support.' });
-    const row = await getRow(user.id);
-    if (!row || !row.enabled) return res.status(401).json({ code: 'MFA_TOKEN_INVALID', message: 'Sign in again with your phone and password.' });
-    if (row.mfaJti !== decoded.jti) return res.status(401).json({ code: 'MFA_TOKEN_USED', message: 'This sign-in step was already used. Sign in again.' });
-    if (!code && !recoveryCode) return res.status(400).json({ code: 'MFA_CODE_REQUIRED', message: 'Enter the 6-digit code from your authenticator app.' });
     const r = await checkSecondFactor(row, { code, recoveryCode }, { what: 'login', req });
     if (!r.ok) return res.status(r.status).json(r.body);
     const M = await getAdminTwoFactorModel();
     const where = { id: row.id, mfaJti: decoded.jti };
     if (r.method === 'recovery') where.recoveryCodes = r.prevRecovery;
+    if (r.method === 'email') where.emailCodeHash = r.prevEmailHash; // the code works once, even when sent twice at the same moment
     const [n] = await M.update({ ...r.consume, mfaJti: null, failedCount: 0, lockedUntil: null }, { where });
     if (!n) return res.status(401).json({ code: 'MFA_TOKEN_USED', message: 'This sign-in step was already used. Sign in again.' });
     await audit(user.id, r.method === 'recovery' ? 'ADMIN_2FA_LOGIN_RECOVERY' : 'ADMIN_2FA_LOGIN_OK', r.method === 'recovery' ? { recoveryCodesLeft: r.left } : {}, req);
@@ -207,6 +348,27 @@ const loginMfa = async (req, res) => {
   } catch (err) {
     console.error('[ADMIN_2FA_LOGIN_ERROR]', err.message);
     return res.status(500).json({ message: 'Sign-in failed due to a server error. Please try again.' });
+  }
+};
+
+/** POST /api/users/login/mfa/resend { mfaToken }: a new emailed code for the open sign-in step (email method). */
+const loginMfaResend = async (req, res) => {
+  try {
+    const ch = await readChallenge((req.body || {}).mfaToken);
+    if (!ch.ok) return res.status(ch.status).json(ch.body);
+    const { row } = ch;
+    if (!isEmailMethod(row)) return res.status(400).json({ code: 'MFA_NOT_EMAIL', message: 'This account uses an authenticator app for 2-step sign-in.' });
+    const li = lockInfo(row);
+    if (li.locked) return res.status(429).json(lockedBody(li));
+    const r = await issueEmailCode(row, row.email, 'login', req);
+    if (!r.sent) {
+      const e = emailSendError(r, 'login');
+      return res.status(e.status).json(e.body);
+    }
+    return res.json({ emailSent: true, emailHint: maskEmail(row.email), resendAfter: RESEND_S, message: `A new code was sent to ${maskEmail(row.email)}.` });
+  } catch (err) {
+    console.error('[ADMIN_2FA_RESEND_ERROR]', err.message);
+    return res.status(500).json({ message: 'Could not send a new code. Please try again.' });
   }
 };
 
@@ -232,7 +394,14 @@ const status = async (req, res) => {
   const left = row && row.enabled ? parseRecovery(row).filter((x) => !x.usedAt).length : 0;
   const li = lockInfo(row);
   res.set('Cache-Control', 'no-store');
-  res.json({ enabled: !!(row && row.enabled), required: required(), enabledAt: row && row.enabled ? row.enabledAt : null, recoveryCodesLeft: left, locked: li.locked, lockedUntil: li.locked ? new Date(li.until).toISOString() : null, sessionVerified: !req.user.adminMfaPending });
+  const on = !!(row && row.enabled);
+  res.json({
+    enabled: on, required: required(), enabledAt: on ? row.enabledAt : null, recoveryCodesLeft: left, locked: li.locked, lockedUntil: li.locked ? new Date(li.until).toISOString() : null, sessionVerified: !req.user.adminMfaPending,
+    method: on ? (isEmailMethod(row) ? 'email' : 'totp') : null,
+    emailHint: on && isEmailMethod(row) ? maskEmail(row.email) : null,
+    emailAvailable: emailAvailable(),
+    profileEmail: req.user.email || null,
+  });
 };
 
 const setup = async (req, res) => {
@@ -267,7 +436,7 @@ const enable = async (req, res) => {
   }
   const rc = newRecoverySet();
   const M = await getAdminTwoFactorModel();
-  const [n] = await M.update({ enabled: true, secretEnc: row.pendingSecretEnc, pendingSecretEnc: null, pendingCreatedAt: null, enabledAt: new Date(), lastUsedStep: step, recoveryCodes: rc.stored, failedCount: 0, lockedUntil: null, mfaJti: null }, { where: { id: row.id, enabled: false } });
+  const [n] = await M.update({ enabled: true, method: 'totp', secretEnc: row.pendingSecretEnc, pendingSecretEnc: null, pendingCreatedAt: null, enabledAt: new Date(), lastUsedStep: step, recoveryCodes: rc.stored, failedCount: 0, lockedUntil: null, mfaJti: null, ...NO_EMAIL }, { where: { id: row.id, enabled: false } });
   if (!n) return res.status(409).json({ code: 'MFA_ALREADY_ENABLED', message: '2-step sign-in is already on.' });
   const user = await revokeOtherSessions(req.user.id);
   await audit(req.user.id, 'ADMIN_2FA_ENABLED', {}, req);
@@ -283,7 +452,7 @@ const disable = async (req, res) => {
   const r = await checkSecondFactor(row, req.body || {}, { what: 'disable', req });
   if (!r.ok) return res.status(codeStatus(r.status)).json(r.body);
   const M = await getAdminTwoFactorModel();
-  await M.update({ enabled: false, secretEnc: null, pendingSecretEnc: null, pendingCreatedAt: null, enabledAt: null, lastUsedStep: null, recoveryCodes: null, failedCount: 0, lockedUntil: null, mfaJti: null }, { where: { id: row.id } });
+  await M.update({ enabled: false, method: null, secretEnc: null, pendingSecretEnc: null, pendingCreatedAt: null, enabledAt: null, lastUsedStep: null, recoveryCodes: null, failedCount: 0, lockedUntil: null, mfaJti: null, ...NO_EMAIL }, { where: { id: row.id } });
   const user = await revokeOtherSessions(req.user.id);
   await audit(req.user.id, 'ADMIN_2FA_DISABLED', { method: r.method, requiredPolicy: required() }, req);
   const { generateToken } = require('../controllers/userController');
@@ -302,6 +471,68 @@ const regenerateRecoveryCodes = async (req, res) => {
   await audit(req.user.id, 'ADMIN_2FA_RECOVERY_CODES_RENEWED', {}, req);
   res.set('Cache-Control', 'no-store');
   res.json({ recoveryCodes: rc.codes, message: 'New recovery codes. The old ones no longer work.' });
+};
+
+/** POST /api/admin/2fa/email/setup { email }: emails a code to confirm the address (2-step must be off). */
+const emailSetup = async (req, res) => {
+  const row = await getOrCreateRow(req.user.id);
+  if (row.enabled) return res.status(409).json({ code: 'MFA_ALREADY_ENABLED', message: '2-step sign-in is already on. Turn it off first to switch to email codes.' });
+  const li = lockInfo(row);
+  if (li.locked) return res.status(429).json(lockedBody(li));
+  const email = normEmail((req.body || {}).email);
+  if (email.length > 254 || !EMAIL_RE.test(email)) return res.status(400).json({ code: 'MFA_EMAIL_INVALID', message: 'Enter a valid email address.' });
+  if (!emailAvailable()) {
+    const e = emailSendError({ reason: 'not_configured' });
+    return res.status(e.status).json(e.body);
+  }
+  // A new address: a code sent to the old one must never confirm it.
+  if (row.pendingEmail !== email) await row.update({ pendingEmail: email, emailCodeHash: null, emailCodeExpiresAt: null });
+  const r = await issueEmailCode(row, email, 'setup', req);
+  if (!r.sent) {
+    const e = emailSendError(r);
+    return res.status(e.status).json(e.body);
+  }
+  await audit(req.user.id, 'ADMIN_2FA_EMAIL_SETUP_STARTED', { to: maskEmail(email) }, req);
+  res.set('Cache-Control', 'no-store');
+  res.json({ sentTo: maskEmail(email), expiresInMinutes: EMAIL_CODE_TTL_MS / 60000, resendAfter: RESEND_S });
+};
+
+/** POST /api/admin/2fa/email/enable { code }: the emailed code confirms the address and turns email codes on. */
+const emailEnable = async (req, res) => {
+  const row = await getRow(req.user.id);
+  if (row && row.enabled) return res.status(409).json({ code: 'MFA_ALREADY_ENABLED', message: '2-step sign-in is already on.' });
+  if (!row || !row.pendingEmail) return res.status(409).json({ code: 'MFA_SETUP_REQUIRED', message: 'Send a code to your email first.' });
+  const r = await checkEmailCode(row, (req.body || {}).code, { what: 'email_enable', req });
+  if (!r.ok) return res.status(codeStatus(r.status)).json(r.body);
+  const rc = newRecoverySet();
+  const email = row.pendingEmail;
+  const M = await getAdminTwoFactorModel();
+  const [n] = await M.update({
+    enabled: true, method: 'email', email, pendingEmail: null, secretEnc: null, pendingSecretEnc: null, pendingCreatedAt: null, enabledAt: new Date(),
+    lastUsedStep: null, recoveryCodes: rc.stored, failedCount: 0, lockedUntil: null, mfaJti: null, emailCodeHash: null, emailCodeExpiresAt: null,
+  }, { where: { id: row.id, enabled: false, emailCodeHash: r.prevEmailHash } });
+  if (!n) return res.status(409).json({ code: 'MFA_ALREADY_ENABLED', message: '2-step sign-in is already on.' });
+  const user = await revokeOtherSessions(req.user.id);
+  await audit(req.user.id, 'ADMIN_2FA_ENABLED', { method: 'email', to: maskEmail(email) }, req);
+  const { generateToken } = require('../controllers/userController');
+  const token = generateToken(user.id, user.role, user.tokenVersion, { mfa: 1 });
+  res.set('Cache-Control', 'no-store');
+  res.json({ enabled: true, method: 'email', recoveryCodes: rc.codes, token, message: `Email codes are on: every sign-in now asks for a code sent to ${maskEmail(email)}. Save the recovery codes now: they are shown only once. Other sessions were signed out.` });
+};
+
+/** POST /api/admin/2fa/email/send-code: a code to the confirmed address, for turning 2-step off or new recovery codes. */
+const emailSendCode = async (req, res) => {
+  const row = await getRow(req.user.id);
+  if (!row || !row.enabled || !isEmailMethod(row)) return res.status(409).json({ code: 'MFA_NOT_EMAIL', message: 'Email codes are not on for this account.' });
+  const li = lockInfo(row);
+  if (li.locked) return res.status(429).json(lockedBody(li));
+  const r = await issueEmailCode(row, row.email, 'manage', req);
+  if (!r.sent) {
+    const e = emailSendError(r);
+    return res.status(e.status).json(e.body);
+  }
+  res.set('Cache-Control', 'no-store');
+  res.json({ sentTo: maskEmail(row.email), resendAfter: RESEND_S, message: `Code sent to ${maskEmail(row.email)}. It expires in 10 minutes.` });
 };
 
 // Wrong codes on the /api/admin/2fa endpoints answer 400 (not 401): a 401 would end the dashboard session.
@@ -325,10 +556,13 @@ const router = () => {
   r.post('/enable', lim, wrap(enable));
   r.post('/disable', lim, wrap(disable));
   r.post('/recovery-codes', lim, wrap(regenerateRecoveryCodes));
+  r.post('/email/setup', lim, wrap(emailSetup));
+  r.post('/email/enable', lim, wrap(emailEnable));
+  r.post('/email/send-code', lim, wrap(emailSendCode));
   return r;
 };
 
 module.exports = {
-  required, isEnabled, mfaPending, applyTo, effectiveRole, loginGate, loginMfa, requireAdminAccount, router,
-  MFA_TOKEN_TTL_S, MAX_FAILS, LOCK_MS, RECOVERY_CODE_COUNT,
+  required, isEnabled, mfaPending, applyTo, effectiveRole, loginGate, loginMfa, loginMfaResend, requireAdminAccount, router,
+  MFA_TOKEN_TTL_S, MAX_FAILS, LOCK_MS, RECOVERY_CODE_COUNT, EMAIL_CODE_TTL_MS, EMAIL_RESEND_MS, EMAIL_MAX_PER_HOUR,
 };

@@ -88,6 +88,8 @@ const passwordLockout = (req, res, next) => (req.body && req.body.firebaseToken 
 router.post('/login', authLimiter, passwordLockout, loginValidation, validate, authUser);
 // S1: admin 2-step sign-in, second step ({ mfaToken, code | recoveryCode }); 5 wrong codes lock it 15 min.
 router.post('/login/mfa', authIpLimiter, require('../services/adminTwoFactor').loginMfa);
+// Email-code method: a new code for the open sign-in step (one a minute, 10 an hour per admin).
+router.post('/login/mfa/resend', authIpLimiter, require('../services/adminTwoFactor').loginMfaResend);
 router.post('/send-otp', authLimiter, otpSendIpLimiter, sendOtp);
 // Email backup when the SMS code cannot be sent (same limits as the SMS code; 503 while email is not set up).
 router.post('/send-email-otp', authLimiter, otpSendIpLimiter, sendEmailOtp);
