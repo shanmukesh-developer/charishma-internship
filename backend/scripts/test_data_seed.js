@@ -16,7 +16,7 @@
 //    would otherwise take these with it; the realDataOnly() gate of the old imports is left as it is.
 // The GlobalConfig marker TEST_DATA_V1_DONE (with the created ids) is written once everything is in place.
 // Ledger kinds: 'test-store' (Restaurant.id), 'test-store-skip' (name taken), 'test-item' (MenuItem.id).
-// DISABLE_TEST_DATA=true switches it off.
+// DISABLE_TEST_DATA=true switches it off. REMOVE_TEST_DATA=true removes the test stores again (removeTestData below).
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
@@ -30,8 +30,11 @@ const KIND_ITEM = 'test-item';
 
 const loadData = (dataPath) => (fs.existsSync(dataPath) ? JSON.parse(fs.readFileSync(dataPath, 'utf8')) : null);
 
+const removalRequested = () => String(process.env.REMOVE_TEST_DATA || '').toLowerCase() === 'true';
+
 const runTestDataSeed = async ({ dataPath = DATA_PATH } = {}) => {
   if (String(process.env.DISABLE_TEST_DATA || '').toLowerCase() === 'true') return { skipped: 'disabled' };
+  if (removalRequested()) return { skipped: 'removal requested' };
   const { getSequelize } = require('../config/db');
   const { getRestaurantModel } = require('../models/Restaurant');
   const { getMenuItemModel } = require('../models/MenuItem');
@@ -153,7 +156,72 @@ const runTestDataSeed = async ({ dataPath = DATA_PATH } = {}) => {
   return result;
 };
 
-module.exports = { runTestDataSeed, DATA_PATH, MARKER };
+// Owner switch REMOVE_TEST_DATA=true (Render > Environment; saving it restarts the server): every start while it is
+// set removes the test stores the seed created (ledger 'test-store' ids only, never another store), same steps as
+// scripts/remove_all_stores_v1: open orders on them are cancelled and refunded like any cancel, a store with order
+// history is hidden (isActive false, items unavailable) so its orders keep their store, the rest are deleted with
+// their items. The ledger stays, so the seed never re-creates a removed store.
+const removeTestData = async () => {
+  if (!removalRequested()) return { skipped: 'not requested' };
+  const { Op } = require('sequelize');
+  const { getSequelize } = require('../config/db');
+  const { getRestaurantModel } = require('../models/Restaurant');
+  const { getMenuItemModel } = require('../models/MenuItem');
+  const { getCatalogueImportLedgerModel } = require('../models/CatalogueImportLedger');
+  const { getOrderModel } = require('../models/Order');
+  const sequelize = getSequelize();
+  const Restaurant = getRestaurantModel();
+  const MenuItem = getMenuItemModel();
+  const Ledger = getCatalogueImportLedgerModel();
+  const Order = getOrderModel();
+  if (!sequelize || !Restaurant || !MenuItem || !Ledger || !Order) return { skipped: 'models not ready' };
+
+  const ids = (await Ledger.findAll({ where: { kind: KIND_STORE }, attributes: ['targetId'] })).map((r) => r.targetId);
+  const stores = ids.length ? await Restaurant.findAll({ where: { id: { [Op.in]: ids } }, attributes: ['id', 'name'] }) : [];
+  const result = { stores: stores.length, ordersCancelled: 0, deleted: 0, hidden: 0, failed: [] };
+  if (!stores.length) return result;
+  const storeIds = stores.map((s) => s.id);
+
+  const { cancelAndRefund } = require('../controllers/orderController');
+  const open = await Order.findAll({ where: { restaurantId: { [Op.in]: storeIds }, status: { [Op.notIn]: ['Delivered', 'Cancelled'] } } });
+  for (const order of open) {
+    try {
+      const { cancelled } = await cancelAndRefund(order, { reason: 'This test store was removed from ZCS', by: 'system' });
+      if (cancelled) result.ordersCancelled++;
+    } catch (err) {
+      console.warn('[TEST_DATA_REMOVE] cancel failed', order.id, err.message);
+    }
+  }
+
+  const withOrders = new Set((await Order.findAll({ attributes: ['restaurantId'], where: { restaurantId: { [Op.in]: storeIds } }, group: ['restaurantId'], raw: true }))
+    .map((r) => String(r.restaurantId)));
+  const hide = async (id) => {
+    await MenuItem.update({ isAvailable: false }, { where: { restaurantId: id } });
+    await Restaurant.update({ isActive: false }, { where: { id } });
+  };
+  for (const store of stores) {
+    try {
+      if (withOrders.has(String(store.id))) {
+        await hide(store.id);
+        result.hidden++;
+      } else {
+        await sequelize.transaction(async (t) => {
+          await MenuItem.destroy({ where: { restaurantId: store.id }, transaction: t });
+          await Restaurant.destroy({ where: { id: store.id }, transaction: t });
+        });
+        result.deleted++;
+      }
+    } catch (err) {
+      // Something else still points at it: switch it off instead, never leave it live.
+      try { await hide(store.id); result.hidden++; } catch { /* reported below */ }
+      result.failed.push({ id: store.id, name: store.name, error: String(err.message).slice(0, 120) });
+    }
+  }
+  try { require('../controllers/adminController').clearRestaurantsCache(); } catch { /* cache just expires */ }
+  return result;
+};
+
+module.exports = { runTestDataSeed, removeTestData, DATA_PATH, MARKER };
 
 // CLI: node scripts/test_data_seed.js  (uses the same DATABASE_URL as the server)
 if (require.main === module) {

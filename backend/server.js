@@ -1366,7 +1366,11 @@ const initializeApp = async () => {
       .catch((err) => console.warn('⚠️ [REMOVE_ALL_STORES_V2] failed:', err.message));
     // 🧪 Test data, once (owner, 1 Nov 2026; GlobalConfig TEST_DATA_V1_DONE): six "ZCS Test ..." stores with menus,
     // one per customer-app section (data/test_data_v1_2026-11-01.json). After the store removal above; create-only,
-    // no partner logins. Deleted or edited in the admin like any store. DISABLE_TEST_DATA=true switches it off.
+    // no partner logins. Deleted or edited in the admin like any store. DISABLE_TEST_DATA=true switches it off;
+    // REMOVE_TEST_DATA=true removes them again on every start while set (orders cancelled / stores hidden or deleted).
+    inBootQueue(() => require('./scripts/test_data_seed').removeTestData())
+      .then((r) => { if (!r || r.skipped !== 'not requested') console.log('🧪 [TEST_DATA_REMOVE]', JSON.stringify(r)); })
+      .catch((err) => console.warn('⚠️ [TEST_DATA_REMOVE] failed:', err.message));
     inBootQueue(() => require('./scripts/test_data_seed').runTestDataSeed())
       .then((r) => console.log('🧪 [TEST_DATA]', JSON.stringify(r)))
       .catch((err) => console.warn('⚠️ [TEST_DATA] failed:', err.message));
