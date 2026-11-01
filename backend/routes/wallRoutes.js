@@ -7,7 +7,8 @@ const { getWallSubmissionModel } = require('../models/WallSubmission');
 const { getWallLikeModel } = require('../models/WallLike');
 const { getUserModel } = require('../models/User');
 const { protect, admin } = require('../middleware/authMiddleware');
-const { sendPushToTopic } = require('../utils/push');
+// Wall announcements: every student's devices, only while Campus is on (utils/campusBroadcast; topics reached nobody).
+const campusBroadcast = require('../utils/campusBroadcast');
 
 // Optional auth for public Wall endpoints: returns the decoded JWT ({ id, role }) or null.
 const optionalUser = (req) => {
@@ -98,7 +99,7 @@ router.post('/events', protect, admin, async (req, res) => {
 
     // Notify all users about new Wall Event
     try {
-      await sendPushToTopic('all_users', '📸 The Wall Photo Contest is LIVE!', `Submit your photo for "${title}" & win a ₹${event.couponValue} coupon!`, {
+      await campusBroadcast.broadcastToStudents('📸 The Wall Photo Contest is LIVE!', `Submit your photo for "${title}" & win a ₹${event.couponValue} coupon!`, {
         type: 'WALL_EVENT_STARTED',
         eventId: event.id
       });

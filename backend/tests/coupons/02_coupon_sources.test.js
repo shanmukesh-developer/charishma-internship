@@ -27,7 +27,9 @@ const quote = (u, items, couponCode) => api('POST', '/api/orders/quote', u.token
 before(async () => {
   await H.setup();
   // Topic pushes (every student) are recorded; the Wall code reads the function when it loads, so swap it first.
-  H.r('utils/push').sendPushToTopic = async (topic, title, body, data) => { topicPushes.push({ topic, title, body, data }); };
+  // Wall announcements to every student (utils/campusBroadcast, 1 Nov 2026: was an FCM topic no app listens to) are
+  // recorded; the Wall code calls the module's function at send time, so swapping it here is enough.
+  H.r('utils/campusBroadcast').broadcastToStudents = async (title, body, data) => { topicPushes.push({ topic: 'students', title, body, data }); return { sent: true }; };
   const seq = H.ctx.sequelize;
   H.r('models/VaultItem').initVaultItemModel(seq);
   H.r('models/WallEvent').initWallEventModel(seq);
@@ -206,4 +208,40 @@ test('Wall prize held to ₹1-₹1000: create / update refuse anything else; an 
   const won = await coupons(w.id);
   assert.equal(won.length, 1);
   assert.equal(won[0].value, 1000);
+});
+
+// 1 Nov 2026: Wall announcements reach real devices (tokens, not an FCM topic) and only while Campus is on.
+test('Wall announcement: every active student device while Campus is on; nothing while Campus is off', async () => {
+  const CB = H.r('utils/campusBroadcast');
+  const real = CB.broadcastToStudents;
+  // The real helper again (the suite swapped it to record announcements).
+  delete require.cache[require.resolve(require('path').join(H.B, 'utils/campusBroadcast'))];
+  const fresh = require(require('path').join(H.B, 'utils/campusBroadcast'));
+  const push = H.r('utils/push');
+  const savedTokens = push.sendPushToTokens;
+  const calls = [];
+  push.sendPushToTokens = async (tokens, title, body, data, opts) => { calls.push({ tokens, title, data, recipients: (opts && opts.recipients) || [] }); };
+  const flags = H.r('modules/friends/services/featureFlags');
+  try {
+    const a = await H.mkUser();
+    const b = await H.mkUser();
+    const U = H.ctx.sequelize.models.User;
+    await U.update({ fcmTokens: ['tok-a1', 'tok-a2'] }, { where: { id: a.id } });
+    await U.update({ fcmTokens: JSON.stringify(['tok-b1', 'tok-a1']) }, { where: { id: b.id } });
+    await flags.setConfig({ enabled: true });
+    const on = await fresh.broadcastToStudents('📸 The Wall Photo Contest is LIVE!', 'Submit your photo', { type: 'WALL_EVENT_STARTED' });
+    assert.equal(on.sent, true, JSON.stringify(on));
+    assert.equal(calls.length, 1);
+    for (const t of ['tok-a1', 'tok-a2', 'tok-b1']) assert.ok(calls[0].tokens.includes(t), t);
+    assert.equal(new Set(calls[0].tokens).size, calls[0].tokens.length, 'each device once');
+    assert.ok(calls[0].recipients.includes(a.id) && calls[0].recipients.includes(b.id));
+    await flags.setConfig({ enabled: false });
+    const off = await fresh.broadcastToStudents('📸 The Wall Photo Contest is LIVE!', 'Submit your photo', { type: 'WALL_EVENT_STARTED' });
+    assert.deepEqual(off, { sent: false, reason: 'campus_off' });
+    assert.equal(calls.length, 1, 'nothing sent while Campus is off');
+  } finally {
+    await flags.setConfig({ enabled: true });
+    push.sendPushToTokens = savedTokens;
+    CB.broadcastToStudents = real;
+  }
 });

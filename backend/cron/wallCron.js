@@ -3,7 +3,9 @@ const { getWallEventModel } = require('../models/WallEvent');
 const { getWallSubmissionModel } = require('../models/WallSubmission');
 const { getCouponModel } = require('../models/Coupon');
 const { getUserModel } = require('../models/User');
-const { sendPushToTopic, sendPushToTokens } = require('../utils/push');
+const { sendPushToTokens } = require('../utils/push');
+// Wall announcements: every student's devices, only while Campus is on (utils/campusBroadcast; topics reached nobody).
+const campusBroadcast = require('../utils/campusBroadcast');
 
 // Scheduled by jobs/index.js through utils/jobs.runExclusive:
 //  1. every 5 minutes ('*/5 * * * *'): finalize expired Wall photo contests (runWallFinalizeJob)
@@ -138,7 +140,7 @@ const processExpiredWallEvents = async () => {
       //    "Congratulations to Community Member" to every student). First name only, like the public leaderboard.
       if (winnerUserId) {
         const firstName = String(winnerName || '').trim().split(/\s+/)[0].slice(0, 30) || 'a student';
-        await sendPushToTopic('all_users', '🏆 The Wall Has a Winner!', `Congratulations to ${firstName} for winning "${event.title}"! Check out the winning photo in the Hall of Fame.`, {
+        await campusBroadcast.broadcastToStudents('🏆 The Wall Has a Winner!', `Congratulations to ${firstName} for winning "${event.title}"! Check out the winning photo in the Hall of Fame.`, {
           type: 'WALL_EVENT_ENDED',
           eventId: event.id,
           winnerUserId
