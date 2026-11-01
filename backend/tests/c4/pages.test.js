@@ -165,3 +165,33 @@ test('privacy policy discloses crash reports (Firebase Crashlytics)', async () =
   assert.ok(/crash report/i.test(t), 'crash reports mentioned');
   assert.ok(t.includes('Crashlytics'), 'Crashlytics named');
 });
+
+test('photo credits page: linked from every legal page, lists each credited dish photo with author, licence link and changes', async () => {
+  const res = await H.api('GET', '/legal/photo-credits');
+  assert.strictEqual(res.status, 200);
+  assert.match(res.headers.get('content-type'), /text\/html/);
+  assert.ok(!/<script/i.test(res.text), 'no scripts');
+  for (const p of ['/legal', '/legal/terms', '/legal/privacy']) {
+    assert.ok((await H.api('GET', p)).text.includes('href="/legal/photo-credits"'), `${p} links the photo credits`);
+  }
+  // The credits are read from data/owner-menus/<menu>.json + images/<store>/sources.json.
+  const fs = require('fs');
+  const os = require('os');
+  const path = require('path');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'photo-credits-'));
+  fs.mkdirSync(path.join(dir, 'images', 'k'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'k.json'), JSON.stringify({ imagesDir: 'images/k', store: { name: 'Test Kitchen <b>' } }));
+  fs.writeFileSync(path.join(dir, 'images', 'k', 'sources.json'), JSON.stringify([
+    { dish: 'Kaju Masala', author: 'A <script>', licence: 'CC BY-SA 4.0', sourcePage: 'https://commons.wikimedia.org/wiki/File:X.jpg', modified: 'cropped' },
+    { dish: 'Veg Noodles', author: 'B', licence: 'Pexels License', sourcePage: 'javascript:alert(1)' },
+  ]));
+  const { loadPhotoCredits } = H.r('utils/photoCredits');
+  const groups = loadPhotoCredits(dir);
+  assert.strictEqual(groups.length, 1);
+  assert.strictEqual(groups[0].store, 'Test Kitchen <b>');
+  assert.deepStrictEqual(groups[0].photos.map((p) => [p.dish, p.licenceUrl, p.sourcePage, p.modified]), [
+    ['Kaju Masala', 'https://creativecommons.org/licenses/by-sa/4.0/', 'https://commons.wikimedia.org/wiki/File:X.jpg', 'cropped'],
+    ['Veg Noodles', 'https://www.pexels.com/license/', null, null],
+  ], 'only https source links are kept');
+  fs.rmSync(dir, { recursive: true, force: true });
+});

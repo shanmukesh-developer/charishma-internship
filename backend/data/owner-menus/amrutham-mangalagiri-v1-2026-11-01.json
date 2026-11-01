@@ -1,0 +1,445 @@
+{
+  "version": 1,
+  "key": "owner-menu:amrutham-mangalagiri",
+  "note": "Owner, 1 Nov 2026: 'add this restaurant and add this menu' (photo of the printed menu card) 'and the things which I circled ignore' (Indian Breads: Pulka 7, Chapati 15, Butter Chapati 20 are NOT added) 'and exact images not random each and every product, valid descriptions'; 'use real images everywhere'. Prices exactly as printed. Names as printed, spelling only made consistent (Omlet -> Omelette, Burji -> Bhurji, Moglai -> Mughlai Chicken, Manchuria -> Manchurian, Spl -> Special). Every photo is a real photograph, checked by eye, licence in data/owner-menus/images/amrutham-mangalagiri/sources.json. Address, map point and hours from the restaurant's EazyDiner listing (TKR Food Court, 11-84/A1, Gouthambuddha Road, near NRI Hospital, Mangalagiri; 16.4185622, 80.5625065; 12:30 PM to 10:30 PM daily); the menu card says TKR Food Court, Autonagar, Mangalagiri. No partner login, no phone, no FSSAI number, no rating, no offer are set: the owner adds the login in Admin > Stores > Partner login.",
+  "imagesDir": "images/amrutham-mangalagiri",
+  "store": {
+    "name": "Amrutham Restaurant",
+    "location": "TKR Food Court, Gouthambuddha Road, Autonagar, near NRI Hospital, Mangalagiri",
+    "lat": 16.4185622,
+    "lon": 80.5625065,
+    "vendorType": "RESTAURANT",
+    "image": "cover.jpg",
+    "tags": [
+      "noodles",
+      "chinese",
+      "indo-chinese",
+      "curries",
+      "north indian",
+      "paneer",
+      "chicken",
+      "egg"
+    ],
+    "description": "Indo-Chinese noodles and North Indian curries from TKR Food Court, Mangalagiri: veg, egg and chicken.",
+    "operatingHours": {
+      "start": "12:30",
+      "end": "22:30"
+    }
+  },
+  "items": [
+    {
+      "slug": "egg-noodles",
+      "name": "Egg Noodles",
+      "price": 90,
+      "category": "Non-Veg Noodles",
+      "dietType": "egg",
+      "description": "Classic Indo-Chinese street-style egg noodles, tossed on a hot wok with egg and crunchy vegetables. A light, savoury plate that is filling and easy on the spice.\n\nIngredients (Typical):\n- Noodles (wheat)\n- Eggs\n- Cabbage, carrot, capsicum and spring onion\n- Garlic\n- Soy sauce and vinegar\n- Black pepper, salt and oil\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Savoury, smoky and lightly peppery.",
+      "image": "egg-noodles.jpg"
+    },
+    {
+      "slug": "egg-schezwan-noodles",
+      "name": "Egg Schezwan Noodles",
+      "price": 100,
+      "category": "Non-Veg Noodles",
+      "dietType": "egg",
+      "description": "Egg noodles tossed in fiery red Schezwan sauce with garlic and crunchy vegetables. A favourite for those who like their noodles bold and spicy.\n\nIngredients (Typical):\n- Noodles (wheat)\n- Eggs\n- Schezwan sauce (red chilli and garlic)\n- Cabbage, carrot, capsicum and spring onion\n- Soy sauce\n- Oil and salt\n\nSpicy Level: Hot\n\nServing Suggestion: Best eaten hot, straight from the wok. Keep some water close.\n\nTaste Profile: Spicy, garlicky and tangy.",
+      "image": "egg-schezwan-noodles.jpg"
+    },
+    {
+      "slug": "egg-peri-peri-noodles",
+      "name": "Egg Peri Peri Noodles",
+      "price": 100,
+      "category": "Non-Veg Noodles",
+      "dietType": "egg",
+      "description": "Egg noodles tossed with hot peri peri seasoning and vegetables. A zesty, chilli-forward twist on classic egg noodles.\n\nIngredients (Typical):\n- Noodles (wheat)\n- Eggs\n- Peri peri seasoning (chilli, garlic and herbs)\n- Cabbage, carrot, capsicum and spring onion\n- Soy sauce\n- Oil and salt\n\nSpicy Level: Hot\n\nServing Suggestion: Best eaten hot, straight from the wok. Keep some water close.\n\nTaste Profile: Zesty, tangy and chilli-hot.",
+      "image": "egg-peri-peri-noodles.jpg"
+    },
+    {
+      "slug": "egg-maggi-masala-noodles",
+      "name": "Egg Maggi Masala Noodles",
+      "price": 100,
+      "category": "Non-Veg Noodles",
+      "dietType": "egg",
+      "description": "Street-style Maggi masala noodles cooked with egg, onion, tomato and green chilli. The hostel comfort classic with extra protein.\n\nIngredients (Typical):\n- Maggi instant noodles with masala\n- Eggs\n- Onion and tomato\n- Green chilli and coriander\n- Oil or butter\n- Salt and spices\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot, as soon as it arrives.\n\nTaste Profile: Masala-spiced, savoury and comforting.",
+      "image": "egg-maggi-masala-noodles.jpg"
+    },
+    {
+      "slug": "chicken-noodles",
+      "name": "Chicken Noodles",
+      "price": 120,
+      "category": "Non-Veg Noodles",
+      "dietType": "nonveg",
+      "description": "Indo-Chinese noodles tossed on a hot wok with tender chicken strips and crunchy vegetables. A filling, savoury classic.\n\nIngredients (Typical):\n- Noodles (wheat)\n- Chicken\n- Cabbage, carrot, capsicum and spring onion\n- Garlic\n- Soy sauce and vinegar\n- Black pepper, salt and oil\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Savoury, smoky and lightly peppery.",
+      "image": "chicken-noodles.jpg"
+    },
+    {
+      "slug": "chicken-schezwan-noodles",
+      "name": "Chicken Schezwan Noodles",
+      "price": 130,
+      "category": "Non-Veg Noodles",
+      "dietType": "nonveg",
+      "description": "Chicken noodles tossed in fiery red Schezwan sauce with garlic and crunchy vegetables. Bold, spicy and full of flavour.\n\nIngredients (Typical):\n- Noodles (wheat)\n- Chicken\n- Schezwan sauce (red chilli and garlic)\n- Cabbage, carrot, capsicum and spring onion\n- Soy sauce\n- Oil and salt\n\nSpicy Level: Hot\n\nServing Suggestion: Best eaten hot, straight from the wok. Keep some water close.\n\nTaste Profile: Spicy, garlicky and tangy.",
+      "image": "chicken-schezwan-noodles.jpg"
+    },
+    {
+      "slug": "chicken-peri-peri-noodles",
+      "name": "Chicken Peri Peri Noodles",
+      "price": 130,
+      "category": "Non-Veg Noodles",
+      "dietType": "nonveg",
+      "description": "Chicken noodles tossed with hot peri peri seasoning and vegetables. A zesty, chilli-forward twist on chicken noodles.\n\nIngredients (Typical):\n- Noodles (wheat)\n- Chicken\n- Peri peri seasoning (chilli, garlic and herbs)\n- Cabbage, carrot, capsicum and spring onion\n- Soy sauce\n- Oil and salt\n\nSpicy Level: Hot\n\nServing Suggestion: Best eaten hot, straight from the wok. Keep some water close.\n\nTaste Profile: Zesty, tangy and chilli-hot.",
+      "image": "chicken-peri-peri-noodles.jpg"
+    },
+    {
+      "slug": "chicken-maggi-masala-noodles",
+      "name": "Chicken Maggi Masala Noodles",
+      "price": 130,
+      "category": "Non-Veg Noodles",
+      "dietType": "nonveg",
+      "description": "Street-style Maggi masala noodles cooked with chicken pieces, onion, tomato and spices. A heartier take on the hostel favourite.\n\nIngredients (Typical):\n- Maggi instant noodles with masala\n- Chicken\n- Onion and tomato\n- Green chilli and coriander\n- Oil\n- Salt and spices\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot, as soon as it arrives.\n\nTaste Profile: Masala-spiced, savoury and hearty.",
+      "image": "chicken-maggi-masala-noodles.jpg"
+    },
+    {
+      "slug": "mix-non-veg-noodles-special",
+      "name": "Mix Non-Veg Noodles Special",
+      "price": 200,
+      "category": "Non-Veg Noodles",
+      "dietType": "nonveg",
+      "description": "A loaded house special: noodles tossed with chicken, egg and vegetables in one generous plate. Made for a proper appetite.\n\nIngredients (Typical):\n- Noodles (wheat)\n- Chicken\n- Eggs\n- Prawns or other non-veg (if used in the actual recipe)\n- Cabbage, carrot, capsicum and spring onion\n- Garlic\n- Soy sauce, oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Savoury, smoky and meaty.",
+      "image": "mix-non-veg-noodles-special.jpg"
+    },
+    {
+      "slug": "veg-noodles",
+      "name": "Veg Noodles",
+      "price": 80,
+      "category": "Veg Noodles",
+      "dietType": "veg",
+      "description": "Wok-tossed noodles with crunchy cabbage, carrot, capsicum, beans and spring onion in a light soy seasoning. Simple, quick and satisfying.\n\nIngredients (Typical):\n- Noodles (wheat)\n- Cabbage, carrot, capsicum, beans and spring onion\n- Garlic\n- Soy sauce and vinegar\n- Black pepper, salt and oil\n\nSpicy Level: Mild\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Light, savoury and fresh.",
+      "image": "veg-noodles.jpg"
+    },
+    {
+      "slug": "hakka-noodles",
+      "name": "Hakka Noodles",
+      "price": 80,
+      "category": "Veg Noodles",
+      "dietType": "veg",
+      "description": "Classic Indo-Chinese Hakka noodles stir-fried over high heat with crunchy vegetables, garlic, soy sauce and a dash of vinegar.\n\nIngredients (Typical):\n- Hakka noodles (wheat)\n- Cabbage, carrot, capsicum and spring onion\n- Garlic\n- Soy sauce and vinegar\n- Black pepper, salt and oil\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Smoky, savoury and slightly tangy.",
+      "image": "hakka-noodles.jpg"
+    },
+    {
+      "slug": "veg-schezwan-noodles",
+      "name": "Veg Schezwan Noodles",
+      "price": 100,
+      "category": "Veg Noodles",
+      "dietType": "veg",
+      "description": "Vegetable noodles tossed in fiery red Schezwan sauce with garlic and spring onion. For those who like it bold and spicy.\n\nIngredients (Typical):\n- Noodles (wheat)\n- Schezwan sauce (red chilli and garlic)\n- Cabbage, carrot, capsicum and spring onion\n- Soy sauce\n- Oil and salt\n\nSpicy Level: Hot\n\nServing Suggestion: Best eaten hot, straight from the wok. Keep some water close.\n\nTaste Profile: Spicy, garlicky and tangy.",
+      "image": "veg-schezwan-noodles.jpg"
+    },
+    {
+      "slug": "peri-peri-noodles",
+      "name": "Peri Peri Noodles",
+      "price": 100,
+      "category": "Veg Noodles",
+      "dietType": "veg",
+      "description": "Vegetable noodles tossed with hot peri peri seasoning. A zesty, chilli-forward take on veg noodles.\n\nIngredients (Typical):\n- Noodles (wheat)\n- Peri peri seasoning (chilli, garlic and herbs)\n- Cabbage, carrot, capsicum and spring onion\n- Soy sauce\n- Oil and salt\n\nSpicy Level: Hot\n\nServing Suggestion: Best eaten hot, straight from the wok. Keep some water close.\n\nTaste Profile: Zesty, tangy and chilli-hot.",
+      "image": "peri-peri-noodles.jpg"
+    },
+    {
+      "slug": "maggi-masala-noodles",
+      "name": "Maggi Masala Noodles",
+      "price": 100,
+      "category": "Veg Noodles",
+      "dietType": "veg",
+      "description": "Street-style Maggi masala noodles cooked with onion, tomato, green chilli and extra masala. The hostel comfort classic, made fresh.\n\nIngredients (Typical):\n- Maggi instant noodles with masala\n- Onion and tomato\n- Green chilli and coriander\n- Oil or butter\n- Salt and spices\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot, as soon as it arrives.\n\nTaste Profile: Masala-spiced, savoury and comforting.",
+      "image": "maggi-masala-noodles.jpg"
+    },
+    {
+      "slug": "manchurian-noodles",
+      "name": "Manchurian Noodles",
+      "price": 100,
+      "category": "Veg Noodles",
+      "dietType": "veg",
+      "description": "Vegetable noodles served with crispy veg Manchurian balls in a glossy garlic-soy Manchurian sauce. Two Indo-Chinese favourites in one plate.\n\nIngredients (Typical):\n- Noodles (wheat)\n- Veg Manchurian balls (cabbage, carrot and flour)\n- Manchurian sauce (soy, garlic, ginger and chilli)\n- Spring onion and capsicum\n- Oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Savoury, garlicky and slightly sweet-tangy.",
+      "image": "manchurian-noodles.jpg"
+    },
+    {
+      "slug": "paneer-noodles",
+      "name": "Paneer Noodles",
+      "price": 120,
+      "category": "Veg Noodles",
+      "dietType": "veg",
+      "description": "Noodles stir-fried with soft paneer cubes, crunchy vegetables and soy sauce. A filling vegetarian plate with a good bite of protein.\n\nIngredients (Typical):\n- Noodles (wheat)\n- Paneer (cottage cheese)\n- Cabbage, carrot, capsicum and spring onion\n- Garlic\n- Soy sauce\n- Oil and salt\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Savoury, smoky and mildly spiced.",
+      "image": "paneer-noodles.jpg"
+    },
+    {
+      "slug": "kaju-noodles",
+      "name": "Kaju Noodles",
+      "price": 120,
+      "category": "Veg Noodles",
+      "dietType": "veg",
+      "description": "Noodles stir-fried with roasted cashews (kaju) and vegetables. A rich, crunchy vegetarian favourite.\n\nIngredients (Typical):\n- Noodles (wheat)\n- Roasted cashew nuts\n- Cabbage, carrot, capsicum and spring onion\n- Garlic\n- Soy sauce\n- Oil and salt\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Savoury and nutty, with a crunchy bite.",
+      "image": "kaju-noodles.jpg"
+    },
+    {
+      "slug": "mushroom-noodles",
+      "name": "Mushroom Noodles",
+      "price": 120,
+      "category": "Veg Noodles",
+      "dietType": "veg",
+      "description": "Noodles stir-fried with sliced mushrooms, vegetables and a soy-garlic seasoning. Earthy and satisfying.\n\nIngredients (Typical):\n- Noodles (wheat)\n- Button mushrooms\n- Cabbage, carrot, capsicum and spring onion\n- Garlic\n- Soy sauce\n- Oil and salt\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Earthy, savoury and garlicky.",
+      "image": "mushroom-noodles.jpg"
+    },
+    {
+      "slug": "thecha-noodles-amrutham-special",
+      "name": "Thecha Noodles (Amrutham Special)",
+      "price": 120,
+      "category": "Veg Noodles",
+      "dietType": "veg",
+      "description": "Amrutham's own special: noodles tossed in thecha, a coarse, fiery chutney of chillies and garlic. Made for those who love real heat.\n\nIngredients (Typical):\n- Noodles (wheat)\n- Thecha (green chillies and garlic; peanuts if used in the actual recipe)\n- Onion and capsicum\n- Soy sauce\n- Oil and salt\n\nSpicy Level: Very Hot\n\nServing Suggestion: Best eaten hot, straight from the wok. Keep some water close.\n\nTaste Profile: Fiery, garlicky and smoky.",
+      "image": "thecha-noodles-amrutham-special.jpg"
+    },
+    {
+      "slug": "mix-noodles-special",
+      "name": "Mix Noodles Special",
+      "price": 150,
+      "category": "Veg Noodles",
+      "dietType": "veg",
+      "description": "A loaded house veg special: noodles tossed with a generous mix of vegetables. Made for a proper appetite.\n\nIngredients (Typical):\n- Noodles (wheat)\n- Mixed vegetables\n- Paneer, mushroom or cashews (if used in the actual recipe)\n- Garlic\n- Soy sauce\n- Oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Savoury, smoky and wholesome.",
+      "image": "mix-noodles-special.jpg"
+    },
+    {
+      "slug": "mix-veg-curry",
+      "name": "Mix Veg Curry",
+      "price": 120,
+      "category": "Veg Curries",
+      "dietType": "veg",
+      "description": "Seasonal mixed vegetables simmered in a homestyle onion-tomato gravy with Indian spices. A wholesome everyday curry.\n\nIngredients (Typical):\n- Mixed vegetables (such as beans, carrot, peas, potato and cauliflower)\n- Onion and tomato\n- Ginger-garlic paste\n- Red chilli, turmeric and garam masala\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Homestyle, savoury and wholesome.",
+      "image": "mix-veg-curry.jpg"
+    },
+    {
+      "slug": "paneer-butter-masala",
+      "name": "Paneer Butter Masala",
+      "price": 150,
+      "category": "Veg Curries",
+      "dietType": "veg",
+      "description": "Soft paneer cubes in a rich, buttery tomato gravy finished with cream. A mild, creamy North Indian favourite.\n\nIngredients (Typical):\n- Paneer (cottage cheese)\n- Tomato\n- Butter and cream\n- Cashew paste (if used in the actual recipe)\n- Ginger-garlic paste\n- Kashmiri chilli, garam masala and kasuri methi\n- Salt and a pinch of sugar\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Creamy, buttery and mildly sweet-tangy.",
+      "image": "paneer-butter-masala.jpg"
+    },
+    {
+      "slug": "kadai-paneer",
+      "name": "Kadai Paneer",
+      "price": 150,
+      "category": "Veg Curries",
+      "dietType": "veg",
+      "description": "Paneer cooked with chunks of capsicum and onion in a spicy kadai masala of freshly ground coriander and red chilli. Bold and aromatic.\n\nIngredients (Typical):\n- Paneer (cottage cheese)\n- Capsicum and onion\n- Tomato\n- Kadai masala (coriander seeds and red chilli)\n- Ginger-garlic paste\n- Oil, salt and kasuri methi\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Spicy, aromatic and smoky.",
+      "image": "kadai-paneer.jpg"
+    },
+    {
+      "slug": "paneer-hyderabadi",
+      "name": "Paneer Hyderabadi",
+      "price": 150,
+      "category": "Veg Curries",
+      "dietType": "veg",
+      "description": "Paneer in a vibrant green Hyderabadi gravy of spinach, mint and coriander. Fresh, herby and full of flavour.\n\nIngredients (Typical):\n- Paneer (cottage cheese)\n- Spinach, mint and coriander\n- Green chillies\n- Onion\n- Ginger-garlic paste\n- Curd or cream (if used in the actual recipe)\n- Spices, oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Herby, fresh and mildly spicy.",
+      "image": "paneer-hyderabadi.jpg"
+    },
+    {
+      "slug": "paneer-shahi-kurma",
+      "name": "Paneer Shahi Kurma",
+      "price": 150,
+      "category": "Veg Curries",
+      "dietType": "veg",
+      "description": "Paneer in a mild, creamy white korma gravy made with cashews and whole spices. Royal, rich and gentle on the spice.\n\nIngredients (Typical):\n- Paneer (cottage cheese)\n- Cashew paste\n- Cream or curd\n- Onion\n- Whole spices (cardamom, cloves and cinnamon)\n- Ginger-garlic paste\n- Oil and salt\n\nSpicy Level: Mild\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Creamy, rich and aromatic.",
+      "image": "paneer-shahi-kurma.jpg"
+    },
+    {
+      "slug": "shahi-paneer",
+      "name": "Shahi Paneer",
+      "price": 150,
+      "category": "Veg Curries",
+      "dietType": "veg",
+      "description": "Paneer in a rich, mildly sweet gravy of cream, cashews and tomato. A royal Mughlai-style favourite.\n\nIngredients (Typical):\n- Paneer (cottage cheese)\n- Cream\n- Cashew paste\n- Tomato and onion\n- Cardamom and garam masala\n- Butter or oil, salt and a pinch of sugar\n\nSpicy Level: Mild\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Creamy, mildly sweet and rich.",
+      "image": "shahi-paneer.jpg"
+    },
+    {
+      "slug": "kaju-masala",
+      "name": "Kaju Masala",
+      "price": 150,
+      "category": "Veg Curries",
+      "dietType": "veg",
+      "description": "Whole roasted cashews in a rich, spiced onion-tomato masala gravy. Indulgent and full of flavour.\n\nIngredients (Typical):\n- Cashew nuts\n- Onion and tomato\n- Cream or butter (if used in the actual recipe)\n- Ginger-garlic paste\n- Red chilli, garam masala and kasuri methi\n- Oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Rich, nutty and mildly spicy.",
+      "image": "kaju-masala.jpg"
+    },
+    {
+      "slug": "kaju-paneer",
+      "name": "Kaju Paneer",
+      "price": 170,
+      "category": "Veg Curries",
+      "dietType": "veg",
+      "description": "Paneer and roasted cashews cooked together in a rich masala gravy. Two favourites in one indulgent curry.\n\nIngredients (Typical):\n- Paneer (cottage cheese)\n- Cashew nuts\n- Onion and tomato\n- Cream or butter (if used in the actual recipe)\n- Ginger-garlic paste\n- Spices, oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Rich, creamy and nutty.",
+      "image": "kaju-paneer.jpg"
+    },
+    {
+      "slug": "mushroom-curry",
+      "name": "Mushroom Curry",
+      "price": 130,
+      "category": "Veg Curries",
+      "dietType": "veg",
+      "description": "Mushrooms simmered in a homestyle onion-tomato curry with Indian spices. Earthy and comforting.\n\nIngredients (Typical):\n- Button mushrooms\n- Onion and tomato\n- Ginger-garlic paste\n- Red chilli, turmeric and garam masala\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Earthy, savoury and homestyle.",
+      "image": "mushroom-curry.jpg"
+    },
+    {
+      "slug": "mushroom-masala",
+      "name": "Mushroom Masala",
+      "price": 150,
+      "category": "Veg Curries",
+      "dietType": "veg",
+      "description": "Mushrooms cooked in a thick, spicy onion-tomato masala that clings to every piece. Richer and spicier than the curry.\n\nIngredients (Typical):\n- Button mushrooms\n- Onion and tomato\n- Ginger-garlic paste\n- Red chilli, coriander and garam masala\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Spicy, earthy and robust.",
+      "image": "mushroom-masala.jpg"
+    },
+    {
+      "slug": "babycorn-curry",
+      "name": "Babycorn Curry",
+      "price": 130,
+      "category": "Veg Curries",
+      "dietType": "veg",
+      "description": "Tender baby corn cooked in a homestyle onion-tomato curry. Light, sweet-crunchy and comforting.\n\nIngredients (Typical):\n- Baby corn\n- Onion and tomato\n- Ginger-garlic paste\n- Red chilli, turmeric and garam masala\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Mildly sweet, savoury and homestyle.",
+      "image": "babycorn-curry.jpg"
+    },
+    {
+      "slug": "babycorn-masala",
+      "name": "Babycorn Masala",
+      "price": 150,
+      "category": "Veg Curries",
+      "dietType": "veg",
+      "description": "Baby corn in a thick, spicy masala gravy that clings to every piece. Crunchy, rich and flavourful.\n\nIngredients (Typical):\n- Baby corn\n- Onion and tomato\n- Ginger-garlic paste\n- Red chilli, coriander and garam masala\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Spicy, savoury and slightly sweet.",
+      "image": "babycorn-masala.jpg"
+    },
+    {
+      "slug": "chicken-curry-bone",
+      "name": "Chicken Curry (Bone)",
+      "price": 150,
+      "category": "Non-Veg Curries",
+      "dietType": "nonveg",
+      "description": "Bone-in chicken cooked in a homestyle onion-tomato curry with whole spices. The bones add extra depth to the gravy.\n\nIngredients (Typical):\n- Chicken (with bone)\n- Onion and tomato\n- Ginger-garlic paste\n- Red chilli, turmeric, coriander and garam masala\n- Whole spices\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Homestyle, rich and spicy.",
+      "image": "chicken-curry-bone.jpg"
+    },
+    {
+      "slug": "chicken-boneless-curry",
+      "name": "Chicken Boneless Curry",
+      "price": 170,
+      "category": "Non-Veg Curries",
+      "dietType": "nonveg",
+      "description": "Boneless chicken pieces cooked in a spicy onion-tomato curry. All the flavour, none of the bones.\n\nIngredients (Typical):\n- Boneless chicken\n- Onion and tomato\n- Ginger-garlic paste\n- Red chilli, turmeric, coriander and garam masala\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Rich, spicy and satisfying.",
+      "image": "chicken-boneless-curry.jpg"
+    },
+    {
+      "slug": "butter-chicken",
+      "name": "Butter Chicken",
+      "price": 200,
+      "category": "Non-Veg Curries",
+      "dietType": "nonveg",
+      "description": "Tender chicken in a creamy, buttery tomato gravy, mildly spiced and finished with cream. A North Indian classic loved by everyone.\n\nIngredients (Typical):\n- Chicken\n- Tomato\n- Butter and cream\n- Cashew paste (if used in the actual recipe)\n- Ginger-garlic paste\n- Kashmiri chilli, garam masala and kasuri methi\n- Salt and a pinch of sugar\n\nSpicy Level: Mild\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Creamy, buttery and mildly sweet-tangy.",
+      "image": "butter-chicken.jpg"
+    },
+    {
+      "slug": "kadai-chicken",
+      "name": "Kadai Chicken",
+      "price": 170,
+      "category": "Non-Veg Curries",
+      "dietType": "nonveg",
+      "description": "Chicken cooked with chunks of capsicum and onion in a spicy kadai masala of freshly ground coriander and red chilli.\n\nIngredients (Typical):\n- Chicken\n- Capsicum and onion\n- Tomato\n- Kadai masala (coriander seeds and red chilli)\n- Ginger-garlic paste\n- Oil, salt and kasuri methi\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Spicy, aromatic and robust.",
+      "image": "kadai-chicken.jpg"
+    },
+    {
+      "slug": "andhra-chicken",
+      "name": "Andhra Chicken",
+      "price": 200,
+      "category": "Non-Veg Curries",
+      "dietType": "nonveg",
+      "description": "Fiery Andhra-style chicken curry with red chillies, curry leaves and a bold spice blend. For those who love real Andhra heat.\n\nIngredients (Typical):\n- Chicken\n- Red chillies and red chilli powder\n- Curry leaves\n- Onion\n- Ginger-garlic paste\n- Coriander, turmeric and garam masala\n- Oil and salt\n\nSpicy Level: Very Hot\n\nServing Suggestion: Best with hot rice, roti or chapati (not included). Keep some water close.\n\nTaste Profile: Fiery, bold and aromatic.",
+      "image": "andhra-chicken.jpg"
+    },
+    {
+      "slug": "chicken-hyderabadi",
+      "name": "Chicken Hyderabadi",
+      "price": 200,
+      "category": "Non-Veg Curries",
+      "dietType": "nonveg",
+      "description": "Chicken in a vibrant green Hyderabadi gravy of mint, coriander and spinach. Fresh, herby and full of flavour.\n\nIngredients (Typical):\n- Chicken\n- Mint, coriander and spinach\n- Green chillies\n- Onion\n- Ginger-garlic paste\n- Curd or cream (if used in the actual recipe)\n- Spices, oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Herby, fresh and mildly spicy.",
+      "image": "chicken-hyderabadi.jpg"
+    },
+    {
+      "slug": "chicken-kali-mirch",
+      "name": "Chicken Kali Mirch",
+      "price": 220,
+      "category": "Non-Veg Curries",
+      "dietType": "nonveg",
+      "description": "Chicken in a creamy gravy flavoured with freshly crushed black pepper (kali mirch). Peppery warmth instead of chilli heat.\n\nIngredients (Typical):\n- Chicken\n- Crushed black pepper\n- Cream or curd\n- Cashew paste (if used in the actual recipe)\n- Onion\n- Ginger-garlic paste\n- Oil and salt\n\nSpicy Level: Medium (peppery)\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Creamy, peppery and aromatic.",
+      "image": "chicken-kali-mirch.jpg"
+    },
+    {
+      "slug": "afghani-chicken",
+      "name": "Afghani Chicken",
+      "price": 230,
+      "category": "Non-Veg Curries",
+      "dietType": "nonveg",
+      "description": "Chicken in a mild, creamy white gravy with cashews and cream. Rich and gentle on the spice.\n\nIngredients (Typical):\n- Chicken\n- Cream and curd\n- Cashew paste\n- Onion\n- Ginger-garlic paste\n- White pepper and mild spices\n- Butter or oil and salt\n\nSpicy Level: Mild\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Creamy, rich and mild.",
+      "image": "afghani-chicken.jpg"
+    },
+    {
+      "slug": "mughlai-chicken",
+      "name": "Mughlai Chicken",
+      "price": 230,
+      "category": "Non-Veg Curries",
+      "dietType": "nonveg",
+      "description": "Chicken in a rich Mughlai gravy of cashews, cream and aromatic whole spices. Royal and indulgent.\n\nIngredients (Typical):\n- Chicken\n- Cashew paste\n- Cream or curd\n- Onion\n- Whole spices (cardamom, cloves and cinnamon)\n- Ginger-garlic paste\n- Ghee or oil and salt\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Rich, creamy and aromatic.",
+      "image": "mughlai-chicken.jpg"
+    },
+    {
+      "slug": "egg-curry",
+      "name": "Egg Curry",
+      "price": 120,
+      "category": "Non-Veg Curries",
+      "dietType": "egg",
+      "description": "Boiled eggs simmered in a spicy onion-tomato curry. A homestyle favourite that never fails.\n\nIngredients (Typical):\n- Boiled eggs\n- Onion and tomato\n- Ginger-garlic paste\n- Red chilli, turmeric and garam masala\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Homestyle, spicy and savoury.",
+      "image": "egg-curry.jpg"
+    },
+    {
+      "slug": "egg-bhurji",
+      "name": "Egg Bhurji",
+      "price": 120,
+      "category": "Non-Veg Curries",
+      "dietType": "egg",
+      "description": "Spiced Indian scrambled eggs cooked with onion, tomato, green chilli and coriander. Quick, soft and full of flavour.\n\nIngredients (Typical):\n- Eggs\n- Onion and tomato\n- Green chilli\n- Turmeric and red chilli powder\n- Coriander leaves\n- Oil or butter and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best with roti, chapati or bread (not included).\n\nTaste Profile: Soft, savoury and mildly spicy.",
+      "image": "egg-bhurji.jpg"
+    },
+    {
+      "slug": "egg-masala",
+      "name": "Egg Masala",
+      "price": 150,
+      "category": "Non-Veg Curries",
+      "dietType": "egg",
+      "description": "Boiled eggs in a thick, spicy onion masala that clings to every egg. Richer and spicier than egg curry.\n\nIngredients (Typical):\n- Boiled eggs\n- Onion and tomato\n- Ginger-garlic paste\n- Red chilli, coriander and garam masala\n- Curry leaves (if used in the actual recipe)\n- Oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Spicy, rich and savoury.",
+      "image": "egg-masala.jpg"
+    },
+    {
+      "slug": "plain-omelette-double",
+      "name": "Plain Omelette (Double Egg)",
+      "price": 40,
+      "category": "Non-Veg Curries",
+      "dietType": "egg",
+      "description": "A simple two-egg omelette cooked fresh on the tawa. Light, filling and protein-rich.\n\nIngredients (Typical):\n- 2 eggs\n- Salt and pepper\n- Oil or butter\n\nSpicy Level: Not spicy\n\nServing Suggestion: Have it on its own or with bread (not included).\n\nTaste Profile: Soft, simple and savoury.",
+      "image": "plain-omelette-double.jpg"
+    },
+    {
+      "slug": "masala-omelette",
+      "name": "Masala Omelette",
+      "price": 50,
+      "category": "Non-Veg Curries",
+      "dietType": "egg",
+      "description": "An Indian-style omelette with onion, green chilli, tomato and coriander cooked into the eggs.\n\nIngredients (Typical):\n- Eggs\n- Onion and tomato\n- Green chilli\n- Coriander leaves\n- Salt and red chilli\n- Oil\n\nSpicy Level: Medium\n\nServing Suggestion: Have it on its own or with bread (not included).\n\nTaste Profile: Savoury, spicy and fresh.",
+      "image": "masala-omelette.jpg"
+    }
+  ]
+}

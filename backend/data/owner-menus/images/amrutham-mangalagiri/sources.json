@@ -1,0 +1,488 @@
+[
+  {
+    "dish": "Egg Noodles",
+    "file": "egg-noodles.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bc/Veg_Chowmein_with_Fried_Egg_-_Kolkata_-_West_Bengal_-_Pic04.jpg/960px-Veg_Chowmein_with_Fried_Egg_-_Kolkata_-_West_Bengal_-_Pic04.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Veg_Chowmein_with_Fried_Egg_-_Kolkata_-_West_Bengal_-_Pic04.jpg",
+    "author": "Pmani1",
+    "licence": "CC BY-SA 4.0",
+    "shows": "Thin Kolkata street-style chowmein with capsicum and onion, topped with a peppered fried egg on a steel plate.",
+    "match": "exact"
+  },
+  {
+    "dish": "Egg Schezwan Noodles",
+    "file": "egg-schezwan-noodles.jpg",
+    "imageUrl": "https://images.unsplash.com/photo-1718287904289-f07542ad77ac?w=1000&q=80&fm=jpg",
+    "sourcePage": "https://unsplash.com/photos/a-white-bowl-filled-with-noodles-and-vegetables-5JGvBGsP9sg",
+    "author": "Jesi Jnr",
+    "licence": "Unsplash License",
+    "shows": "Noodles in a red chilli sauce with capsicum, onion, spring onion and coriander, with boiled-egg wedges, in a white bowl.",
+    "match": "closest match"
+  },
+  {
+    "dish": "Egg Peri Peri Noodles",
+    "file": "egg-peri-peri-noodles.jpg",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/4/4e/Spicy_noodles_with_eggs.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Spicy_noodles_with_eggs.jpg",
+    "author": "Fatimah Bello",
+    "licence": "CC BY-SA 4.0",
+    "shows": "Spicy noodles with onion and three boiled eggs.",
+    "match": "closest match"
+  },
+  {
+    "dish": "Egg Maggi Masala Noodles",
+    "file": "egg-maggi-masala-noodles.jpg",
+    "imageUrl": "https://images.unsplash.com/photo-1603033172872-c2525115c7b9?w=1000&q=80&fm=jpg",
+    "sourcePage": "https://unsplash.com/photos/brown-rice-on-black-frying-pan-WB3btWnwjaY",
+    "author": "ABHISHEK HAJARE",
+    "licence": "Unsplash License",
+    "shows": "Masala instant (Maggi-style) noodles in a black pan with a fried egg in the centre.",
+    "match": "exact"
+  },
+  {
+    "dish": "Chicken Noodles",
+    "file": "chicken-noodles.jpg",
+    "imageUrl": "https://images.pexels.com/photos/40263070/pexels-photo-40263070.jpeg?auto=compress&cs=tinysrgb&w=1000",
+    "sourcePage": "https://www.pexels.com/photo/delicious-chicken-chow-mein-in-blue-bowl-40263070/",
+    "author": "Mohammad Fahim",
+    "licence": "Pexels License",
+    "shows": "Chicken chow mein with browned chicken pieces, capsicum and onion in a blue bowl.",
+    "match": "exact"
+  },
+  {
+    "dish": "Chicken Schezwan Noodles",
+    "file": "chicken-schezwan-noodles.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4e/Schezwan_noodles.jpg/960px-Schezwan_noodles.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Schezwan_noodles.jpg",
+    "author": "Gauvdhami",
+    "licence": "CC BY-SA 4.0",
+    "shows": "Indian schezwan noodles in red-orange sauce with chicken pieces and coriander on a white plate, with a printed restaurant menu card visible underneath.",
+    "match": "exact",
+    "modified": "cropped",
+    "note": "Cropped by ZCS to the dish only."
+  },
+  {
+    "dish": "Chicken Peri Peri Noodles",
+    "file": "chicken-peri-peri-noodles.jpg",
+    "imageUrl": "https://images.pexels.com/photos/16845659/pexels-photo-16845659.jpeg?auto=compress&cs=tinysrgb&w=1000",
+    "sourcePage": "https://www.pexels.com/photo/delicious-pasta-for-dinner-16845659/",
+    "author": "Huzaifa Bukhari",
+    "licence": "Pexels License",
+    "shows": "Spicy red-orange noodles with sliced chilli-glazed grilled chicken and sesame, beside a bowl of chopped red chillies.",
+    "match": "closest match"
+  },
+  {
+    "dish": "Chicken Maggi Masala Noodles",
+    "file": "chicken-maggi-masala-noodles.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/92/Maggie_with_chicken_pieces.jpeg/960px-Maggie_with_chicken_pieces.jpeg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Maggie_with_chicken_pieces.jpeg",
+    "author": "Urniel",
+    "licence": "CC BY-SA 4.0",
+    "shows": "Yellow Maggi noodles with cabbage and carrot, topped with grilled spice-rubbed chicken pieces.",
+    "match": "exact"
+  },
+  {
+    "dish": "Mix Non-Veg Noodles Special",
+    "file": "mix-non-veg-noodles-special.jpg",
+    "imageUrl": "https://images.pexels.com/photos/14853731/pexels-photo-14853731.jpeg?auto=compress&cs=tinysrgb&w=1000",
+    "sourcePage": "https://www.pexels.com/photo/pasta-with-meat-14853731/",
+    "author": "Alan Retano",
+    "licence": "Pexels License",
+    "shows": "Noodles (over a little rice) topped with a fried egg and glazed fried-chicken pieces in a black bowl; no prawns visible.",
+    "match": "closest match"
+  },
+  {
+    "dish": "Veg Noodles",
+    "file": "veg-noodles.jpg",
+    "imageUrl": "https://images.pexels.com/photos/20791757/pexels-photo-20791757.jpeg?auto=compress&cs=tinysrgb&w=1000",
+    "sourcePage": "https://www.pexels.com/photo/pasta-noodles-in-a-bowl-20791757/",
+    "author": "Rohan Batra",
+    "licence": "Pexels License",
+    "shows": "Indian street-style veg noodles with spring onion and shredded vegetables, lifted with chopsticks from a takeaway bowl.",
+    "match": "exact"
+  },
+  {
+    "dish": "Hakka Noodles",
+    "file": "hakka-noodles.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/13/Hakka_Noodles.JPG/960px-Hakka_Noodles.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Hakka_Noodles.JPG",
+    "author": "Aparna Balasubramanian",
+    "licence": "CC BY-SA 4.0",
+    "shows": "Veg hakka noodles with peppers, cabbage, spring onion and sesame in a blue-and-white bowl with chopsticks.",
+    "match": "exact"
+  },
+  {
+    "dish": "Veg Schezwan Noodles",
+    "file": "veg-schezwan-noodles.jpg",
+    "imageUrl": "https://images.pexels.com/photos/11762852/pexels-photo-11762852.jpeg?auto=compress&cs=tinysrgb&w=1000",
+    "sourcePage": "https://www.pexels.com/photo/pasta-dish-on-white-ceramic-bowl-11762852/",
+    "author": "NIKHIL RAUT",
+    "licence": "Pexels License",
+    "shows": "Bright red-orange veg schezwan noodles with spring onion in a white bowl, with red schezwan chutney beside it.",
+    "match": "exact"
+  },
+  {
+    "dish": "Peri Peri Noodles",
+    "file": "peri-peri-noodles.jpg",
+    "imageUrl": "https://images.pexels.com/photos/8746207/pexels-photo-8746207.jpeg?auto=compress&cs=tinysrgb&w=1000",
+    "sourcePage": "https://www.pexels.com/photo/white-ceramic-bowl-with-pasta-and-vegetables-8746207/",
+    "author": "Pixel Senses",
+    "licence": "Pexels License",
+    "shows": "Spicy red-masala-coated veg noodles with carrot, capsicum, cabbage and coriander in a white bowl; nothing marks it as peri peri.",
+    "match": "closest match"
+  },
+  {
+    "dish": "Maggi Masala Noodles",
+    "file": "maggi-masala-noodles.jpg",
+    "imageUrl": "https://images.unsplash.com/photo-1692273212247-f5efb3fc9b87?w=1000&q=80&fm=jpg",
+    "sourcePage": "https://unsplash.com/photos/a-yellow-bowl-filled-with-food-on-top-of-a-wooden-table-778v4yb3G8s",
+    "author": "Kaushal Premlani",
+    "licence": "Unsplash License",
+    "shows": "Steaming Maggi masala noodles with tomato, onion and coriander on a yellow plate.",
+    "match": "exact"
+  },
+  {
+    "dish": "Manchurian Noodles",
+    "file": "manchurian-noodles.jpg",
+    "imageUrl": "https://images.pexels.com/photos/28445831/pexels-photo-28445831.jpeg?auto=compress&cs=tinysrgb&w=1000",
+    "sourcePage": "https://www.pexels.com/photo/delicious-two-dish-combo-of-noodles-and-manchurian-28445831/",
+    "author": "Aperture Photography",
+    "licence": "Pexels License",
+    "shows": "A bowl of veg noodles beside a bowl of veg Manchurian balls in dark gravy, served as a combo.",
+    "match": "exact"
+  },
+  {
+    "dish": "Paneer Noodles",
+    "file": "paneer-noodles.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/93/Indian_Style_Paneer_Noodles.jpg/960px-Indian_Style_Paneer_Noodles.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Indian_Style_Paneer_Noodles.jpg",
+    "author": "Fatimahope",
+    "licence": "CC BY-SA 4.0",
+    "shows": "Indian-style noodles with fried paneer cubes, capsicum and coriander.",
+    "match": "exact"
+  },
+  {
+    "dish": "Kaju Noodles",
+    "file": "kaju-noodles.jpg",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/3/31/Noodles_with_Onion%2C_Nuts_and_Tofu_Braised_in_Sesame_oil_with_Honey_Ginger_Sauce_%28155698982%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Noodles_with_Onion,_Nuts_and_Tofu_Braised_in_Sesame_oil_with_Honey_Ginger_Sauce_(155698982).jpg",
+    "author": "Dan Zen from Dundas, Canada",
+    "licence": "CC BY 2.0",
+    "shows": "Noodles topped with plenty of whole cashews, tofu cubes and onion in a glossy sauce (home-style, not Indian street-style).",
+    "match": "closest match"
+  },
+  {
+    "dish": "Mushroom Noodles",
+    "file": "mushroom-noodles.jpg",
+    "imageUrl": "https://images.unsplash.com/photo-1692815153957-fefd061f078d?w=1000&q=80&fm=jpg",
+    "sourcePage": "https://unsplash.com/photos/a-plate-of-noodles-with-mushrooms-and-peppers-628UWTzZuZA",
+    "author": "sajeesh Gangadharan",
+    "licence": "Unsplash License",
+    "shows": "Red-orange stir-fried noodles with whole button mushrooms, peppers and spring onion on a plate.",
+    "match": "exact"
+  },
+  {
+    "dish": "Thecha Noodles (Amrutham Special)",
+    "file": "thecha-noodles-amrutham-special.jpg",
+    "imageUrl": "https://images.unsplash.com/photo-1789990661731-878e7aa4a2ca?w=1000&q=80&fm=jpg",
+    "sourcePage": "https://unsplash.com/photos/stir-fried-noodles-with-vegetables-WyMXx_QIUg0",
+    "author": "Zoshua Colah",
+    "licence": "Unsplash License",
+    "shows": "Top view of spicy red-orange chilli noodles with chopped spring onion and garlic pieces in a bowl; nothing marks it as thecha.",
+    "match": "closest match"
+  },
+  {
+    "dish": "Mix Noodles Special",
+    "file": "mix-noodles-special.jpg",
+    "imageUrl": "https://images.unsplash.com/photo-1634864572865-1cf8ff8bd23d?w=1000&q=80&fm=jpg",
+    "sourcePage": "https://unsplash.com/photos/a-plate-of-noodles-with-broccoli-and-other-vegetables-grDcbeK2MRY",
+    "author": "Focused on You",
+    "licence": "Unsplash License",
+    "shows": "Stir-fried noodles loaded with bok choy, broccoli, red pepper and spring onion on a white plate.",
+    "match": "exact"
+  },
+  {
+    "dish": "Mix Veg Curry",
+    "file": "mix-veg-curry.jpg",
+    "imageUrl": "https://images.pexels.com/photos/33430561/pexels-photo-33430561.jpeg?w=1000",
+    "sourcePage": "https://www.pexels.com/photo/traditional-indian-vegetable-curry-dish-33430561/",
+    "author": "Anil Sharma (Pexels @shootsaga)",
+    "licence": "Pexels License",
+    "shows": "A copper-handled kadai of orange, creamy restaurant-style mixed vegetable curry with carrot, green beans and cauliflower on a wooden board.",
+    "match": "exact"
+  },
+  {
+    "dish": "Paneer Butter Masala",
+    "file": "paneer-butter-masala.jpg",
+    "imageUrl": "https://images.pexels.com/photos/9609835/pexels-photo-9609835.jpeg?w=1000",
+    "sourcePage": "https://www.pexels.com/photo/cooked-food-in-black-ceramic-bowl-9609835/",
+    "author": "Prabal Pratap Singh (Pexels @prabal)",
+    "licence": "Pexels License",
+    "shows": "A black bowl of paneer in orange-red buttery tomato gravy with a cream swirl and coriander, with raw paneer cubes, cherry tomatoes, chillies and onion rings around it.",
+    "match": "exact"
+  },
+  {
+    "dish": "Kadai Paneer",
+    "file": "kadai-paneer.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/48/Kadai_Paneer_%2815913018051%29.jpg/960px-Kadai_Paneer_%2815913018051%29.jpg",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Kadai_Paneer_(15913018051).jpg",
+    "author": "Yummy O Yummy (via Flickr)",
+    "licence": "CC BY 2.0",
+    "shows": "A small steel kadai of paneer cubes with green capsicum and red pepper/tomato chunks in thick masala, topped with coriander, next to naan.",
+    "match": "exact"
+  },
+  {
+    "dish": "Paneer Hyderabadi",
+    "file": "paneer-hyderabadi.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/72/Palak_Paneer_-_Hyatt_Hyderabad_Gachibowli_-_Hyderabad_2023-04-28_7789.jpg/960px-Palak_Paneer_-_Hyatt_Hyderabad_Gachibowli_-_Hyderabad_2023-04-28_7789.jpg",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Palak_Paneer_-_Hyatt_Hyderabad_Gachibowli_-_Hyderabad_2023-04-28_7789.jpg",
+    "author": "Biswarup Ganguly",
+    "licence": "CC BY 3.0",
+    "shows": "Paneer cubes in a bright green spinach gravy with a cream swirl, served in Hyderabad (the photo is titled palak paneer, not Paneer Hyderabadi).",
+    "match": "closest match"
+  },
+  {
+    "dish": "Paneer Shahi Kurma",
+    "file": "paneer-shahi-kurma.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9e/Creamy_Malai_Panner.jpg/960px-Creamy_Malai_Panner.jpg",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Creamy_Malai_Panner.jpg",
+    "author": "Sanchayita Ghosh",
+    "licence": "CC BY-SA 4.0",
+    "shows": "Paneer pieces in a white, creamy cashew-and-cream gravy with a cream drizzle and black pepper in a white bowl (titled malai paneer, the nearest white-korma paneer photo available).",
+    "match": "closest match"
+  },
+  {
+    "dish": "Shahi Paneer",
+    "file": "shahi-paneer.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/92/Shahi_Paneer_with_mint.jpg/960px-Shahi_Paneer_with_mint.jpg",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Shahi_Paneer_with_mint.jpg",
+    "author": "Om Yadav (via Flickr)",
+    "licence": "CC BY 2.0",
+    "shows": "A steel bowl of paneer cubes in a smooth, creamy orange gravy garnished with mint leaves, with a serving spoon.",
+    "match": "exact"
+  },
+  {
+    "dish": "Kaju Masala",
+    "file": "kaju-masala.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/57/Kaju_curry_and_Paratha.jpg/960px-Kaju_curry_and_Paratha.jpg",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Kaju_curry_and_Paratha.jpg",
+    "author": "Katugoswami21",
+    "licence": "CC BY-SA 4.0",
+    "shows": "A glass bowl of rich orange tomato-onion masala gravy topped with a heap of whole cashews, with parathas and a glass of lassi behind it.",
+    "match": "exact",
+    "modified": "cropped",
+    "note": "Cropped by ZCS to the dish only (side dishes removed from the frame)."
+  },
+  {
+    "dish": "Kaju Paneer",
+    "file": "kaju-paneer.jpg",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/4/49/Cashew_paneer.jpg",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Cashew_paneer.jpg",
+    "author": "Sidhabiswanath",
+    "licence": "CC BY-SA 4.0",
+    "shows": "A frying pan of cashew paneer: paneer cubes and split cashews in a thick orange-brown masala gravy with bay leaves.",
+    "match": "exact"
+  },
+  {
+    "dish": "Mushroom Curry",
+    "file": "mushroom-curry.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/86/Mushroom_Masala_by_Dr._Raju_Kasambe_IMG_20190701_%285%29.jpg/960px-Mushroom_Masala_by_Dr._Raju_Kasambe_IMG_20190701_%285%29.jpg",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Mushroom_Masala_by_Dr._Raju_Kasambe_IMG_20190701_(5).jpg",
+    "author": "Dr. Raju Kasambe",
+    "licence": "CC BY-SA 4.0",
+    "shows": "Whole and halved button mushrooms in a red onion-tomato gravy with coriander in an oval white dish (titled mushroom masala, but it is a gravy-style mushroom curry).",
+    "match": "closest match"
+  },
+  {
+    "dish": "Mushroom Masala",
+    "file": "mushroom-masala.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/39/Pulaoandmashroommasala_Rayagada_Odisha_0013.jpg/960px-Pulaoandmashroommasala_Rayagada_Odisha_0013.jpg",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Pulaoandmashroommasala_Rayagada_Odisha_0013.jpg",
+    "author": "Lopanayak",
+    "licence": "CC BY-SA 4.0",
+    "shows": "Sliced button mushrooms in a thick orange onion-tomato masala sharing a grey bowl with vegetable pulao, with raita, dried chillies and coriander around it.",
+    "match": "exact",
+    "modified": "cropped",
+    "note": "Cropped by ZCS to the dish only (side dishes removed from the frame)."
+  },
+  {
+    "dish": "Babycorn Curry",
+    "file": "babycorn-curry.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1c/Baby_corn_masala.jpg/960px-Baby_corn_masala.jpg",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Baby_corn_masala.jpg",
+    "author": "Subashinideviv",
+    "licence": "CC BY-SA 4.0",
+    "shows": "A steel bowl of baby corn pieces with onion, tomato and capsicum in a thick masala gravy, heavily topped with coriander (titled baby corn masala; no free baby-corn-curry photo exists).",
+    "match": "closest match"
+  },
+  {
+    "dish": "Babycorn Masala",
+    "file": "babycorn-masala.jpg",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/9/97/North_Indian_thali.jpg",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:North_Indian_thali.jpg",
+    "author": "Subashinideviv",
+    "licence": "CC BY-SA 4.0",
+    "shows": "A white bowl of baby corn masala with whole baby corn spears, red capsicum and tomato in dark masala, garnished with coriander.",
+    "match": "exact",
+    "modified": "cropped",
+    "note": "Cropped by us to the baby corn masala bowl from the full thali photo, which also shows phulka, palak paneer and raita. The credit must say the photo was cropped, and the cropped version stays under CC BY-SA 4.0."
+  },
+  {
+    "dish": "Chicken Curry (Bone)",
+    "file": "chicken-curry-bone.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0a/Handi-chicken-Indian-dum-chicken-curry-recipe.jpg/960px-Handi-chicken-Indian-dum-chicken-curry-recipe.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Handi-chicken-Indian-dum-chicken-curry-recipe.jpg",
+    "author": "Vivekpat30",
+    "licence": "CC BY-SA 4.0",
+    "shows": "Bone-in chicken pieces in a home-style handi chicken curry.",
+    "match": "exact"
+  },
+  {
+    "dish": "Chicken Boneless Curry",
+    "file": "chicken-boneless-curry.jpg",
+    "imageUrl": "https://images.pexels.com/photos/38400477/pexels-photo-38400477.jpeg?auto=compress&cs=tinysrgb&w=1000",
+    "sourcePage": "https://www.pexels.com/photo/38400477/",
+    "author": "arijit dey",
+    "licence": "Pexels License",
+    "shows": "Boneless-looking chicken chunks in a thick yellow-orange curry with coriander, green chutney behind.",
+    "match": "closest match"
+  },
+  {
+    "dish": "Butter Chicken",
+    "file": "butter-chicken.jpg",
+    "imageUrl": "https://images.pexels.com/photos/40262820/pexels-photo-40262820.jpeg?auto=compress&cs=tinysrgb&w=1000",
+    "sourcePage": "https://www.pexels.com/photo/40262820/",
+    "author": "Mohammad Fahim",
+    "licence": "Pexels License",
+    "shows": "Orange, creamy butter chicken with chicken pieces, a cream drizzle and mint leaves in a bowl.",
+    "match": "exact"
+  },
+  {
+    "dish": "Kadai Chicken",
+    "file": "kadai-chicken.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/48/Kadhai_chicken-_Gorakhpur-_Uttar_Pradesh-_001.jpg/960px-Kadhai_chicken-_Gorakhpur-_Uttar_Pradesh-_001.jpg",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Kadhai_chicken-_Gorakhpur-_Uttar_Pradesh-_001.jpg",
+    "author": "Foodgage",
+    "licence": "CC BY-SA 4.0",
+    "shows": "Kadhai chicken with green capsicum and onion chunks, coriander and a butter cube in a black bowl, rotis beside.",
+    "match": "exact"
+  },
+  {
+    "dish": "Andhra Chicken",
+    "file": "andhra-chicken.jpg",
+    "imageUrl": "https://images.pexels.com/photos/29684987/pexels-photo-29684987.jpeg?auto=compress&cs=tinysrgb&w=1000",
+    "sourcePage": "https://www.pexels.com/photo/29684987/",
+    "author": "Kunal Lakhotia",
+    "licence": "Pexels License",
+    "shows": "Fiery red, oily chicken curry with dried red chillies and coriander in a brass-handled pan.",
+    "match": "closest match"
+  },
+  {
+    "dish": "Chicken Hyderabadi",
+    "file": "chicken-hyderabadi.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b6/Chicken_Hyderabadi_with_chapati.jpg/960px-Chicken_Hyderabadi_with_chapati.jpg",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Chicken_Hyderabadi_with_chapati.jpg",
+    "author": "Ameaza",
+    "licence": "CC BY-SA 4.0",
+    "shows": "Chicken in a green (spinach-based) Hyderabadi gravy on a plate with a folded chapati.",
+    "match": "exact",
+    "modified": "cropped",
+    "note": "Cropped by ZCS to the dish only."
+  },
+  {
+    "dish": "Chicken Kali Mirch",
+    "file": "chicken-kali-mirch.jpg",
+    "imageUrl": "https://images.pexels.com/photos/12737659/pexels-photo-12737659.jpeg?auto=compress&cs=tinysrgb&w=1000",
+    "sourcePage": "https://www.pexels.com/photo/12737659/",
+    "author": "dhiraj jain",
+    "licence": "Pexels License",
+    "shows": "Chicken in a creamy white gravy sprinkled with cracked black pepper, with paratha, onion rings and a pepper bowl.",
+    "match": "closest match"
+  },
+  {
+    "dish": "Afghani Chicken",
+    "file": "afghani-chicken.jpg",
+    "imageUrl": "https://images.pexels.com/photos/33430557/pexels-photo-33430557.jpeg?auto=compress&cs=tinysrgb&w=1200",
+    "sourcePage": "https://www.pexels.com/photo/33430557/",
+    "author": "Anil Sharma",
+    "licence": "Pexels License",
+    "shows": "Marinated chicken pieces in a thick creamy white gravy topped with dried fenugreek, in a copper-handled kadai.",
+    "match": "closest match",
+    "modified": "cropped",
+    "note": "Top 25% cropped off after download to remove a naan carrying a printed brand stamp; saved 1200x675."
+  },
+  {
+    "dish": "Mughlai Chicken",
+    "file": "mughlai-chicken.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0a/Navratan_Chicken.jpg/960px-Navratan_Chicken.jpg",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Navratan_Chicken.jpg",
+    "author": "Fatimahope",
+    "licence": "CC BY-SA 4.0",
+    "shows": "Rich creamy chicken curry with cashews, fox nuts, cream and coriander in a glass bowl (uploader: 'Mughlai Style Navratan Chicken').",
+    "match": "closest match"
+  },
+  {
+    "dish": "Egg Curry",
+    "file": "egg-curry.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2c/Egg_Curry_Marathi_Food_by_Dr._Raju_Kasambe_DSCN0775_%2810%29.jpg/960px-Egg_Curry_Marathi_Food_by_Dr._Raju_Kasambe_DSCN0775_%2810%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Egg_Curry_Marathi_Food_by_Dr._Raju_Kasambe_DSCN0775_(10).jpg",
+    "author": "Dr. Raju Kasambe",
+    "licence": "CC BY-SA 4.0",
+    "shows": "Two boiled eggs in a red egg curry, garnished with coriander.",
+    "match": "exact",
+    "modified": "cropped",
+    "note": "Cropped by ZCS to the dish only."
+  },
+  {
+    "dish": "Egg Bhurji",
+    "file": "egg-bhurji.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/06/Spicy_egg_bhurji_%40_the_eggfactory.jpg/960px-Spicy_egg_bhurji_%40_the_eggfactory.jpg",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Spicy_egg_bhurji_@_the_eggfactory.jpg",
+    "author": "Praveen from Bangalore, India",
+    "licence": "CC BY 2.0",
+    "shows": "Spicy Indian scrambled eggs with tomato, onion and coriander on a white plate with toast.",
+    "match": "exact"
+  },
+  {
+    "dish": "Egg Masala",
+    "file": "egg-masala.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ee/Egg_masala.JPG/960px-Egg_masala.JPG",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Egg_masala.JPG",
+    "author": "Nithyasrm",
+    "licence": "CC BY-SA 4.0",
+    "shows": "Halved boiled eggs in a thick onion-tomato masala in an oval dish, more egg halves on a plate behind.",
+    "match": "exact"
+  },
+  {
+    "dish": "Plain Omelette (Double Egg)",
+    "file": "plain-omelette-double.jpg",
+    "imageUrl": "https://images.pexels.com/photos/23996321/pexels-photo-23996321.jpeg?auto=compress&cs=tinysrgb&w=1000",
+    "sourcePage": "https://www.pexels.com/photo/23996321/",
+    "author": "Emine Gizem",
+    "licence": "Pexels License",
+    "shows": "A plain golden folded omelette on a tray, olives, cucumber and tomato on the side.",
+    "match": "exact"
+  },
+  {
+    "dish": "Masala Omelette",
+    "file": "masala-omelette.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1d/Masala_omelette.JPG/960px-Masala_omelette.JPG",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Masala_omelette.JPG",
+    "author": "SwingingUvula",
+    "licence": "CC BY-SA 4.0",
+    "shows": "Close-up of an Indian masala omelette flecked with green chilli, onion and coriander.",
+    "match": "exact"
+  },
+  {
+    "dish": "Store cover (Amrutham Restaurant)",
+    "file": "cover.jpg",
+    "imageUrl": "https://images.pexels.com/photos/9792458/pexels-photo-9792458.jpeg?auto=compress&cs=tinysrgb&w=1000",
+    "sourcePage": "https://www.pexels.com/photo/9792458/",
+    "author": "Alberta Studios",
+    "licence": "Pexels License",
+    "shows": "Overhead Indian restaurant spread: five curries in handis, a bowl of rice, tandoori chicken, chutneys and cutlery.",
+    "match": "exact",
+    "modified": "cropped",
+    "note": "Cropped by ZCS to the dish only."
+  }
+]

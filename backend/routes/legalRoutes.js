@@ -7,6 +7,7 @@
  *   GET /legal/grievance              Grievance redressal (officer + process)
  *   GET /legal/community-guidelines   Community Guidelines
  *   GET /legal/delete-account         How to delete your account
+ *   GET /legal/photo-credits          Photographers and licences of the dish photos (utils/photoCredits)
  *
  * Server-rendered HTML: no scripts, no trackers, no cookies, no external fonts. Business / grievance
  * details, version and effective date come from GlobalConfig LEGAL_SETTINGS (admin Config → Legal); the
@@ -37,6 +38,7 @@ const NAV = [
   ['/legal/grievance', 'Grievance Redressal'],
   ['/legal/community-guidelines', 'Community Guidelines'],
   ['/legal/delete-account', 'Delete your account'],
+  ['/legal/photo-credits', 'Photo credits'],
 ];
 
 const page = (f, title, body, { showVersion = true } = {}) => {
@@ -602,6 +604,22 @@ const DELETE = (f) => {
 `, { showVersion: false });
 };
 
+// ─── Photo credits ──────────────────────────────────────────────────────────────
+// Dish photos of the owner's menus (utils/photoCredits, data/owner-menus): author, licence and source of each, and
+// whether ZCS changed it (Creative Commons BY / BY-SA ask for all of that).
+const PHOTO_CREDITS = (f) => {
+  const groups = require('../utils/photoCredits').loadPhotoCredits();
+  const row = (p) => `<tr><td>${esc(p.dish)}</td><td>${esc(p.author) || '<span class="muted">Not named</span>'}</td><td>${p.licenceUrl ? `<a href="${esc(p.licenceUrl)}">${esc(p.licence)}</a>` : esc(p.licence)}${p.modified ? `<br><span class="muted">${esc(p.modified === 'cropped' ? 'Cropped by ZCS' : `Changed by ZCS: ${p.modified}`)}</span>` : ''}</td><td>${p.sourcePage ? `<a href="${esc(p.sourcePage)}">Source</a>` : ''}</td></tr>`;
+  return page(f, 'Photo credits', `
+<h1>Photo credits</h1>
+<p>Some product photos in ${esc(f.settings.businessName)} come from Unsplash, Pexels and Wikimedia Commons. Their photographers and licences are listed here. Photos under a Creative Commons licence are used under that licence; "Cropped by ZCS" means we cut the photo down to the dish.</p>
+${groups.length ? groups.map((g) => `<h2>${esc(g.store)}</h2>
+<table><thead><tr><th>Dish</th><th>Photo by</th><th>Licence</th><th></th></tr></thead><tbody>
+${g.photos.map(row).join('')}
+</tbody></table>`).join('') : '<p class="muted">No credited photos yet.</p>'}
+`, { showVersion: false });
+};
+
 // Links inside the pages stay relative (they work on every address the API answers on). With
 // PUBLIC_API_URL set (own domain), a canonical link tells search engines / Play which address is the real one.
 const withCanonical = (html, path) => {
@@ -632,7 +650,8 @@ router.get('/refund-policy', (req, res) => res.redirect(301, '/legal/refunds'));
 router.get('/grievance', send(GRIEVANCE, '/legal/grievance'));
 router.get('/community-guidelines', send(COMMUNITY, '/legal/community-guidelines'));
 router.get('/delete-account', send(DELETE, '/legal/delete-account'));
+router.get('/photo-credits', send(PHOTO_CREDITS, '/legal/photo-credits'));
 
 module.exports = router;
-module.exports.renderers = { INDEX, TERMS, PRIVACY, REFUNDS, GRIEVANCE, COMMUNITY, DELETE };
+module.exports.renderers = { INDEX, TERMS, PRIVACY, REFUNDS, GRIEVANCE, COMMUNITY, DELETE, PHOTO_CREDITS };
 module.exports.esc = esc;
