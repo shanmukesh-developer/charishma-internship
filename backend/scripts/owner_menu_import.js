@@ -14,8 +14,9 @@
 //  - no partner login, phone, WhatsApp number, UPI ID, FSSAI number, rating or offer is invented: the owner sets
 //    the login in Admin > Stores > Partner login;
 //  - runs only after the store removal finished (REMOVE_ALL_STORES_V2_DONE), which would take the store with it;
-//  - a corrected or better photo reaches dishes imported before through `replacesPhotos` (see syncPhotos): only a
-//    dish still showing a photo this repo set is changed.
+//  - a corrected or better photo reaches dishes imported before through `replacesPhotos` (see syncPhotos), a
+//    corrected text through `replacesDescriptions` (syncDescriptions): only what still shows what this repo set is
+//    changed.
 // Ledger kinds: 'owner-store' (Restaurant.id), 'owner-store-skip' (name taken), 'owner-item' (MenuItem.id).
 // DISABLE_OWNER_MENUS=true switches it off.
 const crypto = require('crypto');
@@ -46,6 +47,7 @@ const menuProblems = (data, dir) => {
   if (data && data.store) { const pr = photo(data.store.image); if (pr) out.push(`cover ${pr}`); }
   const history = (list) => list === undefined || (Array.isArray(list) && list.every((h) => h === null || /^[0-9a-f]{64}$/.test(String(h))));
   if (data && data.store && !history(data.store.replacesImages)) out.push('store replacesImages: SHA-256 list');
+  if (data && data.store && !history(data.store.replacesDescriptions)) out.push('store replacesDescriptions: SHA-256 list');
   const slugs = new Set();
   for (const it of (data && data.items) || []) {
     if (!it || !it.slug || !it.name) { out.push('item without slug / name'); continue; }
@@ -54,6 +56,7 @@ const menuProblems = (data, dir) => {
     if (!(Number.isFinite(Number(it.price)) && Number(it.price) > 0)) out.push(`${it.slug}: price`);
     if (!DIETS.includes(it.dietType)) out.push(`${it.slug}: dietType`);
     if (!history(it.replacesPhotos)) out.push(`${it.slug}: replacesPhotos: SHA-256 list`);
+    if (!history(it.replacesDescriptions)) out.push(`${it.slug}: replacesDescriptions: SHA-256 list`);
     // image null = no photo for now (a wrong photo was taken off); it must say which photo it replaces.
     if (it.image === null && !(it.replacesPhotos || []).length) out.push(`${it.slug}: no photo and nothing it replaces`);
     const pr = it.image === null ? null : photo(it.image);
@@ -104,6 +107,39 @@ const syncPhotos = async ({ dataDir, data, storeId, done, Restaurant, MenuItem, 
     const imageUrl = t.file ? await savePhoto(dataDir, data, t.file, t.store ? 'store' : 'menu') : null;
     if (t.store) await Restaurant.update({ imageUrl }, { where: { id: t.id } });
     else await MenuItem.update({ imageUrl }, { where: { id: t.id } });
+    changed++;
+  }
+  return changed;
+};
+
+/** SHA-256 of a description as stored (trimmed), the key `replacesDescriptions` lists. */
+const textSha = (text) => crypto.createHash('sha256').update(String(text || '').trim()).digest('hex');
+
+/**
+ * Corrected descriptions for a store and dishes imported before (2 Nov 2026: an unsupported "established in 2017"
+ * in Manu Dosa Place's intro). Same rule as syncPhotos: `replacesDescriptions` lists the SHA-256 of each text the repo
+ * set before (trimmed); a store / dish still showing one of them gets the file's text, a text the admin wrote is
+ * never touched. Returns how many texts it changed.
+ */
+const syncDescriptions = async ({ data, storeId, done, Restaurant, MenuItem }) => {
+  let changed = 0;
+  const s = data.store || {};
+  if ((s.replacesDescriptions || []).length && s.description) {
+    const st = await Restaurant.findByPk(storeId, { attributes: ['id', 'stallDescription'] });
+    const cur = st && st.stallDescription ? textSha(st.stallDescription) : null;
+    if (st && cur !== textSha(s.description) && s.replacesDescriptions.includes(cur)) {
+      await Restaurant.update({ stallDescription: s.description }, { where: { id: storeId } });
+      changed++;
+    }
+  }
+  for (const it of data.items || []) {
+    if (!(it.replacesDescriptions || []).length || !it.description) continue;
+    const entry = done.get(`${data.key}:${it.slug}`);
+    if (!entry || entry.kind !== KIND_ITEM) continue;
+    const row = await MenuItem.findByPk(entry.targetId, { attributes: ['id', 'description'] });
+    const cur = row && row.description ? textSha(row.description) : null;
+    if (!row || cur === textSha(it.description) || !it.replacesDescriptions.includes(cur)) continue;
+    await MenuItem.update({ description: it.description }, { where: { id: row.id } });
     changed++;
   }
   return changed;
@@ -161,7 +197,7 @@ const runOwnerMenuImport = async ({ dataDir = DATA_DIR } = {}) => {
     return (await Restaurant.count({ where: sqlWhere(fn('lower', col('name')), String(name).trim().toLowerCase()) })) > 0;
   };
 
-  const result = { menus: menus.length, storesCreated: 0, storesSkippedNameTaken: 0, storesDeleted: 0, itemsCreated: 0, photosUpdated: 0, invalid: [] };
+  const result = { menus: menus.length, storesCreated: 0, storesSkippedNameTaken: 0, storesDeleted: 0, itemsCreated: 0, photosUpdated: 0, textsUpdated: 0, invalid: [] };
   for (const { file, data } of menus) {
     const problems = menuProblems(data, dataDir);
     if (problems.length) { result.invalid.push({ file, problems: problems.slice(0, 5) }); continue; }
@@ -230,9 +266,10 @@ const runOwnerMenuImport = async ({ dataDir = DATA_DIR } = {}) => {
       if (ok) result.itemsCreated++;
     }
     result.photosUpdated += await syncPhotos({ dataDir, data, storeId, done, Restaurant, MenuItem, savePhoto });
+    result.textsUpdated += await syncDescriptions({ data, storeId, done, Restaurant, MenuItem });
   }
 
-  if (result.storesCreated || result.itemsCreated || result.photosUpdated) {
+  if (result.storesCreated || result.itemsCreated || result.photosUpdated || result.textsUpdated) {
     try { require('../controllers/adminController').clearRestaurantsCache(); } catch { /* cache just expires */ }
   }
   return result;

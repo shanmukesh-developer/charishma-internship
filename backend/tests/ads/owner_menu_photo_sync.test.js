@@ -79,13 +79,37 @@ test('replaced, removed and restored photos reach imported dishes; the admin\'s 
   assert.strictEqual(await mediaSha((await item('Dish A')).imageUrl), sha(photo('a2')));
 });
 
+test('a corrected store / dish description replaces the text the repo set; an admin-written text is kept; once', async () => {
+  const { runOwnerMenuImport } = H.r('scripts/owner_menu_import');
+  const textSha = (t) => crypto.createHash('sha256').update(String(t).trim()).digest('hex');
+  const store = await ctx.M('Restaurant').findOne({ where: { name: 'Sync Test Kitchen' } });
+  assert.strictEqual(store.stallDescription, 'Dosas.');
+  await (await item('Dish C')).update({ description: 'Written by the admin.' });
+  const next = JSON.parse(fs.readFileSync(path.join(dir, 'kitchen.json'), 'utf8'));
+  next.store = { ...next.store, description: 'Dosas, idlis and egg dishes.', replacesDescriptions: [textSha('Dosas.')] };
+  next.items[1] = { ...next.items[1], description: 'A crisp dosa.', replacesDescriptions: [textSha('A dosa.')] };
+  next.items[2] = { ...next.items[2], description: 'A cheese dosa.', replacesDescriptions: [textSha('A dosa.')] };
+  writeMenu(next);
+  let r = await runOwnerMenuImport({ dataDir: dir });
+  assert.strictEqual(r.textsUpdated, 2, JSON.stringify(r));
+  await store.reload();
+  assert.strictEqual(store.stallDescription, 'Dosas, idlis and egg dishes.');
+  assert.strictEqual((await item('Dish B')).description, 'A crisp dosa.');
+  assert.strictEqual((await item('Dish C')).description, 'Written by the admin.', 'the admin text is kept');
+  r = await runOwnerMenuImport({ dataDir: dir });
+  assert.strictEqual(r.textsUpdated, 0, 'nothing left to change');
+});
+
 test('menuProblems: a photo-less dish must name what it replaces; replace lists hold SHA-256 values', () => {
   const { menuProblems } = H.r('scripts/owner_menu_import');
   const d = base();
   d.items[0] = { ...d.items[0], image: null };
   d.items[1] = { ...d.items[1], replacesPhotos: ['not-a-hash'] };
-  d.store = { ...d.store, replacesImages: 'abc' };
+  d.store = { ...d.store, replacesImages: 'abc', replacesDescriptions: ['x'] };
+  d.items[2] = { ...d.items[2], replacesDescriptions: [12] };
   const p = menuProblems(d, dir).join(' | ');
+  assert.match(p, /store replacesDescriptions: SHA-256 list/);
+  assert.match(p, /dish-c: replacesDescriptions: SHA-256 list/);
   assert.match(p, /dish-a: no photo and nothing it replaces/);
   assert.match(p, /dish-b: replacesPhotos: SHA-256 list/);
   assert.match(p, /store replacesImages: SHA-256 list/);

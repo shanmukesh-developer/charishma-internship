@@ -21,11 +21,14 @@
       "ghee dosa",
       "parota"
     ],
-    "description": "Manu Dosa Place, established in 2017 on Goutham Buddha Road in Mangalagiri, is famous for its 60+ inventive tawa dosas, fluffy idlis, non-veg curries and fusion pizza dosas.\n\n**On the menu**\n- Traditional tiffins: Steamed Idly, Ghee Podi Idly, and Idly with spicy Andhra Chicken Curry\n- Classic & Ghee Dosas: Plain, Onion, Upma, Masala, Karam, Set Dosa, and Ghee-roasted varieties\n- Specialty & Cheese: Butter Masala, Cheese Dosa, Paneer Cheese, Corn Cheese, Kaju Corn, and Lays Dosa\n- Pizza Dosas: Italian-Andhra fusion Pizza Dosa, Corn Pizza, Paneer Pizza, Kaju Pizza, and Mixed Pizza Dosa\n- Non-Veg & Egg Specials: Egg Dosa, Egg Keema Dosa, Chicken Keema Dosa, Cheese Keema Dosa, and Parota with Chicken Curry\n\n**Good to know**\n- Open every day, 7:00 AM to 11:00 PM\n- 60 dishes, from ₹40 to ₹250\n- Authentic street-style counter located on Goutham Buddha Road, near NRI General Hospital, Autonagar, Mangalagiri",
+    "description": "Manu Dosa Place in Autonagar, Mangalagiri makes tawa dosas from plain and ghee roast to cheese, pizza-style and Schezwan dosas, plus idlis and egg and chicken dishes.\n\n**On the menu**\n- Traditional tiffins: Steamed Idly, Ghee Podi Idly, and Idly with spicy Andhra Chicken Curry\n- Classic & Ghee Dosas: Plain, Onion, Upma, Masala, Karam, Set Dosa, and Ghee-roasted varieties\n- Specialty & Cheese: Butter Masala, Cheese Dosa, Paneer Cheese, Corn Cheese, Kaju Corn, and Lays Dosa\n- Pizza Dosas: Italian-Andhra fusion Pizza Dosa, Corn Pizza, Paneer Pizza, Kaju Pizza, and Mixed Pizza Dosa\n- Non-Veg & Egg Specials: Egg Dosa, Egg Keema Dosa, Chicken Keema Dosa, Cheese Keema Dosa, and Parota with Chicken Curry\n\n**Good to know**\n- Open every day, 7:00 AM to 11:00 PM\n- 60 dishes, from ₹40 to ₹250\n- A street-side dosa counter on Goutham Buddha Road, opposite Honda Showroom, near NRI General Hospital",
     "operatingHours": {
       "start": "07:00",
       "end": "23:00"
-    }
+    },
+    "replacesDescriptions": [
+      "fc2531245a9c498a42680bf4a23e66d49ebbb4e64ed780ea62a6699a0942bddd"
+    ]
   },
   "items": [
     {
