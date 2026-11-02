@@ -52,6 +52,9 @@ router.get('/sections', cacheGet('sections', { ttlMs: 60 * 1000 }), async (req, 
     count('RentalListing', { status: 'ACTIVE' }),
   ]);
   const one = (n) => ({ count: n, live: n === null ? true : n > 0 });
+  // PG stays always shows (owner, 2 Nov 2026: "i want pg section"): with no listing yet the app's PG page says
+  // "No PGs listed yet", so the section is never hidden for being empty. count stays the real number.
+  const always = (n) => ({ count: n, live: true });
   let campusLive = true;
   try { campusLive = !!(await require('../modules/friends/services/featureFlags').getConfig()).enabled; } catch { /* unknown: keep it */ }
   let introSound = true;
@@ -59,7 +62,7 @@ router.get('/sections', cacheGet('sections', { ttlMs: 60 * 1000 }), async (req, 
     const row = await models().GlobalConfig?.findOne({ where: { key: 'INTRO_SOUND_ENABLED' }, attributes: ['value'] });
     if (row && row.value === false) introSound = false;
   } catch { /* unknown: keep it on */ }
-  res.json({ sections: { pg: one(pg), coride: one(coride), rentals: one(rentals), campus: { live: campusLive }, introSound: { on: introSound } } });
+  res.json({ sections: { pg: always(pg), coride: one(coride), rentals: one(rentals), campus: { live: campusLive }, introSound: { on: introSound } } });
 });
 
 // Update global app configuration (admin only)

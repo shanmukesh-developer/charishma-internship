@@ -33,15 +33,15 @@ const get = async () => {
   return { status: res.status, body: await res.json() };
 };
 
-test('empty catalogue: PG and Co-Ride hidden, Rentals unknown (model not loaded) stays shown', async () => {
+test('empty catalogue: Co-Ride hidden; PG always shown (owner, 2 Nov 2026); Rentals unknown (model not loaded) shown', async () => {
   const r = await get();
   assert.strictEqual(r.status, 200);
-  assert.deepStrictEqual(r.body.sections.pg, { count: 0, live: false });
+  assert.deepStrictEqual(r.body.sections.pg, { count: 0, live: true });
   assert.deepStrictEqual(r.body.sections.coride, { count: 0, live: false });
   assert.deepStrictEqual(r.body.sections.rentals, { count: null, live: true });
 });
 
-test('one active PG / one upcoming ride brings the section back; past or cancelled rides do not', async () => {
+test('one active PG is counted / one upcoming ride brings Co-Ride back; past or cancelled rides do not', async () => {
   const M = H.ctx.sequelize.models;
   const attrs = (Model) => Object.keys(Model.rawAttributes);
   const pgRow = { name: 'Real PG', isActive: true };
