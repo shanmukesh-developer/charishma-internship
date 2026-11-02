@@ -66,6 +66,7 @@ const page = (f, title, body, { showVersion = true } = {}) => {
   a { color: var(--accent); }
   table { width:100%; border-collapse: collapse; font-size:.92rem; }
   th, td { text-align:left; vertical-align: top; padding: 8px 6px; border-bottom: 1px solid var(--line); }
+  .credits td:last-child { white-space: nowrap; } /* "Source" never splits into letters on a phone */
   .box { border:1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 14px 0; }
   .pending { color: var(--warn); }
   nav.legal { margin-top: 36px; padding-top: 12px; border-top: 1px solid var(--line); font-size: .9rem; }
@@ -610,12 +611,12 @@ const DELETE = (f) => {
 // used with its permission and say so.
 const PHOTO_CREDITS = (f) => {
   const groups = require('../utils/photoCredits').loadPhotoCredits();
-  const row = (p) => `<tr><td>${esc(p.dish)}</td><td>${esc(p.author) || '<span class="muted">Not named</span>'}</td><td>${p.licenceUrl ? `<a href="${esc(p.licenceUrl)}">${esc(p.licence)}</a>` : esc(p.licence)}${p.modified ? `<br><span class="muted">${esc(p.modified === 'cropped' ? 'Cropped by ZCS' : `Changed by ZCS: ${p.modified}`)}</span>` : ''}</td><td>${p.sourcePage ? `<a href="${esc(p.sourcePage)}">Source</a>` : ''}</td></tr>`;
+  const row = (p) => `<tr><td>${esc(p.dish)}${p.closest ? '<br><span class="muted">Closest match: a similar dish</span>' : ''}</td><td>${esc(p.author) || '<span class="muted">Not named</span>'}</td><td>${p.licenceUrl ? `<a href="${esc(p.licenceUrl)}">${esc(p.licence)}</a>` : esc(p.licence)}${p.modified ? `<br><span class="muted">${esc(p.modified === 'cropped' ? 'Cropped by ZCS' : `Changed by ZCS: ${p.modified}`)}</span>` : ''}</td><td>${p.sourcePage ? `<a href="${esc(p.sourcePage)}">Source</a>` : ''}</td></tr>`;
   return page(f, 'Photo credits', `
 <h1>Photo credits</h1>
-<p>Some product photos in ${esc(f.settings.businessName)} come from Unsplash, Pexels and Wikimedia Commons. Their photographers and licences are listed here. Photos under a Creative Commons licence are used under that licence; "Cropped by ZCS" means we cut the photo down to the dish. A restaurant's own photos are used with its permission.</p>
+<p>Some product photos in ${esc(f.settings.businessName)} come from Unsplash, Pexels and Wikimedia Commons. Their photographers and licences are listed here. Photos under a Creative Commons licence are used under that licence; "Cropped by ZCS" means we cut the photo down to the dish. A restaurant's own photos are used with its permission. Where no photo of the exact dish exists, a photo of a similar dish is used and marked "Closest match".</p>
 ${groups.length ? groups.map((g) => `<h2>${esc(g.store)}</h2>
-<table><thead><tr><th>Photo</th><th>Photo by</th><th>Licence</th><th></th></tr></thead><tbody>
+<table class="credits"><thead><tr><th>Photo</th><th>Photo by</th><th>Licence</th><th></th></tr></thead><tbody>
 ${g.photos.map(row).join('')}
 </tbody></table>`).join('') : '<p class="muted">No credited photos yet.</p>'}
 `, { showVersion: false });

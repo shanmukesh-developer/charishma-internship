@@ -38,6 +38,8 @@ const loadPhotoCredits = (dir = DATA_DIR) => {
         licenceUrl: licenceLink(s.licence),
         sourcePage: /^https:\/\//.test(String(s.sourcePage || '')) ? s.sourcePage : null,
         modified: s.modified ? String(s.modified) : null,
+        // "closest match": no photo of the exact dish exists, so a similar dish is shown (said on the page).
+        closest: /closest/i.test(String(s.match || '')),
       })).filter((p) => p.dish && p.licence);
       return { store: String((data.store && data.store.name) || ''), photos };
     }).filter((g) => g.store && g.photos.length);

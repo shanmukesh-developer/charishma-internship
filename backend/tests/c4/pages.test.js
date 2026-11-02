@@ -172,6 +172,9 @@ test('photo credits page: linked from every legal page, lists each credited dish
   assert.match(res.headers.get('content-type'), /text\/html/);
   assert.ok(!/<script/i.test(res.text), 'no scripts');
   assert.ok(H.text(res.text).includes("A restaurant's own photos are used with its permission."), 'own photos explained');
+  // A photo of a similar dish (no photo of the exact dish exists) says so on its row.
+  assert.ok(H.text(res.text).includes('a photo of a similar dish is used and marked "Closest match"'), 'closest match explained');
+  assert.ok(res.text.includes('Closest match: a similar dish'), 'closest-match rows labelled');
   for (const p of ['/legal', '/legal/terms', '/legal/privacy']) {
     assert.ok((await H.api('GET', p)).text.includes('href="/legal/photo-credits"'), `${p} links the photo credits`);
   }
@@ -184,15 +187,15 @@ test('photo credits page: linked from every legal page, lists each credited dish
   fs.writeFileSync(path.join(dir, 'k.json'), JSON.stringify({ imagesDir: 'images/k', store: { name: 'Test Kitchen <b>' } }));
   fs.writeFileSync(path.join(dir, 'images', 'k', 'sources.json'), JSON.stringify([
     { dish: 'Kaju Masala', author: 'A <script>', licence: 'CC BY-SA 4.0', sourcePage: 'https://commons.wikimedia.org/wiki/File:X.jpg', modified: 'cropped' },
-    { dish: 'Veg Noodles', author: 'B', licence: 'Pexels License', sourcePage: 'javascript:alert(1)' },
+    { dish: 'Veg Noodles', author: 'B', licence: 'Pexels License', sourcePage: 'javascript:alert(1)', match: 'closest match' },
   ]));
   const { loadPhotoCredits } = H.r('utils/photoCredits');
   const groups = loadPhotoCredits(dir);
   assert.strictEqual(groups.length, 1);
   assert.strictEqual(groups[0].store, 'Test Kitchen <b>');
-  assert.deepStrictEqual(groups[0].photos.map((p) => [p.dish, p.licenceUrl, p.sourcePage, p.modified]), [
-    ['Kaju Masala', 'https://creativecommons.org/licenses/by-sa/4.0/', 'https://commons.wikimedia.org/wiki/File:X.jpg', 'cropped'],
-    ['Veg Noodles', 'https://www.pexels.com/license/', null, null],
-  ], 'only https source links are kept');
+  assert.deepStrictEqual(groups[0].photos.map((p) => [p.dish, p.licenceUrl, p.sourcePage, p.modified, p.closest]), [
+    ['Kaju Masala', 'https://creativecommons.org/licenses/by-sa/4.0/', 'https://commons.wikimedia.org/wiki/File:X.jpg', 'cropped', false],
+    ['Veg Noodles', 'https://www.pexels.com/license/', null, null, true],
+  ], 'only https source links are kept; a closest match is flagged');
   fs.rmSync(dir, { recursive: true, force: true });
 });
