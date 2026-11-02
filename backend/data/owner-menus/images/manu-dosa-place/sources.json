@@ -71,16 +71,6 @@
     "match": "exact"
   },
   {
-    "dish": "Butter Dosa",
-    "file": "butter-dosa.jpg",
-    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/7/72/Benne_dosa_%28butter_dosa%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-    "sourcePage": "https://commons.wikimedia.org/wiki/File%3ABenne%20dosa%20%28butter%20dosa%29.jpg",
-    "author": "Kavya Bandodkar",
-    "licence": "CC BY-SA 4.0",
-    "shows": "Authentic serving of Butter Dosa.",
-    "match": "exact"
-  },
-  {
     "dish": "Butter Masala Dosa",
     "file": "butter-masala-dosa-v2.jpg",
     "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5f/%22Butter%22_Masala_Dosai_%281602609238%29.jpg/1920px-%22Butter%22_Masala_Dosai_%281602609238%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
@@ -571,5 +561,15 @@
     "licence": "CC BY-SA 3.0",
     "shows": "Guntur-style dosas on banana leaves with red chilli chutney (karam), coconut chutney and sambar.",
     "match": "closest match"
+  },
+  {
+    "dish": "Butter Dosa",
+    "file": "butter-dosa-v2.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d2/Butter_Dosa.JPG/1920px-Butter_Dosa.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Butter_Dosa.JPG",
+    "author": "Srutiagarwal123",
+    "licence": "CC BY-SA 4.0",
+    "shows": "A crisp triangle dosa topped with a dollop of white butter, with coconut chutney and sambar.",
+    "match": "exact"
   }
 ]

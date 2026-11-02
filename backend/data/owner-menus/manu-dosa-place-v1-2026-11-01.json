@@ -208,7 +208,10 @@
       "category": "Butter Dosas",
       "dietType": "veg",
       "description": "A thick, golden-roasted dosa finished with melting cubes of fresh dairy butter that soak into the pores of the crepe, creating an irresistible golden crust.\n\nIngredients (Typical):\n- Fermented dosa batter\n- Generous butter slabs (dairy butter)\n- Coconut and tomato chutneys\n- Spiced lentil sambar\n\nSpicy Level: Mild\n\nServing Suggestion: Eat hot while the butter is still glistening on the crust.\n\nTaste Profile: Creamy, rich, savoury and wonderfully crisp.",
-      "image": "butter-dosa.jpg"
+      "image": "butter-dosa-v2.jpg",
+      "replacesPhotos": [
+        "2eff046628f40592a8f548f13f34d1d266b8fc151b0a2f405e0db311c8c97aab"
+      ]
     },
     {
       "slug": "butter-onion-dosa",
