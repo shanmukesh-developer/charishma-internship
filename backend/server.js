@@ -1399,6 +1399,13 @@ const initializeApp = async () => {
     inBootQueue(() => require('./scripts/owner_menu_fixes_v2').runOwnerMenuFixes())
       .then((r) => console.log('🍜 [OWNER_MENU_FIXES]', JSON.stringify(r)))
       .catch((err) => console.warn('⚠️ [OWNER_MENU_FIXES] failed:', err.message));
+    // 🎓 Campus (Friends) off once (CAMPUS_OFF_UNTIL_LAUNCH_V1_DONE; owner, 2 Nov 2026: launch it after Sankranti): the
+    // admins' master switch, so the app hides Campus and its API answers FEATURE_OFF; nothing is deleted, and the
+    // admins switch it back on from Admin > Friends app > Switches. scripts/campus_off_until_launch_v1.js;
+    // DISABLE_CAMPUS_OFF_ONCE=true switches it off.
+    inBootQueue(() => require('./scripts/campus_off_until_launch_v1').runCampusOffOnce())
+      .then((r) => console.log('🎓 [CAMPUS_OFF_ONCE]', JSON.stringify(r)))
+      .catch((err) => console.warn('⚠️ [CAMPUS_OFF_ONCE] failed:', err.message));
 
     // 🛒 Catalogue import (idempotent, ledger-keyed): the store products the app used to hardcode.
     // Runs in the background so the port opens immediately; already-imported keys are never touched.

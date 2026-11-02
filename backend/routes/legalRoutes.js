@@ -309,7 +309,7 @@ const PRIVACY = (f) => {
 <tr><td>Auto drivers (ZCS Auto Driver app)</td><td>Name, phone, password hash, emergency contact, <b>driving licence</b> number, expiry and photos, badge, an optional police verification certificate, your photo, and for each vehicle its registration, <b>RC</b>, <b>permit</b>, <b>insurance</b>, fitness and PUC documents. We never collect Aadhaar images. The driver app does not track your location; an SOS alert includes your location only if you allow it.</td></tr>
 <tr><td>Stores and vendors</td><td>Business and contact details, menus, prices, opening hours and order history.</td></tr>
 </table>
-<p>We do not use advertising IDs, we do not show ads and we do not sell your data.</p>
+<p>Some stores on ZCS appear in sponsored cards, always labelled Sponsored. We do not use ad networks or advertising IDs, we do not track you for ads and we do not sell your data.</p>
 
 <h2>2. Why we use it (purposes)</h2>
 <ul>
