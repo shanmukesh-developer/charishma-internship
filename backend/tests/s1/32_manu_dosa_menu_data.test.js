@@ -71,7 +71,10 @@ test('the store photo is a banner crop: the store page shows it about 2:1, so th
 // Owner review, 2 Nov 2026 10:30: these photos showed something else (a church painting, a milkshake, a selfie, an
 // airline meal, burfi, Chinese dishes, an egg dosa for a veg dish, dosas for the idly dishes). They are off until an
 // exact photo is found; each names the photo it replaces so the live server takes it off too.
-const NO_PHOTO_YET = ['ghee-idly-4', 'idly-chicken-curry-4', 'onion-dosa', 'upma-dosa', 'set-dosa', 'mixed-cheese-dosa', 'sweet-corn-dosa', 'dry-fruit-dosa', 'schezwan-dosa'];
+// Later the same day: no real photo of a keema dosa exists in the free libraries, and the old ones showed a millet
+// dosa and a masala dosa for these non-veg dishes.
+const NO_PHOTO_YET = ['ghee-idly-4', 'idly-chicken-curry-4', 'onion-dosa', 'upma-dosa', 'set-dosa', 'mixed-cheese-dosa', 'sweet-corn-dosa', 'dry-fruit-dosa', 'schezwan-dosa',
+  'chicken-keema-dosa', 'cheese-keema-dosa'];
 
 test('a dish without a photo is one of the wrong photos taken off, and says which photo it replaces', () => {
   const none = menu.items.filter((i) => i.image === null);

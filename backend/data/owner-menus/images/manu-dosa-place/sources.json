@@ -31,26 +31,6 @@
     "match": "exact"
   },
   {
-    "dish": "Masala Dosa",
-    "file": "masala-dosa.jpg",
-    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/d/df/Indian_Masala_Dosa_%26_Chhole_Bhature.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-    "sourcePage": "https://commons.wikimedia.org/wiki/File%3AIndian%20Masala%20Dosa%20%26%20Chhole%20Bhature.jpg",
-    "author": "Shashank7200",
-    "licence": "CC BY-SA 4.0",
-    "shows": "Authentic serving of Masala Dosa.",
-    "match": "exact"
-  },
-  {
-    "dish": "Karam Dosa",
-    "file": "karam-dosa.jpg",
-    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/f/f1/Butter_plain_dose_at_Mavalli_Tiffin_Room%2C_Saint_Mark%27s_Road%2C_Bangalore_%282025-09-22%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-    "sourcePage": "https://commons.wikimedia.org/wiki/File%3AButter%20plain%20dose%20at%20Mavalli%20Tiffin%20Room%2C%20Saint%20Mark%27s%20Road%2C%20Bangalore%20%282025-09-22%29.jpg",
-    "author": "Contrapunctus-1",
-    "licence": "CC BY-SA 4.0",
-    "shows": "Authentic serving of Karam Dosa.",
-    "match": "exact"
-  },
-  {
     "dish": "Ghee Dosa",
     "file": "ghee-dosa.jpg",
     "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/4/4f/Ghee_Roast_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
@@ -58,16 +38,6 @@
     "author": "Ganesh Mohan T",
     "licence": "CC BY-SA 4.0",
     "shows": "Authentic serving of Ghee Dosa.",
-    "match": "exact"
-  },
-  {
-    "dish": "Ghee Onion Dosa",
-    "file": "ghee-onion-dosa.jpg",
-    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/e/e6/Butter_Masala_Dosa.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-    "sourcePage": "https://commons.wikimedia.org/wiki/File%3AButter%20Masala%20Dosa.png",
-    "author": "Sameer.siddhanti",
-    "licence": "CC BY-SA 3.0",
-    "shows": "Authentic serving of Ghee Onion Dosa.",
     "match": "exact"
   },
   {
@@ -111,16 +81,6 @@
     "match": "exact"
   },
   {
-    "dish": "Butter Onion Dosa",
-    "file": "butter-onion-dosa.jpg",
-    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/4/45/OATS_DOSA_01.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-    "sourcePage": "https://commons.wikimedia.org/wiki/File%3AOATS%20DOSA%2001.JPG",
-    "author": "Sauravdipu",
-    "licence": "CC BY-SA 4.0",
-    "shows": "Authentic serving of Butter Onion Dosa.",
-    "match": "exact"
-  },
-  {
     "dish": "Butter Masala Dosa",
     "file": "butter-masala-dosa.jpg",
     "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/5/5f/%22Butter%22_Masala_Dosai_%281602609238%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
@@ -131,26 +91,6 @@
     "match": "exact"
   },
   {
-    "dish": "Cheese Dosa",
-    "file": "cheese-dosa.jpg",
-    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/1/1b/Cheese_Onion_Dosa_-Home_made-Chennai%2C_Tamil_Nadu%2C_19.47.39.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-    "sourcePage": "https://commons.wikimedia.org/wiki/File%3ACheese%20Onion%20Dosa%20-Home%20made-Chennai%2C%20Tamil%20Nadu%2C%2019.47.39.jpg",
-    "author": "Venkatarangan",
-    "licence": "CC BY-SA 4.0",
-    "shows": "Authentic serving of Cheese Dosa.",
-    "match": "exact"
-  },
-  {
-    "dish": "Onion Cheese Dosa",
-    "file": "onion-cheese-dosa.jpg",
-    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/2/2b/Jini_Dosa.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-    "sourcePage": "https://commons.wikimedia.org/wiki/File%3AJini%20Dosa.jpg",
-    "author": "Aashna Jogani",
-    "licence": "CC BY-SA 4.0",
-    "shows": "Authentic serving of Onion Cheese Dosa.",
-    "match": "exact"
-  },
-  {
     "dish": "Masala Cheese Dosa",
     "file": "masala-cheese-dosa.jpg",
     "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/f/f5/Cheese_masala_dosa-IDL_FOOD_Street%2C_Kukatpally-Hyderabad-DSC_0009.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
@@ -158,16 +98,6 @@
     "author": "Divya4232",
     "licence": "CC BY-SA 4.0",
     "shows": "Authentic serving of Masala Cheese Dosa.",
-    "match": "exact"
-  },
-  {
-    "dish": "Paneer Cheese Dosa",
-    "file": "paneer-cheese-dosa.jpg",
-    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/7/75/039_of_365_%286842087119%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-    "sourcePage": "https://commons.wikimedia.org/wiki/File%3A039%20of%20365%20%286842087119%29.jpg",
-    "author": "Incredibly Numing",
-    "licence": "CC BY 2.0",
-    "shows": "Authentic serving of Paneer Cheese Dosa.",
     "match": "exact"
   },
   {
@@ -211,16 +141,6 @@
     "match": "exact"
   },
   {
-    "dish": "Egg Cheese Dosa",
-    "file": "egg-cheese-dosa.jpg",
-    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/9/9f/Dosa_at_Sri_Ganesha_Restauran%2C_Bangkok_%2844570742744%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-    "sourcePage": "https://commons.wikimedia.org/wiki/File%3ADosa%20at%20Sri%20Ganesha%20Restauran%2C%20Bangkok%20%2844570742744%29.jpg",
-    "author": "Vee Satayamas from Bangkok, Thailand",
-    "licence": "CC BY 2.0",
-    "shows": "Authentic serving of Egg Cheese Dosa.",
-    "match": "exact"
-  },
-  {
     "dish": "Dry Fruit Cheese Dosa",
     "file": "dry-fruit-cheese-dosa.jpg",
     "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/7/73/Dosa_with_Lemon_pickle.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
@@ -251,26 +171,6 @@
     "match": "closest match"
   },
   {
-    "dish": "Chicken Keema Dosa",
-    "file": "chicken-keema-dosa.jpg",
-    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/c/c4/Ragi_Dosa_Mumbai.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-    "sourcePage": "https://commons.wikimedia.org/wiki/File%3ARagi%20Dosa%20Mumbai.jpg",
-    "author": "Pradeep717",
-    "licence": "CC BY-SA 4.0",
-    "shows": "Authentic serving of Chicken Keema Dosa.",
-    "match": "closest match"
-  },
-  {
-    "dish": "Cheese Keema Dosa",
-    "file": "cheese-keema-dosa.jpg",
-    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a4/Masala_Dosa_and_Vada.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-    "sourcePage": "https://commons.wikimedia.org/wiki/File%3AMasala%20Dosa%20and%20Vada.jpg",
-    "author": "Gannu03",
-    "licence": "CC BY-SA 4.0",
-    "shows": "Authentic serving of Cheese Keema Dosa.",
-    "match": "closest match"
-  },
-  {
     "dish": "Lays Dosa",
     "file": "lays-dosa.jpg",
     "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/6/6e/Masala_Dosa_%2821872%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
@@ -298,26 +198,6 @@
     "author": "Pradeep Chamaria",
     "licence": "CC BY-SA 4.0",
     "shows": "Authentic serving of Chocolate Dosa.",
-    "match": "closest match"
-  },
-  {
-    "dish": "Mixed Veg Dosa",
-    "file": "mixed-veg-dosa.jpg",
-    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/9/97/Masala_Dosa_in_Ballygunge%2C_Kolkata.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-    "sourcePage": "https://commons.wikimedia.org/wiki/File%3AMasala%20Dosa%20in%20Ballygunge%2C%20Kolkata.jpg",
-    "author": "Billjones94",
-    "licence": "CC BY-SA 4.0",
-    "shows": "Authentic serving of Mixed Veg Dosa.",
-    "match": "closest match"
-  },
-  {
-    "dish": "Vegetable Dosa",
-    "file": "vegetable-dosa.jpg",
-    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/9/9a/Dosa_with_Sambhar_and_Cooked_Potato_Vegetable_%2C_Nagpur.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-    "sourcePage": "https://commons.wikimedia.org/wiki/File%3ADosa%20with%20Sambhar%20and%20Cooked%20Potato%20Vegetable%20%2C%20Nagpur.jpg",
-    "author": "Chanda",
-    "licence": "CC BY-SA 4.0",
-    "shows": "Authentic serving of Vegetable Dosa.",
     "match": "closest match"
   },
   {
@@ -378,16 +258,6 @@
     "author": "Wannabefoodii",
     "licence": "CC BY-SA 4.0",
     "shows": "Authentic serving of Schezwan Kaju Dosa.",
-    "match": "closest match"
-  },
-  {
-    "dish": "Egg Keema Dosa",
-    "file": "egg-keema-dosa.jpg",
-    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/b/b9/Masala_Dosa_from_North_India.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-    "sourcePage": "https://commons.wikimedia.org/wiki/File%3AMasala%20Dosa%20from%20North%20India.JPG",
-    "author": "Gandhi Mudit",
-    "licence": "CC BY-SA 4.0",
-    "shows": "Authentic serving of Egg Keema Dosa.",
     "match": "closest match"
   },
   {
@@ -590,5 +460,116 @@
     "licence": "CC BY-SA 4.0",
     "shows": "A square-folded paneer dosa topped with grated paneer and coriander, with three chutneys.",
     "match": "exact"
+  },
+  {
+    "dish": "Masala Dosa",
+    "file": "masala-dosa-v2.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/37/Masala_Dosa_from_Kochi%2C_Kerala%2C_India_-2069313.jpg/1920px-Masala_Dosa_from_Kochi%2C_Kerala%2C_India_-2069313.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Masala_Dosa_from_Kochi,_Kerala,_India_-2069313.jpg",
+    "author": "Ranjithsiji",
+    "licence": "CC BY-SA 4.0",
+    "shows": "A rolled masala dosa on a plate, with three chutneys.",
+    "match": "exact"
+  },
+  {
+    "dish": "Butter Onion Dosa",
+    "file": "butter-onion-dosa-v2.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5c/Onion_dosa.jpg/1920px-Onion_dosa.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Onion_dosa.jpg",
+    "author": "Nithyasrm",
+    "licence": "CC BY-SA 4.0",
+    "shows": "An onion dosa folded on a black plate, with podi and sambar.",
+    "match": "closest match"
+  },
+  {
+    "dish": "Ghee Onion Dosa",
+    "file": "ghee-onion-dosa-v2.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/77/Ghee_Podi_Onion_Uthappam_-_Murugan_Idli_Shop%2C_Chennai_-_TamilNadu_-_PXL1034.jpg/1920px-Ghee_Podi_Onion_Uthappam_-_Murugan_Idli_Shop%2C_Chennai_-_TamilNadu_-_PXL1034.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Ghee_Podi_Onion_Uthappam_-_Murugan_Idli_Shop,_Chennai_-_TamilNadu_-_PXL1034.jpg",
+    "author": "Harikrishnan N",
+    "licence": "CC BY-SA 4.0",
+    "shows": "A ghee podi onion uttapam on a banana leaf, with coconut chutney and sambar.",
+    "match": "closest match"
+  },
+  {
+    "dish": "Onion Cheese Dosa",
+    "file": "onion-cheese-dosa-v2.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1b/Cheese_Onion_Dosa_-Home_made-Chennai%2C_Tamil_Nadu%2C_19.47.39.jpg/1920px-Cheese_Onion_Dosa_-Home_made-Chennai%2C_Tamil_Nadu%2C_19.47.39.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Cheese_Onion_Dosa_-Home_made-Chennai,_Tamil_Nadu,_19.47.39.jpg",
+    "author": "Venkatarangan",
+    "licence": "CC BY-SA 4.0",
+    "shows": "An open dosa topped with chopped red onion and a melting cheese slice.",
+    "match": "exact"
+  },
+  {
+    "dish": "Cheese Dosa",
+    "file": "cheese-dosa-v2.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b1/Mysore_Cheese_dosa.jpg/1920px-Mysore_Cheese_dosa.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Mysore_Cheese_dosa.jpg",
+    "author": "Kaushik AP",
+    "licence": "CC BY-SA 4.0",
+    "shows": "A dosa covered in grated cheese on the tawa at a street dosa stall.",
+    "match": "exact"
+  },
+  {
+    "dish": "Paneer Cheese Dosa",
+    "file": "paneer-cheese-dosa-v2.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8a/Cheese_paneer_spring_dosa.jpg/1920px-Cheese_paneer_spring_dosa.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Cheese_paneer_spring_dosa.jpg",
+    "author": "Kaushik AP",
+    "licence": "CC BY-SA 4.0",
+    "shows": "A dosa topped with grated paneer, cheese and vegetables on the tawa at a street dosa stall.",
+    "match": "exact"
+  },
+  {
+    "dish": "Vegetable Dosa",
+    "file": "vegetable-dosa-v2.jpg",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/8/8a/Vegetable_dosa-Homemade%2C_Vadodara-20.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Vegetable_dosa-Homemade,_Vadodara-20.jpg",
+    "author": "Bhagyashri Wakhale",
+    "licence": "CC BY-SA 4.0",
+    "shows": "A vegetable dosa folded in two on a glass plate, with green chutney.",
+    "match": "exact"
+  },
+  {
+    "dish": "Mixed Veg Dosa",
+    "file": "mixed-veg-dosa-v2.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b7/Indian_Veggie_Dosa.....%21.JPG/1920px-Indian_Veggie_Dosa.....%21.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Indian_Veggie_Dosa.....!.JPG",
+    "author": "Virajrkamath",
+    "licence": "CC BY-SA 4.0",
+    "shows": "A round dosa topped with mixed vegetables, corn and melted cheese on a steel plate.",
+    "match": "closest match"
+  },
+  {
+    "dish": "Egg Cheese Dosa",
+    "file": "egg-cheese-dosa-v2.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/76/Egg_dosa.jpg/1920px-Egg_dosa.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Egg_dosa.jpg",
+    "author": "Sri2161k",
+    "licence": "CC BY-SA 4.0",
+    "shows": "An egg dosa with the egg spread over the top, on a banana leaf (cropped to the dosa).",
+    "match": "closest match",
+    "modified": "cropped"
+  },
+  {
+    "dish": "Egg Keema Dosa",
+    "file": "egg-keema-dosa-v2.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/21/Egg_Dosa.JPG/1920px-Egg_Dosa.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Egg_Dosa.JPG",
+    "author": "Avinashvh1n1",
+    "licence": "CC BY-SA 4.0",
+    "shows": "An egg dosa with gravy in a steel plate.",
+    "match": "closest match"
+  },
+  {
+    "dish": "Karam Dosa",
+    "file": "karam-dosa-v2.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ad/Guntur_dosa.jpg/1920px-Guntur_dosa.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Guntur_dosa.jpg",
+    "author": "User:Gpics",
+    "licence": "CC BY-SA 3.0",
+    "shows": "Guntur-style dosas on banana leaves with red chilli chutney (karam), coconut chutney and sambar.",
+    "match": "closest match"
   }
 ]

@@ -105,7 +105,10 @@
       "category": "Classic Dosas",
       "dietType": "veg",
       "description": "Classic South Indian masala dosa with a crisp, golden-roasted crust wrapped around a fragrant potato sabzi seasoned with mustard seeds, turmeric, onions, and fresh curry leaves.\n\nIngredients (Typical):\n- Crisp fermented dosa\n- Potato aloo masala (boiled potatoes, onions, turmeric, green chillies, ginger)\n- Coconut chutney and vegetable sambar\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Tear a piece with potato masala and dip generously into fresh coconut chutney.\n\nTaste Profile: Crisp, comforting, turmeric-spiced and aromatic.",
-      "image": "masala-dosa.jpg"
+      "image": "masala-dosa-v2.jpg",
+      "replacesPhotos": [
+        "aa31a8b4589be2204296265b9035801e8bf4ec74b881002366af79d4890750b9"
+      ]
     },
     {
       "slug": "karam-dosa",
@@ -114,7 +117,10 @@
       "category": "Classic Dosas",
       "dietType": "veg",
       "description": "Signature Rayalaseema & Andhra street-style karam dosa, brushed generously with a fiery red paste of garlic, dry red chillies, and roasted gram before roasting to a deep crimson crisp.\n\nIngredients (Typical):\n- Crisp dosa crepe\n- Erra karam paste (Guntur red chillies, garlic, onion, cumin, tamarind)\n- Roasted gram dal podi\n- Coconut chutney\n\nSpicy Level: Hot\n\nServing Suggestion: Pairs wonderfully with mild coconut chutney to balance the fierce garlic-chilli kick.\n\nTaste Profile: Bold, garlicky, fiery and intensely flavourful.",
-      "image": "karam-dosa.jpg"
+      "image": "karam-dosa-v2.jpg",
+      "replacesPhotos": [
+        "a69cdd0452904b3af78289776b02eb91e18dff10df8d76e9f3700af7e89b61e9"
+      ]
     },
     {
       "slug": "set-dosa",
@@ -145,7 +151,10 @@
       "category": "Ghee Dosas",
       "dietType": "veg",
       "description": "Pure ghee-roasted crispy dosa topped with sweet red onions that caramelise directly on the tawa in golden ghee. Infused with green chillies and fresh coriander leaves.\n\nIngredients (Typical):\n- Dosa batter roasted in pure desi ghee\n- Diced red onions and green chillies\n- Fresh coriander\n- Coconut and peanut chutneys\n\nSpicy Level: Medium\n\nServing Suggestion: Perfect for an evening snack with a hot cup of tea or filter coffee.\n\nTaste Profile: Caramelised onion sweetness, rich ghee depth, and crispy texture.",
-      "image": "ghee-onion-dosa.jpg"
+      "image": "ghee-onion-dosa-v2.jpg",
+      "replacesPhotos": [
+        "c6a7c907f538fc6e593043b8efa7ebee2f70f111bca10c683ebe3ad6353d0dc2"
+      ]
     },
     {
       "slug": "ghee-upma-dosa",
@@ -190,7 +199,10 @@
       "category": "Butter Dosas",
       "dietType": "veg",
       "description": "Crispy dosa prepared with liberal dollops of rich butter and studded with sweet, sautéed red onions and mild green chillies that caramelise on the smoking hot tawa.\n\nIngredients (Typical):\n- Dosa batter and rich dairy butter\n- Chopped red onions and green chillies\n- Fresh coriander leaves\n- Peanut and ginger chutneys\n\nSpicy Level: Medium\n\nServing Suggestion: Dip into ginger chutney for an irresistible sweet-savoury kick.\n\nTaste Profile: Buttery, sweet-onion crunch with gentle chilli heat.",
-      "image": "butter-onion-dosa.jpg"
+      "image": "butter-onion-dosa-v2.jpg",
+      "replacesPhotos": [
+        "cfb9f826040eab8224b32a54dd0d623947064559d039f54c2d73e31cb5e58f0f"
+      ]
     },
     {
       "slug": "butter-masala-dosa",
@@ -208,7 +220,10 @@
       "category": "Cheese Dosas",
       "dietType": "veg",
       "description": "Crispy golden crepe smothered with a rich, bubbling blanket of shredded cheese that melts into a gooey, stretchy layer across the entire inner surface of the dosa.\n\nIngredients (Typical):\n- Fermented dosa batter\n- Shredded mozzarella and processed cheese\n- Mild spices and butter\n- Coconut and tomato chutneys\n\nSpicy Level: Mild\n\nServing Suggestion: Pull apart to enjoy the satisfying cheese pull while piping hot.\n\nTaste Profile: Creamy, cheesy, salty, savoury and crisp.",
-      "image": "cheese-dosa.jpg"
+      "image": "cheese-dosa-v2.jpg",
+      "replacesPhotos": [
+        "c4b73620e01aa4df214d7a2f7b225e52cb70ef39680ded979c6bc5e9f278b457"
+      ]
     },
     {
       "slug": "onion-cheese-dosa",
@@ -217,7 +232,10 @@
       "category": "Cheese Dosas",
       "dietType": "veg",
       "description": "Golden tawa dosa topped with finely diced crunchy onions and smothered with molten processed cheese that caramelises at the edges for a flavourful fusion treat.\n\nIngredients (Typical):\n- Crisp dosa crepe\n- Finely chopped onions and green chillies\n- Shredded cheese\n- Chutneys and sambar\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best enjoyed straight from the tawa with spicy tomato chutney.\n\nTaste Profile: Crunchy sweet onions, gooey melted cheese, and savoury crepe.",
-      "image": "onion-cheese-dosa.jpg"
+      "image": "onion-cheese-dosa-v2.jpg",
+      "replacesPhotos": [
+        "dacb0128eca7daf785e1eba1cd0aefa8d0848421980f194201ecb80dd73f1d23"
+      ]
     },
     {
       "slug": "masala-cheese-dosa",
@@ -235,7 +253,10 @@
       "category": "Cheese Dosas",
       "dietType": "veg",
       "description": "A protein-rich fusion favourite: fresh, tender grated paneer tossed with subtle spices and combined with shredded molten cheese melted into the hot, crispy dosa.\n\nIngredients (Typical):\n- Fermented dosa batter\n- Fresh grated paneer (cottage cheese)\n- Shredded processed cheese\n- Mild herbs and butter\n- Chutneys\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Enjoy hot with coconut and peanut chutney.\n\nTaste Profile: Soft milky paneer, gooey savoury cheese, and crackling dosa crust.",
-      "image": "paneer-cheese-dosa.jpg"
+      "image": "paneer-cheese-dosa-v2.jpg",
+      "replacesPhotos": [
+        "02dd0e17e4eb16998e1e455e38733add80e401b41f9c290ac78ab550c86d6907"
+      ]
     },
     {
       "slug": "corn-cheese-dosa",
@@ -292,7 +313,10 @@
       "category": "Egg & Non-Veg Dosas",
       "dietType": "egg",
       "description": "Fresh farm egg cracked and whisked with onions and pepper directly over the dosa, then topped with molten shredded cheese and folded into a rich, savoury roll.\n\nIngredients (Typical):\n- Dosa batter\n- Farm-fresh egg\n- Diced onion, green chilli and black pepper\n- Grated melting cheese\n- Coconut chutney and sambar\n\nSpicy Level: Medium\n\nServing Suggestion: Cut into bite-sized rolls and dip into spicy tomato or ginger chutney.\n\nTaste Profile: Fluffy egg omelette layer, savoury cheese, and crisp dosa envelope.",
-      "image": "egg-cheese-dosa.jpg"
+      "image": "egg-cheese-dosa-v2.jpg",
+      "replacesPhotos": [
+        "70ee6e095ac84efa8fd03c5d890279be40a4ea092df07a4962865987127e3036"
+      ]
     },
     {
       "slug": "dry-fruit-cheese-dosa",
@@ -341,7 +365,10 @@
       "category": "Egg & Non-Veg Dosas",
       "dietType": "nonveg",
       "description": "A legendary non-veg treat: finely minced chicken cooked with onions, tomatoes, and home-ground garam masala, spread generously over the dosa and folded crisp.\n\nIngredients (Typical):\n- Fermented dosa batter\n- Minced chicken keema (chicken mince, onion, tomato, ginger-garlic, garam masala)\n- Coriander and mint\n- Chutneys and gravy\n\nSpicy Level: Hot\n\nServing Suggestion: Best enjoyed hot with coconut chutney and extra curry gravy on the side.\n\nTaste Profile: Meaty, spicy, succulent, aromatic and crispy.",
-      "image": "chicken-keema-dosa.jpg"
+      "image": null,
+      "replacesPhotos": [
+        "89dad9f56afbf1adc3375520bdc3b61f3b01f0f9e073dc3c5d0349a9e5538afd"
+      ]
     },
     {
       "slug": "cheese-keema-dosa",
@@ -350,7 +377,10 @@
       "category": "Egg & Non-Veg Dosas",
       "dietType": "nonveg",
       "description": "Spicy minced chicken keema masala spread over hot dosa and topped with a thick blanket of shredded cheese that melts into the spiced chicken mince.\n\nIngredients (Typical):\n- Crispy dosa\n- Spiced chicken keema mince\n- Shredded melting cheese\n- Herbs, onions and chutneys\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Eat piping hot while the cheese is gooey and intertwined with the keema.\n\nTaste Profile: Fiery spiced chicken keema softened by rich, creamy melted cheese.",
-      "image": "cheese-keema-dosa.jpg"
+      "image": null,
+      "replacesPhotos": [
+        "8b95211dd73d566ccfdff6b72281c0168239c45cda2fe883516133100d991325"
+      ]
     },
     {
       "slug": "sweet-corn-dosa",
@@ -435,7 +465,10 @@
       "category": "Special Veg Dosas",
       "dietType": "veg",
       "description": "Wholesome, colourful dosa loaded with a stir-fried medley of shredded cabbage, carrots, capsicum, green peas, sweet corn, and mild Indian spices.\n\nIngredients (Typical):\n- Crisp rice-lentil dosa\n- Mixed vegetables (cabbage, carrot, capsicum, corn, peas)\n- Ginger, cumin and mild garam masala\n- Chutneys and sambar\n\nSpicy Level: Medium\n\nServing Suggestion: A hearty, healthy dinner choice packed with fresh vegetables.\n\nTaste Profile: Fresh vegetable crunch, savoury spices, and golden crisp base.",
-      "image": "mixed-veg-dosa.jpg"
+      "image": "mixed-veg-dosa-v2.jpg",
+      "replacesPhotos": [
+        "e3a2aa543409ced6d76ee4eee2cbf400a9ab725cec5d9748ad01b89f9d5accd9"
+      ]
     },
     {
       "slug": "vegetable-dosa",
@@ -444,7 +477,10 @@
       "category": "Special Veg Dosas",
       "dietType": "veg",
       "description": "Simple, hearty dosa filled with mildly spiced sautéed onions, tomatoes, green chillies, and coriander, cooked to a crisp golden finish on the tawa.\n\nIngredients (Typical):\n- Dosa crepe\n- Sautéed onion, tomato and coriander masala\n- Mustard seeds and cumin\n- Coconut chutney and sambar\n\nSpicy Level: Medium\n\nServing Suggestion: Dip into fresh peanut-coconut chutney for a quick filling meal.\n\nTaste Profile: Tangy tomato notes, sweet onions, and crisp dosa shell.",
-      "image": "vegetable-dosa.jpg"
+      "image": "vegetable-dosa-v2.jpg",
+      "replacesPhotos": [
+        "d166db92a1ed341bdb2c0e7322ba927e61a2bd2522577a66b89f2f785d7b0a00"
+      ]
     },
     {
       "slug": "kaju-paneer-cheese-dosa",
@@ -507,7 +543,10 @@
       "category": "Egg & Non-Veg Dosas",
       "dietType": "nonveg",
       "description": "Spicy chicken keema mince and a beaten farm egg cooked together directly onto the roasting dosa, infusing the meat and egg into a thick, juicy, savoury layer.\n\nIngredients (Typical):\n- Dosa crepe\n- Farm egg\n- Spiced minced chicken keema\n- Onions, green chillies and garam masala\n\nSpicy Level: Hot\n\nServing Suggestion: Enjoy with chicken curry gravy or coconut chutney.\n\nTaste Profile: Meaty, egg-rich, deeply spiced, hearty and filling.",
-      "image": "egg-keema-dosa.jpg"
+      "image": "egg-keema-dosa-v2.jpg",
+      "replacesPhotos": [
+        "bfc8691eebbae41298617d01e874db3b954c83323c667aff744cf54f742092b3"
+      ]
     },
     {
       "slug": "pizza-dosa",
