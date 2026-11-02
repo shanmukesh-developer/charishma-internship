@@ -112,6 +112,30 @@ const syncPhotos = async ({ dataDir, data, storeId, done, Restaurant, MenuItem, 
   return changed;
 };
 
+/**
+ * Menu order = the menu file's order (the printed card's), 2 Nov 2026: without a sortOrder the apps list categories
+ * and dishes alphabetically (utils/menuSort). A dish imported before without specs.sortOrder gets (position + 1) x 10;
+ * an order the admin or the store set is never changed. Returns how many dishes it numbered.
+ */
+const syncSortOrder = async ({ data, done, MenuItem }) => {
+  const { sortOrderOf } = require('../utils/menuSort');
+  const pos = new Map();
+  (data.items || []).forEach((it, i) => {
+    const entry = done.get(`${data.key}:${it.slug}`);
+    if (entry && entry.kind === KIND_ITEM) pos.set(String(entry.targetId), (i + 1) * 10);
+  });
+  if (!pos.size) return 0;
+  let changed = 0;
+  for (const row of await MenuItem.findAll({ where: { id: [...pos.keys()] }, attributes: ['id', 'specs'] })) {
+    if (sortOrderOf(row) !== Infinity) continue;
+    let specs = row.specs;
+    if (typeof specs === 'string') { try { specs = JSON.parse(specs); } catch { specs = {}; } }
+    await MenuItem.update({ specs: { ...(specs && typeof specs === 'object' ? specs : {}), sortOrder: pos.get(String(row.id)) } }, { where: { id: row.id } });
+    changed++;
+  }
+  return changed;
+};
+
 /** SHA-256 of a description as stored (trimmed), the key `replacesDescriptions` lists. */
 const textSha = (text) => crypto.createHash('sha256').update(String(text || '').trim()).digest('hex');
 
@@ -197,7 +221,7 @@ const runOwnerMenuImport = async ({ dataDir = DATA_DIR } = {}) => {
     return (await Restaurant.count({ where: sqlWhere(fn('lower', col('name')), String(name).trim().toLowerCase()) })) > 0;
   };
 
-  const result = { menus: menus.length, storesCreated: 0, storesSkippedNameTaken: 0, storesDeleted: 0, itemsCreated: 0, photosUpdated: 0, textsUpdated: 0, invalid: [] };
+  const result = { menus: menus.length, storesCreated: 0, storesSkippedNameTaken: 0, storesDeleted: 0, itemsCreated: 0, photosUpdated: 0, textsUpdated: 0, dishesOrdered: 0, invalid: [] };
   for (const { file, data } of menus) {
     const problems = menuProblems(data, dataDir);
     if (problems.length) { result.invalid.push({ file, problems: problems.slice(0, 5) }); continue; }
@@ -243,7 +267,7 @@ const runOwnerMenuImport = async ({ dataDir = DATA_DIR } = {}) => {
     const storeId = entry.targetId;
     if (!(await Restaurant.count({ where: { id: storeId } }))) { result.storesDeleted++; continue; } // admin deleted it
 
-    for (const it of data.items) {
+    for (const [idx, it] of data.items.entries()) {
       const key = `${data.key}:${it.slug}`;
       if (done.has(key)) continue;
       const imageUrl = it.image ? await savePhoto(dataDir, data, it.image, 'menu') : null;
@@ -260,16 +284,18 @@ const runOwnerMenuImport = async ({ dataDir = DATA_DIR } = {}) => {
         dietType: it.dietType,
         isAvailable: true,
         // Nothing internal in specs: the customer app lists every spec it does not know as a product detail
-        // ("Owner menu key: ..." showed on the dish page, 1 Nov). The ledger keeps the import key.
-        specs: {},
+        // ("Owner menu key: ..." showed on the dish page, 1 Nov). The ledger keeps the import key. sortOrder
+        // (hidden by the apps) keeps the menu in the card's order (utils/menuSort).
+        specs: { sortOrder: (idx + 1) * 10 },
       }, { transaction: t }));
       if (ok) result.itemsCreated++;
     }
     result.photosUpdated += await syncPhotos({ dataDir, data, storeId, done, Restaurant, MenuItem, savePhoto });
     result.textsUpdated += await syncDescriptions({ data, storeId, done, Restaurant, MenuItem });
+    result.dishesOrdered += await syncSortOrder({ data, done, MenuItem });
   }
 
-  if (result.storesCreated || result.itemsCreated || result.photosUpdated || result.textsUpdated) {
+  if (result.storesCreated || result.itemsCreated || result.photosUpdated || result.textsUpdated || result.dishesOrdered) {
     try { require('../controllers/adminController').clearRestaurantsCache(); } catch { /* cache just expires */ }
   }
   return result;
