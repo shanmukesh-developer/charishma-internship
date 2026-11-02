@@ -60,7 +60,7 @@ const newDb = async (file = ':memory:') => {
   return { sequelize, Media };
 };
 
-const listen = (app) => new Promise((resolve) => { const s = app.listen(0, '127.0.0.1', () => resolve(s)); });
+const listen = (app) => require('../listenFree').listenFree(app);
 const fetchRaw = (port, p, headers = {}) => new Promise((resolve, reject) => {
   http.get({ host: '127.0.0.1', port, path: p, headers }, (res) => {
     const chunks = [];

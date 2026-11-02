@@ -30,7 +30,7 @@ const setup = async () => {
     app.use(express.json());
     app.set('io', null);
     app.use('/api/mega-basket', H.r('routes/megaBasketRoutes'));
-    basketServer = await new Promise((res) => { const s = app.listen(0, '127.0.0.1', () => res(s)); });
+    basketServer = await require('../listenFree').listenFree(app);
     basketBase = `http://127.0.0.1:${basketServer.address().port}`;
   }
   S._resetConfig();

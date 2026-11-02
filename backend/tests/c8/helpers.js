@@ -102,7 +102,7 @@ const setup = async () => {
   app.use('/api/catalogue', r('routes/catalogueRoutes'));
   app.use('/api/admin', r('routes/adminRoutes'));
   app.get('/receipts/:token', r('controllers/receiptController').renderReceiptPage);
-  const server = await new Promise((res) => { const s = app.listen(0, '127.0.0.1', () => res(s)); });
+  const server = await require('../listenFree').listenFree(app);
   ctx.server = server;
   ctx.base = `http://127.0.0.1:${server.address().port}`;
   ctx.M = (n) => sequelize.models[n];

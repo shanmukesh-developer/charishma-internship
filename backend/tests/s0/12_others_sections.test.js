@@ -19,7 +19,7 @@ test.before(async () => {
   const express = require(path.join(H.B, 'node_modules/express'));
   const app = express();
   app.use('/api/config', H.r('routes/appConfigRoutes'));
-  server = await new Promise((res) => { const s = app.listen(0, '127.0.0.1', () => res(s)); });
+  server = await require('../listenFree').listenFree(app);
   base = `http://127.0.0.1:${server.address().port}`;
 });
 test.after(async () => {

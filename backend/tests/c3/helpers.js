@@ -64,7 +64,7 @@ const setup = async () => {
   app.post('/api/users/account/delete', ok);
   app.get('/api/auto-ride/driver/me', ok);
 
-  const server = await new Promise((res) => { const s = app.listen(0, '127.0.0.1', () => res(s)); });
+  const server = await require('../listenFree').listenFree(app);
   const io = new Server(server, { transports: ['websocket'] });
   io.use(avp.socketGate);
   const base = `http://127.0.0.1:${server.address().port}`;

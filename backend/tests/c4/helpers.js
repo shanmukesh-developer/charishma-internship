@@ -70,7 +70,7 @@ const setup = async () => {
     try { await DA.register(req, res); } catch (e) { res.status(e.status || 500).json({ code: e.code, message: e.message }); }
   });
 
-  const server = await new Promise((res) => { const s = app.listen(0, '127.0.0.1', () => res(s)); });
+  const server = await require('../listenFree').listenFree(app);
   ctx.server = server;
   ctx.base = `http://127.0.0.1:${server.address().port}`;
   ctx.M = (n) => sequelize.models[n];

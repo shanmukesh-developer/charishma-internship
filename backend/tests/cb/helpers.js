@@ -30,7 +30,7 @@ const setup = async () => {
     app.use('/api/campus-booking/vendor', routes.vendorRouter);
     app.use('/api/campus-booking', routes.router);
     app.use('/api/admin/campus-booking', routes.adminRouter);
-    server = await new Promise((res) => { const s = app.listen(0, '127.0.0.1', () => res(s)); });
+    server = await require('../listenFree').listenFree(app);
     base = `http://127.0.0.1:${server.address().port}`;
   }
   H.r('modules/campusBooking/services/util').resetLimits();

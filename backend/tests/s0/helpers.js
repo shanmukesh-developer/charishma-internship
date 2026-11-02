@@ -111,7 +111,7 @@ const setup = async () => {
   app.use('/api/friends', r('routes/friendRoutes'));
   app.use('/api/rooms', r('routes/roomRoutes'));
   app.use('/api/campus', r('modules/campus/campusRoutes'));
-  const server = await new Promise((res) => { const s = app.listen(0, '127.0.0.1', () => res(s)); });
+  const server = await require('../listenFree').listenFree(app);
   const campus = await M.Campus.create({ name: 'S0 Campus', code: `S0${process.pid % 10000}`, isActive: true });
   const campus2 = await M.Campus.create({ name: 'S0 Other Campus', code: `S0O${process.pid % 10000}`, isActive: true });
   ctx = { sequelize, server, base: `http://127.0.0.1:${server.address().port}`, file, M, campus, campus2, emitted, left, pushes, io: fakeIo };

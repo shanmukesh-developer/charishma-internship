@@ -13,7 +13,7 @@ const get = (port, path, headers = {}) => new Promise((resolve, reject) => {
     res.on('end', () => resolve({ status: res.statusCode, headers: res.headers }));
   }).on('error', reject);
 });
-const listen = (app) => new Promise((resolve) => { const s = app.listen(0, '127.0.0.1', () => resolve(s)); });
+const listen = (app) => require('../listenFree').listenFree(app);
 
 const buildApp = () => {
   const app = express();

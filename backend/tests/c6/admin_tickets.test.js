@@ -32,7 +32,7 @@ before(async () => {
   const app = express();
   app.use(express.json());
   app.use('/api/tickets', H.r('routes/ticketRoutes'));
-  server = await new Promise((res) => { const s = app.listen(0, '127.0.0.1', () => res(s)); });
+  server = await require('../listenFree').listenFree(app);
   base = `http://127.0.0.1:${server.address().port}`;
   admin = await H.mkUser({ role: 'admin', name: 'Asha Admin' });
   otherAdmin = await H.mkUser({ role: 'admin', name: 'Bala Admin' });

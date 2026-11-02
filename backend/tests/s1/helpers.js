@@ -94,7 +94,7 @@ const setup = async () => {
   app.use('/api/services', r('routes/serviceRoutes'));
   app.use('/api/admin', r('routes/adminRoutes'));
   app.use('/api/campus', r('modules/campus/campusRoutes'));
-  const server = await new Promise((res) => { const s = app.listen(0, '127.0.0.1', () => res(s)); });
+  const server = await require('../listenFree').listenFree(app);
   ctx = { sequelize, server, base: `http://127.0.0.1:${server.address().port}`, file, M };
   return ctx;
 };

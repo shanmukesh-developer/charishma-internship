@@ -38,7 +38,7 @@ before(async () => {
   app.use(express.json({ limit: '8mb' }));
   app.use('/api/tickets', H.r('routes/ticketRoutes'));
   app.use('/api/campus', H.r('modules/campus/campusRoutes'));
-  server2 = await new Promise((res) => { const s = app.listen(0, '127.0.0.1', () => res(s)); });
+  server2 = await require('../listenFree').listenFree(app);
   base2 = `http://127.0.0.1:${server2.address().port}`;
   u = await H.mkUser();
   other = await H.mkUser();

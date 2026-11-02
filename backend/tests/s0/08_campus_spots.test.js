@@ -44,7 +44,7 @@ test('socket: proximity:join refused without a verified membership; a revoked ve
   const srv = http.createServer();
   const io = new Server(srv);
   H.r('modules/campus/campusSocket').initCampusSocket(io);
-  await new Promise((res) => srv.listen(0, '127.0.0.1', res));
+  await require('../listenFree').listenFree(srv);
   const url = `http://127.0.0.1:${srv.address().port}/campus`;
   const sv = ioc(url, { auth: { token: verified.token }, transports: ['websocket'] });
   const sp = ioc(url, { auth: { token: pending.token }, transports: ['websocket'] });

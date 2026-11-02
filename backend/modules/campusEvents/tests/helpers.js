@@ -118,7 +118,7 @@ const setup = async ({ label = 'campusevents' } = {}) => {
   app.use('/api/campus-events/check-in', routes.checkInRouter);
   app.use('/api/campus-events', routes.router);
   app.use('/api/admin/campus-events', routes.adminRouter);
-  const server = await new Promise((res) => { const s = app.listen(0, '127.0.0.1', () => res(s)); });
+  const server = await require('../../../tests/listenFree').listenFree(app);
   const base = `http://127.0.0.1:${server.address().port}`;
   const M = (n) => sequelize.models[n];
   ctx = { sequelize, server, base, file, M };

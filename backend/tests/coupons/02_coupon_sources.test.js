@@ -47,7 +47,7 @@ before(async () => {
   app.use(express.json());
   app.use('/api/vault', H.r('routes/vaultRoutes'));
   app.use('/api/wall', H.r('routes/wallRoutes'));
-  server = await new Promise((res) => { const s = app.listen(0, '127.0.0.1', () => res(s)); });
+  server = await require('../listenFree').listenFree(app);
   base = `http://127.0.0.1:${server.address().port}`;
   admin = await H.mkUser({ role: 'admin' });
 });

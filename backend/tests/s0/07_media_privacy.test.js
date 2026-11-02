@@ -161,7 +161,7 @@ test('campus socket: chat photo from an external URL refused; own private photo 
   const srv = http.createServer();
   const io = new Server(srv);
   H.r('modules/campus/campusSocket').initCampusSocket(io);
-  await new Promise((res) => srv.listen(0, '127.0.0.1', res));
+  await require('../listenFree').listenFree(srv);
   const url = `http://127.0.0.1:${srv.address().port}/campus`;
   const sa = ioc(url, { auth: { token: alice.token }, transports: ['websocket'] });
   const sb = ioc(url, { auth: { token: bob.token }, transports: ['websocket'] });

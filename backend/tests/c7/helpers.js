@@ -83,7 +83,7 @@ const setup = async () => {
   const routes = r('modules/rentals/routes');
   app.use('/api/rentals', routes.router);
   app.use('/api/admin/rentals', routes.adminRouter);
-  const server = await new Promise((res) => { const s = app.listen(0, '127.0.0.1', () => res(s)); });
+  const server = await require('../listenFree').listenFree(app);
   const M = (n) => sequelize.models[n];
   const campus = await M('Campus').create({ name: 'C7 Test Campus', code: `C7${process.pid % 10000}`, isActive: true });
   const campus2 = await M('Campus').create({ name: 'C7 Other Campus', code: `C7O${process.pid % 10000}`, isActive: true });

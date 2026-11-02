@@ -90,7 +90,7 @@ const setup = async () => {
   app.use('/api/features', r('routes/featureRoutes'));
   app.use('/api/admin', r('routes/adminRoutes'));
   app.use('/api/rewards', r('routes/rewardRoutes'));
-  const server = await new Promise((res) => { const s = app.listen(0, '127.0.0.1', () => res(s)); });
+  const server = await require('../listenFree').listenFree(app);
   ctx.server = server;
   ctx.base = `http://127.0.0.1:${server.address().port}`;
   ctx.M = (n) => sequelize.models[n];

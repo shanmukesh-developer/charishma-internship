@@ -30,7 +30,7 @@ const setup = async () => {
     app.set('io', io);
     app.use('/api/services', H.r('routes/serviceRoutes'));
     app.use('/api/mega-basket', H.r('routes/megaBasketRoutes'));
-    svcServer = await new Promise((res) => { const s = app.listen(0, '127.0.0.1', () => res(s)); });
+    svcServer = await require('../listenFree').listenFree(app);
     svcBase = `http://127.0.0.1:${svcServer.address().port}`;
   }
   H.r('utils/push')._setMessaging(() => ({

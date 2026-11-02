@@ -94,7 +94,7 @@ const setup = async () => {
   app.use('/api/auto-ride', auto.router);
   const pgo = r('modules/pgOwner/routes');
   app.use('/api/pg-owner', pgo.ownerRouter);
-  const server = await new Promise((res) => { const s = app.listen(0, '127.0.0.1', () => res(s)); });
+  const server = await require('../listenFree').listenFree(app);
   Object.assign(ctx, { server, base: `http://127.0.0.1:${server.address().port}`, M });
   return ctx;
 };

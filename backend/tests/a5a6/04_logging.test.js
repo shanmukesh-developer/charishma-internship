@@ -143,7 +143,7 @@ test('default text mode keeps the morgan line, with the URL\'s sensitive values 
   const out = [];
   const origWrite = process.stdout.write.bind(process.stdout);
   const server = http.createServer((req, res) => access(req, res, () => res.end('ok')));
-  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  await require('../listenFree').listenFree(server);
   process.stdout.write = (chunk, ...rest) => { if (String(chunk).includes('/api/users/check')) { out.push(String(chunk)); return true; } return origWrite(chunk, ...rest); };
   try {
     await fetch(`http://127.0.0.1:${server.address().port}/api/users/check?phone=${SECRETS.phone}&email=${encodeURIComponent(SECRETS.email)}&page=1`).then((r) => r.text());

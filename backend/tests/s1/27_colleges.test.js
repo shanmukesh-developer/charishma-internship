@@ -16,7 +16,7 @@ test.before(async () => {
   app.use('/api/config', H.r('routes/appConfigRoutes'));
   app.use('/api/restaurants', H.r('routes/restaurantRoutes'));
   app.use('/api/catalogue', H.r('routes/catalogueRoutes'));
-  server = await new Promise((res) => { const s = app.listen(0, '127.0.0.1', () => res(s)); });
+  server = await require('../listenFree').listenFree(app);
   base = `http://127.0.0.1:${server.address().port}`;
   admin = await H.mkUser({ role: 'admin' });
 });

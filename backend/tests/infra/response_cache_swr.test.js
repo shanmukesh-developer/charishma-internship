@@ -16,7 +16,7 @@ const get = (port, path) => new Promise((resolve, reject) => {
     res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body: body ? JSON.parse(body) : null, ms: Date.now() - t0 }));
   }).on('error', reject);
 });
-const listen = (app) => new Promise((resolve) => { const s = app.listen(0, '127.0.0.1', () => resolve(s)); });
+const listen = (app) => require('../listenFree').listenFree(app);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const buildApp = (state) => {

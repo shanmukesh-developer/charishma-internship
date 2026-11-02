@@ -103,7 +103,7 @@ const getJson = (port, path, headers) => new Promise((resolve, reject) => {
     res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body: b ? JSON.parse(b) : null }));
   }).on('error', reject);
 });
-const listen = (app) => new Promise((resolve) => { const s = app.listen(0, '127.0.0.1', () => resolve(s)); });
+const listen = (app) => require('../listenFree').listenFree(app);
 
 test('clientIp: CF-Connecting-IP is used only when the hop that reached Render is a Cloudflare edge', async () => {
   const on = await listen(ipApp({ TRUST_CLOUDFLARE: '1' }));

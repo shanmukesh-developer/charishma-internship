@@ -17,7 +17,7 @@ const quiet = async (fn) => {
 
 test.before(async () => {
   slow = http.createServer((req) => { hits++; req.resume(); /* never respond */ });
-  await new Promise((res) => slow.listen(0, '127.0.0.1', res));
+  await require('../listenFree').listenFree(slow);
   base = `http://127.0.0.1:${slow.address().port}`;
 });
 test.after(async () => {

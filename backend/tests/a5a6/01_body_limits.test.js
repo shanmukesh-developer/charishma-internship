@@ -19,7 +19,7 @@ const startApp = async () => {
   app.use(bodyParsers());
   app.all(/.*/, (req, res) => res.json({ ok: true, bytes: JSON.stringify(req.body || {}).length }));
   app.use(errorHandler);
-  const server = await new Promise((res) => { const s = app.listen(0, '127.0.0.1', () => res(s)); });
+  const server = await require('../listenFree').listenFree(app);
   return { server, base: `http://127.0.0.1:${server.address().port}` };
 };
 

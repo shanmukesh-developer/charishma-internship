@@ -73,7 +73,7 @@ test('request timeout: multipart uploads get the long timeout, JSON keeps 30 s',
   const app = express();
   app.use(requestTimeout);
   app.post('/slow', (req, res) => { req.resume(); setTimeout(() => { if (!res.headersSent) res.json({ ok: true }); }, 600); });
-  const server = await new Promise((res) => { const s = app.listen(0, '127.0.0.1', () => res(s)); });
+  const server = await require('../listenFree').listenFree(app);
   const base = `http://127.0.0.1:${server.address().port}`;
   const warn = console.warn; console.warn = () => {};
   try {
