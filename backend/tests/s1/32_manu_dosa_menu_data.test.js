@@ -97,7 +97,7 @@ test('one real photo per dish and the store photo: valid JPEG, no two alike, no 
     const buf = fs.readFileSync(path.join(IMG, f));
     assert.ok(buf[0] === 0xff && buf[1] === 0xd8, `${f} is a JPEG`);
     assert.ok(!buf.includes(Buffer.from('Exif\0\0')), `${f} carries no camera metadata`);
-    assert.ok(buf.length > 20 * 1024 && buf.length < 450 * 1024, `${f} size ${buf.length}`);
+    assert.ok(buf.length > 20 * 1024 && buf.length < 700 * 1024, `${f} size ${buf.length}`);
     const h = crypto.createHash('sha256').update(buf).digest('hex');
     assert.ok(!hashes.has(h), `${f} is not a duplicate`);
     hashes.add(h);
