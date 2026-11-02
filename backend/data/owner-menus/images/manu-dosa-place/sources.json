@@ -21,26 +21,6 @@
     "match": "exact"
   },
   {
-    "dish": "Ghee Idly (4)",
-    "file": "ghee-idly-4.jpg",
-    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/f/f2/Dosai_with_dal_and_idli_powder.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-    "sourcePage": "https://commons.wikimedia.org/wiki/File%3ADosai%20with%20dal%20and%20idli%20powder.JPG",
-    "author": "Ponravikumar",
-    "licence": "CC BY-SA 4.0",
-    "shows": "Authentic serving of Ghee Idly (4).",
-    "match": "exact"
-  },
-  {
-    "dish": "Idly with Chicken Curry (4)",
-    "file": "idly-chicken-curry-4.jpg",
-    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/d/df/Chennai_Banana_Leaf_Dosa.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-    "sourcePage": "https://commons.wikimedia.org/wiki/File%3AChennai%20Banana%20Leaf%20Dosa.jpg",
-    "author": "avlxyz at Flickr",
-    "licence": "CC BY-SA 2.0",
-    "shows": "Authentic serving of Idly with Chicken Curry (4).",
-    "match": "exact"
-  },
-  {
     "dish": "Plain Dosa",
     "file": "plain-dosa.jpg",
     "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/e/eb/Dosa_%28Plain%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
@@ -48,26 +28,6 @@
     "author": "Vivekdoshi11",
     "licence": "CC BY-SA 4.0",
     "shows": "Authentic serving of Plain Dosa.",
-    "match": "exact"
-  },
-  {
-    "dish": "Onion Dosa",
-    "file": "onion-dosa.jpg",
-    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/7/7f/Egg_onion_dosa_is_ready.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-    "sourcePage": "https://commons.wikimedia.org/wiki/File%3AEgg%20onion%20dosa%20is%20ready.jpg",
-    "author": "Balaji",
-    "licence": "CC BY-SA 4.0",
-    "shows": "Authentic serving of Onion Dosa.",
-    "match": "exact"
-  },
-  {
-    "dish": "Upma Dosa",
-    "file": "upma-dosa.jpg",
-    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/0/00/Lufthansa_Asian_vegetarian_meal%2C_July_2016.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-    "sourcePage": "https://commons.wikimedia.org/wiki/File%3ALufthansa%20Asian%20vegetarian%20meal%2C%20July%202016.jpg",
-    "author": "Sunnya343",
-    "licence": "CC BY-SA 4.0",
-    "shows": "Authentic serving of Upma Dosa.",
     "match": "exact"
   },
   {
@@ -88,16 +48,6 @@
     "author": "Contrapunctus-1",
     "licence": "CC BY-SA 4.0",
     "shows": "Authentic serving of Karam Dosa.",
-    "match": "exact"
-  },
-  {
-    "dish": "Set Dosa",
-    "file": "set-dosa.jpg",
-    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/7/72/Byneset_kirke_-_Seven_Deadly_Sins_%281980%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-    "sourcePage": "https://commons.wikimedia.org/wiki/File%3AByneset%20kirke%20-%20Seven%20Deadly%20Sins%20%281980%29.jpg",
-    "author": "Municipal Archives of Trondheim",
-    "licence": "CC BY 2.0",
-    "shows": "Authentic serving of Set Dosa.",
     "match": "exact"
   },
   {
@@ -291,16 +241,6 @@
     "match": "exact"
   },
   {
-    "dish": "Mixed Cheese Dosa",
-    "file": "mixed-cheese-dosa.jpg",
-    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/2/2c/Chocolate_Shake_-_Pure_Milk_and_Snacks_Centre%2C_Mumbai_-_Maharashtra_-_IMG_20210128_222221-02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-    "sourcePage": "https://commons.wikimedia.org/wiki/File%3AChocolate%20Shake%20-%20Pure%20Milk%20and%20Snacks%20Centre%2C%20Mumbai%20-%20Maharashtra%20-%20IMG%2020210128%20222221-02.jpg",
-    "author": "Pratik4496",
-    "licence": "CC BY-SA 4.0",
-    "shows": "Authentic serving of Mixed Cheese Dosa.",
-    "match": "exact"
-  },
-  {
     "dish": "Parota with Chicken Curry",
     "file": "parota-chicken-curry.jpg",
     "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/1/13/Chilli_chicken_with_kerala_parotta.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
@@ -341,16 +281,6 @@
     "match": "closest match"
   },
   {
-    "dish": "Sweet Corn Dosa",
-    "file": "sweet-corn-dosa.jpg",
-    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/0/05/Make_it_special_No_campare.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-    "sourcePage": "https://commons.wikimedia.org/wiki/File%3AMake%20it%20special%20No%20campare.jpg",
-    "author": "Virendra suman",
-    "licence": "CC BY-SA 4.0",
-    "shows": "Authentic serving of Sweet Corn Dosa.",
-    "match": "closest match"
-  },
-  {
     "dish": "Paneer Dosa",
     "file": "paneer-dosa.jpg",
     "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/8/8a/Cheese_paneer_spring_dosa.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
@@ -381,16 +311,6 @@
     "match": "closest match"
   },
   {
-    "dish": "Dry Fruit Dosa",
-    "file": "dry-fruit-dosa.jpg",
-    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/2/2c/Dry_fruit_Burbi_of_Salem.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-    "sourcePage": "https://commons.wikimedia.org/wiki/File%3ADry%20fruit%20Burbi%20of%20Salem.jpg",
-    "author": "Thamizhpparithi Maari",
-    "licence": "CC BY-SA 4.0",
-    "shows": "Authentic serving of Dry Fruit Dosa.",
-    "match": "closest match"
-  },
-  {
     "dish": "Chocolate Dosa",
     "file": "chocolate-dosa.jpg",
     "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/0/0f/Chocolate_dosa_by_pradeep_chamaria.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
@@ -398,16 +318,6 @@
     "author": "Pradeep Chamaria",
     "licence": "CC BY-SA 4.0",
     "shows": "Authentic serving of Chocolate Dosa.",
-    "match": "closest match"
-  },
-  {
-    "dish": "Schezwan Dosa",
-    "file": "schezwan-dosa.jpg",
-    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/c/ca/Chinese_Dishes_-_Dejavu_-_Meghalaya_-_DSC_005.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-    "sourcePage": "https://commons.wikimedia.org/wiki/File%3AChinese%20Dishes%20-%20Dejavu%20-%20Meghalaya%20-%20DSC%20005.jpg",
-    "author": "Gitika Gayan",
-    "licence": "CC BY-SA 4.0",
-    "shows": "Authentic serving of Schezwan Dosa.",
     "match": "closest match"
   },
   {

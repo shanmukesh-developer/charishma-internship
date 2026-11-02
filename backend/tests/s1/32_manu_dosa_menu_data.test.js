@@ -68,10 +68,21 @@ test('the store photo is a banner crop: the store page shows it about 2:1, so th
   assert.ok(w >= 800 && w / h >= 1.6 && w / h <= 1.85, `${w}x${h}`);
 });
 
+// Owner review, 2 Nov 2026 10:30: these photos showed something else (a church painting, a milkshake, a selfie, an
+// airline meal, burfi, Chinese dishes, an egg dosa for a veg dish, dosas for the idly dishes). They are off until an
+// exact photo is found; each names the photo it replaces so the live server takes it off too.
+const NO_PHOTO_YET = ['ghee-idly-4', 'idly-chicken-curry-4', 'onion-dosa', 'upma-dosa', 'set-dosa', 'mixed-cheese-dosa', 'sweet-corn-dosa', 'dry-fruit-dosa', 'schezwan-dosa'];
+
+test('a dish without a photo is one of the wrong photos taken off, and says which photo it replaces', () => {
+  const none = menu.items.filter((i) => i.image === null);
+  assert.ok(none.every((i) => NO_PHOTO_YET.includes(i.slug)), none.map((i) => i.slug).join(', '));
+  for (const i of none) assert.ok((i.replacesPhotos || []).length && i.replacesPhotos.every((h) => /^[0-9a-f]{64}$/.test(h)), `${i.slug} replacesPhotos`);
+  assert.ok(menu.items.filter((i) => i.image !== null).every((i) => i.image === `${i.slug}.jpg`));
+});
+
 test('one real photo per dish and the store photo: valid JPEG, no two alike, no camera metadata, each credited', () => {
   assert.strictEqual(menu.store.image, 'storefront-banner.jpg');
-  const files = [menu.store.image, ...menu.items.map((i) => i.image)];
-  assert.deepStrictEqual(menu.items.map((i) => i.image), menu.items.map((i) => `${i.slug}.jpg`));
+  const files = [menu.store.image, ...menu.items.filter((i) => i.image !== null).map((i) => i.image)];
   const hashes = new Set();
   for (const f of files) {
     const buf = fs.readFileSync(path.join(IMG, f));

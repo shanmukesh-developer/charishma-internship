@@ -13,7 +13,9 @@
 //  - nothing is created unless the file is complete (every photo present and a real JPEG / PNG / WEBP);
 //  - no partner login, phone, WhatsApp number, UPI ID, FSSAI number, rating or offer is invented: the owner sets
 //    the login in Admin > Stores > Partner login;
-//  - runs only after the store removal finished (REMOVE_ALL_STORES_V2_DONE), which would take the store with it.
+//  - runs only after the store removal finished (REMOVE_ALL_STORES_V2_DONE), which would take the store with it;
+//  - a corrected or better photo reaches dishes imported before through `replacesPhotos` (see syncPhotos): only a
+//    dish still showing a photo this repo set is changed.
 // Ledger kinds: 'owner-store' (Restaurant.id), 'owner-store-skip' (name taken), 'owner-item' (MenuItem.id).
 // DISABLE_OWNER_MENUS=true switches it off.
 const crypto = require('crypto');
@@ -42,6 +44,8 @@ const menuProblems = (data, dir) => {
     return ok ? null : `not a JPEG / PNG / WEBP photo: ${file}`;
   };
   if (data && data.store) { const pr = photo(data.store.image); if (pr) out.push(`cover ${pr}`); }
+  const history = (list) => list === undefined || (Array.isArray(list) && list.every((h) => h === null || /^[0-9a-f]{64}$/.test(String(h))));
+  if (data && data.store && !history(data.store.replacesImages)) out.push('store replacesImages: SHA-256 list');
   const slugs = new Set();
   for (const it of (data && data.items) || []) {
     if (!it || !it.slug || !it.name) { out.push('item without slug / name'); continue; }
@@ -49,11 +53,60 @@ const menuProblems = (data, dir) => {
     slugs.add(it.slug);
     if (!(Number.isFinite(Number(it.price)) && Number(it.price) > 0)) out.push(`${it.slug}: price`);
     if (!DIETS.includes(it.dietType)) out.push(`${it.slug}: dietType`);
-    const pr = photo(it.image);
+    if (!history(it.replacesPhotos)) out.push(`${it.slug}: replacesPhotos: SHA-256 list`);
+    // image null = no photo for now (a wrong photo was taken off); it must say which photo it replaces.
+    if (it.image === null && !(it.replacesPhotos || []).length) out.push(`${it.slug}: no photo and nothing it replaces`);
+    const pr = it.image === null ? null : photo(it.image);
     if (pr) out.push(`${it.slug}: ${pr}`);
   }
   if (!slugs.size) out.push('no items');
   return out;
+};
+
+const mediaIdOf = (url) => { const m = String(url || '').match(/\/api\/campus\/media\/([0-9a-f-]{36})$/i); return m ? m[1] : null; };
+const fileSha = (dir, data, file) => crypto.createHash('sha256').update(fs.readFileSync(path.join(dir, data.imagesDir, file))).digest('hex');
+
+/**
+ * Corrected or better photos for a store and dishes imported before (owner, 2 Nov 2026: "improve quality of images").
+ * A dish lists the SHA-256 of every photo the repo set for it earlier in `replacesPhotos` (null: it had none), the
+ * store in `store.replacesImages`. A dish or store still showing one of those gets the file's photo, or none when
+ * `image` is null; a photo the admin uploaded, linked or removed is not in the list and is never touched. Runs on
+ * every start and does nothing once everything matches. Returns how many photos it changed.
+ */
+const syncPhotos = async ({ dataDir, data, storeId, done, Restaurant, MenuItem, savePhoto }) => {
+  const targets = [];
+  const s = data.store || {};
+  if ((s.replacesImages || []).length) targets.push({ key: `store:${storeId}`, store: true, id: storeId, file: s.image || null, history: s.replacesImages });
+  for (const it of data.items || []) {
+    const entry = (it.replacesPhotos || []).length ? done.get(`${data.key}:${it.slug}`) : null;
+    if (entry && entry.kind === KIND_ITEM) targets.push({ key: String(entry.targetId), store: false, id: entry.targetId, file: it.image || null, history: it.replacesPhotos });
+  }
+  if (!targets.length) return 0;
+  const { getCampusMediaModel } = require('../modules/campus/models/CampusMedia');
+  const Media = getCampusMediaModel && getCampusMediaModel();
+  if (!Media) return 0;
+  const rows = new Map();
+  const itemIds = targets.filter((t) => !t.store).map((t) => t.id);
+  for (const r of itemIds.length ? await MenuItem.findAll({ where: { id: itemIds }, attributes: ['id', 'imageUrl'] }) : []) rows.set(String(r.id), r);
+  if (targets.some((t) => t.store)) {
+    const st = await Restaurant.findByPk(storeId, { attributes: ['id', 'imageUrl'] });
+    if (st) rows.set(`store:${storeId}`, st);
+  }
+  const mediaIds = [...rows.values()].map((r) => mediaIdOf(r.imageUrl)).filter(Boolean);
+  const shaById = new Map((mediaIds.length ? await Media.findAll({ where: { id: mediaIds }, attributes: ['id', 'sha256'] }) : []).map((m) => [String(m.id), m.sha256]));
+  let changed = 0;
+  for (const t of targets) {
+    const row = rows.get(t.key);
+    if (!row) continue; // deleted by the admin
+    const current = row.imageUrl ? (shaById.get(String(mediaIdOf(row.imageUrl))) || 'not ours') : null;
+    const want = t.file ? fileSha(dataDir, data, t.file) : null;
+    if (current === want || !t.history.includes(current)) continue;
+    const imageUrl = t.file ? await savePhoto(dataDir, data, t.file, t.store ? 'store' : 'menu') : null;
+    if (t.store) await Restaurant.update({ imageUrl }, { where: { id: t.id } });
+    else await MenuItem.update({ imageUrl }, { where: { id: t.id } });
+    changed++;
+  }
+  return changed;
 };
 
 const runOwnerMenuImport = async ({ dataDir = DATA_DIR } = {}) => {
@@ -108,7 +161,7 @@ const runOwnerMenuImport = async ({ dataDir = DATA_DIR } = {}) => {
     return (await Restaurant.count({ where: sqlWhere(fn('lower', col('name')), String(name).trim().toLowerCase()) })) > 0;
   };
 
-  const result = { menus: menus.length, storesCreated: 0, storesSkippedNameTaken: 0, storesDeleted: 0, itemsCreated: 0, invalid: [] };
+  const result = { menus: menus.length, storesCreated: 0, storesSkippedNameTaken: 0, storesDeleted: 0, itemsCreated: 0, photosUpdated: 0, invalid: [] };
   for (const { file, data } of menus) {
     const problems = menuProblems(data, dataDir);
     if (problems.length) { result.invalid.push({ file, problems: problems.slice(0, 5) }); continue; }
@@ -157,7 +210,7 @@ const runOwnerMenuImport = async ({ dataDir = DATA_DIR } = {}) => {
     for (const it of data.items) {
       const key = `${data.key}:${it.slug}`;
       if (done.has(key)) continue;
-      const imageUrl = await savePhoto(dataDir, data, it.image, 'menu');
+      const imageUrl = it.image ? await savePhoto(dataDir, data, it.image, 'menu') : null;
       const ok = await recordOnce(key, KIND_ITEM, { storeKey: data.key, name: it.name }, (id, t) => MenuItem.create({
         id,
         restaurantId: storeId,
@@ -176,9 +229,10 @@ const runOwnerMenuImport = async ({ dataDir = DATA_DIR } = {}) => {
       }, { transaction: t }));
       if (ok) result.itemsCreated++;
     }
+    result.photosUpdated += await syncPhotos({ dataDir, data, storeId, done, Restaurant, MenuItem, savePhoto });
   }
 
-  if (result.storesCreated || result.itemsCreated) {
+  if (result.storesCreated || result.itemsCreated || result.photosUpdated) {
     try { require('../controllers/adminController').clearRestaurantsCache(); } catch { /* cache just expires */ }
   }
   return result;
