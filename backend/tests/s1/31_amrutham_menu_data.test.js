@@ -80,13 +80,19 @@ test('the store photo is a banner crop: the store page shows it about 2:1, so th
 test('one real photo per dish and the store photo: valid JPEG, no two alike, no camera metadata, each credited', () => {
   assert.strictEqual(menu.store.image, 'storefront-banner.jpg');
   const files = [menu.store.image, ...menu.items.map((i) => i.image)];
-  assert.deepStrictEqual(menu.items.map((i) => i.image), menu.items.map((i) => `${i.slug}.jpg`));
+  // 2 Nov: sharper copies of the same photos (<slug>-v2.jpg, up to 1400 px); a new file name, never an overwrite,
+  // and each names the photo it replaces so the live server swaps it (scripts/owner_menu_import photo sync).
+  assert.ok(menu.items.every((i) => new RegExp(`^${i.slug}(-v\\d+)?\\.jpg$`).test(i.image)), 'file names');
+  for (const i of menu.items.filter((x) => /-v\d+\.jpg$/.test(x.image))) {
+    const own = crypto.createHash('sha256').update(fs.readFileSync(path.join(IMG, i.image))).digest('hex');
+    assert.ok((i.replacesPhotos || []).length && !i.replacesPhotos.includes(own), `${i.slug} replacesPhotos`);
+  }
   const hashes = new Set();
   for (const f of files) {
     const buf = fs.readFileSync(path.join(IMG, f));
     assert.ok(buf[0] === 0xff && buf[1] === 0xd8, `${f} is a JPEG`);
     assert.ok(!buf.includes(Buffer.from('Exif\0\0')), `${f} carries no camera metadata`);
-    assert.ok(buf.length > 20 * 1024 && buf.length < 450 * 1024, `${f} size ${buf.length}`);
+    assert.ok(buf.length > 20 * 1024 && buf.length < 700 * 1024, `${f} size ${buf.length}`);
     const h = crypto.createHash('sha256').update(buf).digest('hex');
     assert.ok(!hashes.has(h), `${f} is not a duplicate`);
     hashes.add(h);
