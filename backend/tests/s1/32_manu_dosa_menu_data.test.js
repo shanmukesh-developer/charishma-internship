@@ -77,7 +77,13 @@ test('a dish without a photo is one of the wrong photos taken off, and says whic
   const none = menu.items.filter((i) => i.image === null);
   assert.ok(none.every((i) => NO_PHOTO_YET.includes(i.slug)), none.map((i) => i.slug).join(', '));
   for (const i of none) assert.ok((i.replacesPhotos || []).length && i.replacesPhotos.every((h) => /^[0-9a-f]{64}$/.test(h)), `${i.slug} replacesPhotos`);
-  assert.ok(menu.items.filter((i) => i.image !== null).every((i) => i.image === `${i.slug}.jpg`));
+  // A replaced photo gets a new file name (<slug>-v2.jpg ...): a delivered file is never overwritten.
+  assert.ok(menu.items.filter((i) => i.image !== null).every((i) => new RegExp(`^${i.slug}(-v\\d+)?\\.jpg$`).test(i.image)));
+  // A dish whose photo was replaced names the photo(s) it replaces, and never its own current one.
+  for (const i of menu.items.filter((x) => /-v\d+\.jpg$/.test(x.image || ''))) {
+    const own = crypto.createHash('sha256').update(fs.readFileSync(path.join(IMG, i.image))).digest('hex');
+    assert.ok((i.replacesPhotos || []).length && !i.replacesPhotos.includes(own), `${i.slug} replacesPhotos`);
+  }
 });
 
 test('one real photo per dish and the store photo: valid JPEG, no two alike, no camera metadata, each credited', () => {

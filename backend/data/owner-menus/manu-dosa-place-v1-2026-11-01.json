@@ -44,9 +44,10 @@
       "category": "Idly & Tiffins",
       "dietType": "veg",
       "description": "Four tender steamed idlis generously smeared with aromatic desi ghee and tossed with traditional spicy gunpowder podi. A rich, flavour-packed Andhra breakfast classic.\n\nIngredients (Typical):\n- Four steamed idlis\n- Pure desi ghee\n- Andhra idli karam podi (lentil and red chilli spice mix)\n- Coconut chutney and sambar\n\nSpicy Level: Medium\n\nServing Suggestion: Dip into coconut chutney or enjoy the ghee-coated podi flavours directly.\n\nTaste Profile: Buttery rich, nutty, aromatic and mildly fiery.",
-      "image": null,
+      "image": "ghee-idly-4-v2.jpg",
       "replacesPhotos": [
-        "7c987fe52149e175b34288ec4820a228d2ed60301c14334157f4a2eff424702e"
+        "7c987fe52149e175b34288ec4820a228d2ed60301c14334157f4a2eff424702e",
+        null
       ]
     },
     {
@@ -56,9 +57,10 @@
       "category": "Non-Veg Specials",
       "dietType": "nonveg",
       "description": "Four piping hot, fluffy steamed idlis served submerged in spicy, rich Andhra country chicken gravy with tender chicken pieces. The ultimate Andhra breakfast indulgence.\n\nIngredients (Typical):\n- Four steamed rice idlis\n- Andhra chicken curry (chicken pieces, onion, tomato, poppy seeds, ginger-garlic paste, garam masala)\n- Coriander garnish\n\nSpicy Level: Hot\n\nServing Suggestion: Crush the idlis slightly so they soak up the rich chicken curry juices.\n\nTaste Profile: Fiery, savoury, deeply spiced and succulent.",
-      "image": null,
+      "image": "idly-chicken-curry-4-v2.jpg",
       "replacesPhotos": [
-        "198ac64d4e512087fa00b333f425049dd526d174e1df7afd2fb2cdd297700ebb"
+        "198ac64d4e512087fa00b333f425049dd526d174e1df7afd2fb2cdd297700ebb",
+        null
       ]
     },
     {
@@ -77,9 +79,10 @@
       "category": "Classic Dosas",
       "dietType": "veg",
       "description": "Crispy golden dosa topped with a generous sprinkle of finely chopped sweet red onions, fresh green chillies, and ginger bits roasted right onto the batter on the hot tawa.\n\nIngredients (Typical):\n- Fermented dosa batter\n- Diced red onions and green chillies\n- Fresh ginger and curry leaves\n- Peanut and coconut chutneys\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot while the onions retain their sweet, caramelised crunch.\n\nTaste Profile: Sweet onion crunch, savoury crepe, and spicy chilli warmth.",
-      "image": null,
+      "image": "onion-dosa-v2.jpg",
       "replacesPhotos": [
-        "4853cf70697565aa1dc2da2e88b4658c9ab3578314ea9d2bc97f09c937d6ac13"
+        "4853cf70697565aa1dc2da2e88b4658c9ab3578314ea9d2bc97f09c937d6ac13",
+        null
       ]
     },
     {
@@ -89,9 +92,10 @@
       "category": "Classic Dosas",
       "dietType": "veg",
       "description": "The iconic Andhra street tiffin favourite: a crisp golden roast dosa rolled around a steaming mound of hot, spiced semolina upma tempered with mustard, ginger, and curry leaves.\n\nIngredients (Typical):\n- Crisp rice-lentil dosa\n- Rava upma (semolina, mustard seeds, green chillies, ginger, cashews)\n- Ginger allam pachadi and coconut chutney\n\nSpicy Level: Medium\n\nServing Suggestion: Enjoy with spicy allam (ginger) chutney and sambar.\n\nTaste Profile: Crisp exterior contrasting with velvety, savoury upma.",
-      "image": null,
+      "image": "upma-dosa-v2.jpg",
       "replacesPhotos": [
-        "7bc237ec1a540c6d74cb34a0387718a099b2a00c0b9304764d5dfce0461121fb"
+        "7bc237ec1a540c6d74cb34a0387718a099b2a00c0b9304764d5dfce0461121fb",
+        null
       ]
     },
     {
@@ -119,9 +123,10 @@
       "category": "Classic Dosas",
       "dietType": "veg",
       "description": "A set of three soft, thick, spongy, and golden-spotted dosas cooked on low heat until cloud-like. Light on the stomach and served with mixed vegetable saagu and coconut chutney.\n\nIngredients (Typical):\n- Rice, poha and urad dal fermented batter\n- Mixed vegetable saagu / kurma\n- Coconut and coriander chutney\n\nSpicy Level: Mild\n\nServing Suggestion: Spoon coconut chutney over the spongy surface and let it absorb before eating.\n\nTaste Profile: Soft, cloud-like, mildly tangy and buttery.",
-      "image": null,
+      "image": "set-dosa-v2.jpg",
       "replacesPhotos": [
-        "eb4a07750cd6e788037fdf2723f804ee05134f527fbed8ea51d92911ab8bf823"
+        "eb4a07750cd6e788037fdf2723f804ee05134f527fbed8ea51d92911ab8bf823",
+        null
       ]
     },
     {
@@ -257,7 +262,10 @@
       "category": "Cheese Dosas",
       "dietType": "veg",
       "description": "Bold Indo-Chinese fusion: fiery red Schezwan sauce smeared across the crisp dosa, balanced by a generous blanket of molten melted cheese and crunchy capsicum.\n\nIngredients (Typical):\n- Dosa crepe\n- Spicy garlic-chilli Schezwan sauce\n- Shredded melting cheese\n- Diced capsicum and onions\n- Chutneys\n\nSpicy Level: Hot\n\nServing Suggestion: The rich cheese tames the fiery Schezwan heat perfectly.\n\nTaste Profile: Spicy, garlicky, tangy, rich and cheesy.",
-      "image": "schezwan-cheese-dosa.jpg"
+      "image": "schezwan-cheese-dosa-v2.jpg",
+      "replacesPhotos": [
+        "6b203afc13a0a4524d01badbe79dcee26275e0992702472083d0f7bac79e1a31"
+      ]
     },
     {
       "slug": "lays-cheese-dosa",
@@ -302,9 +310,10 @@
       "category": "Cheese Dosas",
       "dietType": "veg",
       "description": "The ultimate cheese lovers' feast: a crisp open dosa loaded with sweet corn, paneer cubes, cashews, diced capsicum, and a double layer of bubbling melted cheese.\n\nIngredients (Typical):\n- Butter roast dosa\n- Paneer, sweet corn, cashews, capsicum and onions\n- Double portion of shredded cheese\n- Spices and chutneys\n\nSpicy Level: Medium\n\nServing Suggestion: Cut into slices like a pizza roll; pair with coconut chutney.\n\nTaste Profile: Loaded, decadent, gooey, multi-textured and deeply flavourful.",
-      "image": null,
+      "image": "mixed-cheese-dosa-v2.jpg",
       "replacesPhotos": [
-        "5abe497a58a5521f986dd8738efc43eda159976ab3933426a7b438d894a59e58"
+        "5abe497a58a5521f986dd8738efc43eda159976ab3933426a7b438d894a59e58",
+        null
       ]
     },
     {
@@ -362,7 +371,10 @@
       "category": "Special Veg Dosas",
       "dietType": "veg",
       "description": "Soft, freshly grated paneer tossed with diced onions, green chillies, and aromatic cumin seeds, rolled into a golden, butter-roasted crispy dosa.\n\nIngredients (Typical):\n- Fermented dosa batter\n- Grated fresh cottage cheese (paneer)\n- Onions, green chillies, cumin and coriander\n- Chutneys and sambar\n\nSpicy Level: Medium\n\nServing Suggestion: Dip into spicy tomato-onion chutney or cool coconut chutney.\n\nTaste Profile: Soft crumbly paneer texture, fragrant cumin, and crisp crepe.",
-      "image": "paneer-dosa.jpg"
+      "image": "paneer-dosa-v2.jpg",
+      "replacesPhotos": [
+        "01175adc125cb9c4346d51a3a6293f928eb51ea0aec0ee69a58619ee5cf76dc1"
+      ]
     },
     {
       "slug": "lays-dosa",
@@ -410,9 +422,10 @@
       "category": "Special Veg Dosas",
       "dietType": "veg",
       "description": "Street-style Indo-Chinese fusion: crisp dosa smeared with fiery red Schezwan sauce, tossed with finely shredded cabbage, capsicum, onions, and spring onions.\n\nIngredients (Typical):\n- Fermented dosa batter\n- Spicy red chilli-garlic Schezwan sauce\n- Shredded cabbage, carrot and capsicum\n- Soy sauce and spices\n\nSpicy Level: Hot\n\nServing Suggestion: Best enjoyed hot straight from the wok-tossed dosa tawa.\n\nTaste Profile: Fiery, garlicky, tangy and crunchy.",
-      "image": null,
+      "image": "schezwan-dosa-v2.jpg",
       "replacesPhotos": [
-        "2ef271b176eb108b062d05ad555c219aa40a5ee2c41be143676f7c4070da0274"
+        "2ef271b176eb108b062d05ad555c219aa40a5ee2c41be143676f7c4070da0274",
+        null
       ]
     },
     {
@@ -503,7 +516,10 @@
       "category": "Pizza Dosas",
       "dietType": "veg",
       "description": "Open-faced crispy dosa prepared pizza-style: slathered with tangy pizza sauce, topped with onions, capsicum, oregano, and a thick layer of molten mozzarella.\n\nIngredients (Typical):\n- Crispy dosa base\n- Italian pizza tomato sauce\n- Diced capsicum, onions and tomatoes\n- Shredded mozzarella cheese, oregano and chilli flakes\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Sliced into pizza triangles; eat immediately while cheese is bubbling.\n\nTaste Profile: Tangy herb tomato sauce, gooey mozzarella cheese pull, and crisp crust.",
-      "image": "pizza-dosa.jpg"
+      "image": "pizza-dosa-v2.jpg",
+      "replacesPhotos": [
+        "47988e167abbf44fcb31cca9e2c809d421f27b0a89971af80cb360176b0898c4"
+      ]
     },
     {
       "slug": "corn-pizza-dosa",

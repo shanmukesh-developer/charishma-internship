@@ -191,16 +191,6 @@
     "match": "exact"
   },
   {
-    "dish": "Schezwan Cheese Dosa",
-    "file": "schezwan-cheese-dosa.jpg",
-    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/b/b1/Dosa-chutney-sambhar.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-    "sourcePage": "https://commons.wikimedia.org/wiki/File%3ADosa-chutney-sambhar.jpg",
-    "author": "Roland",
-    "licence": "CC BY 2.0",
-    "shows": "Authentic serving of Schezwan Cheese Dosa.",
-    "match": "exact"
-  },
-  {
     "dish": "Lays Cheese Dosa",
     "file": "lays-cheese-dosa.jpg",
     "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/c/c9/Dosa_%2836400591833%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
@@ -278,16 +268,6 @@
     "author": "Gannu03",
     "licence": "CC BY-SA 4.0",
     "shows": "Authentic serving of Cheese Keema Dosa.",
-    "match": "closest match"
-  },
-  {
-    "dish": "Paneer Dosa",
-    "file": "paneer-dosa.jpg",
-    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/8/8a/Cheese_paneer_spring_dosa.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-    "sourcePage": "https://commons.wikimedia.org/wiki/File%3ACheese%20paneer%20spring%20dosa.jpg",
-    "author": "Kaushik AP",
-    "licence": "CC BY-SA 4.0",
-    "shows": "Authentic serving of Paneer Dosa.",
     "match": "closest match"
   },
   {
@@ -411,16 +391,6 @@
     "match": "closest match"
   },
   {
-    "dish": "Pizza Dosa",
-    "file": "pizza-dosa.jpg",
-    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/b/b7/Indian_Veggie_Dosa.....%21.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-    "sourcePage": "https://commons.wikimedia.org/wiki/File%3AIndian%20Veggie%20Dosa.....%21.JPG",
-    "author": "Virajrkamath",
-    "licence": "CC BY-SA 4.0",
-    "shows": "Authentic serving of Pizza Dosa.",
-    "match": "closest match"
-  },
-  {
     "dish": "Corn Pizza Dosa",
     "file": "corn-pizza-dosa.jpg",
     "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/9/9f/Masala_Dosa_or_Dosai.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
@@ -519,5 +489,106 @@
     "licence": "CC BY-SA 4.0",
     "shows": "Authentic serving of Kaju Corn Cheese Special Dosa.",
     "match": "closest match"
+  },
+  {
+    "dish": "Set Dosa",
+    "file": "set-dosa-v2.jpg",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a5/Set_Dosa%2C_Mysore%2C_Karnataka.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Set_Dosa,_Mysore,_Karnataka.jpg",
+    "author": "NinadMysuru",
+    "licence": "CC BY-SA 4.0",
+    "shows": "Three soft, spongy set dosas topped with grated carrot on a banana leaf, with sambar and chutney in steel bowls.",
+    "match": "exact"
+  },
+  {
+    "dish": "Onion Dosa",
+    "file": "onion-dosa-v2.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/11/Onion_Dosey.jpg/1920px-Onion_Dosey.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Onion_Dosey.jpg",
+    "author": "NinadMysuru",
+    "licence": "CC BY-SA 3.0",
+    "shows": "An onion dosa covered in chopped onion and curry leaves on a banana leaf, with coconut chutney and potato saagu.",
+    "match": "exact"
+  },
+  {
+    "dish": "Ghee Idly (4)",
+    "file": "ghee-idly-4-v2.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e6/Ghee_Podi_Idli_-_Murugan_Idli_Shop%2C_Chennai_-_TamilNadu_-_PXL0246.jpg/1920px-Ghee_Podi_Idli_-_Murugan_Idli_Shop%2C_Chennai_-_TamilNadu_-_PXL0246.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Ghee_Podi_Idli_-_Murugan_Idli_Shop,_Chennai_-_TamilNadu_-_PXL0246.jpg",
+    "author": "Harikrishnan N",
+    "licence": "CC BY-SA 4.0",
+    "shows": "Ghee-roasted podi idlis on a banana leaf with coconut chutney, chutneys and sambar (two of the four shown).",
+    "match": "exact"
+  },
+  {
+    "dish": "Idly with Chicken Curry (4)",
+    "file": "idly-chicken-curry-4-v2.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/71/Idly_with_Country_Chicken_Curry.JPG/1920px-Idly_with_Country_Chicken_Curry.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Idly_with_Country_Chicken_Curry.JPG",
+    "author": "Nundhaa",
+    "licence": "CC BY-SA 4.0",
+    "shows": "Four idlis with country chicken curry on a divided plate.",
+    "match": "exact"
+  },
+  {
+    "dish": "Upma Dosa",
+    "file": "upma-dosa-v2.jpg",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/6/6c/%E0%B0%AA%E0%B1%86%E0%B0%B8%E0%B0%B0%E0%B0%9F%E0%B1%8D%E0%B0%9F%E0%B1%81_%E0%B0%89%E0%B0%AA%E0%B1%8D%E0%B0%AE%E0%B0%BE%2C_%E0%B0%9F%E0%B0%AE%E0%B0%BE%E0%B0%9F%E0%B0%BE_%E0%B0%B0%E0%B1%8B%E0%B0%9F%E0%B0%BF_%E0%B0%AA%E0%B0%9A%E0%B1%8D%E0%B0%9A%E0%B0%A1%E0%B0%BF.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:%E0%B0%AA%E0%B1%86%E0%B0%B8%E0%B0%B0%E0%B0%9F%E0%B1%8D%E0%B0%9F%E0%B1%81_%E0%B0%89%E0%B0%AA%E0%B1%8D%E0%B0%AE%E0%B0%BE,_%E0%B0%9F%E0%B0%AE%E0%B0%BE%E0%B0%9F%E0%B0%BE_%E0%B0%B0%E0%B1%8B%E0%B0%9F%E0%B0%BF_%E0%B0%AA%E0%B0%9A%E0%B1%8D%E0%B0%9A%E0%B0%A1%E0%B0%BF.jpg",
+    "author": "JVRKPRASAD",
+    "licence": "CC BY-SA 4.0",
+    "shows": "A golden dosa folded around upma, with tomato chutney; the dosa is pesarattu (green gram), so its underside is green: the closest real photo of an upma dosa.",
+    "match": "closest match"
+  },
+  {
+    "dish": "Mixed Cheese Dosa",
+    "file": "mixed-cheese-dosa-v2.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/10/Special_Cheese_Dosa.jpg/1920px-Special_Cheese_Dosa.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Special_Cheese_Dosa.jpg",
+    "author": "Adi2812",
+    "licence": "CC BY-SA 4.0",
+    "shows": "An open dosa loaded with grated cheese, herbs and vegetables, cut in two on a leaf plate, with coconut chutney.",
+    "match": "closest match"
+  },
+  {
+    "dish": "Schezwan Dosa",
+    "file": "schezwan-dosa-v2.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/de/Schezwan_masala_dosa.jpg/1920px-Schezwan_masala_dosa.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Schezwan_masala_dosa.jpg",
+    "author": "Kaushik AP",
+    "licence": "CC BY-SA 4.0",
+    "shows": "A dosa spread with red Schezwan masala on the tawa at a street dosa stall at night (cropped to the front dosa).",
+    "match": "exact",
+    "modified": "cropped"
+  },
+  {
+    "dish": "Schezwan Cheese Dosa",
+    "file": "schezwan-cheese-dosa-v2.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/36/Chessy_schezwana_masala_dosa_shimoga_district_karnataka_state.jpg/1920px-Chessy_schezwana_masala_dosa_shimoga_district_karnataka_state.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Chessy_schezwana_masala_dosa_shimoga_district_karnataka_state.jpg",
+    "author": "Zara hussain khan",
+    "licence": "CC BY-SA 4.0",
+    "shows": "A cheesy Schezwan masala dosa cut into pieces on a white plate, with chutneys.",
+    "match": "exact"
+  },
+  {
+    "dish": "Pizza Dosa",
+    "file": "pizza-dosa-v2.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/36/Pizza_Dosa_.jpg/1920px-Pizza_Dosa_.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Pizza_Dosa_.jpg",
+    "author": "Thamizhpparithi Maari",
+    "licence": "CC BY-SA 4.0",
+    "shows": "Pizza dosa cut into pieces, topped with onion, capsicum, oregano and chilli flakes.",
+    "match": "exact"
+  },
+  {
+    "dish": "Paneer Dosa",
+    "file": "paneer-dosa-v2.jpg",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/42/Paneer_dosa_at_Marksmen%2C_Hazratganj%2C_Lucknow_%282025-08-02%29.jpg/1920px-Paneer_dosa_at_Marksmen%2C_Hazratganj%2C_Lucknow_%282025-08-02%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "sourcePage": "https://commons.wikimedia.org/wiki/File:Paneer_dosa_at_Marksmen,_Hazratganj,_Lucknow_(2025-08-02).jpg",
+    "author": "Contrapunctus-1",
+    "licence": "CC BY-SA 4.0",
+    "shows": "A square-folded paneer dosa topped with grated paneer and coriander, with three chutneys.",
+    "match": "exact"
   }
 ]
