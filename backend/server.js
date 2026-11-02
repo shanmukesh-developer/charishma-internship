@@ -416,6 +416,7 @@ const STARTUP_RETRY_AFTER_SECONDS = 10;
 const STARTUP_SOCKET_WAIT_MS = 25000;
 const dbReadyWaiters = new Map(); // proceed -> refuse
 const markDbReady = () => {
+  require('./utils/bootTimings').mark('ready');
   dbReady = true;
   lifecycle.markDbReady(); // /readyz turns 200 once the first cached DB ping succeeds
   const waiting = Array.from(dbReadyWaiters.keys());
@@ -784,6 +785,8 @@ app.get('/api/health', async (req, res) => {
       commit: String(process.env.RENDER_GIT_COMMIT || '').slice(0, 8) || null,
       // Admin 2-step table (models/AdminTwoFactor): 'ready' once it and its email-code columns are in place.
       adminTwoFactor: require('./models/AdminTwoFactor').tableState(),
+      // ms after process start: dbConnected, dbSchemaChecked, dbMigrationsDone, sweepMigrationsDone, ready (utils/bootTimings).
+      startup: require('./utils/bootTimings').snapshot(),
     };
   } catch { /* health never fails because of these extras */ }
   res.json(body);
@@ -833,6 +836,7 @@ const initializeApp = async () => {
     try {
       await require('./config/sweepMigrations').runSweepMigrations(require('./config/db').getSequelize());
     } catch (e) { console.warn('[SWEEP_MIGRATION_WARN]', e.message); }
+    require('./utils/bootTimings').mark('sweepMigrationsDone');
     // S1: admin 2-step sign-in table (AdminTwoFactors; CREATE TABLE IF NOT EXISTS, additive).
     try { await require('./models/AdminTwoFactor').getAdminTwoFactorModel(); } catch (e) { console.warn('[ADMIN_2FA_MIGRATION_WARN]', e.message); }
     // Wall contest / media and chat + Pulse retention jobs: scheduled with the others (jobs/index.js) below.

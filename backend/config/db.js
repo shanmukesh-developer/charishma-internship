@@ -405,6 +405,7 @@ const connectDB = async () => {
 
       try {
         await sequelize.authenticate();
+        require('../utils/bootTimings').mark('dbConnected');
         console.log(`✅ [DB_SUCCESS] Authenticated successfully with PostgreSQL candidate ${i + 1}.`);
         console.log(`[DB_INIT] ${dbSettings.describe()}`);
         connected = true;
@@ -724,6 +725,7 @@ const connectDB = async () => {
         // Saved only when everything is in place; otherwise the next boot runs the check again.
         if (syncOk && columns.failed === 0) await saveSchemaFingerprint(sequelize, fingerprint);
       }
+      require('../utils/bootTimings').mark('dbSchemaChecked');
       await ensureOrderIdempotencyIndex(sequelize);
       try {
         const { runCampusMigrations } = require('../modules/campus/migrations/campusMigrations');
@@ -906,6 +908,7 @@ const connectDB = async () => {
         // Silently skip
       }
     }
+    require('../utils/bootTimings').mark('dbMigrationsDone');
   } catch (error) {
     console.error('❌ [DB_FATAL] Database connection failed:', error.message);
     
