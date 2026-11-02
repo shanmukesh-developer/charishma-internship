@@ -24,7 +24,6 @@ before(async () => {
 after(() => H.teardown());
 
 test('every test store, test order and partner test login goes; the owner data stays; runs once', async () => {
-  const { runTestDataSeed } = H.r('scripts/test_data_seed');
   const { runTestDataCleanup } = H.r('scripts/test_data_cleanup_v1');
   const M = (n) => ctx.sequelize.models[n];
   await M('GlobalConfig').create({ key: 'REMOVE_ALL_STORES_V2_DONE', value: JSON.stringify({ at: 'test' }) });
@@ -34,8 +33,13 @@ test('every test store, test order and partner test login goes; the owner data s
   await H.mkItem(pickles.id, { name: 'Tomato' });
   const nescafe = await H.mkStore({ name: 'Nescafe', vendorType: 'LOCAL_VENDOR', campusBookingEnabled: true });
   const amrutham = await H.mkStore({ name: 'Amrutham Restaurant' });
-  // Test data: the six seeded stores, one renamed by the owner, and a 27 Oct partner test store.
-  assert.strictEqual((await runTestDataSeed()).storesCreated, 6);
+  // Test data: the six stores the 1 Nov test data seed made (ledger kind test-store; the seed itself was removed on
+  // 3 Nov with the rest of the mock data), one renamed by the owner, and a 27 Oct partner test store.
+  for (const name of ['ZCS Test Kitchen', 'ZCS Test Cafe', 'ZCS Test Bakery', 'ZCS Test Mart', 'ZCS Test Stationery', 'ZCS Test Chai Stall']) {
+    const st = await H.mkStore({ name });
+    await H.mkItem(st.id, { name: `${name} item` });
+    await M('CatalogueImportLedger').create({ importKey: `test-data:v1:${name}`, kind: 'test-store', targetId: st.id, storeKey: 'test-data:v1', name });
+  }
   await M('Restaurant').update({ name: 'Campus Stationery Point' }, { where: { name: 'ZCS Test Stationery' } });
   const oldTest = await H.mkStore({ name: 'ZCS Test Restaurant', phone: '6000000102' });
   await H.mkItem(oldTest.id);

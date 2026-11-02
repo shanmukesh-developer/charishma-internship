@@ -7,8 +7,6 @@
     "start": "node server.js",
     "start:cluster": "node cluster.js",
     "dev": "nodemon server.js",
-    "seed:rider": "node seed_mock_rider.js",
-    "seed:full": "node scripts/unified_seed.js",
     "lint": "eslint .",
     "test": "echo \"Error: no test specified\" && exit 1",
     "test:autoride": "node modules/autoRide/tests/run.js",

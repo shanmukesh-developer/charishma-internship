@@ -1326,28 +1326,9 @@ const initializeApp = async () => {
     app.use('/api/ads', require('./routes/adRoutes').router);
     app.use('/api/notifications', require('./routes/notificationRoutes'));
 
-    // 🚀 Auto-Seed: DEVELOPMENT ONLY — Never overwrite production data
-    const isProduction = isProductionEnv();
-    if (!isProduction) {
-      const { unifiedSeed } = require('./scripts/unified_seed');
-      const { getUserModel } = require('./models/User');
-      const User = getUserModel();
-      if (User) {
-        const userCount = await User.count();
-        const { getSequelize } = require('./config/db');
-        const instance = getSequelize();
-        const Restaurant = instance.models.Restaurant;
-        const restCount = Restaurant ? await Restaurant.count() : 0;
-        
-        if (userCount === 0 || restCount === 0) {
-          console.log(`🌱 [AUTO_SEED] Dev data missing (Users: ${userCount}, Rests: ${restCount}). Seeding...`);
-          await unifiedSeed();
-          console.log('✅ [AUTO_SEED] Development defaults initialized.');
-        }
-      }
-    }
-    // Production no longer auto-seeds invented restaurants/menus (scripts/seed_prod.js). Real
-    // restaurants are onboarded from the admin dashboard; store products come from the catalogue import.
+    // No auto-seed anywhere (owner, 3 Nov 2026: "remove mock data from everywhere in the entire project"): an empty
+    // database stays empty. Real stores and products are entered in the admin dashboard; owner menus come from
+    // scripts/owner_menu_import.js.
 
     // One-off imports / clean-ups below run one at a time, starting BOOT_SCRIPTS_DELAY_MS after boot: they all
     // started together on every boot and competed with the first users (and each other) for the database
@@ -1407,39 +1388,8 @@ const initializeApp = async () => {
       .then((r) => console.log('🎓 [CAMPUS_OFF_ONCE]', JSON.stringify(r)))
       .catch((err) => console.warn('⚠️ [CAMPUS_OFF_ONCE] failed:', err.message));
 
-    // 🛒 Catalogue import (idempotent, ledger-keyed): the store products the app used to hardcode.
-    // Runs in the background so the port opens immediately; already-imported keys are never touched.
-    try {
-      const { runCatalogueImport } = require('./scripts/catalogue_import');
-      inBootQueue(storeImport(runCatalogueImport))
-        .then((r) => console.log('🛒 [CATALOGUE_IMPORT]', JSON.stringify(r)))
-        .catch((err) => console.warn('⚠️ [CATALOGUE_IMPORT] failed:', err.message));
-    } catch (catErr) {
-      console.warn('⚠️ [CATALOGUE_IMPORT] not started:', catErr.message);
-    }
 
-    // 🍽️ Demo-store menu fill (idempotent, ledger-keyed): relevant extra items for the demo stores the
-    // owner keeps for representation (matched by id + name). Background; never edits or re-adds items.
-    try {
-      const { runDemoMenuFill } = require('./scripts/demo_menu_fill_import');
-      inBootQueue(storeImport(runDemoMenuFill))
-        .then((r) => console.log('🍽️ [DEMO_MENU_FILL]', JSON.stringify(r)))
-        .catch((err) => console.warn('⚠️ [DEMO_MENU_FILL] failed:', err.message));
-    } catch (fillErr) {
-      console.warn('⚠️ [DEMO_MENU_FILL] not started:', fillErr.message);
-    }
 
-    // 🏪 Demo CampusBites stalls (idempotent, ledger-keyed): 16 generic LOCAL_VENDOR stalls near SRM AP for
-    // the Home "Local vendor stalls" section. Background; never edits or re-creates a stall or item, and
-    // creates no partner login. DISABLE_DEMO_STALLS=true switches it off.
-    try {
-      const { runDemoStallsImport } = require('./scripts/demo_stalls_import');
-      inBootQueue(storeImport(runDemoStallsImport))
-        .then((r) => console.log('🏪 [DEMO_STALLS]', JSON.stringify(r)))
-        .catch((err) => console.warn('⚠️ [DEMO_STALLS] failed:', err.message));
-    } catch (stallErr) {
-      console.warn('⚠️ [DEMO_STALLS] not started:', stallErr.message);
-    }
 
     // 🧽 Catalogue clean-ups, each version once (GlobalConfig CATALOGUE_CLEANUP_V1_DONE / _V2_DONE / _V3_DONE / _V4_DONE):
     // reviewed, id-keyed renames / categories / whole-rupee prices / photos / duplicate hides (v1,
@@ -1472,30 +1422,13 @@ const initializeApp = async () => {
       console.warn('⚠️ [AUTO_ROUTES_SEED] not started:', autoSeedErr.message);
     }
 
-    // 🧪 Partner-app test logins, once (GlobalConfig PARTNER_TEST_ACCOUNTS_V1_DONE): one "ZCS Test ..." account per
-    // partner app (rider, restaurant, vendor stall, campus stall, auto driver + approved auto, PG owner + listing),
-    // ready to take orders (data/partner_test_accounts_v1_2026-10-27.json: bcrypt hashes only, never a plaintext
-    // password). Create-only: a phone or store name already in use is skipped, never edited. The marker lists every
-    // created id. DISABLE_PARTNER_TEST_ACCOUNTS=true switches it off.
-    try {
-      const { runPartnerTestAccountsSeed } = require('./scripts/partner_test_accounts_seed');
-      inBootQueue(storeImport(runPartnerTestAccountsSeed))
-        .then((r) => console.log('🧪 [PARTNER_TEST_ACCOUNTS]', JSON.stringify(r)))
-        .catch((err) => console.warn('⚠️ [PARTNER_TEST_ACCOUNTS] failed:', err.message));
-    } catch (ptErr) {
-      console.warn('⚠️ [PARTNER_TEST_ACCOUNTS] not started:', ptErr.message);
-    }
 
-    // 🪧 Sample splash ads, once (GlobalConfig SAMPLE_SPLASH_ADS_V1_DONE): one per style on a real live store and its
-    // own photo, all switched OFF and tagged "Sample ad." (admin > Splash ads > Preview on phone). Create-only.
-    try {
-      const { runSampleSplashAdsSeed } = require('./scripts/sample_splash_ads_seed');
-      inBootQueue(storeImport(runSampleSplashAdsSeed))
-        .then((r) => console.log('🪧 [SAMPLE_SPLASH_ADS]', JSON.stringify(r)))
-        .catch((err) => console.warn('⚠️ [SAMPLE_SPLASH_ADS] failed:', err.message));
-    } catch (saErr) {
-      console.warn('⚠️ [SAMPLE_SPLASH_ADS] not started:', saErr.message);
-    }
+    // 🪧 Sample splash ads removed, once (GlobalConfig SAMPLE_SPLASH_ADS_REMOVED_V1_DONE; owner, 3 Nov 2026: no mock
+    // data): the 28 Oct seed's switched-off "Sample ad." ads are deleted; an ad the admin switched on or rewrote stays.
+    // scripts/sample_splash_ads_remove_v1.js; DISABLE_SAMPLE_SPLASH_ADS_REMOVAL=true switches it off.
+    inBootQueue(() => require('./scripts/sample_splash_ads_remove_v1').runSampleSplashAdsRemoval())
+      .then((r) => console.log('🪧 [SAMPLE_SPLASH_ADS_REMOVAL]', JSON.stringify(r)))
+      .catch((err) => console.warn('⚠️ [SAMPLE_SPLASH_ADS_REMOVAL] failed:', err.message));
 
     // 🧹 Demo-data cleanup (idempotent): switches off the demo riders / students / PG listings that
     // older builds seeded into production. Runs in the background; never deletes anything.
@@ -1567,35 +1500,6 @@ const initializeApp = async () => {
       console.warn('⚠️ [ADMIN_BOOTSTRAP] Failed:', adminErr.message);
     }
 
-    // 🦾 Manual Seed Trigger — development only, and only with an explicit SEED_KEY.
-    app.post('/api/seed', async (req, res) => {
-      if (isProductionEnv()) {
-        return res.status(404).json({ message: 'Not found' });
-      }
-      const { key } = req.body || {};
-      const seedKey = process.env.SEED_KEY;
-      
-      if (!seedKey || seedKey === 'nexus_protocol_9' || seedKey === 'secret') {
-        console.error('[SECURITY_ALERT] Attempted to seed with insecure or missing key.');
-        return res.status(500).json({ error: 'Server key not configured for seeding' });
-      }
-
-      if (key === seedKey) {
-        console.log('📥 [MANUAL_SEED] Triggered via API');
-        const isProduction = isProductionEnv();
-        if (isProduction) {
-          const { getSequelize } = require('./config/db');
-          const instance = getSequelize();
-          const { seedProduction } = require('./scripts/seed_prod');
-          await seedProduction(instance);
-        } else {
-          const { unifiedSeed: runSeed } = require('./scripts/unified_seed');
-          await runSeed();
-        }
-        return res.json({ message: 'Seeding complete' });
-      }
-      res.status(403).json({ error: 'Access Denied' });
-    });
     app.use('/api/blocks', require('./routes/blockRoutes'));
     app.use('/api/vault', require('./routes/vaultRoutes'));
     // Zenvy Rentals (student vehicle rentals). Admin routes mount before /api/admin.

@@ -314,17 +314,19 @@ test('preview link: admin makes a 15 min link to an inactive ad; the app reads e
   assert.strictEqual((await H.api('POST', `/api/admin/splash-ads/${ad.id}/preview`)).status, 401);
 });
 
-test('sample ads seed: 8 switched-off ads, one per style, real stores with their own photo, once', async () => {
-  const { runSampleSplashAdsSeed } = require('../../scripts/sample_splash_ads_seed');
-  for (let i = 0; i < 8; i++) await H.mkStore({ name: `Seed Store ${i}`, imageUrl: `https://images.unsplash.com/photo-seed-${i}?w=800` });
-  await H.ctx.M('GlobalConfig').destroy({ where: { key: 'SAMPLE_SPLASH_ADS_TEST_DONE' } });
-  const r = await runSampleSplashAdsSeed({ marker: 'SAMPLE_SPLASH_ADS_TEST_DONE' });
-  assert.strictEqual(r.created.length, 8, JSON.stringify(r));
-  const rows = await H.ctx.M('SplashAd').findAll();
-  assert.deepStrictEqual(rows.map((a) => a.style).sort(), ['coupon', 'envelope', 'gift', 'glass', 'peel', 'portal', 'scratch', 'tear']);
-  assert.ok(rows.every((a) => a.isActive === false), 'all switched off');
-  assert.ok(rows.every((a) => /^Sample ad\./.test(a.subline)), 'all tagged Sample');
-  assert.strictEqual(new Set(rows.map((a) => a.restaurantId)).size, 8, 'a different store per ad');
-  assert.deepStrictEqual((await H.api('GET', '/api/ads/splash')).body, { ads: [] }, 'students see none');
-  assert.deepStrictEqual(await runSampleSplashAdsSeed({ marker: 'SAMPLE_SPLASH_ADS_TEST_DONE' }), { skipped: 'already done' });
+test('sample ads removal (owner, 3 Nov 2026: no mock data): the seeded "Sample ad." ads go; one switched on or rewritten stays; once', async () => {
+  const { runSampleSplashAdsRemoval, MARKER, SEED_MARKER } = require('../../scripts/sample_splash_ads_remove_v1');
+  const GlobalConfig = H.ctx.M('GlobalConfig');
+  await GlobalConfig.destroy({ where: { key: [MARKER, SEED_MARKER] } });
+  const sample = (style, extra) => direct({ style, isActive: false, subline: 'Sample ad. Tap to see the store.', ...extra });
+  const a = await sample('peel');
+  const b = await sample('tear');
+  const switchedOn = await sample('gift', { isActive: true });
+  const rewritten = await sample('glass', { subline: 'Real offer this week' });
+  const real = await direct({ style: 'scratch', subline: 'Free delivery today' });
+  await GlobalConfig.create({ key: SEED_MARKER, value: { doneAt: 'test', created: [a, b, switchedOn, rewritten].map((x) => ({ id: x.id })) } });
+  assert.deepStrictEqual(await runSampleSplashAdsRemoval(), { removed: 2, kept: 2 });
+  const left = (await H.ctx.M('SplashAd').findAll({ attributes: ['id'] })).map((x) => x.id).sort();
+  assert.deepStrictEqual(left, [switchedOn.id, rewritten.id, real.id].sort());
+  assert.deepStrictEqual(await runSampleSplashAdsRemoval(), { skipped: 'already done' });
 });
