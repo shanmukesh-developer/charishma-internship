@@ -16,12 +16,16 @@
 //  - runs only after the store removal finished (REMOVE_ALL_STORES_V2_DONE), which would take the store with it;
 //  - a corrected or better photo reaches dishes imported before through `replacesPhotos` (see syncPhotos), a
 //    corrected text through `replacesDescriptions` (syncDescriptions): only what still shows what this repo set is
-//    changed.
+//    changed;
+//  - a dish the card prices by size or count (owner, 3 Nov 2026, Club 10 Chicken: popcorn S / M / L, momos fried or
+//    steamed, 5 or 10 pieces) carries `options` in the admin's format (docs/PRODUCT_OPTIONS.md, checked by the same
+//    normalizeOptions as an admin save) and its `price` is the lowest size, as an admin save sets it.
 // Ledger kinds: 'owner-store' (Restaurant.id), 'owner-store-skip' (name taken), 'owner-item' (MenuItem.id).
 // DISABLE_OWNER_MENUS=true switches it off.
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
+const { normalizeOptions, variantFromPrice } = require('../utils/productOptions');
 
 const DATA_DIR = path.join(__dirname, '..', 'data', 'owner-menus');
 const KIND_STORE = 'owner-store';
@@ -57,6 +61,16 @@ const menuProblems = (data, dir) => {
     if (!DIETS.includes(it.dietType)) out.push(`${it.slug}: dietType`);
     if (!history(it.replacesPhotos)) out.push(`${it.slug}: replacesPhotos: SHA-256 list`);
     if (!history(it.replacesDescriptions)) out.push(`${it.slug}: replacesDescriptions: SHA-256 list`);
+    if (it.options !== undefined) {
+      try {
+        const groups = normalizeOptions(it.options);
+        const lowest = variantFromPrice(groups);
+        if (!groups) out.push(`${it.slug}: options: none given`);
+        else if (lowest !== null && Number(it.price) !== lowest) out.push(`${it.slug}: price ${it.price} is not the lowest size price ${lowest}`);
+      } catch (err) {
+        out.push(`${it.slug}: options: ${err.message}`);
+      }
+    }
     // image null = no photo for now (a wrong photo was taken off); it must say which photo it replaces.
     if (it.image === null && !(it.replacesPhotos || []).length) out.push(`${it.slug}: no photo and nothing it replaces`);
     const pr = it.image === null ? null : photo(it.image);
@@ -285,8 +299,9 @@ const runOwnerMenuImport = async ({ dataDir = DATA_DIR } = {}) => {
         isAvailable: true,
         // Nothing internal in specs: the customer app lists every spec it does not know as a product detail
         // ("Owner menu key: ..." showed on the dish page, 1 Nov). The ledger keeps the import key. sortOrder
-        // (hidden by the apps) keeps the menu in the card's order (utils/menuSort).
-        specs: { sortOrder: (idx + 1) * 10 },
+        // (hidden by the apps) keeps the menu in the card's order (utils/menuSort); options are the card's sizes
+        // (a known key: the apps show them as choices and the server prices the order from them).
+        specs: { sortOrder: (idx + 1) * 10, ...(it.options ? { options: normalizeOptions(it.options) } : {}) },
       }, { transaction: t }));
       if (ok) result.itemsCreated++;
     }

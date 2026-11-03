@@ -1,0 +1,863 @@
+{
+ "version": 1,
+ "key": "owner-menu:club-10-chicken-mangalagiri",
+ "note": "Owner, 3 Nov 2026: 'add this restrurent' with two photos of the printed menu card and the restaurant's logo. Prices exactly as printed. The owner confirmed (3 Nov): the logo may be used as the store photo (credited \"Used with the permission of Club 10 Chicken\"), dish photos are licensed stock photos; Crispy Patty Burger, Club 10 Cheesy Tower Burger and Tandoori Mayo Sandwich are chicken; the desserts, Kunafa and the spicy mayo are eggless; the Mixed Bucket is 2 pcs fried chicken + 2 lollipops + 2 strips + 2 wings; both Meal Combos come with the veg sandwich / veg burger. The card prices some dishes by size or count: Fried Chicken (2 / 5 / 10 pcs), Chicken Wings, Boneless Strips and Lollipop (5 / 10 pcs), Paneer and Chicken Popcorn (S / M / L), the three Momos (fried / steam) are one dish each with those choices as options (docs/PRODUCT_OPTIONS.md); the dish price is the lowest. Names as printed, spelling made consistent: Burger's -> Burgers, Spicy Maio -> Spicy Mayo, Extera Cheese -> Extra Cheese, Nutto Coffe -> Nutto Coffee, Strawberry Moster -> Strawberry Monster, Lychee Milk Shake -> Lychee Milkshake, Lollipop -> Chicken Lollipop, Butterscotch -> Butterscotch Shake, Chocolate Oreo -> Chocolate Oreo Shake, the two Meal Combos named by their main item. The notes \"extra cheese 30 rupees\" under Pizza and Pasta are not added as choices (the pasta note reads 20 or 30 on the photo); Extra Cheese ₹30 is in Add-ons as printed. Hours from the card (open every day, 12:00 PM to 10:30 PM; EazyDiner lists 12:30 PM). Locality and map point from its EazyDiner listing (Chinnakakani; 16.4160477, 80.5605883); the card says Club 10 Chicken, Mangalagiri. No partner login, phone, FSSAI number, rating or offer is set: the owner adds the login in Admin > Stores > Partner login.",
+ "imagesDir": "images/club-10-chicken-mangalagiri",
+ "store": {
+  "name": "Club 10 Chicken",
+  "location": "Chinnakakani, Mangalagiri",
+  "lat": 16.4160477,
+  "lon": 80.5605883,
+  "vendorType": "RESTAURANT",
+  "image": "store-logo-banner.jpg",
+  "tags": [
+   "fried chicken",
+   "chicken",
+   "burgers",
+   "pizza",
+   "momos",
+   "fast food",
+   "milkshakes",
+   "mocktails",
+   "desserts"
+  ],
+  "operatingHours": {
+   "start": "12:00",
+   "end": "22:30"
+  },
+  "description": "Club 10 Chicken in Chinnakakani, Mangalagiri is a café for crispy fried chicken, burgers, pizza and momos, with shakes, mocktails and desserts.\n\n**On the menu**\n- Fried chicken by the piece (2, 5 or 10), Chicken Wings, Boneless Strips, Chicken Lollipops, Chicken and Paneer Popcorn and a Mixed Bucket\n- Burgers, sandwiches and rolls: veg, paneer and chicken, with the Club 10 Special (Nashville) and Cheesy Tower burgers\n- Pizza, pasta and salads: sweet corn, paneer, chicken, tandoori chicken and the Special Pizza (chicken, paneer and corn)\n- Momos, fried or steamed, corn samosa, and fries plain, masala, tandoori, cheesy or loaded\n- Bubble tea, milkshakes, mocktails and eggless desserts: Lava Cake, brownies, Lotus Biscoff and Kunafa\n- Combos, from a meal combo to the Club 10 Family Combo\n\n**Good to know**\n- Open every day, 12:00 PM to 10:30 PM\n- 75 dishes, from ₹15 to ₹899\n- Popcorn in small, medium and large; fried chicken, wings, strips and lollipops by the piece"
+ },
+ "items": [
+  {
+   "slug": "fried-chicken",
+   "name": "Fried Chicken",
+   "price": 190,
+   "category": "Fried Chicken",
+   "dietType": "nonveg",
+   "description": "Crispy, golden fried chicken on the bone, coated in seasoned flour and fried until crunchy. Choose 2, 5 or 10 pieces.\n\nIngredients (Typical):\n- Chicken pieces on the bone\n- Seasoned flour coating\n- Red chilli, black pepper and garlic (if used in the actual recipe)\n- Salt\n- Oil for frying\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best eaten hot, with a dip from the Add-ons.\n\nTaste Profile: Crunchy outside, juicy inside, savoury and lightly spiced.",
+   "options": [
+    {
+     "name": "Pieces",
+     "type": "variant",
+     "choices": [
+      {
+       "label": "2 pieces",
+       "price": 190
+      },
+      {
+       "label": "5 pieces",
+       "price": 400
+      },
+      {
+       "label": "10 pieces",
+       "price": 770
+      }
+     ]
+    }
+   ],
+   "image": "fried-chicken.jpg"
+  },
+  {
+   "slug": "mixed-bucket",
+   "name": "Mixed Bucket",
+   "price": 440,
+   "category": "Fried Chicken",
+   "dietType": "nonveg",
+   "description": "A bucket with a bit of everything from the fryer: 2 pieces of fried chicken, 2 chicken lollipops, 2 boneless strips and 2 chicken wings.\n\nIn the bucket:\n- 2 pieces of fried chicken\n- 2 chicken lollipops\n- 2 boneless strips\n- 2 chicken wings\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Share it hot, with a dip from the Add-ons.\n\nTaste Profile: Crunchy, savoury and lightly spiced.",
+   "image": "mixed-bucket.jpg"
+  },
+  {
+   "slug": "chicken-wings",
+   "name": "Chicken Wings",
+   "price": 150,
+   "category": "Chicken Wings",
+   "dietType": "nonveg",
+   "description": "Chicken wings in a seasoned coating, fried until crisp and served hot. Choose 5 or 10 pieces.\n\nIngredients (Typical):\n- Chicken wings\n- Seasoned flour coating\n- Chilli and black pepper (if used in the actual recipe)\n- Salt\n- Oil for frying\n\nSpicy Level: Medium\n\nServing Suggestion: Best hot, with BBQ sauce or Nashville sauce from the Add-ons.\n\nTaste Profile: Crisp, juicy and savoury.",
+   "options": [
+    {
+     "name": "Pieces",
+     "type": "variant",
+     "choices": [
+      {
+       "label": "5 pieces",
+       "price": 150
+      },
+      {
+       "label": "10 pieces",
+       "price": 280
+      }
+     ]
+    }
+   ],
+   "image": "chicken-wings.jpg"
+  },
+  {
+   "slug": "boneless-strips",
+   "name": "Boneless Strips",
+   "price": 190,
+   "category": "Boneless Strips",
+   "dietType": "nonveg",
+   "description": "Boneless strips of chicken in a crunchy coating, fried golden. Choose 5 or 10 pieces.\n\nIngredients (Typical):\n- Boneless chicken\n- Seasoned flour or crumb coating\n- Black pepper and garlic (if used in the actual recipe)\n- Salt\n- Oil for frying\n\nSpicy Level: Mild\n\nServing Suggestion: Dip them in spicy mayo or BBQ sauce from the Add-ons.\n\nTaste Profile: Crunchy, tender and savoury.",
+   "options": [
+    {
+     "name": "Pieces",
+     "type": "variant",
+     "choices": [
+      {
+       "label": "5 pieces",
+       "price": 190
+      },
+      {
+       "label": "10 pieces",
+       "price": 340
+      }
+     ]
+    }
+   ],
+   "image": "boneless-strips.jpg"
+  },
+  {
+   "slug": "chicken-lollipop",
+   "name": "Chicken Lollipop",
+   "price": 200,
+   "category": "Lollipop",
+   "dietType": "nonveg",
+   "description": "Chicken lollipops, the Indo-Chinese starter of chicken wing pieces shaped like a lollipop, coated in a spicy batter and fried. Choose 5 or 10 pieces.\n\nIngredients (Typical):\n- Chicken wing pieces\n- Cornflour and flour batter\n- Ginger-garlic paste\n- Red chilli and soy sauce (if used in the actual recipe)\n- Salt\n- Oil for frying\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best hot, straight from the fryer.\n\nTaste Profile: Crunchy, spicy and garlicky.",
+   "options": [
+    {
+     "name": "Pieces",
+     "type": "variant",
+     "choices": [
+      {
+       "label": "5 pieces",
+       "price": 200
+      },
+      {
+       "label": "10 pieces",
+       "price": 350
+      }
+     ]
+    }
+   ],
+   "image": "chicken-lollipop.jpg"
+  },
+  {
+   "slug": "paneer-popcorn",
+   "name": "Paneer Popcorn",
+   "price": 150,
+   "category": "Popcorn",
+   "dietType": "veg",
+   "description": "Bite-size pieces of paneer in a crunchy coating, fried golden like popcorn. Small, medium or large.\n\nIngredients (Typical):\n- Paneer (cottage cheese)\n- Seasoned flour or crumb coating\n- Chilli and spices (if used in the actual recipe)\n- Salt\n- Oil for frying\n\nSpicy Level: Mild\n\nServing Suggestion: Best eaten hot, with a dip from the Add-ons.\n\nTaste Profile: Crunchy outside, soft and milky inside.",
+   "options": [
+    {
+     "name": "Size",
+     "type": "variant",
+     "choices": [
+      {
+       "label": "Small",
+       "price": 150
+      },
+      {
+       "label": "Medium",
+       "price": 300
+      },
+      {
+       "label": "Large",
+       "price": 600
+      }
+     ]
+    }
+   ],
+   "image": "paneer-popcorn.jpg"
+  },
+  {
+   "slug": "chicken-popcorn",
+   "name": "Chicken Popcorn",
+   "price": 130,
+   "category": "Popcorn",
+   "dietType": "nonveg",
+   "description": "Bite-size pieces of boneless chicken in a crunchy coating, fried golden like popcorn. Small, medium or large.\n\nIngredients (Typical):\n- Boneless chicken\n- Seasoned flour or crumb coating\n- Black pepper and chilli (if used in the actual recipe)\n- Salt\n- Oil for frying\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best hot, with spicy mayo or BBQ sauce from the Add-ons.\n\nTaste Profile: Crunchy, juicy and savoury.",
+   "options": [
+    {
+     "name": "Size",
+     "type": "variant",
+     "choices": [
+      {
+       "label": "Small",
+       "price": 130
+      },
+      {
+       "label": "Medium",
+       "price": 250
+      },
+      {
+       "label": "Large",
+       "price": 500
+      }
+     ]
+    }
+   ],
+   "image": "chicken-popcorn.jpg"
+  },
+  {
+   "slug": "veg-burger",
+   "name": "Veg Burger",
+   "price": 125,
+   "category": "Burgers",
+   "dietType": "veg",
+   "description": "A vegetable patty in a soft bun with fresh salad and sauce: the simple veg burger.\n\nIngredients (Typical):\n- Burger bun\n- Vegetable patty (potato and mixed vegetables)\n- Lettuce, onion and tomato (if used in the actual recipe)\n- Mayonnaise or burger sauce\n\nSpicy Level: Mild\n\nServing Suggestion: Make it a meal with the Meal Combo (Burger).\n\nTaste Profile: Soft, crunchy and mildly spiced.",
+   "image": "veg-burger.jpg"
+  },
+  {
+   "slug": "crispy-patty-burger",
+   "name": "Crispy Patty Burger",
+   "price": 135,
+   "category": "Burgers",
+   "dietType": "nonveg",
+   "description": "A burger with a crispy, crumb-fried chicken patty, salad and sauce in a soft bun.\n\nIngredients (Typical):\n- Burger bun\n- Crumb-fried chicken patty\n- Lettuce and onion (if used in the actual recipe)\n- Mayonnaise or burger sauce\n\nSpicy Level: Mild\n\nServing Suggestion: Best eaten fresh, while the patty is crisp.\n\nTaste Profile: Crunchy, savoury and creamy.",
+   "image": "crispy-patty-burger.jpg"
+  },
+  {
+   "slug": "paneer-burger",
+   "name": "Paneer Burger",
+   "price": 140,
+   "category": "Burgers",
+   "dietType": "veg",
+   "description": "A burger with a paneer patty, fresh salad and sauce in a soft bun.\n\nIngredients (Typical):\n- Burger bun\n- Paneer patty\n- Lettuce, onion and tomato (if used in the actual recipe)\n- Mayonnaise or burger sauce\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best eaten fresh, with fries on the side.\n\nTaste Profile: Soft, creamy and lightly spiced.",
+   "image": "paneer-burger.jpg"
+  },
+  {
+   "slug": "fried-chicken-burger",
+   "name": "Fried Chicken Burger",
+   "price": 150,
+   "category": "Burgers",
+   "dietType": "nonveg",
+   "description": "A burger built around a crispy fried chicken fillet, with salad and sauce in a soft bun.\n\nIngredients (Typical):\n- Burger bun\n- Fried chicken fillet\n- Lettuce (if used in the actual recipe)\n- Mayonnaise or burger sauce\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Add a cheese slice or a dip from the Add-ons.\n\nTaste Profile: Crunchy, juicy and savoury.",
+   "image": "fried-chicken-burger.jpg"
+  },
+  {
+   "slug": "tender-chicken-burger",
+   "name": "Tender Chicken Burger",
+   "price": 150,
+   "category": "Burgers",
+   "dietType": "nonveg",
+   "description": "A chicken burger with tender pieces of chicken, salad and sauce in a soft bun.\n\nIngredients (Typical):\n- Burger bun\n- Tender chicken\n- Lettuce and onion (if used in the actual recipe)\n- Mayonnaise or burger sauce\n\nSpicy Level: Mild\n\nServing Suggestion: Best eaten fresh.\n\nTaste Profile: Soft, juicy and savoury.",
+   "image": "tender-chicken-burger.jpg"
+  },
+  {
+   "slug": "club-10-special-burger",
+   "name": "Club 10 Special Burger (Nashville)",
+   "price": 170,
+   "category": "Burgers",
+   "dietType": "nonveg",
+   "description": "Club 10's special burger in the Nashville style: crispy fried chicken in a fiery Nashville hot sauce, in a soft bun.\n\nIngredients (Typical):\n- Burger bun\n- Crispy fried chicken\n- Nashville hot sauce (chilli and spices)\n- Pickles or slaw (if used in the actual recipe)\n- Mayonnaise (if used in the actual recipe)\n\nSpicy Level: Hot\n\nServing Suggestion: Keep a cold drink close: a mojito goes well with it.\n\nTaste Profile: Fiery, crunchy and smoky.",
+   "image": "club-10-special-burger.jpg"
+  },
+  {
+   "slug": "club-10-cheesy-tower-burger",
+   "name": "Club 10 Cheesy Tower Burger",
+   "price": 180,
+   "category": "Burgers",
+   "dietType": "nonveg",
+   "description": "Club 10's tall chicken burger, stacked high and loaded with cheese.\n\nIngredients (Typical):\n- Burger bun\n- Chicken\n- Cheese\n- Lettuce and onion (if used in the actual recipe)\n- Burger sauce\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Eat it fresh, while the cheese is melted.\n\nTaste Profile: Cheesy, rich and savoury.",
+   "image": "club-10-cheesy-tower-burger.jpg"
+  },
+  {
+   "slug": "sweet-corn-pizza",
+   "name": "Sweet Corn Pizza",
+   "price": 170,
+   "category": "Pizza",
+   "dietType": "veg",
+   "description": "A cheese pizza topped with sweet corn: simple, mild and a little sweet.\n\nIngredients (Typical):\n- Pizza base (wheat flour dough)\n- Pizza sauce\n- Mozzarella cheese\n- Sweet corn\n- Oregano and chilli flakes (if used in the actual recipe)\n\nSpicy Level: Mild\n\nServing Suggestion: Best hot, straight from the oven.\n\nTaste Profile: Cheesy, sweet and mild.",
+   "image": "sweet-corn-pizza.jpg"
+  },
+  {
+   "slug": "paneer-pizza",
+   "name": "Paneer Pizza",
+   "price": 180,
+   "category": "Pizza",
+   "dietType": "veg",
+   "description": "A cheese pizza topped with paneer cubes and vegetables.\n\nIngredients (Typical):\n- Pizza base (wheat flour dough)\n- Pizza sauce\n- Mozzarella cheese\n- Paneer cubes\n- Onion and capsicum (if used in the actual recipe)\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best hot, straight from the oven.\n\nTaste Profile: Cheesy, creamy and savoury.",
+   "image": "paneer-pizza.jpg"
+  },
+  {
+   "slug": "chicken-pizza",
+   "name": "Chicken Pizza",
+   "price": 180,
+   "category": "Pizza",
+   "dietType": "nonveg",
+   "description": "A cheese pizza topped with pieces of chicken.\n\nIngredients (Typical):\n- Pizza base (wheat flour dough)\n- Pizza sauce\n- Mozzarella cheese\n- Chicken pieces\n- Onion and capsicum (if used in the actual recipe)\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best hot, straight from the oven.\n\nTaste Profile: Cheesy, savoury and filling.",
+   "image": "chicken-pizza.jpg"
+  },
+  {
+   "slug": "tandoori-chicken-pizza",
+   "name": "Tandoori Chicken Pizza",
+   "price": 190,
+   "category": "Pizza",
+   "dietType": "nonveg",
+   "description": "A cheese pizza topped with tandoori-spiced chicken.\n\nIngredients (Typical):\n- Pizza base (wheat flour dough)\n- Pizza sauce\n- Mozzarella cheese\n- Tandoori chicken (chicken in yoghurt and tandoori spices)\n- Onion and capsicum (if used in the actual recipe)\n\nSpicy Level: Medium\n\nServing Suggestion: Best hot, straight from the oven.\n\nTaste Profile: Smoky, spicy and cheesy.",
+   "image": "tandoori-chicken-pizza.jpg"
+  },
+  {
+   "slug": "special-pizza",
+   "name": "Special Pizza",
+   "price": 230,
+   "category": "Pizza",
+   "dietType": "nonveg",
+   "description": "Club 10's Special Pizza, topped with chicken, paneer and corn over cheese.\n\nIngredients (Typical):\n- Pizza base (wheat flour dough)\n- Pizza sauce\n- Mozzarella cheese\n- Chicken\n- Paneer\n- Sweet corn\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best hot, straight from the oven.\n\nTaste Profile: Loaded, cheesy and savoury.",
+   "image": "special-pizza.jpg"
+  },
+  {
+   "slug": "veg-pasta",
+   "name": "Veg Pasta",
+   "price": 145,
+   "category": "Pasta",
+   "dietType": "veg",
+   "description": "Pasta tossed with mixed vegetables in sauce: a filling vegetarian plate.\n\nIngredients (Typical):\n- Pasta (wheat)\n- Capsicum, onion and carrot (if used in the actual recipe)\n- Tomato or white sauce\n- Cheese (if used in the actual recipe)\n- Herbs and chilli flakes\n\nSpicy Level: Mild\n\nServing Suggestion: Best eaten hot. Extra cheese is in the Add-ons.\n\nTaste Profile: Creamy, tangy and mild.",
+   "image": "veg-pasta.jpg"
+  },
+  {
+   "slug": "corn-pasta",
+   "name": "Corn Pasta",
+   "price": 155,
+   "category": "Pasta",
+   "dietType": "veg",
+   "description": "Pasta tossed with sweet corn in sauce, mild and a little sweet.\n\nIngredients (Typical):\n- Pasta (wheat)\n- Sweet corn\n- Tomato or white sauce\n- Cheese (if used in the actual recipe)\n- Herbs\n\nSpicy Level: Mild\n\nServing Suggestion: Best eaten hot. Extra cheese is in the Add-ons.\n\nTaste Profile: Creamy, sweet and mild.",
+   "image": "corn-pasta.jpg"
+  },
+  {
+   "slug": "chicken-pasta",
+   "name": "Chicken Pasta",
+   "price": 180,
+   "category": "Pasta",
+   "dietType": "nonveg",
+   "description": "Pasta tossed with pieces of chicken in sauce: a filling plate.\n\nIngredients (Typical):\n- Pasta (wheat)\n- Chicken pieces\n- Tomato or white sauce\n- Cheese (if used in the actual recipe)\n- Garlic and herbs\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best eaten hot. Extra cheese is in the Add-ons.\n\nTaste Profile: Creamy, savoury and filling.",
+   "image": "chicken-pasta.jpg"
+  },
+  {
+   "slug": "corn-salad",
+   "name": "Corn Salad",
+   "price": 140,
+   "category": "Salads",
+   "dietType": "veg",
+   "description": "A fresh salad of sweet corn with crunchy vegetables and a light dressing.\n\nIngredients (Typical):\n- Sweet corn\n- Onion, tomato and capsicum (if used in the actual recipe)\n- Lemon juice\n- Salt and pepper\n- Herbs\n\nSpicy Level: Mild\n\nServing Suggestion: A light side with any fried dish.\n\nTaste Profile: Fresh, sweet and tangy.",
+   "image": "corn-salad.jpg"
+  },
+  {
+   "slug": "chicken-salad",
+   "name": "Chicken Salad",
+   "price": 150,
+   "category": "Salads",
+   "dietType": "nonveg",
+   "description": "A fresh salad with pieces of chicken, greens and a light dressing.\n\nIngredients (Typical):\n- Chicken pieces\n- Lettuce and fresh vegetables\n- Mayonnaise or lemon dressing (if used in the actual recipe)\n- Salt and pepper\n\nSpicy Level: Mild\n\nServing Suggestion: A lighter meal, or a side with a burger.\n\nTaste Profile: Fresh, light and savoury.",
+   "image": "chicken-salad.jpg"
+  },
+  {
+   "slug": "chocolate-sandwich",
+   "name": "Chocolate Sandwich",
+   "price": 120,
+   "category": "Sandwiches",
+   "dietType": "veg",
+   "description": "A sweet sandwich: bread with chocolate, toasted until the chocolate melts.\n\nIngredients (Typical):\n- Bread\n- Chocolate spread or chocolate\n- Butter (if used in the actual recipe)\n\nSpicy Level: Not spicy\n\nServing Suggestion: Eat it warm, as a sweet snack.\n\nTaste Profile: Sweet, chocolatey and buttery.",
+   "image": "chocolate-sandwich.jpg"
+  },
+  {
+   "slug": "veg-sandwich",
+   "name": "Veg Sandwich",
+   "price": 130,
+   "category": "Sandwiches",
+   "dietType": "veg",
+   "description": "A toasted sandwich filled with fresh vegetables and sauce.\n\nIngredients (Typical):\n- Bread\n- Cucumber, tomato, onion and capsicum (if used in the actual recipe)\n- Butter\n- Green chutney or mayonnaise (if used in the actual recipe)\n- Cheese (if used in the actual recipe)\n\nSpicy Level: Mild\n\nServing Suggestion: Make it a meal with the Meal Combo (Sandwich).\n\nTaste Profile: Crisp, fresh and mild.",
+   "image": "veg-sandwich.jpg"
+  },
+  {
+   "slug": "tender-chicken-sandwich",
+   "name": "Tender Chicken Sandwich",
+   "price": 140,
+   "category": "Sandwiches",
+   "dietType": "nonveg",
+   "description": "A toasted sandwich filled with tender chicken and a creamy sauce.\n\nIngredients (Typical):\n- Bread\n- Tender chicken\n- Mayonnaise or sauce\n- Vegetables (if used in the actual recipe)\n- Butter\n\nSpicy Level: Mild\n\nServing Suggestion: Best eaten warm.\n\nTaste Profile: Soft, savoury and creamy.",
+   "image": "tender-chicken-sandwich.jpg"
+  },
+  {
+   "slug": "fried-chicken-sandwich",
+   "name": "Fried Chicken Sandwich",
+   "price": 140,
+   "category": "Sandwiches",
+   "dietType": "nonveg",
+   "description": "A toasted sandwich with crispy fried chicken and sauce.\n\nIngredients (Typical):\n- Bread\n- Fried chicken\n- Mayonnaise or sauce\n- Lettuce or onion (if used in the actual recipe)\n- Butter\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best eaten warm, while the chicken is crisp.\n\nTaste Profile: Crunchy, savoury and creamy.",
+   "image": "fried-chicken-sandwich.jpg"
+  },
+  {
+   "slug": "paneer-sandwich",
+   "name": "Paneer Sandwich",
+   "price": 145,
+   "category": "Sandwiches",
+   "dietType": "veg",
+   "description": "A toasted sandwich filled with spiced paneer and vegetables.\n\nIngredients (Typical):\n- Bread\n- Paneer\n- Onion and capsicum (if used in the actual recipe)\n- Spices\n- Butter\n- Sauce or chutney (if used in the actual recipe)\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best eaten warm.\n\nTaste Profile: Soft, creamy and lightly spiced.",
+   "image": "paneer-sandwich.jpg"
+  },
+  {
+   "slug": "tandoori-mayo-sandwich",
+   "name": "Tandoori Mayo Sandwich",
+   "price": 145,
+   "category": "Sandwiches",
+   "dietType": "nonveg",
+   "description": "A toasted sandwich of tandoori-spiced chicken with creamy mayonnaise.\n\nIngredients (Typical):\n- Bread\n- Tandoori chicken\n- Mayonnaise\n- Onion (if used in the actual recipe)\n- Butter\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten warm.\n\nTaste Profile: Smoky, spicy and creamy.",
+   "image": "tandoori-mayo-sandwich.jpg"
+  },
+  {
+   "slug": "veg-roll",
+   "name": "Veg Roll",
+   "price": 125,
+   "category": "Rolls",
+   "dietType": "veg",
+   "description": "A soft flatbread rolled around a spiced vegetable filling, onion and sauce.\n\nIngredients (Typical):\n- Wrap or paratha\n- Spiced vegetables\n- Onion\n- Sauce or chutney\n- Spices\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten warm, on the go.\n\nTaste Profile: Warm, spiced and tangy.",
+   "image": "veg-roll.jpg"
+  },
+  {
+   "slug": "paneer-roll",
+   "name": "Paneer Roll",
+   "price": 135,
+   "category": "Rolls",
+   "dietType": "veg",
+   "description": "A soft flatbread rolled around spiced paneer, onion and sauce.\n\nIngredients (Typical):\n- Wrap or paratha\n- Paneer\n- Onion and capsicum (if used in the actual recipe)\n- Sauce or chutney\n- Spices\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten warm, on the go.\n\nTaste Profile: Creamy, spiced and tangy.",
+   "image": "paneer-roll.jpg"
+  },
+  {
+   "slug": "chicken-roll",
+   "name": "Chicken Roll",
+   "price": 145,
+   "category": "Rolls",
+   "dietType": "nonveg",
+   "description": "A soft flatbread rolled around spiced chicken, onion and sauce.\n\nIngredients (Typical):\n- Wrap or paratha\n- Chicken\n- Onion\n- Sauce or chutney\n- Spices\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten warm, on the go.\n\nTaste Profile: Savoury, spiced and juicy.",
+   "image": "chicken-roll.jpg"
+  },
+  {
+   "slug": "meal-combo-sandwich",
+   "name": "Meal Combo (Sandwich)",
+   "price": 179,
+   "category": "Combos",
+   "dietType": "veg",
+   "description": "A meal of a veg sandwich with french fries and a cool drink.\n\nIn the combo:\n- 1 veg sandwich\n- French fries\n- 1 cool drink\n\nSpicy Level: Mild\n\nServing Suggestion: Eat the sandwich and fries hot, with the drink cold.\n\nTaste Profile: Crisp, fresh and mild.",
+   "image": "meal-combo-sandwich.jpg"
+  },
+  {
+   "slug": "meal-combo-burger",
+   "name": "Meal Combo (Burger)",
+   "price": 179,
+   "category": "Combos",
+   "dietType": "veg",
+   "description": "A meal of a veg burger with french fries and a cool drink.\n\nIn the combo:\n- 1 veg burger\n- French fries\n- 1 cool drink\n\nSpicy Level: Mild\n\nServing Suggestion: Eat the burger and fries hot, with the drink cold.\n\nTaste Profile: Soft, crunchy and mild.",
+   "image": "meal-combo-burger.jpg"
+  },
+  {
+   "slug": "kiddy-combo",
+   "name": "Kiddy Combo",
+   "price": 449,
+   "category": "Combos",
+   "dietType": "nonveg",
+   "description": "The Kiddy Combo: 2 pieces of fried chicken, a fried chicken burger, popcorn and a mojito.\n\nIn the combo:\n- 2 pieces of fried chicken\n- 1 fried chicken burger\n- Popcorn\n- 1 mojito\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best eaten hot, with the mojito cold.\n\nTaste Profile: Crunchy, savoury and refreshing.",
+   "image": "kiddy-combo.jpg"
+  },
+  {
+   "slug": "trendy-combo",
+   "name": "Trendy Combo",
+   "price": 699,
+   "category": "Combos",
+   "dietType": "nonveg",
+   "description": "The Trendy Combo: 5 pieces of fried chicken, a fried chicken burger, a chicken roll and a Nutto Coffee Loaded shake.\n\nIn the combo:\n- 5 pieces of fried chicken\n- 1 fried chicken burger\n- 1 chicken roll\n- 1 Nutto Coffee Loaded shake\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Share the fried chicken hot; the shake is best chilled.\n\nTaste Profile: Crunchy, savoury and creamy.",
+   "image": "trendy-combo.jpg"
+  },
+  {
+   "slug": "club-10-family-combo",
+   "name": "Club 10 Family Combo",
+   "price": 899,
+   "category": "Combos",
+   "dietType": "nonveg",
+   "description": "The Club 10 Family Combo: 5 pieces of fried chicken, 2 fried chicken burgers, 5 boneless strips and 2 mint mojitos.\n\nIn the combo:\n- 5 pieces of fried chicken\n- 2 fried chicken burgers\n- 5 boneless strips\n- 2 mint mojitos\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Share it at the table, hot from the fryer.\n\nTaste Profile: Crunchy, savoury and refreshing.",
+   "image": "club-10-family-combo.jpg"
+  },
+  {
+   "slug": "cheese-slice",
+   "name": "Cheese Slice",
+   "price": 15,
+   "category": "Add-ons",
+   "dietType": "veg",
+   "description": "A slice of cheese, to add to your burger or sandwich.\n\nIngredients (Typical):\n- Processed cheese slice\n\nSpicy Level: Not spicy\n\nServing Suggestion: Order it with a burger or sandwich.\n\nTaste Profile: Creamy and mild.",
+   "image": "cheese-slice.jpg"
+  },
+  {
+   "slug": "nashville-sauce",
+   "name": "Nashville Sauce",
+   "price": 20,
+   "category": "Add-ons",
+   "dietType": "veg",
+   "description": "A hot Nashville-style chilli sauce, for dipping fried chicken, wings or fries.\n\nIngredients (Typical):\n- Red chilli and cayenne\n- Spices\n- Oil (if used in the actual recipe)\n- Vinegar (if used in the actual recipe)\n\nSpicy Level: Hot\n\nServing Suggestion: Dip fried chicken, wings or fries in it.\n\nTaste Profile: Fiery, smoky and tangy.",
+   "image": "nashville-sauce.jpg"
+  },
+  {
+   "slug": "spicy-mayo",
+   "name": "Spicy Mayo",
+   "price": 20,
+   "category": "Add-ons",
+   "dietType": "veg",
+   "description": "Eggless spicy mayonnaise, for dipping strips, popcorn, fries or momos.\n\nIngredients (Typical):\n- Eggless mayonnaise\n- Chilli sauce or chilli flakes (if used in the actual recipe)\n- Spices\n\nSpicy Level: Medium\n\nServing Suggestion: Dip strips, popcorn, fries or momos in it.\n\nTaste Profile: Creamy, tangy and spicy.",
+   "image": "spicy-mayo.jpg"
+  },
+  {
+   "slug": "bbq-sauce",
+   "name": "BBQ Sauce",
+   "price": 20,
+   "category": "Add-ons",
+   "dietType": "veg",
+   "description": "A smoky, sweet barbecue sauce, for dipping wings, strips and fries.\n\nIngredients (Typical):\n- Tomato\n- Sugar or jaggery\n- Vinegar\n- Smoky spices (if used in the actual recipe)\n\nSpicy Level: Mild\n\nServing Suggestion: Dip wings, strips or fries in it.\n\nTaste Profile: Sweet, smoky and tangy.",
+   "image": "bbq-sauce.jpg"
+  },
+  {
+   "slug": "extra-cheese",
+   "name": "Extra Cheese",
+   "price": 30,
+   "category": "Add-ons",
+   "dietType": "veg",
+   "description": "A portion of extra cheese, to add to a pizza, pasta or burger.\n\nIngredients (Typical):\n- Cheese\n\nSpicy Level: Not spicy\n\nServing Suggestion: Order it with a pizza or pasta.\n\nTaste Profile: Creamy and rich.",
+   "image": "extra-cheese.jpg"
+  },
+  {
+   "slug": "mango-boba",
+   "name": "Mango Boba",
+   "price": 199,
+   "category": "Bubble Tea",
+   "dietType": "veg",
+   "description": "A mango bubble tea with chewy tapioca pearls, served cold.\n\nIngredients (Typical):\n- Mango\n- Tea or milk base (if used in the actual recipe)\n- Tapioca pearls\n- Sugar syrup\n- Ice\n\nSpicy Level: Not spicy\n\nServing Suggestion: Stir well before you sip.\n\nTaste Profile: Fruity, sweet and chewy.",
+   "image": "mango-boba.jpg"
+  },
+  {
+   "slug": "taro-boba",
+   "name": "Taro Boba",
+   "price": 199,
+   "category": "Bubble Tea",
+   "dietType": "veg",
+   "description": "A taro bubble tea, creamy and lilac, with chewy tapioca pearls.\n\nIngredients (Typical):\n- Taro\n- Milk or tea base (if used in the actual recipe)\n- Tapioca pearls\n- Sugar syrup\n- Ice\n\nSpicy Level: Not spicy\n\nServing Suggestion: Stir well before you sip.\n\nTaste Profile: Creamy, nutty-sweet and chewy.",
+   "image": "taro-boba.jpg"
+  },
+  {
+   "slug": "tiramisu-boba",
+   "name": "Tiramisu Boba",
+   "price": 199,
+   "category": "Bubble Tea",
+   "dietType": "veg",
+   "description": "A tiramisu-flavoured bubble tea with coffee and cream notes and chewy tapioca pearls.\n\nIngredients (Typical):\n- Milk or tea base (if used in the actual recipe)\n- Coffee and cocoa (if used in the actual recipe)\n- Tiramisu flavour\n- Tapioca pearls\n- Sugar syrup\n- Ice\n\nSpicy Level: Not spicy\n\nServing Suggestion: Stir well before you sip.\n\nTaste Profile: Creamy, coffee-sweet and chewy.",
+   "image": "tiramisu-boba.jpg"
+  },
+  {
+   "slug": "nutto-coffee-loaded",
+   "name": "Nutto Coffee Loaded",
+   "price": 125,
+   "category": "Milkshakes",
+   "dietType": "veg",
+   "description": "A loaded coffee milkshake, creamy and rich, with toppings.\n\nIngredients (Typical):\n- Milk\n- Coffee\n- Ice cream (if used in the actual recipe)\n- Chocolate or nut toppings (if used in the actual recipe)\n- Sugar\n\nSpicy Level: Not spicy\n\nServing Suggestion: Best chilled.\n\nTaste Profile: Rich, coffee-sweet and creamy.",
+   "image": "nutto-coffee-loaded.jpg"
+  },
+  {
+   "slug": "strawberry-monster",
+   "name": "Strawberry Monster",
+   "price": 125,
+   "category": "Milkshakes",
+   "dietType": "veg",
+   "description": "A strawberry milkshake, pink, sweet and creamy.\n\nIngredients (Typical):\n- Milk\n- Strawberry (fruit or syrup)\n- Ice cream (if used in the actual recipe)\n- Sugar\n\nSpicy Level: Not spicy\n\nServing Suggestion: Best chilled.\n\nTaste Profile: Fruity, sweet and creamy.",
+   "image": "strawberry-monster.jpg"
+  },
+  {
+   "slug": "mango-burst",
+   "name": "Mango Burst",
+   "price": 125,
+   "category": "Milkshakes",
+   "dietType": "veg",
+   "description": "A mango milkshake, sweet, thick with fruit and creamy.\n\nIngredients (Typical):\n- Milk\n- Mango\n- Ice cream (if used in the actual recipe)\n- Sugar\n\nSpicy Level: Not spicy\n\nServing Suggestion: Best chilled.\n\nTaste Profile: Fruity, sweet and creamy.",
+   "image": "mango-burst.jpg"
+  },
+  {
+   "slug": "bubblegum-blast",
+   "name": "Bubblegum Blast",
+   "price": 125,
+   "category": "Milkshakes",
+   "dietType": "veg",
+   "description": "A bubblegum-flavoured milkshake, sweet and fun.\n\nIngredients (Typical):\n- Milk\n- Bubblegum flavour syrup\n- Ice cream (if used in the actual recipe)\n- Sugar\n\nSpicy Level: Not spicy\n\nServing Suggestion: Best chilled.\n\nTaste Profile: Sweet, candy-like and creamy.",
+   "image": "bubblegum-blast.jpg"
+  },
+  {
+   "slug": "butterscotch-shake",
+   "name": "Butterscotch Shake",
+   "price": 125,
+   "category": "Milkshakes",
+   "dietType": "veg",
+   "description": "A butterscotch milkshake with a caramel-like sweetness.\n\nIngredients (Typical):\n- Milk\n- Butterscotch syrup or ice cream\n- Butterscotch bits (if used in the actual recipe)\n- Sugar\n\nSpicy Level: Not spicy\n\nServing Suggestion: Best chilled.\n\nTaste Profile: Buttery, caramel-sweet and creamy.",
+   "image": "butterscotch-shake.jpg"
+  },
+  {
+   "slug": "lychee-milkshake",
+   "name": "Lychee Milkshake",
+   "price": 125,
+   "category": "Milkshakes",
+   "dietType": "veg",
+   "description": "A lychee milkshake, light, floral and sweet.\n\nIngredients (Typical):\n- Milk\n- Lychee (fruit or syrup)\n- Ice cream (if used in the actual recipe)\n- Sugar\n\nSpicy Level: Not spicy\n\nServing Suggestion: Best chilled.\n\nTaste Profile: Floral, sweet and creamy.",
+   "image": "lychee-milkshake.jpg"
+  },
+  {
+   "slug": "chocolate-oreo-shake",
+   "name": "Chocolate Oreo Shake",
+   "price": 125,
+   "category": "Milkshakes",
+   "dietType": "veg",
+   "description": "A chocolate milkshake blended with Oreo biscuits.\n\nIngredients (Typical):\n- Milk\n- Chocolate\n- Oreo biscuits\n- Ice cream (if used in the actual recipe)\n- Sugar\n\nSpicy Level: Not spicy\n\nServing Suggestion: Best chilled.\n\nTaste Profile: Chocolatey, sweet and cookie-crunchy.",
+   "image": "chocolate-oreo-shake.jpg"
+  },
+  {
+   "slug": "chocolate-brownie-shake",
+   "name": "Chocolate Brownie Shake",
+   "price": 150,
+   "category": "Milkshakes",
+   "dietType": "veg",
+   "description": "A chocolate milkshake blended with brownie, thick and rich.\n\nIngredients (Typical):\n- Milk\n- Chocolate\n- Brownie\n- Ice cream (if used in the actual recipe)\n- Sugar\n\nSpicy Level: Not spicy\n\nServing Suggestion: Best chilled.\n\nTaste Profile: Rich, fudgy and chocolatey.",
+   "image": "chocolate-brownie-shake.jpg"
+  },
+  {
+   "slug": "mint-mojito",
+   "name": "Mint Mojito",
+   "price": 115,
+   "category": "Mocktails",
+   "dietType": "veg",
+   "description": "A virgin mojito: lime and fresh mint over ice with soda. No alcohol.\n\nIngredients (Typical):\n- Lime\n- Mint leaves\n- Sugar syrup\n- Soda\n- Ice\n\nSpicy Level: Not spicy\n\nServing Suggestion: Good with fried chicken or anything spicy.\n\nTaste Profile: Fresh, minty and tangy.",
+   "image": "mint-mojito.jpg"
+  },
+  {
+   "slug": "blue-curacao",
+   "name": "Blue Curacao",
+   "price": 115,
+   "category": "Mocktails",
+   "dietType": "veg",
+   "description": "A bright blue mocktail made with blue curacao syrup, lemon and soda. No alcohol.\n\nIngredients (Typical):\n- Blue curacao syrup (non-alcoholic)\n- Lemon\n- Soda\n- Ice\n\nSpicy Level: Not spicy\n\nServing Suggestion: Best ice cold.\n\nTaste Profile: Citrusy, sweet and fizzy.",
+   "image": "blue-curacao.jpg"
+  },
+  {
+   "slug": "green-apple-crush",
+   "name": "Green Apple Crush",
+   "price": 115,
+   "category": "Mocktails",
+   "dietType": "veg",
+   "description": "A green apple mocktail, served cold and fizzy. No alcohol.\n\nIngredients (Typical):\n- Green apple syrup or crush\n- Lemon (if used in the actual recipe)\n- Soda\n- Ice\n\nSpicy Level: Not spicy\n\nServing Suggestion: Best ice cold.\n\nTaste Profile: Tart, sweet and fizzy.",
+   "image": "green-apple-crush.jpg"
+  },
+  {
+   "slug": "lychee-mojito",
+   "name": "Lychee Mojito",
+   "price": 115,
+   "category": "Mocktails",
+   "dietType": "veg",
+   "description": "A lychee mojito: lychee with mint and lime over ice. No alcohol.\n\nIngredients (Typical):\n- Lychee (fruit or syrup)\n- Mint leaves\n- Lime\n- Soda\n- Ice\n\nSpicy Level: Not spicy\n\nServing Suggestion: Best ice cold.\n\nTaste Profile: Floral, sweet and minty.",
+   "image": "lychee-mojito.jpg"
+  },
+  {
+   "slug": "watermelon-mojito",
+   "name": "Watermelon Mojito",
+   "price": 115,
+   "category": "Mocktails",
+   "dietType": "veg",
+   "description": "A watermelon mojito: watermelon with mint and lime over ice. No alcohol.\n\nIngredients (Typical):\n- Watermelon\n- Mint leaves\n- Lime\n- Soda\n- Ice\n\nSpicy Level: Not spicy\n\nServing Suggestion: Best ice cold.\n\nTaste Profile: Juicy, fresh and minty.",
+   "image": "watermelon-mojito.jpg"
+  },
+  {
+   "slug": "veg-momo",
+   "name": "Veg Momo",
+   "price": 100,
+   "category": "Momos",
+   "dietType": "veg",
+   "description": "Momos with a vegetable filling, fried crisp or steamed soft: your choice.\n\nIngredients (Typical):\n- Flour dough wrappers\n- Cabbage, carrot and onion\n- Ginger and garlic\n- Spices\n- Momo chutney (if used in the actual recipe)\n\nSpicy Level: Mild\n\nServing Suggestion: Dip them in the chutney or in spicy mayo from the Add-ons.\n\nTaste Profile: Juicy and savoury, crisp when fried, soft when steamed.",
+   "options": [
+    {
+     "name": "Style",
+     "type": "variant",
+     "choices": [
+      {
+       "label": "Fried",
+       "price": 100
+      },
+      {
+       "label": "Steamed",
+       "price": 110
+      }
+     ]
+    }
+   ],
+   "image": "veg-momo.jpg"
+  },
+  {
+   "slug": "paneer-momo",
+   "name": "Paneer Momo",
+   "price": 130,
+   "category": "Momos",
+   "dietType": "veg",
+   "description": "Momos filled with paneer, fried crisp or steamed soft: your choice.\n\nIngredients (Typical):\n- Flour dough wrappers\n- Paneer\n- Onion and herbs (if used in the actual recipe)\n- Ginger and garlic\n- Spices\n\nSpicy Level: Mild\n\nServing Suggestion: Dip them in the chutney or in spicy mayo from the Add-ons.\n\nTaste Profile: Soft, milky and savoury.",
+   "options": [
+    {
+     "name": "Style",
+     "type": "variant",
+     "choices": [
+      {
+       "label": "Fried",
+       "price": 130
+      },
+      {
+       "label": "Steamed",
+       "price": 140
+      }
+     ]
+    }
+   ],
+   "image": "paneer-momo.jpg"
+  },
+  {
+   "slug": "chicken-momo",
+   "name": "Chicken Momo",
+   "price": 130,
+   "category": "Momos",
+   "dietType": "nonveg",
+   "description": "Momos filled with minced chicken, fried crisp or steamed soft: your choice.\n\nIngredients (Typical):\n- Flour dough wrappers\n- Minced chicken\n- Onion\n- Ginger and garlic\n- Spices\n\nSpicy Level: Mild\n\nServing Suggestion: Dip them in the chutney or in spicy mayo from the Add-ons.\n\nTaste Profile: Juicy, savoury and garlicky.",
+   "options": [
+    {
+     "name": "Style",
+     "type": "variant",
+     "choices": [
+      {
+       "label": "Fried",
+       "price": 130
+      },
+      {
+       "label": "Steamed",
+       "price": 140
+      }
+     ]
+    }
+   ],
+   "image": "chicken-momo.jpg"
+  },
+  {
+   "slug": "fantasy-4-layer",
+   "name": "Fantasy 4 Layer",
+   "price": 90,
+   "category": "Desserts",
+   "dietType": "veg",
+   "description": "An eggless dessert in four layers, as its name says: a sweet finish to a meal.\n\nIngredients (Typical):\n- Cake or brownie layers (if used in the actual recipe)\n- Cream (if used in the actual recipe)\n- Chocolate (if used in the actual recipe)\n\nSpicy Level: Not spicy\n\nServing Suggestion: A sweet finish after a fried chicken meal.\n\nTaste Profile: Sweet and creamy.",
+   "image": "fantasy-4-layer.jpg"
+  },
+  {
+   "slug": "lava-cake",
+   "name": "Lava Cake",
+   "price": 110,
+   "category": "Desserts",
+   "dietType": "veg",
+   "description": "An eggless chocolate lava cake with a soft, molten centre.\n\nIngredients (Typical):\n- Flour\n- Cocoa and chocolate\n- Sugar\n- Butter or oil\n- Milk (if used in the actual recipe)\n\nSpicy Level: Not spicy\n\nServing Suggestion: Eat it warm, while the centre is still runny.\n\nTaste Profile: Rich, warm and chocolatey.",
+   "image": "lava-cake.jpg"
+  },
+  {
+   "slug": "vanilla-brownie",
+   "name": "Vanilla Brownie",
+   "price": 110,
+   "category": "Desserts",
+   "dietType": "veg",
+   "description": "An eggless vanilla brownie: the buttery, golden cousin of the chocolate brownie.\n\nIngredients (Typical):\n- Flour\n- Sugar\n- Butter\n- Vanilla\n- Milk (if used in the actual recipe)\n\nSpicy Level: Not spicy\n\nServing Suggestion: Have it warm.\n\nTaste Profile: Sweet, buttery and soft.",
+   "image": "vanilla-brownie.jpg"
+  },
+  {
+   "slug": "lotus-biscoff",
+   "name": "Lotus Biscoff",
+   "price": 115,
+   "category": "Desserts",
+   "dietType": "veg",
+   "description": "An eggless dessert made with Lotus Biscoff biscuits and Biscoff spread.\n\nIngredients (Typical):\n- Lotus Biscoff biscuits\n- Biscoff spread\n- Cream or cake (if used in the actual recipe)\n\nSpicy Level: Not spicy\n\nServing Suggestion: A sweet finish to a meal.\n\nTaste Profile: Caramel-sweet, lightly spiced and creamy.",
+   "image": "lotus-biscoff.jpg"
+  },
+  {
+   "slug": "chocolate-brownie",
+   "name": "Chocolate Brownie",
+   "price": 130,
+   "category": "Desserts",
+   "dietType": "veg",
+   "description": "An eggless chocolate brownie, dense and chocolatey.\n\nIngredients (Typical):\n- Flour\n- Cocoa and chocolate\n- Sugar\n- Butter or oil\n- Milk (if used in the actual recipe)\n\nSpicy Level: Not spicy\n\nServing Suggestion: Have it warm.\n\nTaste Profile: Rich, fudgy and chocolatey.",
+   "image": "chocolate-brownie.jpg"
+  },
+  {
+   "slug": "kunafa",
+   "name": "Kunafa",
+   "price": 249,
+   "category": "Desserts",
+   "dietType": "veg",
+   "description": "Kunafa, the Middle Eastern dessert of crisp shredded pastry with a creamy or cheesy filling, soaked in sugar syrup.\n\nIngredients (Typical):\n- Shredded pastry (kataifi)\n- Cheese or cream filling\n- Butter or ghee\n- Sugar syrup\n- Pistachio (if used in the actual recipe)\n\nSpicy Level: Not spicy\n\nServing Suggestion: Best eaten warm.\n\nTaste Profile: Crisp, syrupy and creamy.",
+   "image": "kunafa.jpg"
+  },
+  {
+   "slug": "corn-samosa",
+   "name": "Corn Samosa",
+   "price": 100,
+   "category": "Quick Bites",
+   "dietType": "veg",
+   "description": "Crisp samosas with a spiced sweet corn filling.\n\nIngredients (Typical):\n- Flour pastry\n- Sweet corn\n- Onion (if used in the actual recipe)\n- Spices\n- Oil for frying\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best eaten hot, with a dip from the Add-ons.\n\nTaste Profile: Crisp, sweet and spiced.",
+   "image": "corn-samosa.jpg"
+  },
+  {
+   "slug": "salted-french-fries",
+   "name": "Salted French Fries",
+   "price": 100,
+   "category": "Quick Bites",
+   "dietType": "veg",
+   "description": "Classic french fries, fried golden and lightly salted.\n\nIngredients (Typical):\n- Potatoes\n- Salt\n- Oil for frying\n\nSpicy Level: Not spicy\n\nServing Suggestion: Best eaten hot, with a dip from the Add-ons.\n\nTaste Profile: Crisp outside, fluffy inside and salty.",
+   "image": "salted-french-fries.jpg"
+  },
+  {
+   "slug": "masala-french-fries",
+   "name": "Masala French Fries",
+   "price": 115,
+   "category": "Quick Bites",
+   "dietType": "veg",
+   "description": "French fries tossed in a spicy masala seasoning.\n\nIngredients (Typical):\n- Potatoes\n- Masala seasoning (chilli and chaat masala) (if used in the actual recipe)\n- Salt\n- Oil for frying\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot.\n\nTaste Profile: Crisp, tangy and spicy.",
+   "image": "masala-french-fries.jpg"
+  },
+  {
+   "slug": "tandoori-french-fries",
+   "name": "Tandoori French Fries",
+   "price": 115,
+   "category": "Quick Bites",
+   "dietType": "veg",
+   "description": "French fries tossed in a smoky tandoori seasoning.\n\nIngredients (Typical):\n- Potatoes\n- Tandoori seasoning\n- Salt\n- Oil for frying\n- Tandoori mayonnaise (if used in the actual recipe)\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot.\n\nTaste Profile: Smoky, tangy and spicy.",
+   "image": "tandoori-french-fries.jpg"
+  },
+  {
+   "slug": "cheesy-french-fries",
+   "name": "Cheesy French Fries",
+   "price": 120,
+   "category": "Quick Bites",
+   "dietType": "veg",
+   "description": "French fries topped with cheese: crisp and creamy together.\n\nIngredients (Typical):\n- Potatoes\n- Cheese or cheese sauce\n- Salt\n- Oil for frying\n- Herbs (if used in the actual recipe)\n\nSpicy Level: Mild\n\nServing Suggestion: Best eaten hot, while the cheese is melted.\n\nTaste Profile: Crisp, creamy and cheesy.",
+   "image": "cheesy-french-fries.jpg"
+  },
+  {
+   "slug": "chicken-loaded-fries",
+   "name": "Chicken Loaded Fries",
+   "price": 180,
+   "category": "Quick Bites",
+   "dietType": "nonveg",
+   "description": "French fries loaded with chicken and sauces: a snack that eats like a meal.\n\nIngredients (Typical):\n- Potatoes\n- Chicken pieces\n- Mayonnaise, chilli or BBQ sauce (if used in the actual recipe)\n- Cheese (if used in the actual recipe)\n- Spices\n- Oil for frying\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot.\n\nTaste Profile: Loaded, savoury and saucy.",
+   "image": "chicken-loaded-fries.jpg"
+  },
+  {
+   "slug": "paneer-loaded-fries",
+   "name": "Paneer Loaded Fries",
+   "price": 180,
+   "category": "Quick Bites",
+   "dietType": "veg",
+   "description": "French fries loaded with paneer and sauces: a snack that eats like a meal.\n\nIngredients (Typical):\n- Potatoes\n- Paneer\n- Sauces (if used in the actual recipe)\n- Cheese (if used in the actual recipe)\n- Spices\n- Oil for frying\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot.\n\nTaste Profile: Loaded, creamy and saucy.",
+   "image": "paneer-loaded-fries.jpg"
+  }
+ ]
+}
