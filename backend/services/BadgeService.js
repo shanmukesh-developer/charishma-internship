@@ -87,7 +87,8 @@ const creditCustomerForDelivery = async (User, order) => {
   const bump = (col, by) => literal(`COALESCE("${col}", 0) + ${Number(by)}`);
   await User.update(
     {
-      completedOrders: bump('completedOrders', 1),
+      // An owner-only test order (utils/testView) is not counted for the public leaderboard (top students by orders).
+      ...(order.isTestData ? {} : { completedOrders: bump('completedOrders', 1) }),
       ...(points > 0 ? { zenPoints: bump('zenPoints', points) } : {}),
       ...(lateNight ? { lateNightOrders: bump('lateNightOrders', 1) } : {})
     },

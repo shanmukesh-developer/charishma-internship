@@ -7,6 +7,8 @@ const initBikePoolModel = (sequelize) => {
 
   BikePool = sequelize.define('BikePool', {
     id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+    // Owner-only test row (utils/testView, scripts/test_data_v2_seed.js): hidden from every non-tester request.
+    isTestData: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     creatorId: { type: DataTypes.UUID, allowNull: false },
     creatorRole: { type: DataTypes.STRING, allowNull: false }, // 'rider' or 'passenger'
     coRiderId: { type: DataTypes.UUID, allowNull: true }, // Legacy/1-to-1 fallback. Will use PoolRequests for many.

@@ -393,6 +393,7 @@ function StoresScreen() {
             <span className="min-w-0">
               <span className="flex flex-wrap items-center gap-1.5">
                 <span className="truncate font-medium text-fg hover:underline">{store.name}</span>
+                {store.isTestData && <Chip tone="sky" title="Owner-only test data: only the phone numbers on Config > Test data see this store">Test data</Chip>}
                 <Chip tone={STATUS_TONE[status]} dot title={status === 'closed' && store.closedReason ? store.closedReason : STATUS_META[status].help}>{status === 'closed' && store.isOpenNow === false ? 'Paused' : STATUS_META[status].label}</Chip>
                 {store.isFeatured && <Chip tone="amber">{store.featuredBadge || 'Featured'}</Chip>}
                 {store.isOffline && !local && <Chip title="No partner app; ZENV handles orders">Managed</Chip>}

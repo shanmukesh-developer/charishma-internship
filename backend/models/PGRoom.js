@@ -7,6 +7,8 @@ const initPGRoomModel = (sequelize) => {
 
   PGRoom = sequelize.define('PGRoom', {
     id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+    // Owner-only test row (utils/testView, scripts/test_data_v2_seed.js): hidden from every non-tester request.
+    isTestData: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     hostelId: { type: DataTypes.UUID, allowNull: false },
     roomNumber: { type: DataTypes.STRING, allowNull: false },
     sharingType: { type: DataTypes.INTEGER, allowNull: false }, // 1, 2, 3, 4 (seater)

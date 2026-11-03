@@ -1,0 +1,1739 @@
+{
+  "version": 2,
+  "note": "Owner-only test data (owner, 3 Nov 2026), seen only by the tester phones in TEST_VIEWER_PHONES (utils/testView). Built from earlier vetted demo data (generic names, Unsplash photos, Unsplash License); real business names and brand products left out; each photo used once. scripts/test_data_v2_seed.js adds it; REMOVE_TEST_DATA_V2 / Admin > Config > Test data removes it. PG photos: Wikimedia Commons (CC0 / CC BY / CC BY-SA; author, licence and source in each photo credit). Rides are hosted by the tester accounts themselves (no other accounts are made).",
+  "stores": [
+    {
+      "key": "restaurant:tandoori-nights",
+      "name": "Tandoori Nights",
+      "vendorType": "RESTAURANT",
+      "section": "food",
+      "tags": [
+        "north indian",
+        "tandoor"
+      ],
+      "location": "Near Neerukonda bus stop, Neerukonda",
+      "lat": 16.458099999999998,
+      "lon": 80.5041,
+      "deliveryTime": 35,
+      "operatingHours": {
+        "start": "10:00",
+        "end": "23:00"
+      },
+      "description": "North Indian kitchen: tandoori starters, curries and naan.",
+      "imageUrl": "https://images.unsplash.com/photo-1610057099443-fde8c4d50f91?w=800&q=75&auto=format&fit=crop",
+      "items": [
+        {
+          "key": "tandoori-chicken-half",
+          "name": "Tandoori Chicken Half",
+          "price": 260,
+          "category": "Tandoor Starters",
+          "description": "Four pieces of chicken marinated in yoghurt and spices, roasted in the clay oven.",
+          "dietType": "nonveg",
+          "imageUrl": "https://images.unsplash.com/photo-1610057099443-fde8c4d50f91?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "chicken-tikka",
+          "name": "Chicken Tikka",
+          "price": 240,
+          "category": "Tandoor Starters",
+          "description": "Boneless chicken chunks in a spiced yoghurt marinade, grilled on skewers.",
+          "dietType": "nonveg",
+          "imageUrl": "https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "chicken-seekh-kebab",
+          "name": "Chicken Seekh Kebab",
+          "price": 230,
+          "category": "Tandoor Starters",
+          "description": "Minced chicken with herbs and spices, shaped on skewers and roasted.",
+          "dietType": "nonveg",
+          "imageUrl": "https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "paneer-tikka",
+          "name": "Paneer Tikka",
+          "price": 220,
+          "category": "Tandoor Starters",
+          "description": "Cottage cheese cubes with peppers and onion, marinated and grilled.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "butter-chicken",
+          "name": "Butter Chicken",
+          "price": 280,
+          "category": "Curries",
+          "description": "Tandoori chicken simmered in a mild tomato, butter and cream gravy.",
+          "dietType": "nonveg",
+          "imageUrl": "https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "paneer-butter-masala",
+          "name": "Paneer Butter Masala",
+          "price": 240,
+          "category": "Curries",
+          "description": "Soft paneer cubes in a rich tomato and cashew gravy.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "mutton-rogan-josh",
+          "name": "Mutton Rogan Josh",
+          "price": 340,
+          "category": "Curries",
+          "description": "Tender mutton in a Kashmiri red chilli and yoghurt gravy.",
+          "dietType": "nonveg",
+          "imageUrl": "https://images.unsplash.com/photo-1596797038530-2c107229654b?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "butter-naan",
+          "name": "Butter Naan",
+          "price": 50,
+          "category": "Breads",
+          "description": "Soft leavened bread from the tandoor, brushed with butter.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=800&q=75&auto=format&fit=crop"
+        }
+      ]
+    },
+    {
+      "key": "restaurant:andhra-spice-handi",
+      "name": "Andhra Spice Handi",
+      "vendorType": "RESTAURANT",
+      "section": "food",
+      "tags": [
+        "andhra",
+        "meals"
+      ],
+      "location": "Kuragallu road, near SRM AP east gate",
+      "lat": 16.4621,
+      "lon": 80.5041,
+      "deliveryTime": 30,
+      "operatingHours": {
+        "start": "10:00",
+        "end": "23:00"
+      },
+      "description": "Andhra biryanis, chicken fry and full meals.",
+      "imageUrl": "https://images.unsplash.com/photo-1631515243349-e0cb75fb8d3a?w=800&q=75&auto=format&fit=crop",
+      "items": [
+        {
+          "key": "chicken-fry-piece-biryani",
+          "name": "Chicken Fry Piece Biryani",
+          "price": 260,
+          "category": "Biryani",
+          "description": "Biryani rice with spicy Andhra-style fried chicken pieces.",
+          "dietType": "nonveg",
+          "imageUrl": "https://images.unsplash.com/photo-1631515243349-e0cb75fb8d3a?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "ulavacharu-chicken-biryani",
+          "name": "Ulavacharu Chicken Biryani",
+          "price": 290,
+          "category": "Biryani",
+          "description": "Chicken biryani finished with a rich horse gram gravy.",
+          "dietType": "nonveg",
+          "imageUrl": "https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "paneer-biryani",
+          "name": "Paneer Biryani",
+          "price": 220,
+          "category": "Biryani",
+          "description": "Spicy paneer pieces layered with biryani rice and mint.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1642821373181-696a54913e93?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "egg-biryani",
+          "name": "Egg Biryani",
+          "price": 200,
+          "category": "Biryani",
+          "description": "Andhra-style spicy biryani with two masala eggs.",
+          "dietType": "egg",
+          "imageUrl": "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "kodi-vepudu",
+          "name": "Kodi Vepudu",
+          "price": 240,
+          "category": "Curries & Fry",
+          "description": "Dry Andhra chicken fry with Guntur chilli, curry leaves and garlic.",
+          "dietType": "nonveg",
+          "imageUrl": "https://images.unsplash.com/photo-1628294895950-9805252327bc?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "andhra-veg-meals",
+          "name": "Andhra Veg Meals",
+          "price": 180,
+          "category": "Meals",
+          "description": "Rice, pappu, sambar, rasam, two curries, pickle, curd and papad.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1567337710282-00832b415979?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "andhra-chicken-meals",
+          "name": "Andhra Chicken Meals",
+          "price": 240,
+          "category": "Meals",
+          "description": "Rice with chicken curry, pappu, rasam, pickle, curd and papad.",
+          "dietType": "nonveg",
+          "imageUrl": "https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=800&q=75&auto=format&fit=crop"
+        }
+      ]
+    },
+    {
+      "key": "restaurant:artisanal-pizza-lab",
+      "name": "Artisanal Pizza Lab",
+      "vendorType": "RESTAURANT",
+      "section": "food",
+      "tags": [
+        "pizza",
+        "italian"
+      ],
+      "location": "Mangalagiri road, Nidamarru",
+      "lat": 16.466099999999997,
+      "lon": 80.5041,
+      "deliveryTime": 40,
+      "operatingHours": {
+        "start": "10:00",
+        "end": "23:00"
+      },
+      "description": "Thin-crust pizzas, pasta and fries.",
+      "imageUrl": "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&q=75&auto=format&fit=crop",
+      "items": [
+        {
+          "key": "farmhouse-veggie-pizza",
+          "name": "Farmhouse Veggie Pizza",
+          "price": 340,
+          "category": "Pizza",
+          "description": "Bell pepper, onion, mushroom, tomato and sweet corn on a thin crust.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "pesto-paneer-pizza",
+          "name": "Pesto Paneer Pizza",
+          "price": 380,
+          "category": "Pizza",
+          "description": "Basil pesto base with grilled paneer, cherry tomato and mozzarella.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1585238342024-78d387f4a707?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "chicken-pepperoni-pizza",
+          "name": "Chicken Pepperoni Pizza",
+          "price": 420,
+          "category": "Pizza",
+          "description": "Chicken pepperoni slices with mozzarella and oregano on a tomato base.",
+          "dietType": "nonveg",
+          "imageUrl": "https://images.unsplash.com/photo-1628840042765-356cda07504e?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "smoked-chicken-bbq-pizza",
+          "name": "Smoked Chicken BBQ Pizza",
+          "price": 420,
+          "category": "Pizza",
+          "description": "Smoked chicken, red onion and barbecue sauce with mozzarella.",
+          "dietType": "nonveg",
+          "imageUrl": "https://images.unsplash.com/photo-1574126154517-d1e0d89ef734?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "penne-arrabbiata",
+          "name": "Penne Arrabbiata",
+          "price": 260,
+          "category": "Pasta",
+          "description": "Penne in a spicy tomato and garlic sauce with basil.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "peri-peri-fries",
+          "name": "Peri Peri Fries",
+          "price": 140,
+          "category": "Sides & Drinks",
+          "description": "Crisp fries tossed in peri peri seasoning.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1630384060421-cb20d0e0649d?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "lemon-iced-tea",
+          "name": "Lemon Iced Tea",
+          "price": 110,
+          "category": "Sides & Drinks",
+          "description": "Brewed black tea chilled with lemon and mint.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=800&q=75&auto=format&fit=crop"
+        }
+      ]
+    },
+    {
+      "key": "restaurant:burger-bunker",
+      "name": "Burger Bunker",
+      "vendorType": "RESTAURANT",
+      "section": "food",
+      "tags": [
+        "burgers",
+        "fast food"
+      ],
+      "location": "Opposite SRM AP main gate, Neerukonda",
+      "lat": 16.4701,
+      "lon": 80.5041,
+      "deliveryTime": 25,
+      "operatingHours": {
+        "start": "10:00",
+        "end": "23:00"
+      },
+      "description": "Chicken burgers, loaded fries and thick shakes.",
+      "imageUrl": "https://images.unsplash.com/photo-1606755962773-d324e0a13086?w=800&q=75&auto=format&fit=crop",
+      "items": [
+        {
+          "key": "crispy-chicken-burger",
+          "name": "Crispy Chicken Burger",
+          "price": 219,
+          "category": "Burgers",
+          "description": "Buttermilk-fried chicken fillet with slaw and garlic mayo.",
+          "dietType": "nonveg",
+          "imageUrl": "https://images.unsplash.com/photo-1606755962773-d324e0a13086?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "grilled-chicken-burger",
+          "name": "Grilled Chicken Burger",
+          "price": 229,
+          "category": "Burgers",
+          "description": "Flame-grilled chicken patty with cheese, lettuce and tomato.",
+          "dietType": "nonveg",
+          "imageUrl": "https://images.unsplash.com/photo-1586816001966-79b736744398?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "salted-fries",
+          "name": "Salted Fries",
+          "price": 99,
+          "category": "Sides",
+          "description": "Crisp golden fries with a pinch of salt.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "cheesy-loaded-fries",
+          "name": "Cheesy Loaded Fries",
+          "price": 159,
+          "category": "Sides",
+          "description": "Fries topped with cheese sauce, jalapeno and herbs.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1585109649139-366815a0d713?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "chocolate-thick-shake",
+          "name": "Chocolate Thick Shake",
+          "price": 149,
+          "category": "Shakes",
+          "description": "Thick chocolate shake blended with vanilla ice cream.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1577805947697-89e18249d767?w=800&q=75&auto=format&fit=crop"
+        }
+      ]
+    },
+    {
+      "key": "restaurant:noodle-town",
+      "name": "Noodle Town",
+      "vendorType": "RESTAURANT",
+      "section": "food",
+      "tags": [
+        "chinese",
+        "noodles"
+      ],
+      "location": "Neerukonda village centre",
+      "lat": 16.458099999999998,
+      "lon": 80.5101,
+      "deliveryTime": 30,
+      "operatingHours": {
+        "start": "10:00",
+        "end": "23:00"
+      },
+      "description": "Ramen, udon, noodles and dumplings.",
+      "imageUrl": "https://images.unsplash.com/photo-1526318896980-cf78c088247c?w=800&q=75&auto=format&fit=crop",
+      "items": [
+        {
+          "key": "chicken-shoyu-ramen",
+          "name": "Chicken Shoyu Ramen",
+          "price": 330,
+          "category": "Ramen",
+          "description": "Soy-based chicken broth with noodles, chicken slices, egg and spring onion.",
+          "dietType": "nonveg",
+          "imageUrl": "https://images.unsplash.com/photo-1526318896980-cf78c088247c?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "spicy-kimchi-chicken-ramen",
+          "name": "Spicy Kimchi Chicken Ramen",
+          "price": 340,
+          "category": "Ramen",
+          "description": "Spicy kimchi broth with noodles, chicken and a soft-boiled egg.",
+          "dietType": "nonveg",
+          "imageUrl": "https://images.unsplash.com/photo-1557872943-16a5ac26437e?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "egg-ramen",
+          "name": "Egg Ramen",
+          "price": 260,
+          "category": "Ramen",
+          "description": "Ramen noodles in a light broth with a soft-boiled egg and greens.",
+          "dietType": "egg",
+          "imageUrl": "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "chicken-yaki-udon",
+          "name": "Chicken Yaki Udon",
+          "price": 300,
+          "category": "Stir-Fried Noodles",
+          "description": "Thick udon noodles stir-fried with chicken, cabbage and soy.",
+          "dietType": "nonveg",
+          "imageUrl": "https://images.unsplash.com/photo-1612929633738-8fe44f7ec841?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "veg-chilli-garlic-noodles",
+          "name": "Veg Chilli Garlic Noodles",
+          "price": 220,
+          "category": "Stir-Fried Noodles",
+          "description": "Noodles tossed with garlic, chilli and fresh vegetables.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1585032226651-759b368d7246?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "chicken-gyoza",
+          "name": "Chicken Gyoza",
+          "price": 240,
+          "category": "Sides & Drinks",
+          "description": "Six pan-fried chicken dumplings with a soy dip.",
+          "dietType": "nonveg",
+          "imageUrl": "https://images.unsplash.com/photo-1625220194771-7ebdea0b70b9?w=800&q=75&auto=format&fit=crop"
+        }
+      ]
+    },
+    {
+      "key": "restaurant:fitbites-salad-lounge",
+      "name": "FitBites Salad Lounge",
+      "vendorType": "RESTAURANT",
+      "section": "food",
+      "tags": [
+        "healthy",
+        "salads"
+      ],
+      "location": "Near SRM AP main gate, Neerukonda",
+      "lat": 16.4621,
+      "lon": 80.5101,
+      "deliveryTime": 25,
+      "operatingHours": {
+        "start": "10:00",
+        "end": "23:00"
+      },
+      "description": "Salads, bowls and wraps.",
+      "imageUrl": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&q=75&auto=format&fit=crop",
+      "items": [
+        {
+          "key": "grilled-chicken-caesar-salad",
+          "name": "Grilled Chicken Caesar Salad",
+          "price": 270,
+          "category": "Salads",
+          "description": "Grilled chicken, romaine, parmesan and croutons with a light Caesar dressing.",
+          "dietType": "nonveg",
+          "imageUrl": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "quinoa-chickpea-salad",
+          "name": "Quinoa Chickpea Salad",
+          "price": 220,
+          "category": "Salads",
+          "description": "Quinoa, chickpeas, cucumber, peppers and herbs with a lemon dressing.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "paneer-tikka-salad",
+          "name": "Paneer Tikka Salad",
+          "price": 230,
+          "category": "Salads",
+          "description": "Grilled paneer tikka over mixed greens with mint dressing.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "keto-egg-salad",
+          "name": "Keto Egg Salad",
+          "price": 210,
+          "category": "Salads",
+          "description": "Boiled eggs, avocado, greens and olive oil, low in carbs.",
+          "dietType": "egg",
+          "imageUrl": "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "grilled-chicken-wrap",
+          "name": "Grilled Chicken Wrap",
+          "price": 220,
+          "category": "Wraps",
+          "description": "Whole wheat wrap with grilled chicken, lettuce and hung curd dressing.",
+          "dietType": "nonveg",
+          "imageUrl": "https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=800&q=75&auto=format&fit=crop"
+        }
+      ]
+    },
+    {
+      "key": "restaurant:himalayan-dumpling-house",
+      "name": "Himalayan Dumpling House",
+      "vendorType": "RESTAURANT",
+      "section": "food",
+      "tags": [
+        "momos",
+        "tibetan"
+      ],
+      "location": "Neerukonda main road",
+      "lat": 16.4701,
+      "lon": 80.5101,
+      "deliveryTime": 30,
+      "operatingHours": {
+        "start": "10:00",
+        "end": "23:00"
+      },
+      "description": "Steamed momos and hot tea.",
+      "imageUrl": "https://images.unsplash.com/photo-1563245372-f21724e3856d?w=800&q=75&auto=format&fit=crop",
+      "items": [
+        {
+          "key": "veg-steamed-dumplings",
+          "name": "Veg Steamed Dumplings",
+          "price": 130,
+          "category": "Dumplings",
+          "description": "Six steamed dumplings with mixed vegetables and chutney.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1563245372-f21724e3856d?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "chicken-steamed-dumplings",
+          "name": "Chicken Steamed Dumplings",
+          "price": 160,
+          "category": "Dumplings",
+          "description": "Six steamed chicken dumplings with chilli sauce.",
+          "dietType": "nonveg",
+          "imageUrl": "https://images.unsplash.com/photo-1496116218417-1a781b1c416c?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "cheese-corn-dumplings",
+          "name": "Cheese Corn Dumplings",
+          "price": 160,
+          "category": "Dumplings",
+          "description": "Six steamed dumplings filled with sweet corn and cheese.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "ginger-honey-lemon-tea",
+          "name": "Ginger Honey Lemon Tea",
+          "price": 50,
+          "category": "Noodle Soups & Tea",
+          "description": "Hot tea with fresh ginger, honey and lemon.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1571934811356-5cc061b6821f?w=800&q=75&auto=format&fit=crop"
+        }
+      ]
+    },
+    {
+      "key": "stall:main-gate-chai-adda",
+      "name": "Main Gate Chai Adda",
+      "vendorType": "LOCAL_VENDOR",
+      "section": "stalls",
+      "tags": [
+        "chai",
+        "tea",
+        "coffee",
+        "snacks",
+        "samosa",
+        "bajji"
+      ],
+      "location": "Opposite SRM AP main gate, Neerukonda",
+      "lat": 16.4641,
+      "lon": 80.5071,
+      "operatingHours": {
+        "start": "06:30",
+        "end": "21:00"
+      },
+      "stallDescription": "Kulhad chai, filter coffee and hot samosas, a few steps from the main gate.",
+      "foodCategory": "Chai & snacks",
+      "imageUrl": "https://images.unsplash.com/photo-1630748662359-40a2105640c7?w=800&q=75&auto=format&fit=crop",
+      "items": [
+        {
+          "key": "cutting-chai",
+          "name": "Cutting Chai",
+          "price": 15,
+          "category": "Chai & Coffee",
+          "description": "Strong half-glass milk tea boiled with ginger.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1630748662359-40a2105640c7?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "masala-chai",
+          "name": "Masala Chai",
+          "price": 20,
+          "category": "Chai & Coffee",
+          "description": "Milk tea with ginger, cardamom and a pinch of house masala.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "filter-coffee",
+          "name": "Filter Coffee",
+          "price": 25,
+          "category": "Chai & Coffee",
+          "description": "South Indian decoction coffee with frothy hot milk.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1497515114629-f71d768fd07c?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "bread-omelette",
+          "name": "Bread Omelette",
+          "price": 45,
+          "category": "Snacks",
+          "description": "Two-egg masala omelette folded into buttered toasted bread.",
+          "dietType": "egg",
+          "imageUrl": "https://images.unsplash.com/photo-1525351484163-7529414344d8?w=800&q=75&auto=format&fit=crop"
+        }
+      ]
+    },
+    {
+      "key": "stall:neerukonda-tiffin-centre",
+      "name": "Neerukonda Tiffin Centre",
+      "vendorType": "LOCAL_VENDOR",
+      "section": "stalls",
+      "tags": [
+        "tiffin",
+        "idli",
+        "dosa",
+        "vada",
+        "breakfast",
+        "south-indian"
+      ],
+      "location": "Neerukonda village road, near the bus stop",
+      "lat": 16.4668,
+      "lon": 80.5032,
+      "operatingHours": {
+        "start": "06:30",
+        "end": "21:00"
+      },
+      "stallDescription": "Andhra-style tiffin: soft idli, crisp dosa and pesarattu with three chutneys.",
+      "foodCategory": "Tiffin (idli & dosa)",
+      "imageUrl": "https://images.unsplash.com/photo-1630383249896-424e482df921?w=800&q=75&auto=format&fit=crop",
+      "items": [
+        {
+          "key": "idli-3-pcs",
+          "name": "Idli (3 pcs)",
+          "price": 40,
+          "category": "Idli & Vada",
+          "description": "Steamed rice cakes with sambar, coconut and tomato chutney.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "idli-vada-combo",
+          "name": "Idli Vada Combo",
+          "price": 55,
+          "category": "Idli & Vada",
+          "description": "Two idlis and one medu vada with sambar and chutneys.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1630383249896-424e482df921?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "plain-dosa",
+          "name": "Plain Dosa",
+          "price": 45,
+          "category": "Dosa",
+          "description": "Thin crisp dosa served with sambar and chutneys.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1668236543090-82eba5ee5976?w=800&q=75&auto=format&fit=crop"
+        }
+      ]
+    },
+    {
+      "key": "stall:sweet-crumbs-bakery",
+      "name": "Sweet Crumbs Bakery",
+      "vendorType": "LOCAL_VENDOR",
+      "section": "stalls",
+      "tags": [
+        "bakery",
+        "sweets",
+        "cakes",
+        "pastry",
+        "puffs",
+        "desserts"
+      ],
+      "location": "Neerukonda main road, near SRM AP",
+      "lat": 16.4659,
+      "lon": 80.5079,
+      "operatingHours": {
+        "start": "08:00",
+        "end": "21:00"
+      },
+      "stallDescription": "Fresh puffs, eggless pastries and traditional sweets by weight.",
+      "foodCategory": "Sweets & bakery",
+      "imageUrl": "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=800&q=75&auto=format&fit=crop",
+      "items": [
+        {
+          "key": "chocolate-brownie",
+          "name": "Chocolate Brownie",
+          "price": 60,
+          "category": "Cakes & Pastries",
+          "description": "Fudgy eggless chocolate brownie.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "vanilla-cupcake",
+          "name": "Vanilla Cupcake",
+          "price": 40,
+          "category": "Cakes & Pastries",
+          "description": "Eggless vanilla cupcake with buttercream on top.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1576618148400-f54bed99fcfd?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "chocolate-chip-cookies-4-pcs",
+          "name": "Chocolate Chip Cookies (4 pcs)",
+          "price": 60,
+          "category": "Cookies",
+          "description": "Eggless butter cookies with chocolate chips.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1548365328-8c6db3220e4c?w=800&q=75&auto=format&fit=crop"
+        }
+      ]
+    },
+    {
+      "key": "stall:green-bowl-salads",
+      "name": "Green Bowl Salads",
+      "vendorType": "LOCAL_VENDOR",
+      "section": "stalls",
+      "tags": [
+        "healthy",
+        "salads",
+        "bowls",
+        "protein",
+        "gym-fuel",
+        "fruit"
+      ],
+      "location": "Near the SRM AP sports complex road",
+      "lat": 16.4613,
+      "lon": 80.5061,
+      "operatingHours": {
+        "start": "07:00",
+        "end": "20:00"
+      },
+      "stallDescription": "Salads, protein bowls and fruit bowls for gym days.",
+      "foodCategory": "Healthy bowls & salads",
+      "imageUrl": "https://images.unsplash.com/photo-1505576633757-0ac1084af824?w=800&q=75&auto=format&fit=crop",
+      "items": [
+        {
+          "key": "paneer-salad-bowl",
+          "name": "Paneer Salad Bowl",
+          "price": 130,
+          "category": "Bowls",
+          "description": "Grilled paneer with greens, corn and a yoghurt dressing.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1505576633757-0ac1084af824?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "chicken-rice-bowl",
+          "name": "Chicken Rice Bowl",
+          "price": 160,
+          "category": "Bowls",
+          "description": "Brown rice with grilled chicken and sauteed vegetables.",
+          "dietType": "nonveg",
+          "imageUrl": "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "green-smoothie",
+          "name": "Green Smoothie",
+          "price": 90,
+          "category": "Drinks",
+          "description": "Spinach, banana and apple blended with curd.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1622597467836-f3285f2131b8?w=800&q=75&auto=format&fit=crop"
+        }
+      ]
+    },
+    {
+      "key": "store:kirana-and-late-night-mart",
+      "name": "Neerukonda Fresh Mart",
+      "vendorType": "GROCERY",
+      "section": "groceries",
+      "tags": [
+        "fruits",
+        "vegetables",
+        "fresh"
+      ],
+      "location": "Neerukonda main road",
+      "lat": 16.458099999999998,
+      "lon": 80.50309999999999,
+      "operatingHours": {
+        "start": "09:00",
+        "end": "22:00"
+      },
+      "description": "Fresh fruit and vegetables.",
+      "imageUrl": "https://images.unsplash.com/photo-1590502593747-42a996133562?w=800&q=75&auto=format&fit=crop",
+      "items": [
+        {
+          "key": "fresh-lemon",
+          "name": "Lemons",
+          "price": 10,
+          "category": "Fresh",
+          "description": "Fresh lemons.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1590502593747-42a996133562?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "carrot-local",
+          "name": "Carrots (local)",
+          "price": 39,
+          "category": "Fresh",
+          "description": "Fresh local carrots.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "fresh-banana-robusta-premium",
+          "name": "Robusta Bananas",
+          "price": 49,
+          "category": "Fresh Fruits",
+          "description": "Ripe robusta bananas.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "fresh-orange-kinnow-juicy",
+          "name": "Kinnow Oranges",
+          "price": 89,
+          "category": "Fresh Fruits",
+          "description": "Fresh kinnow oranges, good for juice.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "fresh-garlic-velluli",
+          "name": "Garlic (Velluli)",
+          "price": 65,
+          "category": "Monsoon Wellness Picks",
+          "description": "Fresh garlic bulbs.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1540148426945-6cf22a6b2383?w=800&q=75&auto=format&fit=crop"
+        }
+      ]
+    },
+    {
+      "key": "store:electronics-and-tech",
+      "name": "Electronics & Tech",
+      "vendorType": "ELECTRONICS",
+      "section": "groceries",
+      "tags": [
+        "electronics",
+        "gadgets"
+      ],
+      "location": "Mangalagiri road, Nidamarru",
+      "lat": 16.4611,
+      "lon": 80.5071,
+      "operatingHours": {
+        "start": "09:00",
+        "end": "22:00"
+      },
+      "description": "Chargers, boards, gadgets & accessories",
+      "imageUrl": "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=800&q=75&auto=format&fit=crop",
+      "items": [
+        {
+          "key": "65w-gan-fast-type-c-charger",
+          "name": "65W GaN Fast Type-C Charger",
+          "price": 1499,
+          "originalPrice": 2499,
+          "category": "Electronics & Tech",
+          "description": "65 W USB Type-C fast charger for laptops and phones that charge over USB-C.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "anc-wireless-earbuds",
+          "name": "ANC Wireless Earbuds",
+          "price": 1499,
+          "originalPrice": 2999,
+          "category": "Electronics & Tech",
+          "description": "Wireless earbuds with active noise cancellation and a charging case.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "wireless-keyboard-and-mouse-combo",
+          "name": "Wireless Keyboard & Mouse Combo",
+          "price": 899,
+          "originalPrice": 1599,
+          "category": "Electronics & Tech",
+          "description": "Wireless keyboard and mouse that share one USB receiver.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=800&q=75&auto=format&fit=crop"
+        }
+      ]
+    },
+    {
+      "key": "store:toy-mania",
+      "name": "Toy Mania",
+      "vendorType": "TOYS",
+      "section": "groceries",
+      "tags": [
+        "toys",
+        "games",
+        "fitness"
+      ],
+      "location": "Mangalagiri town",
+      "lat": 16.458099999999998,
+      "lon": 80.5111,
+      "operatingHours": {
+        "start": "09:00",
+        "end": "22:00"
+      },
+      "description": "Toys, games & fitness gear",
+      "imageUrl": "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=800&q=75&auto=format&fit=crop",
+      "items": [
+        {
+          "key": "badminton-racket-pair-with-shuttle",
+          "name": "Badminton Racket Pair with Shuttle",
+          "price": 249,
+          "originalPrice": 550,
+          "category": "Sports & games",
+          "description": "Two lightweight rackets and a shuttlecock.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "magnetic-chess-board-travel-set",
+          "name": "Magnetic Chess Board Travel Set",
+          "price": 179,
+          "originalPrice": 350,
+          "category": "Games & plushies",
+          "description": "Folding magnetic chess board; the pieces stay in place.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1529699211952-734e80c4d42b?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "anti-slip-yoga-mat-6mm-premium",
+          "name": "Anti-Slip Yoga Mat (6 mm)",
+          "price": 399,
+          "originalPrice": 799,
+          "category": "Fitness ready",
+          "description": "6 mm thick yoga mat with a non-slip surface.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?w=800&q=75&auto=format&fit=crop"
+        }
+      ]
+    },
+    {
+      "key": "store:seeds-and-gardening",
+      "name": "Seeds & Gardening",
+      "vendorType": "SEEDS",
+      "section": "groceries",
+      "tags": [
+        "seeds",
+        "gardening"
+      ],
+      "location": "Nidamarru village",
+      "lat": 16.4611,
+      "lon": 80.50309999999999,
+      "operatingHours": {
+        "start": "09:00",
+        "end": "22:00"
+      },
+      "description": "Vegetable seeds for your balcony garden",
+      "imageUrl": "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=800&q=75&auto=format&fit=crop",
+      "items": [
+        {
+          "key": "tomato-seeds",
+          "name": "Tomato Seeds",
+          "price": 41,
+          "category": "Seeds",
+          "description": "Tomato seeds for pots and balcony gardens.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "cucumber-khira-seeds",
+          "name": "Cucumber Khira Seeds",
+          "price": 59,
+          "category": "Seeds",
+          "description": "Cucumber seeds for pots and balcony gardens.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1604977042946-1eecc30f269e?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "chilli-hot-pepper-seeds",
+          "name": "Chilli Hot Pepper Seeds",
+          "price": 59,
+          "category": "Seeds",
+          "description": "Hot chilli seeds for pots and balcony gardens.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1583119022894-919a68a3d0e3?w=800&q=75&auto=format&fit=crop"
+        }
+      ]
+    },
+    {
+      "key": "store:laptop-and-tech-repairs",
+      "name": "Laptop & Tech Repairs",
+      "vendorType": "REPAIRS",
+      "section": "services",
+      "tags": [
+        "repairs",
+        "service"
+      ],
+      "location": "Near SRM AP main gate, Neerukonda",
+      "lat": 16.4671,
+      "lon": 80.5111,
+      "operatingHours": {
+        "start": "09:00",
+        "end": "22:00"
+      },
+      "description": "Laptop repairs and upgrades near SRM AP.",
+      "imageUrl": "https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=800&q=75&auto=format&fit=crop",
+      "items": [
+        {
+          "key": "laptop-deep-clean-and-thermal-paste",
+          "name": "Laptop Deep Clean & Thermal Paste",
+          "price": 499,
+          "category": "Laptop & Tech Repairs",
+          "description": "Fan and vent cleaning with fresh thermal paste, for a laptop that runs hot or loud.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "laptop-screen-replacement",
+          "name": "Laptop Screen Replacement",
+          "price": 2999,
+          "category": "Laptop & Tech Repairs",
+          "description": "Full HD replacement display fitted and tested. Price for a 15.6-inch screen.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "ssd-upgrade-and-os-migration-512gb",
+          "name": "SSD Upgrade & OS Migration (512GB)",
+          "price": 2499,
+          "category": "Laptop & Tech Repairs",
+          "description": "A 512 GB NVMe SSD fitted, with your files and system moved over from the old drive.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?w=800&q=75&auto=format&fit=crop"
+        }
+      ]
+    },
+    {
+      "key": "store:tailoring-and-stitching",
+      "name": "Tailoring & Stitching",
+      "vendorType": "TAILORING",
+      "section": "services",
+      "tags": [
+        "tailoring",
+        "service"
+      ],
+      "location": "Kuragallu village road",
+      "lat": 16.4611,
+      "lon": 80.5111,
+      "operatingHours": {
+        "start": "09:00",
+        "end": "22:00"
+      },
+      "description": "Alterations, fitting and stitching.",
+      "imageUrl": "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=800&q=75&auto=format&fit=crop",
+      "items": [
+        {
+          "key": "jeans-and-trouser-length-alteration",
+          "name": "Jeans & Trouser Length Alteration",
+          "price": 60,
+          "category": "Tailoring & Stitching",
+          "description": "Length shortened with a neat machine hem, for jeans and formal trousers.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "shirt-kurti-fitting-and-alteration",
+          "name": "Shirt / Kurti Fitting & Alteration",
+          "price": 80,
+          "category": "Tailoring & Stitching",
+          "description": "Side and chest taken in for a better fit.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "button-attachment-and-seam-repair",
+          "name": "Button Attachment & Seam Repair",
+          "price": 30,
+          "category": "Tailoring & Stitching",
+          "description": "Buttons sewn back on and split seams repaired.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=800&q=75&auto=format&fit=crop"
+        },
+        {
+          "key": "custom-fest-kurti-blouse-stitching",
+          "name": "Custom Fest Kurti / Blouse Stitching",
+          "price": 299,
+          "category": "Tailoring & Stitching",
+          "description": "Kurti or blouse stitched to your measurements. Bring your own fabric.",
+          "dietType": "veg",
+          "imageUrl": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=800&q=75&auto=format&fit=crop"
+        }
+      ]
+    }
+  ],
+  "deals": [
+    {
+      "key": "deal:restaurant:tandoori-nights:mutton-rogan-josh",
+      "storeKey": "restaurant:tandoori-nights",
+      "itemKey": "mutton-rogan-josh",
+      "name": "Mutton Rogan Josh",
+      "originalPrice": 340,
+      "price": 240,
+      "remainingCount": 50
+    },
+    {
+      "key": "deal:restaurant:artisanal-pizza-lab:chicken-pepperoni-pizza",
+      "storeKey": "restaurant:artisanal-pizza-lab",
+      "itemKey": "chicken-pepperoni-pizza",
+      "name": "Chicken Pepperoni Pizza",
+      "originalPrice": 420,
+      "price": 295,
+      "remainingCount": 50
+    },
+    {
+      "key": "deal:restaurant:burger-bunker:grilled-chicken-burger",
+      "storeKey": "restaurant:burger-bunker",
+      "itemKey": "grilled-chicken-burger",
+      "name": "Grilled Chicken Burger",
+      "originalPrice": 229,
+      "price": 160,
+      "remainingCount": 50
+    },
+    {
+      "key": "deal:stall:sweet-crumbs-bakery:chocolate-brownie",
+      "storeKey": "stall:sweet-crumbs-bakery",
+      "itemKey": "chocolate-brownie",
+      "name": "Chocolate Brownie",
+      "originalPrice": 60,
+      "price": 40,
+      "remainingCount": 50
+    }
+  ],
+  "pgs": [
+    {
+      "key": "pg:greenfield-boys-pg",
+      "name": "Greenfield Boys PG",
+      "genderType": "Boys",
+      "area": "Neerukonda",
+      "address": "Neerukonda main road, near the SRM AP east gate, Neerukonda",
+      "distanceFromCollege": 0.9,
+      "baseRent": 6500,
+      "securityDeposit": 5000,
+      "totalRooms": 18,
+      "description": "Boys PG on Neerukonda main road, about a kilometre from SRM AP. Two- and three-sharing rooms with a study table and a cupboard for each bed, Wi-Fi, RO drinking water and a mess that serves four meals a day: vegetarian, with non-veg dinner on Wednesday and Saturday.",
+      "amenities": [
+        "Wi-Fi",
+        "Mess (4 meals)",
+        "RO drinking water",
+        "Power backup",
+        "Washing machine",
+        "CCTV at the entrance",
+        "Study table for each bed",
+        "Daily housekeeping"
+      ],
+      "highlights": [
+        "10 minutes walk to SRM AP",
+        "Four meals a day",
+        "Wi-Fi in every room"
+      ],
+      "houseRules": [
+        {
+          "category": "gate",
+          "rules": [
+            "The gate closes at 10:30 pm."
+          ]
+        },
+        {
+          "category": "visitors",
+          "rules": [
+            "Visitors meet residents in the lounge, 9 am to 8 pm."
+          ]
+        },
+        {
+          "category": "smoking",
+          "rules": [
+            "No smoking or alcohol in the building."
+          ]
+        }
+      ],
+      "mess": {
+        "meals": [
+          {
+            "key": "breakfast",
+            "label": "Breakfast",
+            "start": "07:30",
+            "end": "09:00"
+          },
+          {
+            "key": "lunch",
+            "label": "Lunch",
+            "start": "12:30",
+            "end": "14:00"
+          },
+          {
+            "key": "snacks",
+            "label": "Snacks",
+            "start": "17:00",
+            "end": "17:45"
+          },
+          {
+            "key": "dinner",
+            "label": "Dinner",
+            "start": "20:00",
+            "end": "21:30"
+          }
+        ],
+        "days": {
+          "mon": {
+            "breakfast": {
+              "menu": "Idli, sambar, coconut chutney",
+              "tag": "veg"
+            },
+            "lunch": {
+              "menu": "Rice, dal, beans poriyal, rasam, curd",
+              "tag": "veg"
+            },
+            "snacks": {
+              "menu": "Tea, onion pakoda",
+              "tag": "veg"
+            },
+            "dinner": {
+              "menu": "Chapati, mixed veg kurma, rice, buttermilk",
+              "tag": "veg"
+            }
+          },
+          "tue": {
+            "breakfast": {
+              "menu": "Pongal, vada, chutney",
+              "tag": "veg"
+            },
+            "lunch": {
+              "menu": "Rice, sambar, cabbage fry, rasam, curd",
+              "tag": "veg"
+            },
+            "snacks": {
+              "menu": "Coffee, biscuits",
+              "tag": "veg"
+            },
+            "dinner": {
+              "menu": "Phulka, paneer butter masala, jeera rice",
+              "tag": "veg"
+            }
+          },
+          "wed": {
+            "breakfast": {
+              "menu": "Poori, potato masala",
+              "tag": "veg"
+            },
+            "lunch": {
+              "menu": "Veg pulao, raita, dal, papad",
+              "tag": "veg"
+            },
+            "snacks": {
+              "menu": "Tea, samosa",
+              "tag": "veg"
+            },
+            "dinner": {
+              "menu": "Chicken curry or egg curry, rice, chapati",
+              "tag": "nonveg"
+            }
+          },
+          "thu": {
+            "breakfast": {
+              "menu": "Upma, chutney, banana",
+              "tag": "veg"
+            },
+            "lunch": {
+              "menu": "Rice, tomato dal, bhindi fry, rasam, curd",
+              "tag": "veg"
+            },
+            "snacks": {
+              "menu": "Tea, bhel",
+              "tag": "veg"
+            },
+            "dinner": {
+              "menu": "Chapati, chana masala, rice, curd",
+              "tag": "veg"
+            }
+          },
+          "fri": {
+            "breakfast": {
+              "menu": "Dosa, sambar, chutney",
+              "tag": "veg"
+            },
+            "lunch": {
+              "menu": "Lemon rice, curd rice, potato fry, pickle",
+              "tag": "veg"
+            },
+            "snacks": {
+              "menu": "Coffee, mirchi bajji",
+              "tag": "veg"
+            },
+            "dinner": {
+              "menu": "Veg biryani, raita, gulab jamun",
+              "tag": "veg"
+            }
+          },
+          "sat": {
+            "breakfast": {
+              "menu": "Bread, omelette or jam, milk",
+              "tag": "egg"
+            },
+            "lunch": {
+              "menu": "Rice, dal tadka, aloo gobi, rasam, curd",
+              "tag": "veg"
+            },
+            "snacks": {
+              "menu": "Tea, cake",
+              "tag": "veg"
+            },
+            "dinner": {
+              "menu": "Chicken biryani or veg biryani, raita",
+              "tag": "nonveg"
+            }
+          },
+          "sun": {
+            "breakfast": {
+              "menu": "Masala dosa, chutney",
+              "tag": "veg"
+            },
+            "lunch": {
+              "menu": "Rice, sambar, two curries, sweet",
+              "tag": "veg"
+            },
+            "snacks": {
+              "menu": "Tea, cutlet",
+              "tag": "veg"
+            },
+            "dinner": {
+              "menu": "Chapati, dal, curd",
+              "tag": "veg"
+            }
+          }
+        }
+      },
+      "photos": [
+        {
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bc/Hostel_Room_Inside_at_UAiU.jpg/1280px-Hostel_Room_Inside_at_UAiU.jpg",
+          "category": "ROOM",
+          "caption": "Two-sharing room with bunk beds",
+          "isCover": true,
+          "credit": {
+            "title": "Hostel Room Inside at UAiU.jpg",
+            "author": "ManoBV16",
+            "license": "CC0",
+            "source": "https://commons.wikimedia.org/wiki/File:Hostel_Room_Inside_at_UAiU.jpg"
+          }
+        },
+        {
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3d/Hostel_Room_Common_Area.jpg/1280px-Hostel_Room_Common_Area.jpg",
+          "category": "COMMON_AREA",
+          "caption": "Common lounge",
+          "isCover": false,
+          "credit": {
+            "title": "Hostel Room Common Area.jpg",
+            "author": "ManoBV16",
+            "license": "CC0",
+            "source": "https://commons.wikimedia.org/wiki/File:Hostel_Room_Common_Area.jpg"
+          }
+        },
+        {
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/98/South_Indian_Thali_Cropped.jpg/1280px-South_Indian_Thali_Cropped.jpg",
+          "category": "MESS",
+          "caption": "Lunch plate from the mess",
+          "isCover": false,
+          "credit": {
+            "title": "South Indian Thali Cropped.jpg",
+            "author": "Tracy Hunter",
+            "license": "CC BY 2.0",
+            "source": "https://commons.wikimedia.org/wiki/File:South_Indian_Thali_Cropped.jpg"
+          }
+        }
+      ],
+      "rooms": [
+        {
+          "roomNumber": "101",
+          "sharingType": 2,
+          "pricePerBed": 7500,
+          "totalBeds": 2,
+          "availableBeds": 1,
+          "floorNumber": 1,
+          "hasAttachedBathroom": true,
+          "hasAC": false,
+          "hasBalcony": false,
+          "furnishing": "Fully Furnished"
+        },
+        {
+          "roomNumber": "102",
+          "sharingType": 2,
+          "pricePerBed": 7500,
+          "totalBeds": 2,
+          "availableBeds": 2,
+          "floorNumber": 1,
+          "hasAttachedBathroom": true,
+          "hasAC": false,
+          "hasBalcony": true,
+          "furnishing": "Fully Furnished"
+        },
+        {
+          "roomNumber": "201",
+          "sharingType": 3,
+          "pricePerBed": 6500,
+          "totalBeds": 3,
+          "availableBeds": 2,
+          "floorNumber": 2,
+          "hasAttachedBathroom": true,
+          "hasAC": false,
+          "hasBalcony": false,
+          "furnishing": "Fully Furnished"
+        }
+      ]
+    },
+    {
+      "key": "pg:sunbeam-womens-pg",
+      "name": "Sunbeam Women’s PG",
+      "genderType": "Girls",
+      "area": "Kuragallu",
+      "address": "Kuragallu village road, about 1.5 km from the SRM AP main gate, Kuragallu",
+      "distanceFromCollege": 1.5,
+      "baseRent": 8000,
+      "securityDeposit": 8000,
+      "totalRooms": 12,
+      "description": "Women’s PG in Kuragallu, about 1.5 km from SRM AP. Single and two-sharing rooms with attached bathrooms and geysers, a resident warden, CCTV at the gate and a mess with South Indian meals.",
+      "amenities": [
+        "Wi-Fi",
+        "Mess (4 meals)",
+        "Attached bathrooms",
+        "Geyser",
+        "Resident warden",
+        "CCTV at the gate",
+        "RO drinking water",
+        "Washing machine"
+      ],
+      "highlights": [
+        "Resident warden",
+        "Attached bathrooms",
+        "Single rooms available"
+      ],
+      "houseRules": [
+        {
+          "category": "gate",
+          "rules": [
+            "The gate closes at 9:30 pm. Late entry with the warden’s permission."
+          ]
+        },
+        {
+          "category": "visitors",
+          "rules": [
+            "Visitors in the reception area only, 10 am to 7 pm."
+          ]
+        },
+        {
+          "category": "cooking",
+          "rules": [
+            "No cooking in the rooms. A kettle is allowed."
+          ]
+        }
+      ],
+      "mess": {
+        "meals": [
+          {
+            "key": "breakfast",
+            "label": "Breakfast",
+            "start": "07:30",
+            "end": "09:00"
+          },
+          {
+            "key": "lunch",
+            "label": "Lunch",
+            "start": "12:30",
+            "end": "14:00"
+          },
+          {
+            "key": "snacks",
+            "label": "Snacks",
+            "start": "17:00",
+            "end": "17:45"
+          },
+          {
+            "key": "dinner",
+            "label": "Dinner",
+            "start": "20:00",
+            "end": "21:30"
+          }
+        ],
+        "days": {
+          "mon": {
+            "breakfast": {
+              "menu": "Idli, sambar, coconut chutney",
+              "tag": "veg"
+            },
+            "lunch": {
+              "menu": "Rice, dal, beans poriyal, rasam, curd",
+              "tag": "veg"
+            },
+            "snacks": {
+              "menu": "Tea, onion pakoda",
+              "tag": "veg"
+            },
+            "dinner": {
+              "menu": "Chapati, mixed veg kurma, rice, buttermilk",
+              "tag": "veg"
+            }
+          },
+          "tue": {
+            "breakfast": {
+              "menu": "Pongal, vada, chutney",
+              "tag": "veg"
+            },
+            "lunch": {
+              "menu": "Rice, sambar, cabbage fry, rasam, curd",
+              "tag": "veg"
+            },
+            "snacks": {
+              "menu": "Coffee, biscuits",
+              "tag": "veg"
+            },
+            "dinner": {
+              "menu": "Phulka, paneer butter masala, jeera rice",
+              "tag": "veg"
+            }
+          },
+          "wed": {
+            "breakfast": {
+              "menu": "Poori, potato masala",
+              "tag": "veg"
+            },
+            "lunch": {
+              "menu": "Veg pulao, raita, dal, papad",
+              "tag": "veg"
+            },
+            "snacks": {
+              "menu": "Tea, samosa",
+              "tag": "veg"
+            },
+            "dinner": {
+              "menu": "Chicken curry or egg curry, rice, chapati",
+              "tag": "nonveg"
+            }
+          },
+          "thu": {
+            "breakfast": {
+              "menu": "Upma, chutney, banana",
+              "tag": "veg"
+            },
+            "lunch": {
+              "menu": "Rice, tomato dal, bhindi fry, rasam, curd",
+              "tag": "veg"
+            },
+            "snacks": {
+              "menu": "Tea, bhel",
+              "tag": "veg"
+            },
+            "dinner": {
+              "menu": "Chapati, chana masala, rice, curd",
+              "tag": "veg"
+            }
+          },
+          "fri": {
+            "breakfast": {
+              "menu": "Dosa, sambar, chutney",
+              "tag": "veg"
+            },
+            "lunch": {
+              "menu": "Lemon rice, curd rice, potato fry, pickle",
+              "tag": "veg"
+            },
+            "snacks": {
+              "menu": "Coffee, mirchi bajji",
+              "tag": "veg"
+            },
+            "dinner": {
+              "menu": "Veg biryani, raita, gulab jamun",
+              "tag": "veg"
+            }
+          },
+          "sat": {
+            "breakfast": {
+              "menu": "Bread, omelette or jam, milk",
+              "tag": "egg"
+            },
+            "lunch": {
+              "menu": "Rice, dal tadka, aloo gobi, rasam, curd",
+              "tag": "veg"
+            },
+            "snacks": {
+              "menu": "Tea, cake",
+              "tag": "veg"
+            },
+            "dinner": {
+              "menu": "Chicken biryani or veg biryani, raita",
+              "tag": "nonveg"
+            }
+          },
+          "sun": {
+            "breakfast": {
+              "menu": "Masala dosa, chutney",
+              "tag": "veg"
+            },
+            "lunch": {
+              "menu": "Rice, sambar, two curries, sweet",
+              "tag": "veg"
+            },
+            "snacks": {
+              "menu": "Tea, cutlet",
+              "tag": "veg"
+            },
+            "dinner": {
+              "menu": "Chapati, dal, curd",
+              "tag": "veg"
+            }
+          }
+        }
+      },
+      "photos": [
+        {
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c9/Room_at_Siamaze_Hostel.jpg/1280px-Room_at_Siamaze_Hostel.jpg",
+          "category": "ROOM",
+          "caption": "Two-sharing room",
+          "isCover": true,
+          "credit": {
+            "title": "Room at Siamaze Hostel.jpg",
+            "author": "Mx. Granger",
+            "license": "CC0",
+            "source": "https://commons.wikimedia.org/wiki/File:Room_at_Siamaze_Hostel.jpg"
+          }
+        },
+        {
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/23/Room_in_Hostel_9%2C_Infosys_Mysore_%281%29.JPG/1280px-Room_in_Hostel_9%2C_Infosys_Mysore_%281%29.JPG",
+          "category": "ROOM",
+          "caption": "Single room with a study table",
+          "isCover": false,
+          "credit": {
+            "title": "Room in Hostel 9, Infosys Mysore (1).JPG",
+            "author": "Prateek Karandikar",
+            "license": "CC BY-SA 4.0",
+            "source": "https://commons.wikimedia.org/wiki/File:Room_in_Hostel_9,_Infosys_Mysore_(1).JPG"
+          }
+        },
+        {
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7a/Room_in_Hostel_9%2C_Infosys_Mysore_%282%29.JPG/1280px-Room_in_Hostel_9%2C_Infosys_Mysore_%282%29.JPG",
+          "category": "ROOM",
+          "caption": "Study corner in a single room",
+          "isCover": false,
+          "credit": {
+            "title": "Room in Hostel 9, Infosys Mysore (2).JPG",
+            "author": "Prateek Karandikar",
+            "license": "CC BY-SA 4.0",
+            "source": "https://commons.wikimedia.org/wiki/File:Room_in_Hostel_9,_Infosys_Mysore_(2).JPG"
+          }
+        },
+        {
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/06/%E0%B4%89%E0%B4%B4%E0%B5%81%E0%B4%A8%E0%B5%8D%E0%B4%A8%E0%B5%81%E0%B4%B5%E0%B4%9F%E0%B4%95%E0%B5%BE.JPG/1280px-%E0%B4%89%E0%B4%B4%E0%B5%81%E0%B4%A8%E0%B5%8D%E0%B4%A8%E0%B5%81%E0%B4%B5%E0%B4%9F%E0%B4%95%E0%B5%BE.JPG",
+          "category": "MESS",
+          "caption": "Evening snacks: vada",
+          "isCover": false,
+          "credit": {
+            "title": "ഉഴുന്നുവടകൾ.JPG",
+            "author": "Sugeesh at ml.wikipedia",
+            "license": "CC BY-SA 3.0",
+            "source": "https://commons.wikimedia.org/wiki/File:%E0%B4%89%E0%B4%B4%E0%B5%81%E0%B4%A8%E0%B5%8D%E0%B4%A8%E0%B5%81%E0%B4%B5%E0%B4%9F%E0%B4%95%E0%B5%BE.JPG"
+          }
+        }
+      ],
+      "rooms": [
+        {
+          "roomNumber": "G1",
+          "sharingType": 1,
+          "pricePerBed": 11000,
+          "totalBeds": 1,
+          "availableBeds": 1,
+          "floorNumber": 0,
+          "hasAttachedBathroom": true,
+          "hasAC": false,
+          "hasBalcony": false,
+          "furnishing": "Fully Furnished"
+        },
+        {
+          "roomNumber": "F2",
+          "sharingType": 1,
+          "pricePerBed": 12500,
+          "totalBeds": 1,
+          "availableBeds": 1,
+          "floorNumber": 1,
+          "hasAttachedBathroom": true,
+          "hasAC": true,
+          "hasBalcony": true,
+          "furnishing": "Fully Furnished"
+        },
+        {
+          "roomNumber": "F3",
+          "sharingType": 2,
+          "pricePerBed": 8000,
+          "totalBeds": 2,
+          "availableBeds": 1,
+          "floorNumber": 1,
+          "hasAttachedBathroom": true,
+          "hasAC": false,
+          "hasBalcony": false,
+          "furnishing": "Fully Furnished"
+        },
+        {
+          "roomNumber": "F4",
+          "sharingType": 2,
+          "pricePerBed": 8000,
+          "totalBeds": 2,
+          "availableBeds": 2,
+          "floorNumber": 1,
+          "hasAttachedBathroom": true,
+          "hasAC": false,
+          "hasBalcony": false,
+          "furnishing": "Fully Furnished"
+        }
+      ]
+    }
+  ],
+  "rides": [
+    {
+      "slot": "morning",
+      "time": "08:15",
+      "origin": "Benz Circle, Vijayawada",
+      "destination": "SRM AP main gate",
+      "vehicleType": "Car",
+      "availableSeats": 3,
+      "splitAmount": 80,
+      "vehicleInfo": "White hatchback",
+      "notes": "Pick-up at Benz Circle. Reaching the main gate by 9."
+    },
+    {
+      "slot": "evening",
+      "time": "17:40",
+      "origin": "SRM AP main gate",
+      "destination": "Vijayawada railway station",
+      "vehicleType": "Car",
+      "availableSeats": 2,
+      "splitAmount": 90,
+      "vehicleInfo": "Grey sedan",
+      "notes": "Leaving from the main gate after classes."
+    },
+    {
+      "slot": "bike",
+      "time": "18:15",
+      "origin": "SRM AP main gate",
+      "destination": "Mangalagiri bus stand",
+      "vehicleType": "Bike",
+      "availableSeats": 1,
+      "splitAmount": 40,
+      "vehicleInfo": "Black bike, helmet for the pillion",
+      "notes": "One pillion seat. Spare helmet available."
+    }
+  ]
+}

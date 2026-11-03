@@ -7,6 +7,8 @@ const initOrderModel = (sequelize) => {
 
   Order = sequelize.define('Order', {
     id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+    // Owner-only test row (utils/testView, scripts/test_data_v2_seed.js): hidden from every non-tester request.
+    isTestData: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     userId: { type: DataTypes.UUID, allowNull: false },
     restaurantId: { type: DataTypes.UUID, allowNull: false },
     deliveryPartnerId: { type: DataTypes.UUID },

@@ -141,6 +141,8 @@ const hideStoresWithoutFssai = async () => {
 
 /** Sequelize where-fragment for customer listings ({} when the setting is off). */
 const listingWhere = async () => {
+  // The owner's tester accounts (utils/testView) see their test stores, which carry no licence numbers.
+  if (require('./testView').isTester()) return {};
   if (!(await hideStoresWithoutFssai())) return {};
   const { Op } = require('sequelize');
   return { fssaiLicenseNumber: { [Op.ne]: null } };

@@ -7,6 +7,8 @@ const initMenuItemModel = (sequelize) => {
 
   MenuItem = sequelize.define('MenuItem', {
     id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+    // Owner-only test row (utils/testView, scripts/test_data_v2_seed.js): hidden from every non-tester request.
+    isTestData: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     restaurantId: { type: DataTypes.UUID, allowNull: false },
     name: { type: DataTypes.STRING, allowNull: false },
     price: { type: DataTypes.FLOAT, allowNull: false },

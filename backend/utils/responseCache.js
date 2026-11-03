@@ -132,6 +132,8 @@ const sendEntry = (req, res, entry, status, cc = 'no-cache') => {
 // Only checked when the request carries a credential, so anonymous traffic pays nothing.
 const hasCredential = (req) => !!((req.headers && req.headers.authorization) || /(?:^|;\s*)token=/.test(String((req.headers && req.headers.cookie) || '')));
 // Resolved lazily once (authMiddleware is loaded after this module in some boot orders).
+let testViewMod = null;
+const testView = () => testViewMod || (testViewMod = require('./testView'));
 let authMiddlewareMod = null;
 const authMiddleware = () => authMiddlewareMod || (authMiddlewareMod = require('../middleware/authMiddleware'));
 const liveAdminBypass = async (req) => {
@@ -145,6 +147,13 @@ const liveAdminBypass = async (req) => {
 
 const cacheGet = (group, { ttlMs = 30 * 1000, key, bypass } = {}) => (req, res, next) => {
   if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+  // A tester's or staff request may see owner-only test rows (utils/testView): never served from, or stored for,
+  // everyone else.
+  if (!testView().sharesCache()) {
+    res.set('Cache-Control', 'private, no-store');
+    res.set('X-Cache', 'BYPASS');
+    return next();
+  }
   if (typeof bypass === 'function' && hasCredential(req)) {
     return Promise.resolve(bypass(req)).then((skip) => {
       if (!skip) return serve(group, ttlMs, key, req, res, next, true);

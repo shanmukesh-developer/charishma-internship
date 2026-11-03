@@ -24,6 +24,7 @@ const getBlockActivity = async (req, res) => {
       `SELECT u."hostelBlock" AS "block", COUNT(*) AS "n"
          FROM "Orders" o JOIN "Users" u ON u."id" = o."userId"
         WHERE o."status" = 'Delivered' AND o."updatedAt" >= :since AND u."hostelBlock" IN (:blocks)
+          AND o."isTestData" IS NOT TRUE
         GROUP BY u."hostelBlock"`,
       { replacements: { since, blocks: SRM_HOSTELS }, type: sequelize.QueryTypes.SELECT }
     );

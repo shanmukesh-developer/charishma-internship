@@ -829,6 +829,10 @@ app.use('/api', require('./utils/appVersionPolicy').gate);
 require('./utils/appCheck').logStatus();
 app.use(require('./utils/appCheck').middleware());
 
+// Owner-only test data (utils/testView): marks each API request as a tester's / staff's or not, so test rows and
+// the shared caches stay out of every other answer.
+app.use('/api', require('./utils/testView').middleware());
+
 // Connect to PostgreSQL, then initialize routes. Runs AFTER the port is open (see startServer).
 const initializeApp = async () => {
   try {
@@ -1380,6 +1384,12 @@ const initializeApp = async () => {
     inBootQueue(() => require('./scripts/owner_menu_fixes_v2').runOwnerMenuFixes())
       .then((r) => console.log('🍜 [OWNER_MENU_FIXES]', JSON.stringify(r)))
       .catch((err) => console.warn('⚠️ [OWNER_MENU_FIXES] failed:', err.message));
+    // 🧪 Owner-only test data (owner, 3 Nov 2026): restaurants, stalls, grocery and service stores and deals with
+    // isTestData, seen only by the phones in TEST_VIEWER_PHONES (utils/testView). Each part once; Admin > Config >
+    // Test data removes it. scripts/test_data_v2_seed.js; DISABLE_TEST_DATA_V2=true skips it.
+    inBootQueue(() => require('./scripts/test_data_v2_seed').runTestDataV2Seed())
+      .then((r) => console.log('🧪 [TEST_DATA_V2]', JSON.stringify(r)))
+      .catch((err) => console.warn('⚠️ [TEST_DATA_V2] failed:', err.message));
     // 🎓 Campus (Friends) off once (CAMPUS_OFF_UNTIL_LAUNCH_V1_DONE; owner, 2 Nov 2026: launch it after Sankranti): the
     // admins' master switch, so the app hides Campus and its API answers FEATURE_OFF; nothing is deleted, and the
     // admins switch it back on from Admin > Friends app > Switches. scripts/campus_off_until_launch_v1.js;

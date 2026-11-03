@@ -26,7 +26,11 @@ const isRiderFresh = (rider) => riderFixAgeMs(rider) <= RIDER_FRESH_MS;
 
 // Online + approved riders, nearest fresh fix first; riders with stale or no position go last.
 const rankOnlineRiders = async (restaurant, { excludeRiderId = null } = {}) => {
-  const riders = await getDeliveryPartnerModel().findAll({ where: { isOnline: true, isApproved: true } });
+  // An owner-only test store's orders are offered only to riders on the tester list (utils/testView).
+  const testView = require('./testView');
+  const testStore = await testView.isTestStore(restaurant);
+  const riders = (await getDeliveryPartnerModel().findAll({ where: { isOnline: true, isApproved: true } }))
+    .filter((r) => !testStore || testView.isTestRider(r.id));
   // The store's saved map point when it has one; the address text only as a fallback (text that does not parse
   // put every store at one fallback point, so "nearest riders" was effectively arbitrary).
   const lat0 = restaurant ? Number(restaurant.lat) : NaN;

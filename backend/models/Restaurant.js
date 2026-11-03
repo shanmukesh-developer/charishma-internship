@@ -18,6 +18,8 @@ const initRestaurantModel = (sequelize) => {
 
   Restaurant = sequelize.define('Restaurant', {
     id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+    // Owner-only test row (utils/testView, scripts/test_data_v2_seed.js): hidden from every non-tester request.
+    isTestData: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     name: { type: DataTypes.STRING, allowNull: false },
     location: { type: DataTypes.STRING, allowNull: false },
     lat: { type: DataTypes.FLOAT },

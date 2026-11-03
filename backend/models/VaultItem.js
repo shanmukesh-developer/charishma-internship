@@ -31,6 +31,8 @@ const initVaultItemModel = (sequelize) => {
       // TEXT: uploaded images are stored as data URLs (longer than VARCHAR(255))
       type: DataTypes.TEXT
     },
+    // Owner-only test row (utils/testView, scripts/test_data_v2_seed.js): hidden from every non-tester request.
+    isTestData: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     isActive: {
       type: DataTypes.BOOLEAN,
       defaultValue: true

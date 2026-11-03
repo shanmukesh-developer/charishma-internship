@@ -172,6 +172,33 @@ router.get('/campuses', require('../controllers/adminController').getCampuses);
 router.put('/campuses/:key', require('../controllers/adminController').setCampusStatus);
 router.get('/config', getGlobalConfig);
 router.post('/config', updateGlobalConfig);
+// Owner-only test data (utils/testView, scripts/test_data_v2_seed.js): who sees it, how much there is, remove / add again.
+router.get('/test-data', async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  try {
+    res.json(await require('../scripts/test_data_v2_seed').testDataStatus());
+  } catch (err) {
+    console.error('[TEST_DATA_V2_STATUS]', err.message);
+    res.status(500).json({ message: 'Could not read the test data.' });
+  }
+});
+router.post('/test-data/remove', async (req, res) => {
+  try {
+    const out = await require('../scripts/test_data_v2_seed').removeTestDataV2({ by: `admin ${req.user && req.user.id}` });
+    res.json(out);
+  } catch (err) {
+    console.error('[TEST_DATA_V2_REMOVE]', err.message);
+    res.status(500).json({ message: 'Could not remove the test data.' });
+  }
+});
+router.post('/test-data/add', async (req, res) => {
+  try {
+    res.json(await require('../scripts/test_data_v2_seed').allowTestDataV2Again());
+  } catch (err) {
+    console.error('[TEST_DATA_V2_ADD]', err.message);
+    res.status(500).json({ message: 'Could not add the test data.' });
+  }
+});
 // C3 force-update: per-app minimum / latest versions (validated, audited). The generic POST /config
 // above refuses this key so it can only be written through these validated endpoints.
 {

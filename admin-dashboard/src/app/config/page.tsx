@@ -13,6 +13,7 @@ import AppVersionsCard from '@/components/config/AppVersionsCard';
 import LegalCard from '@/components/config/LegalCard';
 import ReceiptsCard from '@/components/config/ReceiptsCard';
 import CollegesCard from '@/components/config/CollegesCard';
+import TestDataCard from '@/components/config/TestDataCard';
 
 interface ConfigRow {
   _id: string;
@@ -79,7 +80,7 @@ const formatValue = (value: unknown) => {
   return String(value);
 };
 
-type SettingsTab = 'fees' | 'colleges' | 'switches' | 'retention' | 'versions' | 'legal' | 'receipts' | 'other';
+type SettingsTab = 'fees' | 'colleges' | 'switches' | 'retention' | 'versions' | 'legal' | 'receipts' | 'test' | 'other';
 const SETTINGS_TABS: SettingsTab[] = ['fees', 'colleges', 'switches', 'retention', 'versions', 'legal', 'receipts', 'other'];
 
 export default function ConfigTerminal() {
@@ -160,7 +161,8 @@ export default function ConfigTerminal() {
 
   const feeRow = configs.find(c => c.key === DELIVERY_FEE_KEY);
   const currentFee = Number(feeRow?.value ?? DEFAULT_DELIVERY_FEE);
-  const otherRows = configs.filter(c => c.key !== DELIVERY_FEE_KEY && !MANAGED_KEYS.includes(c.key) && !MANAGED_ELSEWHERE[c.key]);
+  // The test data's phone list and markers are edited / shown on the Test data tab.
+  const otherRows = configs.filter(c => c.key !== DELIVERY_FEE_KEY && !MANAGED_KEYS.includes(c.key) && !MANAGED_ELSEWHERE[c.key] && !c.key.startsWith('TEST_DATA_V2_') && c.key !== 'TEST_VIEWER_PHONES');
   const elsewhereRows = configs.filter(c => MANAGED_ELSEWHERE[c.key]);
 
   const handleSaveRetention = async (key: string, label: string, def: number) => {
@@ -336,6 +338,7 @@ export default function ConfigTerminal() {
           { id: 'versions', label: 'App versions' },
           { id: 'legal', label: 'Legal' },
           { id: 'receipts', label: 'Receipts' },
+          { id: 'test', label: 'Test data' },
           { id: 'other', label: 'Other stored', count: otherRows.length + elsewhereRows.length },
         ]}
       />
@@ -515,6 +518,8 @@ export default function ConfigTerminal() {
       {tab === 'versions' && <AppVersionsCard />}
       {tab === 'legal' && <LegalCard />}
       {tab === 'receipts' && <ReceiptsCard />}
+
+      {tab === 'test' && <TestDataCard />}
 
       {tab === 'other' && (
         <Card>

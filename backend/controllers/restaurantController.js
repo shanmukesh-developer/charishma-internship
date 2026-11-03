@@ -311,7 +311,9 @@ const forCollege = (req, list) => {
 
 const getRestaurants = async (req, res) => {
   try {
-    if (homeCache.body && Date.now() - homeCache.at < HOME_CACHE_MS) return res.json(forCollege(req, homeCache.body));
+    // A tester's request may hold owner-only test stores (utils/testView): it neither reads nor fills the shared copy.
+    const shared = require('../utils/testView').sharesCache();
+    if (shared && homeCache.body && Date.now() - homeCache.at < HOME_CACHE_MS) return res.json(forCollege(req, homeCache.body));
     const Restaurant = getRestaurantModel();
     const MenuItem = getMenuItemModel();
     // Legacy inline base64 photos are nulled in SQL (never loaded into memory on the home feed).
@@ -363,7 +365,7 @@ const getRestaurants = async (req, res) => {
       return rJson;
     });
 
-    homeCache = { at: Date.now(), body: augmentedRestaurants };
+    if (shared) homeCache = { at: Date.now(), body: augmentedRestaurants };
     res.json(forCollege(req, augmentedRestaurants));
   } catch (error) {
     console.error('[RESTAURANT_ERROR]', error);

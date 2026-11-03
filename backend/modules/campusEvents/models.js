@@ -37,6 +37,8 @@ const initCampusEventsModels = (sequelize) => {
 
   const CeEvent = sequelize.define('CeEvent', {
     id: uuidPk,
+    // Owner-only test row (utils/testView, scripts/test_data_v2_seed.js): hidden from every non-tester request.
+    isTestData: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     campusId: uuid(),
     organizerUserId: uuid(false),
     organizerId: uuid(),

@@ -178,7 +178,9 @@ exports.getRestaurants = async (req, res) => {
       const scoped = college ? list.filter((r) => campuses.storeServes(r, college)) : list;
       return res.json(includeStores ? scoped : scoped.filter(r => !STORE_VENDOR_TYPES.includes(String(r.vendorType || '').toUpperCase())));
     };
-    const fresh = cachedRestaurantsResponse && (Date.now() - cachedRestaurantsAt) < RESTAURANTS_CACHE_TTL_MS;
+    // A tester's / admin's request may hold owner-only test stores (utils/testView): it skips the shared copy.
+    const shared = require('../utils/testView').sharesCache();
+    const fresh = shared && cachedRestaurantsResponse && (Date.now() - cachedRestaurantsAt) < RESTAURANTS_CACHE_TTL_MS;
     if (fresh) return send(cachedRestaurantsResponse);
 
     const Restaurant = getRestaurantModel();
@@ -253,8 +255,10 @@ exports.getRestaurants = async (req, res) => {
       };
     });
 
-    cachedRestaurantsResponse = result;
-    cachedRestaurantsAt = Date.now();
+    if (shared) {
+      cachedRestaurantsResponse = result;
+      cachedRestaurantsAt = Date.now();
+    }
     send(result);
   } catch (error) {
     console.error('[RESTAURANTS_ERROR]', error);
@@ -1395,6 +1399,19 @@ exports.updateGlobalConfig = async (req, res) => {
     // C8: receipt / tax display settings only through PUT /api/admin/receipt-settings (validated + audited).
     if (key === require('../utils/receiptSettings').KEY) {
       return res.status(400).json({ message: 'Receipt settings are edited on Config → Receipts (PUT /api/admin/receipt-settings).' });
+    }
+    // Owner-only test data (utils/testView): the phone numbers whose accounts see it. Saved as 10-digit numbers and
+    // applied at once on every instance; the answer says how many customer / rider accounts those numbers matched.
+    const testView = require('../utils/testView');
+    if (key === testView.KEY) {
+      const phones = testView.parsePhones(value);
+      if (phones.length > 20) return res.status(400).json({ message: `${key} takes up to 20 phone numbers.` });
+      const [, createdT] = await GlobalConfig.upsert({ key, value: phones, description: description || 'Phone numbers that see the owner-only test data (comma separated)' });
+      testView.reloadTesters();
+      const t = await testView.loadTesters({ fresh: true });
+      // Data that needs a tester's account (rides, vehicle listings) is added once the first one exists.
+      require('../scripts/test_data_v2_seed').runTestDataV2Seed({ reason: 'testers saved' }).catch((err) => console.warn('[TEST_DATA_V2]', err.message));
+      return res.json({ key, value: phones, created: createdT, matched: { customers: t.userIds.size, riders: t.riderIds.size } });
     }
     // Retention windows (cron/retentionCron.js): whole days, at least 1.
     const retention = require('../cron/retentionCron');

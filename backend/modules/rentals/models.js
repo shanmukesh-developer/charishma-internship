@@ -10,6 +10,8 @@ const initRentalsModels = (sequelize) => {
 
   const RentalListing = sequelize.define('RentalListing', {
     id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+    // Owner-only test row (utils/testView, scripts/test_data_v2_seed.js): hidden from every non-tester request.
+    isTestData: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     ownerId: { type: DataTypes.UUID, allowNull: false },
     campusId: { type: DataTypes.UUID, allowNull: true },
     vehicleType: { type: DataTypes.STRING(10), allowNull: false },

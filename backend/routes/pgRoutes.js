@@ -304,15 +304,19 @@ router.post('/:roomId/book', protect, async (req, res) => {
       await notifyAdminsOfBooking(req, `${userName} requested ${sharingType} room ${room.roomNumber} at ${pgName}.`, {
         id: booking.id, hostelId: room.hostelId, roomId: room.id, userName, pgName, checkInDate: booking.checkInDate
       });
+      // An owner-only test PG (utils/testView) alerts the admins only: never a PG partner or the real housing desk.
+      const testPg = !!(room.isTestData || pgHostel.isTestData);
       // The PG's owner (ZCS PG Partner app), when the listing is linked to an owner account: first name only.
-      await require('../modules/pgOwner/services/notify').toListingOwners(room.hostelId, 'New booking request',
-        `${pgContent.firstNameOf(userName)} asked for a ${sharingType.toLowerCase()} bed at ${pgName} from ${checkIn}.`,
-        { type: 'PG_OWNER_BOOKING', bookingId: String(booking.id), hostelId: String(room.hostelId) });
-      try {
-        const wa = await sendWhatsAppMessage(PG_DESK_WHATSAPP, whatsappMessage, 'PG_BOOKING');
-        whatsappSent = !!wa?.success;
-      } catch (waErr) {
-        console.error('[PG_WHATSAPP_ERROR]', waErr.message);
+      if (!testPg) {
+        await require('../modules/pgOwner/services/notify').toListingOwners(room.hostelId, 'New booking request',
+          `${pgContent.firstNameOf(userName)} asked for a ${sharingType.toLowerCase()} bed at ${pgName} from ${checkIn}.`,
+          { type: 'PG_OWNER_BOOKING', bookingId: String(booking.id), hostelId: String(room.hostelId) });
+        try {
+          const wa = await sendWhatsAppMessage(PG_DESK_WHATSAPP, whatsappMessage, 'PG_BOOKING');
+          whatsappSent = !!wa?.success;
+        } catch (waErr) {
+          console.error('[PG_WHATSAPP_ERROR]', waErr.message);
+        }
       }
     }
 

@@ -132,6 +132,12 @@ const initializeAllModels = (instance) => {
   initCampusBookingModels(instance);
   // ZCS PG Partner: PG owner accounts, listing links, rent ledger, tenant complaints (pg_* tables).
   initPgOwnerModels(instance);
+  // Owner-only test rows (utils/testView): every find and count of these in a non-tester request skips them.
+  require('../utils/testView').hideTestRows(
+    instance.models.Restaurant, instance.models.MenuItem, instance.models.Order, instance.models.VaultItem,
+    instance.models.PGHostel, instance.models.PGRoom, instance.models.BikePool, instance.models.RentalListing,
+    instance.models.CeEvent,
+  );
 
   // Define Associations
   const Restaurant = instance.models.Restaurant;

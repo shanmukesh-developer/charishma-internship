@@ -447,6 +447,8 @@ const createOrder = async (req, res) => {
           id: newOrderId,
           userId: currentUser.id,
           restaurantId: quote.store.id,
+          // An order from an owner-only test store is a test order too (utils/testView: only testers' riders see it).
+          isTestData: !!quote.store.isTestData,
           items: quote.lines,
           totalPrice: quote.subtotal,
           deliveryFee: quote.deliveryFee,

@@ -233,13 +233,18 @@ const deliveryRequest = (orderId) => {
     .then(() => {
       const { getOrderModel } = require('../models/Order');
       const Order = getOrderModel();
-      return Order ? Order.findByPk(id, { attributes: ['id', 'fulfilment', 'slotStart'] }) : null;
+      return Order ? Order.findByPk(id, { attributes: ['id', 'fulfilment', 'slotStart', 'isTestData'], hooks: false }) : null;
     })
     .then((order) => {
       if (order && order.fulfilment === 'VENDOR') return;
       // Delivery slots: riders hear about a slot order only from DISPATCH_WINDOW_MIN before the slot start;
       // the 'orders.slotDispatch' job (jobs/index.js) sends this event when that window opens.
       if (order && !require('./deliverySlots').isDispatchDue(order)) return;
+      // An owner-only test order (utils/testView) rings only the riders on the tester list, never real riders.
+      if (order && order.isTestData) {
+        for (const riderId of require('./testView').testerRiderIds()) ioRef.to(`rider_${safeId(riderId)}`).emit(DELIVERY_REQUEST_EVENT, { orderId: id });
+        return;
+      }
       emitToRiders(DELIVERY_REQUEST_EVENT, id);
     })
     .catch((err) => console.error('[REALTIME_DELIVERY_REQUEST_ERROR]', err.message));

@@ -45,6 +45,8 @@ export interface Store {
   rating?: number | null;
   stallDescription?: string | null;
   isFeatured?: boolean;
+  /** Owner-only test store (Config > Test data): only the test phones see it. */
+  isTestData?: boolean;
   featuredUntil?: string | null;
   featuredBadge?: string | null;
   promoOffer?: string | null;
