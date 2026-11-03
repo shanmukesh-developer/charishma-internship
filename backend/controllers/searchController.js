@@ -44,17 +44,20 @@ const globalSearch = async (req, res) => {
 
     if (!q || q.trim().length < 2) {
       // Return Trending/Featured if no query
+      // This is the food search (groceries search the catalogue), so the empty-search suggestions come from food
+      // stores only (3 Nov 2026: the first available items in table order were six pickles).
+      const FOOD_TYPES = { [Op.in]: ['RESTAURANT', 'LOCAL_VENDOR'] };
       // Independent reads: one round trip of wall time, not two.
       const [trendingRestaurants, trendingItems] = await Promise.all([
         Restaurant.findAll({
-          where: { isActive: true, ...(await require('../utils/receiptSettings').listingWhere()), [Op.and]: [NOT_BOOKING_STALL] },
+          where: { isActive: true, vendorType: FOOD_TYPES, ...(await require('../utils/receiptSettings').listingWhere()), [Op.and]: [NOT_BOOKING_STALL] },
           order: [['rating', 'DESC NULLS LAST']], // Postgres puts NULL first on plain DESC
           limit: more(4)
         }).then((rows) => rows.filter(serves).slice(0, 4)),
         MenuItem.findAll({
           where: { isAvailable: true },
           limit: more(6),
-          include: [{ model: Restaurant, as: 'restaurant', attributes: ['id', 'name', 'imageUrl', 'vendorType', 'visibleCampuses'], where: { isActive: true, ...(await require('../utils/receiptSettings').listingWhere()), [Op.and]: [NOT_BOOKING_STALL] } }]
+          include: [{ model: Restaurant, as: 'restaurant', attributes: ['id', 'name', 'imageUrl', 'vendorType', 'visibleCampuses'], where: { isActive: true, vendorType: FOOD_TYPES, ...(await require('../utils/receiptSettings').listingWhere()), [Op.and]: [NOT_BOOKING_STALL] } }]
         }).then((rows) => rows.filter((it) => serves(it.restaurant)).slice(0, 6)),
       ]);
 
