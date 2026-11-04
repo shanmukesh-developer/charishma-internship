@@ -220,8 +220,8 @@ export const ForumComposer: React.FC<{
       Alert.alert(
         r.duplicate ? 'Already requested' : 'Request sent',
         kind === 'professor'
-          ? 'Professor pages are added by the ZCS team after a check. You can review once it is approved.'
-          : 'The ZCS team will review it shortly. You can post your review once it is approved.'
+          ? 'Professor pages are added by the ZENV team after a check. You can review once it is approved.'
+          : 'The ZENV team will review it shortly. You can post your review once it is approved.'
       );
     } catch (e: any) {
       if (errorCode(e) === 'TARGET_EXISTS' && e?.data?.targetId) {

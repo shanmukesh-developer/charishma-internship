@@ -73,7 +73,8 @@ export default function CbPay({ id }: { id: string }) {
   const submit = async () => {
     if (!b || busy) return;
     const upiRef = ref.replace(/[\s-]/g, '');
-    if (!shot && !upiRef) { setError('Upload the payment screenshot or enter the UPI reference number.'); return; }
+    if (!shot) { setBadField('shot'); setError('Upload the payment screenshot. The stall checks it with the transaction ID.'); return; }
+    if (!upiRef) { setBadField('ref'); setError('Enter the transaction ID from your UPI app (UTR / UPI Ref No.).'); return; }
     if (upiRef && !/^[A-Za-z0-9]{6,35}$/.test(upiRef)) { setError('Enter the UPI reference exactly as your UPI app shows it (6 to 35 letters or digits).'); return; }
     setBusy('submit');
     setError(null);
@@ -82,7 +83,10 @@ export default function CbPay({ id }: { id: string }) {
       await cbApi.submitProof(b.id, { imageUrl: shot ? shot.url : null, upiRef: upiRef || null });
       router.replace(`/campus-booking/order/${b.id}` as any);
     } catch (e: any) {
-      if (e?.code === 'REF_ALREADY_USED') {
+      if (e?.code === 'PROOF_REQUIRED') {
+        setBadField(e?.data?.field === 'ref' ? 'ref' : 'shot');
+        setError(e?.message || 'Send the payment screenshot and the transaction ID.');
+      } else if (e?.code === 'REF_ALREADY_USED') {
         setBadField('ref');
         setError(e?.message || 'This UPI reference was already used for another booking. Check the number in your UPI app.');
       } else if (e?.code === 'SCREENSHOT_ALREADY_USED') {
@@ -187,7 +191,7 @@ export default function CbPay({ id }: { id: string }) {
         </StaggeredSection>
 
         <StaggeredSection delay={80} direction="up">
-          <Text style={[s.sectionTitle, { color: p.txt, marginTop: 24 }]}>After paying, send the proof</Text>
+          <Text style={[s.sectionTitle, { color: p.txt, marginTop: 24 }]}>After paying, send both</Text>
           <TouchableOpacity onPress={pickShot} activeOpacity={0.9} style={[s.payCardNew, { backgroundColor: p.card, borderColor: shot || badField === 'shot' ? COLORS.red : p.border, borderStyle: shot ? 'solid' : 'dashed' }]} accessibilityRole="button" accessibilityLabel={shot ? 'Change the payment screenshot' : 'Upload payment screenshot'}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               {shot ? <SafeImage source={{ uri: shot.localUri || shot.previewUrl || '' }} style={s.shotThumb} contentFit="cover" placeholderIcon="image-outline" /> : (
@@ -195,13 +199,13 @@ export default function CbPay({ id }: { id: string }) {
               )}
               <View style={{ flex: 1 }}>
                 <Text style={[s.payCardTitle, { color: shot ? COLORS.red : p.txt }]}>{uploading ? 'Uploading…' : shot ? 'Screenshot added' : 'Upload payment screenshot'}</Text>
-                <Text style={[s.payCardDesc, { color: p.txtSec }]}>{shot ? 'Tap to change it' : 'JPG or PNG, max 5 MB. Only the stall and ZCS support see it.'}</Text>
+                <Text style={[s.payCardDesc, { color: p.txtSec }]}>{shot ? 'Tap to change it' : 'JPG or PNG, max 5 MB. Only the stall and ZENV support see it.'}</Text>
               </View>
               {shot ? <Ionicons name="checkmark-circle" size={20} color={COLORS.emerald} /> : null}
             </View>
           </TouchableOpacity>
 
-          <Text style={[s.sectionTitle, { color: p.txt, marginTop: 20 }]}>Or enter the UPI reference (optional)</Text>
+          <Text style={[s.sectionTitle, { color: p.txt, marginTop: 20 }]}>Transaction ID (UPI reference)</Text>
           <TextInput
             value={ref}
             onChangeText={(t) => { setRef(t.toUpperCase().replace(/[^A-Z0-9 -]/g, '')); setError(null); if (badField === 'ref') setBadField(null); }}
@@ -218,7 +222,7 @@ export default function CbPay({ id }: { id: string }) {
 
         {error ? <Text style={[s.errorText, { color: COLORS.red }]} accessibilityLiveRegion="polite">{error}</Text> : null}
         <View style={{ marginTop: 24 }}>
-          <PlaceButton label="Submit payment" busyLabel="Sending…" onPress={submit} busy={busy === 'submit'} disabled={uploading || !b.canSubmitProof || (!shot && !ref.trim())} />
+          <PlaceButton label="Submit payment" busyLabel="Sending…" onPress={submit} busy={busy === 'submit'} disabled={uploading || !b.canSubmitProof || !shot || !ref.trim()} />
         </View>
         {b.canCancel ? <OutlineButton label="Cancel booking" tone="danger" onPress={cancel} busy={busy === 'cancel'} style={{ marginTop: 12 }} /> : null}
       </ScrollView>

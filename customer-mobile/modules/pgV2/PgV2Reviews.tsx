@@ -106,7 +106,7 @@ function ReportSheet({ review, onClose }: { review: PgReview; onClose: () => voi
     try {
       const res = await apiFetch(`${API_URL}/api/pg/reviews/${review.id}/report`, { method: 'POST', body: JSON.stringify({ reason }) });
       const body = await readJson(res);
-      setDone(res.ok ? 'Thanks. The ZCS team will review it.' : String(body?.message || 'Could not report. Please try again.').replace(/Zenvy/g, 'ZCS'));
+      setDone(res.ok ? 'Thanks. The ZENV team will review it.' : String(body?.message || 'Could not report. Please try again.').replace(/\bZenvy\b|\bZCS\b/g, 'ZENV'));
     } catch { setDone('Check your internet and try again.'); } finally { setSending(null); }
   };
   return (

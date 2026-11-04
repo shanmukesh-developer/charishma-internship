@@ -90,7 +90,7 @@ export const END_REASON_LABEL: Record<SpaceEndReason, string> = {
   empty: 'Everyone left, so the Space ended.',
   server_restart: 'The Space ended after a server restart.',
   moderation: 'This Space was ended by moderators.',
-  admin: 'This Space was ended by the ZCS team.',
+  admin: 'This Space was ended by the ZENV team.',
   cancelled: 'The host cancelled this Space.',
   expired: "This Space didn't start in time.",
 };

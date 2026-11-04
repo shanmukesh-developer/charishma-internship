@@ -20,6 +20,7 @@ import { connectSocket } from '../../utils/socket';
 import { formatINR, formatISTDateTime } from '../../utils/format';
 import { familyOfBooking, useServicePalette, type ServiceFamily } from '../../modules/services/serviceTheme';
 import { shortBookingRef, type IconName } from '../../modules/services/serviceFlow';
+import { goHome } from '../../utils/goHome';
 
 const ID_RE = /^[0-9a-f-]{8,64}$/i;
 
@@ -95,8 +96,12 @@ export default function ServiceBookingTrackScreen() {
     let socket: any;
     try { socket = connectSocket(); } catch { return; }
     const onUpdate = (payload: any) => { if (String(payload?.id || '') === id) load(); };
+    // Back online (phone unlocked, network back): an update sent while the socket was closed is never replayed, so
+    // reload (the stage used to stay old until a pull-to-refresh).
+    const onReconnect = () => { load(); };
     socket.on('serviceStatusUpdate', onUpdate);
-    return () => { socket.off('serviceStatusUpdate', onUpdate); };
+    socket.on('connect', onReconnect);
+    return () => { socket.off('serviceStatusUpdate', onUpdate); socket.off('connect', onReconnect); };
   }, [user, id, load]);
 
   const run = async (kind: 'quote' | 'cancel' | 'rate', url: string, body: any, okHaptic = true) => {
@@ -170,7 +175,7 @@ export default function ServiceBookingTrackScreen() {
               : /find|valid/.test(String(error)) ? 'Open it from your bookings in Orders.' : String(error)}
             actionLabel={!user ? 'Sign in' : /find|valid/.test(String(error)) ? 'My bookings' : 'Try again'}
             onAction={() => (!user ? router.push('/login' as any)
-              : /find|valid/.test(String(error)) ? router.replace({ pathname: '/(tabs)/orders', params: { segment: 'services' } } as any)
+              : /find|valid/.test(String(error)) ? goHome(router, { pathname: '/(tabs)/orders', params: { segment: 'services' } })
                 : (setLoading(true), load()))}
           />
         </View>

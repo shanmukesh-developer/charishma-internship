@@ -4,7 +4,7 @@
  * Filters: duration (Daily / Weekly / Monthly) for vehicles, price band, fuel and gear for vehicles, sort.
  * Rooms come from the real PG stays (room types); flats show samples while the switch is on, else "Coming soon".
  */
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -43,7 +43,7 @@ const NO_FILTERS: Filters = { duration: 'day', band: 'any', fuel: 'any', gear: '
 export default function RentalsV2List() {
   const nav = useNav();
   const pw = usePageW();
-  const { byCategory, vState, rState, vError, reload, campusLine } = useRentalsV2();
+  const { byCategory, vState, rState, vError, reload, campusLine, saved } = useRentalsV2();
   const route = nav.route.name === 'list' ? nav.route : { name: 'list' as const, category: 'bike' as Category, chip: undefined };
   const cat = route.category;
   const [chip, setChip] = useState(route.chip && CHIPS[cat].some((c) => c.key === route.chip) ? route.chip : 'all');
@@ -53,10 +53,15 @@ export default function RentalsV2List() {
   const vehicle = cat === 'bike' || cat === 'car';
   const state = cat === 'room' ? rState : cat === 'flat' ? 'ready' : vState;
   const all = byCategory(cat);
+  // A "Saved" chip appears once something in this category is saved (3 Nov 2026: the hearts saved, but nothing
+  // showed the saved listings); it goes again, back to All, when the last one is unsaved.
+  const savedHere = all.some((i) => saved.has(i.id));
+  const chips = savedHere ? [...CHIPS[cat], { key: 'saved', label: 'Saved' }] : CHIPS[cat];
+  useEffect(() => { if (chip === 'saved' && !savedHere) setChip('all'); }, [chip, savedHere]);
 
   const list = useMemo(() => {
     const [lo, hi] = BANDS[cat];
-    let out = all.filter((i) => chip === 'all' || i.tags.includes(chip));
+    let out = all.filter((i) => chip === 'all' || (chip === 'saved' ? saved.has(i.id) : i.tags.includes(chip)));
     if (f.band !== 'any') out = out.filter((i) => { const p = i.price || 0; return f.band === 'low' ? p < lo : f.band === 'mid' ? p >= lo && p <= hi : p > hi; });
     if (vehicle && f.fuel !== 'any') out = out.filter((i) => (i.fuel || '').toLowerCase() === f.fuel);
     if (vehicle && f.gear !== 'any') out = out.filter((i) => (i.gear || '').toLowerCase() === f.gear);
@@ -69,7 +74,7 @@ export default function RentalsV2List() {
       if (f.duration === 'month' && i.priceMonth) return { ...i, price: i.priceMonth, unit: 'month' as const };
       return i;
     });
-  }, [all, chip, f, cat, vehicle]);
+  }, [all, chip, f, cat, vehicle, saved]);
   const active = (f.band !== 'any' ? 1 : 0) + (f.fuel !== 'any' ? 1 : 0) + (f.gear !== 'any' ? 1 : 0) + (f.duration !== 'day' ? 1 : 0) + (f.sort !== 'rec' ? 1 : 0);
   const area = campusLine.split(',').slice(-1)[0].trim() === 'Amaravati' ? 'Mangalagiri' : campusLine.split(',').slice(-1)[0].trim();
   const heroH = Math.round(Math.min(168, pw * 0.4));
@@ -102,7 +107,7 @@ export default function RentalsV2List() {
           </View>
         </FadeInUp>
 
-        <ChipRow items={CHIPS[cat]} active={chip} onSelect={setChip} style={{ paddingVertical: 16 }} />
+        <ChipRow items={chips} active={chip} onSelect={setChip} style={{ paddingVertical: 16 }} />
 
         {state === 'loading' && !list.length ? <StateBlock kind="loading" /> : null}
         {state === 'error' && !list.length ? <StateBlock kind={vError === 'offline' ? 'offline' : 'error'} action="Try again" onAction={reload} /> : null}

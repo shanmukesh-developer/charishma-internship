@@ -15,14 +15,29 @@ export type Item = {
   weight: string | null; brand: string | null; category: string | null; image: string | null;
   isVegetarian: boolean; isAvailable: boolean; orderable: boolean; bookingOnly: boolean;
   restaurantId: string; storeName: string | null; vendorType: string | null;
+  /** Admin-set choices (weights with their own prices, flavours, types): components/ProductOptions. */
+  options?: any[];
   /** Sample layer only (foodV2Demo.ts): never on a catalogue item, never orderable, never saved or sent. */
   isDemoContent?: true; art?: ImageSourcePropType;
 };
-export const SHOP_TYPES = ['grocery', 'toys', 'seeds', 'electronics'];
+export const SHOP_TYPES = ['grocery', 'toys', 'seeds', 'electronics', 'bakery'];
 export const CATALOGUE_CACHE_KEY = 'others:catalogue';
 export const FALLBACK_IMG = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&q=80';
 export const MEGA_BASKET_VENDOR = 'mega-basket-vendor';
 export const WISHLIST_KEY = 'zenvy_wishlist';
+
+/** A store's delivery time for a card: 30 / "30" / "30-40" read "30 min" / "30–40 min" (the shops list showed a bare
+ * "· 30"); text that has its own unit stays as it is. */
+export const etaText = (v: any): string | null => {
+  const t = typeof v === 'number' && Number.isFinite(v) && v > 0 ? String(Math.round(v)) : typeof v === 'string' ? v.trim() : '';
+  if (!t) return null;
+  return /^\d+(\s*[-–]\s*\d+)?$/.test(t) ? `${t.replace(/\s*[-–]\s*/, '–')} min` : t;
+};
+
+/** A text field from the server: a non-empty string (a number written out), anything else null. A brand or
+ * category that arrived as a number or an object used to crash every listing that lower-cases it. */
+export const textOf = (v: any): string | null =>
+  typeof v === 'string' ? (v.trim() ? v : null) : typeof v === 'number' && Number.isFinite(v) ? String(v) : null;
 
 export const toItem = (raw: any): Item | null => {
   if (!raw || !raw.id || !raw.name) return null;
@@ -34,11 +49,12 @@ export const toItem = (raw: any): Item | null => {
     id: String(raw.id), name: String(raw.name), price,
     originalPrice: Number.isFinite(original) && original > price ? original : null,
     discountPercent: Number.isFinite(discount) && discount > 0 ? Math.round(discount) : null,
-    weight: raw.weight || null, brand: raw.brand || null, category: raw.category || null,
+    weight: textOf(raw.weight), brand: textOf(raw.brand), category: textOf(raw.category),
     image: raw.image || raw.imageUrl || null,
     isVegetarian: raw.isVegetarian !== false, isAvailable: raw.isAvailable !== false,
     orderable: raw.orderable !== false, bookingOnly: !!raw.bookingOnly,
-    restaurantId: String(raw.restaurantId || raw.storeId || ''), storeName: raw.storeName || null, vendorType: raw.vendorType || null,
+    restaurantId: String(raw.restaurantId || raw.storeId || ''), storeName: textOf(raw.storeName), vendorType: textOf(raw.vendorType),
+    ...(Array.isArray(raw.options) && raw.options.length ? { options: raw.options } : {}),
   };
 };
 export const toList = (raws: any[]) => {
@@ -74,7 +90,7 @@ export const SHELVES: Record<string, Shelf> = {
   Fresh: { categories: ['Fresh', 'Fresh Fruits', 'Fruits', 'Vegetables', 'Leafy Greens'], exclude: /beverage|juice|drink|cup|soda|smoothie|shake|jam|squash/i },
   Grocery: { categories: ['Grocery', 'Staples', 'Atta & Flours', 'Dals & Pulses', 'Rice & Grains', 'Edible Oils & Ghee', 'Oils', 'Masalas & Spices', 'Salt, Sugar & Jaggery', 'Daily Essentials', 'Dairy', 'Dry Fruits'] },
   'Snacks & beverages': { categories: ['Snacks', 'Chips & Namkeens', 'Lays', 'Drinks & Juices', 'Juices & Cups', 'Coca Cola', 'Tea & Coffee', 'Nescafe', 'Cadbury', 'Sweet Indulgences', 'Instant & Frozen Food'] },
-  'Bakery & breakfast': { categories: ['Bakery', 'Biscuits & Cakes', 'Breakfast Options'] },
+  'Bakery & breakfast': { vendorTypes: ['BAKERY'], categories: ['Bakery', 'Biscuits & Cakes', 'Breakfast Options', 'Cakes', 'Breads'] },
   'Health & care': { categories: ['Health', 'Monsoon Wellness Picks', 'Bath, Body & Hair', 'Beauty & Skincare'] },
   Electronics: { vendorTypes: ['ELECTRONICS'] },
   Organic: { categories: ['Organic'] },
@@ -254,15 +270,14 @@ export const ESSENTIAL_AISLES = ['Atta & Flours', 'Dals & Pulses', 'Rice & Grain
 export const HERO_BG = '#04341F';
 /** Listing banner colour (sampled #226B36 on the Groceries banner). */
 export const LHERO_BG = '#1A6234';
-export const POPULAR_REQUESTS = ['Protein powder', 'Stationery items', 'Study lamp', "Men's grooming", 'Extra charger', 'Notebook'];
 
 export type Route =
   | { name: 'home' }
   | { name: 'listing'; shelf: string }
+  | { name: 'shops'; shelf: string }
   | { name: 'product'; id: string }
   | { name: 'saved' }
-  | { name: 'categories' }
-  | { name: 'mega' };
+  | { name: 'categories' };
 export type DemoState = null | 'loading' | 'offline' | 'waking' | 'error' | 'empty';
 
 /** A saved item as stored on the device (zenvy_wishlist, same list the app uses). */

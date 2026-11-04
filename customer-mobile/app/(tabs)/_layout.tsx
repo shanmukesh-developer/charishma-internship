@@ -1,13 +1,17 @@
 import React, { useMemo } from 'react';
 import { Tabs } from 'expo-router';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform, type ColorValue } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useCartTotalItems } from '../../context/CartContext';
 import { Ionicons } from '@expo/vector-icons';
 import { playSound, resumeAudio } from '../../utils/sounds';
-import { plural } from '../../utils/format';
+import { useTabBarTones } from '../../utils/tabBarTone';
+import LocalStoreIcon from '../../components/LocalStoreIcon';
+
+// Ionicons has no shop-with-a-pin glyph: the Local tab draws its own (components/LocalStoreIcon).
+const LOCAL_STORE_ICON = 'local-store';
 
 /** Basket count bubble: the only part of the tab bar that re-renders when the basket changes. */
 const CartBadge = React.memo(function CartBadge({ isDark }: { isDark: boolean }) {
@@ -20,21 +24,33 @@ const CartBadge = React.memo(function CartBadge({ isDark }: { isDark: boolean })
   );
 });
 
-const TabIcon = React.memo(function TabIcon({ name, focused, iconName, isDark, showCartBadge }: { name: string; focused: boolean; iconName: any; isDark: boolean; showCartBadge?: boolean }) {
-  const inactiveColor = isDark ? COLORS.textMuted : '#617088';
-  const labelColor = isDark ? COLORS.textSecondary : '#617088';
+// The bar and inactive inks of a light and a dark bar. The navigator hands every icon the FOCUSED tab's ink
+// (tabBarInactiveTintColor below), so all icons follow the bar of the page in front; a dark bar's labels sit a step
+// lighter than its icons.
+const INK = {
+  light: { bar: '#FFFFFF', icon: '#617088', label: '#617088' },
+  dark: { bar: '#09090B', icon: COLORS.textMuted, label: COLORS.textSecondary },
+};
+
+const TabIcon = React.memo(function TabIcon({ name, focused, iconName, color, showCartBadge }: { name: string; focused: boolean; iconName: any; color: ColorValue; showCartBadge?: boolean }) {
+  const onDark = color === INK.dark.icon;
+  const labelColor = onDark ? INK.dark.label : color;
 
   return (
     <View style={styles.tabIconWrap}>
       {focused && <View style={styles.activeIndicator} />}
       <View style={{ position: 'relative' }}>
-        <Ionicons
-          name={focused ? iconName : `${iconName}-outline`}
-          size={22}
-          color={focused ? COLORS.red : inactiveColor}
-          style={focused ? styles.tabIconActive : styles.tabIcon}
-        />
-        {showCartBadge && <CartBadge isDark={isDark} />}
+        {iconName === LOCAL_STORE_ICON ? (
+          <LocalStoreIcon size={22} color={focused ? COLORS.red : color} filled={focused} style={focused ? styles.tabIconActive : styles.tabIcon} />
+        ) : (
+          <Ionicons
+            name={focused ? iconName : `${iconName}-outline`}
+            size={22}
+            color={focused ? COLORS.red : color}
+            style={focused ? styles.tabIconActive : styles.tabIcon}
+          />
+        )}
+        {showCartBadge && <CartBadge isDark={onDark} />}
       </View>
       <Text style={[styles.tabLabel, { color: focused ? COLORS.red : labelColor, fontWeight: focused ? '900' : '700' }]} maxFontSizeMultiplier={1.3}>
         {name}
@@ -54,76 +70,92 @@ const TAB_LISTENERS = {
 export default function TabLayout() {
   const { isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const totalItems = useCartTotalItems();
+  const tones = useTabBarTones();
 
-  // Theme-aware tab bar style, memoized so the navigator's options stay referentially stable.
-  const screenOptions = useMemo(() => ({
-    headerShown: false,
-    // Hidden tabs stop re-rendering (react-native-screens freeze): less JS work, smoother taps on the visible tab.
-    freezeOnBlur: true,
-    tabBarShowLabel: false,
-    tabBarStyle: {
-      backgroundColor: isDark ? '#09090B' : '#FFFFFF',
-      borderTopWidth: 1,
-      // Light mode: the bar lifts off the page with a soft shadow, no top outline
-      borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : 'transparent',
-      height: Platform.OS === 'ios' ? 88 : 60 + insets.bottom,
-      paddingTop: 8,
-      paddingBottom: Platform.OS === 'ios' ? 24 : insets.bottom > 0 ? insets.bottom : 8,
-      elevation: 20,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: -4 },
-      shadowOpacity: isDark ? 0.35 : 0.08,
-      shadowRadius: 12,
-    },
-  }), [isDark, insets.bottom]);
+  // Each tab's bar options: the theme's bar, or the page tone the tab set (utils/tabBarTone); the navigator draws the
+  // focused tab's. Built once per change, so every tab's options stay referentially stable between renders.
+  const screenOptions = useMemo(() => {
+    const make = (dark: boolean, bar: string) => ({
+      headerShown: false,
+      // Hidden tabs stop re-rendering (react-native-screens freeze): less JS work, smoother taps on the visible tab.
+      freezeOnBlur: true,
+      tabBarShowLabel: false,
+      tabBarActiveTintColor: COLORS.red,
+      tabBarInactiveTintColor: dark ? INK.dark.icon : INK.light.icon,
+      tabBarStyle: {
+        backgroundColor: bar,
+        borderTopWidth: 1,
+        // Light bar: it lifts off the page with a soft shadow, no top outline
+        borderTopColor: dark ? 'rgba(255,255,255,0.08)' : 'transparent',
+        height: Platform.OS === 'ios' ? 88 : 60 + insets.bottom,
+        paddingTop: 8,
+        paddingBottom: Platform.OS === 'ios' ? 24 : insets.bottom > 0 ? insets.bottom : 8,
+        elevation: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: dark ? 0.35 : 0.08,
+        shadowRadius: 12,
+      },
+    });
+    const themed = make(isDark, isDark ? INK.dark.bar : INK.light.bar);
+    const toned: Record<string, ReturnType<typeof make>> = {};
+    Object.entries(tones).forEach(([tab, tone]) => { if (tone) toned[tab] = make(tone.dark, tone.bg); });
+    return ({ route }: { route: { name: string } }) => toned[route.name] || themed;
+  }, [isDark, insets.bottom, tones]);
 
   const tabOptions = useMemo(() => {
     const make = (name: string, iconName: string, showCartBadge?: boolean) => ({
       tabBarAccessibilityLabel: name,
-      tabBarIcon: ({ focused }: { focused: boolean }) => (
-        <TabIcon name={name} focused={focused} iconName={iconName} isDark={isDark} showCartBadge={showCartBadge} />
+      tabBarIcon: ({ focused, color }: { focused: boolean; color: ColorValue }) => (
+        <TabIcon name={name} focused={focused} iconName={iconName} color={color} showCartBadge={showCartBadge} />
       ),
     });
     return {
       index: make('Home', 'home'),
-      others: make('Others', 'grid'),
+      // Local (owner, 3 Nov 2026): In-Campus Booking and the stalls near campus (app/(tabs)/local.tsx).
+      local: make('Local', LOCAL_STORE_ICON),
+      others: make('Groceries', 'storefront'),
       orders: make('Orders', 'receipt'),
-      basket: make('Basket', 'cart', true),
-      profile: make('Profile', 'person'),
+      // Services replaced the Basket tab (owner, 28 Oct 2026); the basket opens from the floating button on Home and Local.
+      services: make('Services', 'construct'),
     };
-  }, [isDark]);
+  }, []);
 
-  // Screen readers hear the basket count ("Basket, 3 items"); only this tab's options change with it.
-  const basketOptions = useMemo(() => ({
-    ...tabOptions.basket,
-    tabBarAccessibilityLabel: totalItems > 0 ? `Basket, ${plural(totalItems, 'item')}` : 'Basket',
-  }), [tabOptions, totalItems]);
+  // Profile (opened from the avatar at the top of Home; owner, 3 Nov 2026: no Profile button in the bar) and the basket
+  // stay tab routes, so every link to them keeps working, but have no button in the bar. A plain object on purpose:
+  // expo-router reads `href` only from options that are not a function.
+  const hiddenOptions = useMemo(() => ({ href: null }), []);
 
   return (
     <Tabs screenOptions={screenOptions}>
-      {/* Home & Others */}
+      {/* The bar, left to right: instant switch, no transition */}
       <Tabs.Screen name="index" options={tabOptions.index} listeners={TAB_LISTENERS} />
+      <Tabs.Screen name="local" options={tabOptions.local} listeners={TAB_LISTENERS} />
       <Tabs.Screen name="others" options={tabOptions.others} listeners={TAB_LISTENERS} />
-
-      {/* Orders, Basket, Profile — instant switch, no transition */}
       <Tabs.Screen name="orders" options={tabOptions.orders} listeners={TAB_LISTENERS} />
-      <Tabs.Screen name="basket" options={basketOptions} listeners={TAB_LISTENERS} />
-      <Tabs.Screen name="profile" options={tabOptions.profile} listeners={TAB_LISTENERS} />
+      <Tabs.Screen name="services" options={tabOptions.services} listeners={TAB_LISTENERS} />
+
+      {/* No button in the bar */}
+      <Tabs.Screen name="profile" options={hiddenOptions} listeners={TAB_LISTENERS} />
+      <Tabs.Screen name="basket" options={hiddenOptions} listeners={TAB_LISTENERS} />
     </Tabs>
   );
 }
 
 const styles = StyleSheet.create({
+  // The navigator centres this block on a 28 px icon box, so anything placed above the block can leave the bar
+  // (2 Nov 2026: the active line crossed the page, e.g. "My tickets", where the bar has no system-bar inset). The
+  // line's room is part of the block (paddingTop, on every tab so icons stay level), so it always sits in the bar.
   tabIconWrap: {
     alignItems: 'center',
     justifyContent: 'center',
     width: 60,
+    paddingTop: 9,
     position: 'relative',
   },
   activeIndicator: {
     position: 'absolute',
-    top: -12,
+    top: 0,
     width: 24,
     height: 3,
     borderRadius: 2,

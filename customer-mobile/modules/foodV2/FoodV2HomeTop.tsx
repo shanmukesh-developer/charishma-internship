@@ -5,7 +5,7 @@
  * (cut-out subjects on tinted plates, slightly over the tile top).
  * Others → Food & groceries (modules/foodV2).
  */
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,19 +23,25 @@ import { FloatY, ShineSweep } from './FoodV2Motion';
 import { Icon } from './FoodV2Icons';
 import { useFoodScale } from './FoodV2Scale';
 import { apiFetch } from '../../utils/auth';
+import { useAuth } from '../../context/AuthContext';
 import { BUTTON_ROLE } from '../../utils/pressRole';
+import { goHome } from '../../utils/goHome';
 
-/** Gold dot on the bell only when the signed-in student has unread notifications (GET, read-only). */
+/** Gold dot on the bell only when the signed-in student has unread notifications (GET, read-only). A guest has
+ * none to read: no request (it used to answer 401 on every Groceries / Services open). */
 export function useUnreadDot() {
+  const { user } = useAuth();
+  const uid = String(user?._id || user?.id || '');
   const [dot, setDot] = React.useState(false);
   React.useEffect(() => {
+    if (!uid) { setDot(false); return; }
     let live = true;
     apiFetch('/api/notifications?limit=30').then(r => (r.ok ? r.json() : null)).then((d: any) => {
       const list = Array.isArray(d?.notifications) ? d.notifications : [];
       if (live) setDot(list.some((n: any) => n && (n.read === false || n.isRead === false)));
     }).catch(() => {});
     return () => { live = false; };
-  }, []);
+  }, [uid]);
   return dot;
 }
 
@@ -45,8 +51,23 @@ const PILLS: [string, string][] = [['food', 'Food & groceries'], ['pg', 'PG stay
 export const LUX = { top: '#0B3D24', bottom: '#0F5132', gold: '#C9A24A', goldSoft: 'rgba(201,162,74,0.35)', badge: '#E9C46A' };
 
 export function HomeHeader() {
-  const { router, topPad, pageW, push, setSavedChip, openListing, sections, onSection } = useFoodV2();
+  const { router, topPad, pageW, push, setSavedChip, openListing, sections, onSection, catalogue } = useFoodV2();
   const pills: [string, string][] = sections && sections.length ? sections.map(t => [t.key, t.label] as [string, string]) : PILLS;
+  // Hints from what the store really sells (the fixed milk / rice / chips hints found nothing in a pickles-only
+  // catalogue): short real product names, else the generic hints while the catalogue loads.
+  const hints = useMemo(() => {
+    const seen = new Set<string>();
+    const names: string[] = [];
+    for (const p of catalogue) {
+      const n = String(p.name || '').replace(/\s*\(.*?\)\s*/g, ' ').trim();
+      const key = n.toLowerCase();
+      if (!n || n.length > 22 || seen.has(key)) continue;
+      seen.add(key);
+      names.push(`Search for '${n.toLowerCase()}'`);
+      if (names.length >= 6) break;
+    }
+    return names.length ? names : SEARCH_HINTS;
+  }, [catalogue]);
   const sc = useFoodScale();
   const unread = useUnreadDot();
   return (
@@ -57,13 +78,13 @@ export function HomeHeader() {
       colors={FOOD_HEADER}
       // The active pill already says "Food & groceries"; the short line fits every phone width.
       subtitle="Campus store"
-      hints={SEARCH_HINTS}
+      hints={hints}
       searchLabel="Search groceries and essentials"
       onSearch={() => openListing(SEARCH)}
       pills={pills}
       active="food"
       onPill={k => { if (onSection) onSection(k); else router.push(`/(tabs)/others?tab=${k}` as any); }}
-      onBack={() => router.replace('/(tabs)' as any)}
+      onBack={() => goHome(router)}
       actions={[
         { icon: 'heart-outline', label: 'Saved items', onPress: () => { setSavedChip('All'); push({ name: 'saved' }); } },
         { icon: 'notifications-outline', label: unread ? 'Notifications, unread' : 'Notifications', onPress: () => router.push('/notifications' as any), dot: unread },
@@ -144,7 +165,7 @@ export function HomeBandHero() {
 
 /** Shop by category: 3 + 2 + 2 tiles (tileRows; 3 + 3 / 3 + 2 while a shelf is empty), cut-out subjects on tinted plates. */
 export function CategoryTiles() {
-  const { isDark, pageW, c, shadow, hasShelf, openListing, push } = useFoodV2();
+  const { isDark, pageW, c, shadow, hasShelf, openListing, openShops, push } = useFoodV2();
   const { head } = useFoodV2Ui();
   const sc = useFoodScale();
   const tiles = TILES.filter(t => hasShelf(t.key));
@@ -161,7 +182,7 @@ export function CategoryTiles() {
             const tint = art ? art.tint[isDark ? 1 : 0] : c.tile;
             return (
               <Enter key={t.key} index={ri * 3 + ti}>
-                <PressScale onPress={() => openListing(t.key)} scaleTo={0.97} style={{ width: w }} accessibilityRole={BUTTON_ROLE} accessibilityLabel={t.label}>
+                <PressScale onPress={() => openShops(t.key)} scaleTo={0.97} style={{ width: w }} accessibilityRole={BUTTON_ROLE} accessibilityLabel={t.label}>
                   <View style={[st.tile, { backgroundColor: c.card }, shadow]}>
                     <View style={[st.plate, { backgroundColor: tint }]}>
                       <Svg width={w - 12} height={18} style={st.plateShadow} pointerEvents="none">

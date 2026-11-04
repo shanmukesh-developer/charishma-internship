@@ -155,7 +155,7 @@ export default function AutoTripScreen() {
         <AHeader title="Shared auto" />
         {loadError ? (
           <StateView kind={loadError.status === 404 || off ? 'empty' : 'error'} icon={off ? '🛺' : undefined}
-            title={off ? 'ZCS Auto is not open yet' : loadError.status === 404 ? 'Auto not found' : loadError.isNetwork ? 'You seem to be offline' : 'Could not load'}
+            title={off ? 'ZENV Auto is not open yet' : loadError.status === 404 ? 'Auto not found' : loadError.isNetwork ? 'You seem to be offline' : 'Could not load'}
             message={loadError.message} actionLabel={loadError.status === 404 || off ? 'Back to autos' : 'Retry'}
             onAction={loadError.status === 404 || off ? () => router.replace(AUTO_HOME as any) : load} />
         ) : <StateView kind="loading" message="Loading the auto…" />}
@@ -565,7 +565,7 @@ export default function AutoTripScreen() {
                   <Ionicons name={m === 'CASH' ? 'cash-outline' : 'wallet-outline'} size={20} color={on ? p.accent : p.sub} />
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: 14, fontWeight: '800', color: p.text }}>{m === 'CASH' ? 'Cash to the driver' : PAYMENT_LABEL[m]}</Text>
-                    <Text style={{ fontSize: 12, color: p.sub }}>{m === 'CASH' ? 'Pay the driver when you board' : 'Paid now from your ZCS Wallet; refunds go back to it'}</Text>
+                    <Text style={{ fontSize: 12, color: p.sub }}>{m === 'CASH' ? 'Pay the driver when you board' : 'Paid now from your ZENV Wallet; refunds go back to it'}</Text>
                   </View>
                   <View style={[ts.radio, { borderColor: on ? p.accent : p.border }]}>{on ? <View style={[ts.radioDot, { backgroundColor: p.accent }]} /> : null}</View>
                 </PressScale>

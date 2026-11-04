@@ -14,9 +14,11 @@ interface StaggeredSectionProps {
   duration?: number; // Animation duration (ms)
   direction?: 'up' | 'down' | 'left' | 'right';
   style?: StyleProp<ViewStyle>;
+  /** Where the section sits in its parent (e.g. a form scrolling to the section that needs the user). */
+  onLayout?: (e: LayoutChangeEvent) => void;
 }
 
-export function StaggeredSection({ children, delay = 0, duration = 500, direction = 'up', style }: StaggeredSectionProps) {
+export function StaggeredSection({ children, delay = 0, duration = 500, direction = 'up', style, onLayout }: StaggeredSectionProps) {
   // Reduce motion: start (and stay) at the final state.
   const still = isReduceMotionOn();
   const fadeAnim = useRef(new Animated.Value(still ? 1 : 0)).current;
@@ -64,6 +66,7 @@ export function StaggeredSection({ children, delay = 0, duration = 500, directio
 
   return (
     <Animated.View
+      onLayout={onLayout}
       style={[
         style,
         {

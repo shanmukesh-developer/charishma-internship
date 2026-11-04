@@ -57,7 +57,7 @@ function BookSheet({ item, duration }: { item: RItem; duration: Duration }) {
 
   const gate = !user ? { t: 'Sign in to send a request', a: 'Sign in', go: '/login' }
     : elig && !elig.eligible ? { t: elig.message || 'Verify your college to rent or borrow vehicles.', a: 'Verify now', go: '/friends?screen=verification' }
-      : elig && elig.licence?.status !== 'VERIFIED' ? { t: elig.licence ? 'Your licence is being checked. You can send requests once it is verified.' : 'Add your driving licence once. The ZCS team verifies it before your first trip.', a: elig.licence ? 'View licence' : 'Add licence', go: '/rentals/licence' }
+      : elig && elig.licence?.status !== 'VERIFIED' ? { t: elig.licence ? 'Your licence is being checked. You can send requests once it is verified.' : 'Add your driving licence once. The ZENV team verifies it before your first trip.', a: elig.licence ? 'View licence' : 'Add licence', go: '/rentals/licence' }
         : null;
 
   const send = async () => {

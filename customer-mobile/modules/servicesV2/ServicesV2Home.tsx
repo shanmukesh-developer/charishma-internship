@@ -6,7 +6,7 @@
  * Pull to refresh reloads every shelf.
  */
 import React, { useMemo, useState } from 'react';
-import { Platform, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -18,10 +18,12 @@ import { TV, RADIUS, W, shadow } from './servicesV2Theme';
 import { BookPill, FadeIn, HeroCard, Press, SectionHead, Stepper, usePageW } from './ServicesV2Kit';
 import { ItemPhoto } from './ServicesV2Rows';
 import { IArrowLeft, IBell, IChevronRight, IReceipt, ISearch } from './ServicesV2Icons';
-import { HOME_HERO, SHELF_TILE, ZCS_EMBLEM } from './servicesV2Art';
+import { HOME_HERO, SHELF_TILE } from './servicesV2Art';
+import ZenvBadge from '../../components/ZenvBadge';
 import { ALL_SHELVES, SHELF_META, SHELF_TRUST, detailPath, priceLine, shelfPath, useMinPrices, useShelf, type ShelfId, type ShelfItem } from './servicesV2Data';
 import { useStoreBasket } from './useStoreBasket';
 import { openMyBookings } from './ServicesV2List';
+import { goHome } from '../../utils/goHome';
 
 type Sections = { key: string; label: string }[];
 
@@ -32,12 +34,12 @@ function HomeTop({ sections, onSection }: { sections?: Sections; onSection?: (k:
   return (
     <LinearGradient colors={[TV.header[0], TV.header[1], TV.header[2]]} start={{ x: 0, y: 0 }} end={{ x: 0.45, y: 1 }} style={{ paddingTop: top }}>
       <View style={h.brandRow}>
-        <Press onPress={() => router.replace('/(tabs)' as any)} label="Back to Home" style={h.iconBtn} scaleTo={0.9}>
+        <Press onPress={() => goHome(router)} label="Back to Home" style={h.iconBtn} scaleTo={0.9}>
           <IArrowLeft size={22} color="#FFFFFF" strokeWidth={1.6} />
         </Press>
-        <View style={h.emblemRing}><Image source={ZCS_EMBLEM} style={{ width: '100%', height: '100%', borderRadius: 17 }} contentFit="cover" accessibilityLabel="ZCS emblem" /></View>
+        <ZenvBadge size={36} />
         <View style={{ flex: 1, marginLeft: 10, minWidth: 0 }}>
-          <Text style={h.brand} accessibilityRole="header">ZCS</Text>
+          <Text style={h.brand} accessibilityRole="header">ZENV</Text>
           <Text style={h.brandSub} numberOfLines={1}>Tech & repairs</Text>
         </View>
         <Press onPress={() => openMyBookings(router)} label="My service bookings" style={h.iconBtn} scaleTo={0.9}>
@@ -234,11 +236,7 @@ export default React.memo(ServicesV2Home);
 const h = StyleSheet.create({
   brandRow: { flexDirection: 'row', alignItems: 'center', paddingLeft: 6, paddingRight: 16, paddingTop: 12 },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  emblemRing: Platform.select<any>({
-    web: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: '#C9A24A', padding: 1, backgroundColor: '#0F1446', boxShadow: '0 0 12px rgba(246,196,83,0.28)' },
-    default: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: '#C9A24A', padding: 1, backgroundColor: '#0F1446' },
-  }),
-  brand: { color: '#FFFFFF', fontSize: 21, fontWeight: W.title, letterSpacing: 1.6, lineHeight: 25 },
+  brand: { color: '#FFFFFF', fontSize: 21, fontWeight: W.title, letterSpacing: 1.2, lineHeight: 25 },
   brandSub: { color: TV.onDarkSub, fontSize: 12.5, marginTop: 1, letterSpacing: 0.2 },
   dot: { position: 'absolute', top: 10, right: 11, width: 9, height: 9, borderRadius: 5, backgroundColor: TV.bellDot, borderWidth: 1.5, borderColor: TV.header[1] },
   search: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 48, marginHorizontal: 16, marginTop: 14, borderRadius: 24, backgroundColor: '#FFFFFF', paddingHorizontal: 16 },

@@ -5,8 +5,9 @@
  * (the server shares phone numbers only between the host and approved riders).
  * Not offered (no API yet): "Start ride" and cancel reasons. Owner decisions in the report.
  */
-import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, Linking } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Alert, Linking, RefreshControl } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { CR, R, GUTTER, W, shadow, type Tone } from './coRideV2Theme';
 import { ScreenHeader, Segmented, Avatar, Pill, PrimaryButton, OutlineButton, Tap, Chip } from './CoRideV2Kit';
 import { IMessage, ICheck, IX, IFlag, ICircleX, IRefresh, IRoute, STROKE } from './CoRideV2Icons';
@@ -87,7 +88,7 @@ function MyRideCard({ ride }: { ride: Ride }) {
             </View>
             {info.myStatus === 'Approved' && host?.phone ? <OutlineButton label="WhatsApp" icon={IMessage} small color={CR.whatsapp} onPress={() => openWhatsApp(host.phone)} style={{ height: 36 }} /> : null}
           </View>
-          {info.isOpenRide && (info.myStatus === 'Pending' || info.myStatus === 'Approved') ? (
+          {info.isOpenRide && !info.departed && (info.myStatus === 'Pending' || info.myStatus === 'Approved') ? (
             <OutlineButton
               label={info.myStatus === 'Pending' ? 'Withdraw request' : 'Leave ride'}
               small color={CR.red} style={{ marginTop: 12, borderColor: CR.redSoft }}
@@ -102,6 +103,11 @@ function MyRideCard({ ride }: { ride: Ride }) {
 
 export default function CoRideV2MyRides() {
   const d = useCoRide();
+  // Requests, approvals and cancellations land while this screen sits in the background: reload on return, and
+  // pull to refresh (it used to load once).
+  useFocusEffect(useCallback(() => { d.reload(); }, [d.reload])); // eslint-disable-line react-hooks/exhaustive-deps
+  const [pulling, setPulling] = useState(false);
+  const onPull = useCallback(() => { setPulling(true); d.reload(); setTimeout(() => setPulling(false), 900); }, [d.reload]); // eslint-disable-line react-hooks/exhaustive-deps
   const { route, back, push } = useNav();
   const [as, setAs] = useState<'rider' | 'driver'>(route.name === 'mine' && route.as ? route.as : 'rider');
   const [when, setWhen] = useState<'upcoming' | 'past'>('upcoming');
@@ -130,7 +136,8 @@ export default function CoRideV2MyRides() {
   return (
     <View style={{ flex: 1 }}>
       <ScreenHeader title="My rides" sub={pendingForMe ? `${pendingForMe} seat request${pendingForMe === 1 ? '' : 's'} waiting` : undefined} onBack={back} />
-      <ScrollView contentContainerStyle={{ paddingHorizontal: GUTTER, paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: GUTTER, paddingBottom: 48 }} showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={pulling} onRefresh={onPull} tintColor={CR.primary} colors={[CR.primary]} />}>
         <Segmented<'rider' | 'driver'> value={as} onChange={setAs} options={[{ key: 'rider', label: 'As rider' }, { key: 'driver', label: 'As driver' }]} />
         <View style={st.tabs}>
           <Chip label={`Upcoming${lists.upcoming.length ? ` · ${lists.upcoming.length}` : ''}`} on={when === 'upcoming'} onPress={() => setWhen('upcoming')} />

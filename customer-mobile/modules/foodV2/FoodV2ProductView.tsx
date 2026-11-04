@@ -12,12 +12,13 @@ import { formatINR, isAmount, plural } from '../../utils/format';
 import { useTopInset } from '../../utils/useTopInset';
 import StatusBarScrim from '../../components/StatusBarScrim';
 import FoodV2Gallery from './FoodV2Gallery';
-import { demoGallery } from './demoGallery';
 import { s, MAX_QTY, PRODUCT_FALLBACK_IMG, WISHLIST_KEY, NON_FOOD, specValue, sentence, tidy, discountOf } from './FoodV2ProductStyles';
 import { Icon } from './FoodV2Icons';
 import { fmtShortClock } from './FoodV2Data';
 import { BUTTON_ROLE } from '../../utils/pressRole';
 import { takesSlotOrders } from '../../utils/storeOpenNow';
+import FormattedDescription, { isStructured } from '../../components/FormattedDescription';
+import { OptionsPicker, chosenVariant, cleanPicks, defaultPicks, missingChoice, optionsUnitPrice, productDetails, productOptions, type OptionPicks } from '../../components/ProductOptions';
 
 /** The seller name used everywhere in Food & groceries (header, basket tab, saved items). */
 const SELLER_LABEL = 'Campus store';
@@ -128,10 +129,45 @@ export default function FoodV2ProductView(p: Props) {
     }
   }, [savedIds, p.store, product.restaurantName]);
 
-  const inCart = p.cart.find((i: any) => i.cartKey === product.id)?.quantity || 0;
+  // Admin-set choices (weights with their own prices, flavours, types): picked here, priced by the server.
+  const groups = useMemo(() => productOptions(product), [product]);
+  const [picks, setPicks] = useState<OptionPicks>(() => defaultPicks(productOptions(product)));
+  // A refresh of the same product (a new object, a price change) keeps what the customer picked while that choice
+  // still exists; it used to snap back to the default weight. Another product starts from its own defaults.
+  const pickedFor = useRef(String(product.id || ''));
+  useEffect(() => {
+    const pid = String(product.id || '');
+    const same = pickedFor.current === pid;
+    pickedFor.current = pid;
+    setPicks((prev) => {
+      const next: OptionPicks = defaultPicks(groups);
+      if (!same) return next;
+      for (const g of groups) {
+        const v = prev[g.name];
+        if (v === undefined) continue;
+        if (g.type === 'text') { next[g.name] = v; continue; }
+        const labels = (Array.isArray(v) ? v : [v]).filter((l) => (g.choices || []).some((c) => c.label === l));
+        if (labels.length) next[g.name] = g.type === 'multi' ? labels : labels[0];
+      }
+      return next;
+    });
+  }, [groups]); // eslint-disable-line react-hooks/exhaustive-deps
+  const chosen = useMemo(() => cleanPicks(groups, picks), [groups, picks]);
+  const missing = groups.length ? missingChoice(groups, picks) : null;
+  const unitPrice = groups.length ? optionsUnitPrice(Number(product.price) || 0, groups, picks) : product.price;
+  // The basket line for exactly these choices (each weight / flavour is its own line).
+  const cartLine = groups.length
+    ? p.cart.find((i: any) => String(i.id) === String(product.id) && JSON.stringify(i.customizations || {}) === JSON.stringify(chosen))
+    : p.cart.find((i: any) => i.cartKey === product.id);
+  const inCart = cartLine?.quantity || 0;
+  const lineKey: string = cartLine?.cartKey || product.id;
+  // MRP / % off follow the chosen weight (each weight carries its own MRP); without weights, the product's own.
+  const variant = groups.length ? chosenVariant(groups, picks) : null;
+  const shownMrp: number | null = groups.length ? (variant?.mrp && variant.mrp > unitPrice ? variant.mrp : null) : (product.originalPrice || null);
+  const shownOff: number | null = groups.length ? (shownMrp ? Math.round((1 - unitPrice / shownMrp) * 100) : null) : (product.discountPercent || null);
   const images: string[] = product.images.length > 0 ? product.images : [PRODUCT_FALLBACK_IMG];
-  // TODO before the Play release: demoGallery is preview-only; stores / admin upload 2–5 real photos (specs.images).
-  const gallery = demoGallery(images, String(product.name || ''));
+  // The product's own photos only (the preview-only demo gallery added stock photos to real products).
+  const gallery = images;
   const bandH = Math.round(Math.min(pageW * 0.62, 300));
   const plateW = Math.round(Math.min(pageW * 0.56, 260));
   const storeName: string = p.store?.name || product.restaurantName || '';
@@ -159,22 +195,24 @@ export default function FoodV2ProductView(p: Props) {
 
   // ── Product details: one fixed order, a row only when the data exists ──
   const brand = specValue(specs, ['brand', 'Brand', 'manufacturer']) || (product.brand ? String(product.brand) : null);
-  const size = product.weight ? String(product.weight) : specValue(specs, ['weight', 'size', 'netQuantity', 'net_quantity', 'quantity', 'pack']);
+  const size = variant ? variant.label : product.weight ? String(product.weight) : specValue(specs, ['weight', 'size', 'netQuantity', 'net_quantity', 'quantity', 'pack']);
   const category = product.category ? sentence(String(product.category)) : null;
   const diet = isFood && typeof product.isVegetarian === 'boolean' ? (product.isVegetarian ? 'Veg' : 'Non-veg') : null;
   const shelfLife = specValue(specs, ['shelfLife', 'shelf_life', 'shelflife', 'bestBefore', 'best_before']);
   const origin = specValue(specs, ['countryOfOrigin', 'country_of_origin', 'origin', 'madeIn', 'made_in']);
-  const detailRows = useMemo(() => ([
+  // The admin's own rows, exactly in the order entered, when set; otherwise the fixed table below.
+  const adminDetails = useMemo(() => productDetails(product), [product]);
+  const detailRows = useMemo(() => adminDetails ? adminDetails.map((r) => [r.label, r.value] as [string, string]) : ([
     ['Brand', brand],
     ['Size / weight', size],
     ['Category', category],
     ['Veg / non-veg', diet],
     ['Shelf life', shelfLife],
     ['Country of origin', origin],
-  ] as [string, string | null][]).filter((r): r is [string, string] => !!r[1]), [brand, size, category, diet, shelfLife, origin]);
+  ] as [string, string | null][]).filter((r): r is [string, string] => !!r[1]), [adminDetails, brand, size, category, diet, shelfLife, origin]);
   // Any other real spec rows (ingredients, storage...) follow under "More information".
   const TABLE_LABEL = /brand|manufacturer|weight|pack|size|quantity|shelf|best before|origin|made in|category|veg|emoji/i;
-  const extraRows: { label: string; value: string }[] = Array.isArray(product.specRows)
+  const extraRows: { label: string; value: string }[] = !adminDetails && Array.isArray(product.specRows)
     ? product.specRows.filter((r: any) => r && r.label && r.value && !TABLE_LABEL.test(String(r.label))).slice(0, 6)
     : [];
 
@@ -193,12 +231,12 @@ export default function FoodV2ProductView(p: Props) {
   const tap = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
   const dec = () => {
     tap();
-    if (inCart > 0) p.onUpdateQuantity(product.id, inCart - 1);
+    if (inCart > 0) p.onUpdateQuantity(lineKey, inCart - 1);
     else setPickQty(q => Math.max(1, q - 1));
   };
   const inc = () => {
     tap();
-    if (inCart > 0) p.onUpdateQuantity(product.id, Math.min(MAX_QTY, inCart + 1));
+    if (inCart > 0) p.onUpdateQuantity(lineKey, Math.min(MAX_QTY, inCart + 1));
     else setPickQty(q => Math.min(MAX_QTY, q + 1));
   };
   const payload = () => ({
@@ -211,9 +249,13 @@ export default function FoodV2ProductView(p: Props) {
   });
   const add = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-    if (p.customizable) p.onCustomize();
+    if (groups.length) {
+      if (missing) return;
+      p.onAdd({ ...payload(), price: unitPrice, basePrice: Number(product.price) || 0, customizations: chosen, quantity: pickQty });
+    } else if (p.customizable) p.onCustomize();
     else p.onAdd({ ...payload(), quantity: pickQty });
   };
+  const customizable = p.customizable && !groups.length;
 
   const stock = !product.isAvailable
     ? { text: 'Sold out', color: isDark ? STATUS.dark.error : STATUS.light.error }
@@ -229,7 +271,7 @@ export default function FoodV2ProductView(p: Props) {
     <View style={[s.root, { backgroundColor: c.bg }]}>
       <Animated.ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 48 }} scrollEventThrottle={16}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: Platform.OS !== 'web' })}>
-        {/* ── Gallery: 2–5 photos (own photo first; demo photos are preview-only, see demoGallery.ts) ── */}
+        {/* ── Gallery: the product's own photos ── */}
         <FoodV2Gallery images={gallery} topPad={topPad} isSaved={p.isSaved} name={product.name} onBack={p.onBack} onShare={p.onShare} onToggleSaved={p.onToggleSaved} />
 
         {/* ── Name, rating / stock, price ── */}
@@ -255,9 +297,9 @@ export default function FoodV2ProductView(p: Props) {
           </View>
 
           <View style={s.priceRow}>
-            <Text style={[s.price, { color: c.price, fontSize: 26, fontWeight: '600' }]}>{formatINR(product.price)}</Text>
-            {!!product.originalPrice && <Text style={[s.was, { color: c.was }]}>{formatINR(product.originalPrice, { paise: 'never' })}</Text>}
-            {!!product.discountPercent && <Text style={[s.off, { color: c.off }]}>{product.discountPercent}% off</Text>}
+            <Text style={[s.price, { color: c.price, fontSize: 26, fontWeight: '600' }]}>{formatINR(unitPrice)}</Text>
+            {!!shownMrp && <Text style={[s.was, { color: c.was }]}>{formatINR(shownMrp, { paise: 'never' })}</Text>}
+            {!!shownOff && <Text style={[s.off, { color: c.off }]}>{shownOff}% off</Text>}
           </View>
 
           <View style={[s.metaItem, { marginTop: 8 }]}>
@@ -274,9 +316,16 @@ export default function FoodV2ProductView(p: Props) {
             </View>
           )}
 
+          {/* ── The admin's choices: weights (each with its own price), flavours, types ── */}
+          {groups.length > 0 && (
+            <View style={{ marginTop: 18 }}>
+              <OptionsPicker groups={groups} picks={picks} onChange={setPicks} accent={FOOD.primary} />
+            </View>
+          )}
+
           {/* ── Quantity + Add to basket ── */}
           <View style={s.actionRow}>
-            {canAdd && !p.customizable && (
+            {canAdd && !customizable && (
               <View style={[s.stepper, { backgroundColor: c.mint }]}>
                 <PressScale style={s.stepBtn} onPress={dec} disabled={inCart === 0 && pickQty <= 1} accessibilityRole={BUTTON_ROLE} accessibilityLabel={inCart > 0 ? 'Remove one' : 'One less'}>
                   <Icon name="remove" size={20} color={inCart === 0 && pickQty <= 1 ? c.was : c.mintInk} />
@@ -297,8 +346,8 @@ export default function FoodV2ProductView(p: Props) {
                 <Icon name="arrow-forward" size={17} color="#FFFFFF" />
               </PressScale>
             ) : (
-              <PressScale style={[s.cta, { backgroundColor: FOOD.cta }]} onPress={add} accessibilityRole={BUTTON_ROLE}>
-                <Text style={s.ctaText}>{p.customizable ? 'Customise and add' : 'Add to basket'}</Text>
+              <PressScale style={[s.cta, { backgroundColor: missing ? (isDark ? '#3F3F46' : '#9CA3AF') : FOOD.cta }]} onPress={add} disabled={!!missing} accessibilityRole={BUTTON_ROLE}>
+                <Text style={s.ctaText}>{missing || (customizable ? 'Customise and add' : 'Add to basket')}</Text>
               </PressScale>
             )}
           </View>
@@ -307,7 +356,10 @@ export default function FoodV2ProductView(p: Props) {
         {/* ── Product details ── */}
         <View style={[s.section, { borderTopColor: c.line }]}>
           <Text style={[s.secTitle, { color: c.title }]}>Product details</Text>
-          {!!description && <Text style={[s.desc, { color: c.slate }]}>{description}</Text>}
+          {/* The admin's own layout (headings, lists, "Label: value" lines) when the text has line breaks. */}
+          {product.description && isStructured(String(product.description))
+            ? <FormattedDescription text={String(product.description)} color={c.slate} strong={c.title} />
+            : !!description && <Text style={[s.desc, { color: c.slate }]}>{description}</Text>}
           {detailRows.length > 0 && (
             <View style={[s.table, { borderTopColor: c.line }]}>
               {detailRows.map(([label, value]) => (
@@ -377,7 +429,11 @@ export default function FoodV2ProductView(p: Props) {
                       ) : (
                         <PressScale
                           style={[s.plus, { backgroundColor: FOOD.primary }]}
-                          onPress={() => { tap(); p.onAdd({ id: relId, name: rel.name, price: Number(rel.price), image: p.getImageUri(rel.imageUrl || rel.image) || '', restaurantId: product.restaurantId, restaurantName: storeName }); }}
+                          onPress={() => {
+                            tap();
+                            if (productOptions(rel).length) p.onOpenProduct(relId);
+                            else p.onAdd({ id: relId, name: rel.name, price: Number(rel.price), image: p.getImageUri(rel.imageUrl || rel.image) || '', restaurantId: product.restaurantId, restaurantName: storeName });
+                          }}
                           hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                           accessibilityRole={BUTTON_ROLE}
                           accessibilityLabel={`Add ${rel.name} to basket`}

@@ -20,8 +20,8 @@ import { readCache } from '../../utils/swrCache';
 import { useConnectionState } from '../../utils/offlineStatus';
 import { useTopInset } from '../../utils/useTopInset';
 import { FOOD } from './foodV2Theme';
-import { FOOD_IMG, StorefrontArt, ShoppingBasketArt, WaveArt, LoadingDots } from './FoodV2Kit';
-import { IonName, Item, SHOP_TYPES, CATALOGUE_CACHE_KEY, FALLBACK_IMG, MEGA_BASKET_VENDOR, WISHLIST_KEY, toItem, toList, groupIN, fmt, sentence, offLabel, fmtShortClock, squash, Shelf, SHELVES, shelfItems, SEARCH, SEARCH_HINTS, TILES, Hero, HEROES, LIST_TITLES, AISLES, aisleOf, SHORT_CHIP, chipLabel, FRESH_CATS, GROUP_ORDER, groupOf, BRANDS, TOY_TILES, HEALTH_TILES, ESSENTIAL_AISLES, HERO_BG, LHERO_BG, POPULAR_REQUESTS, Route, DemoState, Saved } from './FoodV2Data';
+import { FOOD_IMG, StorefrontArt, WaveArt, LoadingDots } from './FoodV2Kit';
+import { IonName, Item, SHOP_TYPES, CATALOGUE_CACHE_KEY, FALLBACK_IMG, MEGA_BASKET_VENDOR, WISHLIST_KEY, toItem, toList, groupIN, fmt, sentence, offLabel, fmtShortClock, squash, Shelf, SHELVES, shelfItems, SEARCH, SEARCH_HINTS, TILES, Hero, HEROES, LIST_TITLES, AISLES, aisleOf, SHORT_CHIP, chipLabel, FRESH_CATS, GROUP_ORDER, groupOf, BRANDS, TOY_TILES, HEALTH_TILES, ESSENTIAL_AISLES, HERO_BG, LHERO_BG, Route, DemoState, Saved } from './FoodV2Data';
 import { s } from './FoodV2Styles';
 import { useFoodV2 } from './useFoodV2';
 import { PulseBlock } from './FoodV2Motion';
@@ -29,7 +29,7 @@ import { Icon } from './FoodV2Icons';
 import { BUTTON_ROLE } from '../../utils/pressRole';
 
 export function useFoodV2States() {
-  const { router, isDark, m, topPad, winW, pageW, conn, cart, addToCart, updateQuantity, clearCart, mounted, c, shadow, greenGlow, stack, setStack, route, push, pop, homeKey, setHomeKey, reset, demo, setDemo, savedSheet, setSavedSheet, savedSample, setSavedSample, catalogue, setCatalogue, status, setStatus, storeHours, setStoreHours, fromNet, fetchCatalogue, saved, setSaved, loadSaved, savedIds, persistSaved, toggleSaved, qtyOf, closedLabel, addProduct, decProduct, storeIds, shopLines, shopCount, shopTotal, cartCount, addRequest, query, setQuery, chip, setChip, chipsOpen, setChipsOpen, aisle, setAisle, savedChip, setSavedChip, openListing, openProduct, inStock, closedShare, allClosed, someClosed, earliestOpen, hasShelf, dealShelf, topDeal, fromPrice, upTo, failKind, forcedFail, isLoading, isFailed, isEmpty, sampleSaved, savedResolved, savedGroup, savedCounts, savedChips, clean, forceDark } = useFoodV2();
+  const { router, isDark, m, topPad, winW, pageW, conn, cart, addToCart, updateQuantity, clearCart, mounted, c, shadow, greenGlow, stack, setStack, route, push, pop, homeKey, setHomeKey, reset, demo, setDemo, savedSheet, setSavedSheet, savedSample, setSavedSample, catalogue, setCatalogue, status, setStatus, storeHours, setStoreHours, fromNet, fetchCatalogue, saved, setSaved, loadSaved, savedIds, persistSaved, toggleSaved, qtyOf, closedLabel, addProduct, decProduct, storeIds, shopLines, shopCount, shopTotal, cartCount, query, setQuery, chip, setChip, chipsOpen, setChipsOpen, aisle, setAisle, savedChip, setSavedChip, openListing, openProduct, inStock, closedShare, allClosed, someClosed, earliestOpen, hasShelf, dealShelf, topDeal, fromPrice, upTo, failKind, forcedFail, isLoading, isFailed, isEmpty, sampleSaved, savedResolved, savedGroup, savedCounts, savedChips, clean, forceDark } = useFoodV2();
   const loadingCard = (rows = 4) => (
     <View style={[s.loadCard, { backgroundColor: c.card }]} accessible accessibilityLabel="Loading products" accessibilityState={{ busy: true }}>
       {Array.from({ length: rows }).map((_, i) => (
@@ -77,12 +77,7 @@ export function useFoodV2States() {
     <LinearGradient colors={['#04391F', '#021A10']} style={s.stock}>
       <StorefrontArt width={Math.min(220, pageW - 120)} />
       <Text style={s.stockTitle} accessibilityRole="header">The store is stocking up</Text>
-      <Text style={s.stockText}>We'll be back soon with fresh products. Meanwhile, you can start a shopping list and we'll get it for you.</Text>
-      <PressScale onPress={() => push({ name: 'mega' })} accessibilityRole={BUTTON_ROLE} style={s.brightWrap}>
-        <LinearGradient colors={FOOD.bright} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.brightBtn}>
-          <Text style={s.brightText}>Start a shopping list</Text>
-        </LinearGradient>
-      </PressScale>
+      <Text style={s.stockText}>Nothing here yet. New products are added often.</Text>
     </LinearGradient>
   );
 

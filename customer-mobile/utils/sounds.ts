@@ -35,6 +35,18 @@ export async function setSoundsEnabled(on: boolean): Promise<void> {
   if (on) preloadSounds();
 }
 
+/**
+ * True only when the student switched App sounds off themselves. The intro sound (components/intro/introSound) plays
+ * by default, so the switch's untouched default (nothing saved) does not silence it; an explicit "off" does.
+ */
+export async function appSoundsTurnedOff(): Promise<boolean> {
+  try {
+    return (await AsyncStorage.getItem(SOUNDS_KEY)) === '0';
+  } catch {
+    return false;
+  }
+}
+
 export function onSoundSettingChange(cb: (on: boolean) => void): () => void {
   soundListeners.add(cb);
   return () => { soundListeners.delete(cb); };
@@ -90,9 +102,12 @@ const SOUND_THROTTLE_MS = 100;
 const PLAYER_MAX_LIFE_MS = 2500;
 
 // One short-lived player per sound. expo-audio's Android player opens a MediaSession for every player,
-// and a player kept alive (the old cache / preload) made Android 13+ show a "Unknown song / Unknown
-// artist" media card in the notification shade. Each player is now removed (which releases its
-// MediaSession) as soon as the sound finishes, on any error, or after PLAYER_MAX_LIFE_MS.
+// and while that session lives Android 13+ shows an "Unknown song / Unknown artist" media card in the
+// notification shade. On Android player.remove() only drops the player from the module's list: the
+// native player and its MediaSession are freed by release() (SharedObject; AudioPlayer.releasePlayer
+// -> mediaSession.release()). So each player is paused, removed AND released as soon as the sound
+// finishes, on any error, or after PLAYER_MAX_LIFE_MS. (28 Oct 2026: `dumpsys media_session` on the
+// owner's phone showed com.srm.hostelbites holding an active session left over from a 0.7 s sound.)
 function playOnce(type: SoundType): void {
   const { createAudioPlayer } = require('expo-audio');
   if (!createAudioPlayer) return;
@@ -105,7 +120,9 @@ function playOnce(type: SoundType): void {
     released = true;
     if (timer) clearTimeout(timer);
     try { sub?.remove?.(); } catch { /* already gone */ }
-    try { player?.remove?.(); } catch { /* already released */ }
+    try { player?.pause?.(); } catch { /* already stopped */ }
+    try { player?.remove?.(); } catch { /* already removed */ }
+    try { player?.release?.(); } catch { /* already released */ }
     player = null;
   };
   try {

@@ -4,17 +4,54 @@
  * the red "Proceed to pay" button. The server prices the booking again and checks the stall is open now; one
  * Idempotency-Key per cart content, so a dropped connection never books twice.
  */
-import React, { useCallback, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import FssaiLine from '../../components/FssaiLine';
 import { KeyboardAvoidingView } from '../../components/KeyboardAvoidingView';
 import { cbApi, newIdempotencyKey, type CbStall } from './cbApi';
-import { cbCart, isNonFood, useCbCart } from './cbCart';
+import { cbCart, isNonFood, useCbCart, MAX_QTY_STATIONERY } from './cbCart';
+import { uploadServicePdf } from '../services/uploadServicePdf';
 import { COLORS, inr, useCbTheme } from './cbTheme';
 import { AddControl, CbHeader, EmptyCard, PlaceButton, StaggeredSection, VegBox } from './cbKit';
+
+// Stationery / print stalls (owner, 29 Oct): the PDFs to print travel with the booking. Each is uploaded on its own
+// first (POST /api/services/documents, progress + retry), the booking then carries only the file ids.
+const MAX_DOCS = 5;
+const MAX_PDF_BYTES = 5 * 1024 * 1024;
+type DocDraft = { key: string; uri: string; name: string; size: number; status: 'uploading' | 'done' | 'failed'; progress: number; id?: string; error?: string };
+const sizeText = (n: number) => (n >= 1024 * 1024 ? `${(n / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
+
+/** Stationery lines: type the count (pages) instead of tapping + many times. */
+function CountField({ qty, max, onSet, color, border, bg }: { qty: number; max: number; onSet: (n: number) => void; color: string; border: string; bg: string }) {
+  const [text, setText] = useState(String(qty));
+  useEffect(() => { setText(String(qty)); }, [qty]);
+  const commit = () => {
+    const n = parseInt(text, 10);
+    if (!Number.isFinite(n) || n < 1) { setText(String(qty)); return; }
+    onSet(Math.min(max, n));
+  };
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
+      <Text style={{ fontSize: 11, fontWeight: '700', color }}>Count</Text>
+      <TextInput
+        value={text}
+        onChangeText={(t) => setText(t.replace(/\D/g, '').slice(0, 3))}
+        onEndEditing={commit}
+        onSubmitEditing={commit}
+        keyboardType="number-pad"
+        returnKeyType="done"
+        maxLength={3}
+        selectTextOnFocus
+        style={{ minWidth: 54, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 8, borderWidth: 1, borderColor: border, backgroundColor: bg, color, fontSize: 13, fontWeight: '700', textAlign: 'center' }}
+        accessibilityLabel={`Type the number, up to ${max}`}
+      />
+    </View>
+  );
+}
 
 export default function CbCartScreen({ stallId }: { stallId: string }) {
   const p = useCbTheme();
@@ -26,8 +63,36 @@ export default function CbCartScreen({ stallId }: { stallId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState('');
+  const [docs, setDocs] = useState<DocDraft[]>([]);
+  const stationery = stall?.category === 'stationery';
   const keyRef = useRef<{ sig: string; key: string } | null>(null);
-  const sig = JSON.stringify(cart.lines.map((l) => [l.menuItemId, l.quantity]));
+  const sig = JSON.stringify([cart.lines.map((l) => [l.menuItemId, l.quantity]), docs.map((d) => d.id || d.key)]);
+
+  const patchDoc = (key: string, patch: Partial<DocDraft>) => setDocs((prev) => prev.map((d) => (d.key === key ? { ...d, ...patch } : d)));
+  const uploadDoc = async (d: DocDraft) => {
+    patchDoc(d.key, { status: 'uploading', progress: 0, error: undefined });
+    try {
+      const r = await uploadServicePdf({ uri: d.uri, name: d.name }, (f) => patchDoc(d.key, { progress: f }));
+      patchDoc(d.key, { status: 'done', id: r.id, name: r.name || d.name, size: r.size || d.size, progress: 1 });
+    } catch (e: any) {
+      patchDoc(d.key, { status: 'failed', error: e?.message || 'The file did not upload. Tap Retry.' });
+    }
+  };
+  const pickDoc = async () => {
+    if (docs.length >= MAX_DOCS) return;
+    try {
+      const res = await DocumentPicker.getDocumentAsync({ type: 'application/pdf', copyToCacheDirectory: true, multiple: false });
+      if (res.canceled || !res.assets || !res.assets[0]) return;
+      const a = res.assets[0];
+      if (a.mimeType && a.mimeType !== 'application/pdf') { Alert.alert('Pick a PDF file', 'Only PDF files can be sent to the stall. Save other files as PDF first.'); return; }
+      if (a.size && a.size > MAX_PDF_BYTES) { Alert.alert('That PDF is too large', 'Pick a PDF under 5 MB, or split it into parts.'); return; }
+      const d: DocDraft = { key: `${Date.now()}-${Math.random().toString(36).slice(2)}`, uri: a.uri, name: a.name || 'Document.pdf', size: a.size || 0, status: 'uploading', progress: 0 };
+      setDocs((prev) => [...prev, d]);
+      void uploadDoc(d);
+    } catch {
+      Alert.alert('Could not open your files', 'Please try again.');
+    }
+  };
 
   const refresh = useCallback(async () => {
     try {
@@ -44,12 +109,16 @@ export default function CbCartScreen({ stallId }: { stallId: string }) {
 
   const proceed = async () => {
     if (busy || !cart.lines.length) return;
+    if (docs.some((d) => d.status === 'uploading')) { setError('Wait for the files to finish uploading.'); return; }
+    if (docs.some((d) => d.status === 'failed')) { setError('One file did not upload. Tap Retry or remove it.'); return; }
     if (!keyRef.current || keyRef.current.sig !== sig) keyRef.current = { sig, key: newIdempotencyKey() };
     setBusy(true);
     setError(null);
     try {
-      const { booking } = await cbApi.book(stallId, cart.lines.map((l) => ({ menuItemId: l.menuItemId, quantity: l.quantity })), keyRef.current.key, note.trim() || undefined);
+      const files = docs.filter((d) => d.status === 'done' && d.id).map((d) => ({ id: d.id as string, name: d.name }));
+      const { booking } = await cbApi.book(stallId, cart.lines.map((l) => ({ menuItemId: l.menuItemId, quantity: l.quantity })), keyRef.current.key, note.trim() || undefined, files);
       cbCart.clear(stallId);
+      setDocs([]);
       keyRef.current = null;
       router.replace(`/campus-booking/pay/${booking.id}` as any);
     } catch (e: any) {
@@ -89,7 +158,14 @@ export default function CbCartScreen({ stallId }: { stallId: string }) {
                     </View>
                     <Text style={{ fontSize: 12, color: p.txtSec, marginTop: 3, marginLeft: isNonFood(l.category) ? 0 : 20 }}>{inr(l.price)} each</Text>
                   </View>
-                  <AddControl qty={l.quantity} onAdd={() => cbCart.change(stallId, l, 1)} onRemove={() => cbCart.change(stallId, l, -1)} />
+                  {stationery ? (
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <AddControl qty={l.quantity} max={MAX_QTY_STATIONERY} onAdd={() => cbCart.change(stallId, l, 1, MAX_QTY_STATIONERY)} onRemove={() => cbCart.change(stallId, l, -1)} />
+                      <CountField qty={l.quantity} max={MAX_QTY_STATIONERY} onSet={(n) => cbCart.setQty(stallId, l, n, MAX_QTY_STATIONERY)} color={p.txt} border={p.border} bg={p.card} />
+                    </View>
+                  ) : (
+                    <AddControl qty={l.quantity} onAdd={() => cbCart.change(stallId, l, 1)} onRemove={() => cbCart.change(stallId, l, -1)} />
+                  )}
                   <Text style={{ fontSize: 13, fontWeight: '700', color: p.txt, width: 64, textAlign: 'right' }}>{inr(Math.round(l.price * l.quantity * 100) / 100)}</Text>
                 </View>
               ))}
@@ -113,17 +189,53 @@ export default function CbCartScreen({ stallId }: { stallId: string }) {
                 <Ionicons name="qr-code-outline" size={22} color={COLORS.red} />
                 <View style={{ flex: 1 }}>
                   <Text style={[s.payCardTitle, { color: COLORS.red }]}>Pay the stall by UPI</Text>
-                  <Text style={[s.payCardDesc, { color: p.txtSec }]}>You will pay to {stallName}'s own UPI ID on the next screen. ZCS does not take or hold your money.</Text>
+                  <Text style={[s.payCardDesc, { color: p.txtSec }]}>You will pay to {stallName}'s own UPI ID on the next screen. ZENV does not take or hold your money.</Text>
                 </View>
                 <View style={[s.radioOuter, { borderColor: COLORS.red }]}><View style={[s.radioInner, { backgroundColor: COLORS.red }]} /></View>
               </View>
             </View>
 
-            <Text style={[s.sectionTitle, { color: p.txt, marginTop: 20 }]}>Note for the stall</Text>
+            {stationery ? (
+              <>
+                <Text style={[s.sectionTitle, { color: p.txt, marginTop: 20 }]}>Files to print (PDF)</Text>
+                <View style={[s.payCardNew, { backgroundColor: p.card, borderColor: p.border, gap: 12 }]}>
+                  {docs.map((d) => (
+                    <View key={d.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <Ionicons name={d.status === 'failed' ? 'alert-circle-outline' : 'document-text-outline'} size={20} color={d.status === 'failed' ? COLORS.red : p.accent} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={[s.payCardTitle, { color: p.txt }]} numberOfLines={1}>{d.name}</Text>
+                        <Text style={[s.payCardDesc, { color: d.status === 'failed' ? COLORS.red : p.txtSec }]} numberOfLines={2}>
+                          {d.status === 'uploading' ? `Uploading ${Math.round(d.progress * 100)}%` : d.status === 'failed' ? (d.error || 'Did not upload') : `${sizeText(d.size)} · ready`}
+                        </Text>
+                      </View>
+                      {d.status === 'failed' ? (
+                        <TouchableOpacity onPress={() => void uploadDoc(d)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={`Retry ${d.name}`}>
+                          <Text style={{ color: COLORS.red, fontSize: 12, fontWeight: '800' }}>Retry</Text>
+                        </TouchableOpacity>
+                      ) : null}
+                      <TouchableOpacity onPress={() => setDocs((prev) => prev.filter((x) => x.key !== d.key))} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={`Remove ${d.name}`}>
+                        <Ionicons name="close-circle" size={20} color={p.txtSec} />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                  {docs.length < MAX_DOCS ? (
+                    <TouchableOpacity onPress={pickDoc} activeOpacity={0.85} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }} accessibilityRole="button" accessibilityLabel="Add a PDF to print">
+                      <Ionicons name="cloud-upload-outline" size={20} color={COLORS.red} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={[s.payCardTitle, { color: COLORS.red }]}>{docs.length ? 'Add another PDF' : 'Add a PDF'}</Text>
+                        <Text style={[s.payCardDesc, { color: p.txtSec }]}>Up to {MAX_DOCS} files, 5 MB each. Only the stall and ZENV support can open them.</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+              </>
+            ) : null}
+
+            <Text style={[s.sectionTitle, { color: p.txt, marginTop: 20 }]}>{stationery ? 'Print instructions' : 'Note for the stall'}</Text>
             <TextInput
               value={note}
               onChangeText={setNote}
-              placeholder="Optional, for example less sugar"
+              placeholder={stationery ? 'For example 2 copies, double-sided, black and white' : 'Optional, for example less sugar'}
               placeholderTextColor={p.txtSec}
               maxLength={200}
               style={[s.input, { color: p.txt, backgroundColor: p.card, borderColor: p.border }]}

@@ -183,7 +183,7 @@ export default function OrganizerEventForm() {
         if (!Object.keys(changes).length) { dirty.current = false; router.back(); return; }
         const r = await campusEventsApi.orgUpdate(id, changes);
         dirty.current = false;
-        if (r.pendingReview.length) Alert.alert('Sent for review', 'These changes affect registrants, so the ZCS team reviews them before they go live. Other edits are live now.', [{ text: 'OK', onPress: () => router.back() }]);
+        if (r.pendingReview.length) Alert.alert('Sent for review', 'These changes affect registrants, so the ZENV team reviews them before they go live. Other edits are live now.', [{ text: 'OK', onPress: () => router.back() }]);
         else router.back();
       }
     } catch (err: any) {
@@ -211,7 +211,7 @@ export default function OrganizerEventForm() {
     return (
       <View style={{ flex: 1, backgroundColor: p.bg }}>
         <EHeader title="New event" />
-        <StateView kind="empty" icon="megaphone-outline" title="Organizers only" message="Apply as an organizer first. The ZCS team approves verified clubs and student organizers." actionLabel="Apply" onAction={() => router.replace('/campus-events/organizer' as any)} />
+        <StateView kind="empty" icon="megaphone-outline" title="Organizers only" message="Apply as an organizer first. The ZENV team approves verified clubs and student organizers." actionLabel="Apply" onAction={() => router.replace('/campus-events/organizer' as any)} />
       </View>
     );
   }
@@ -224,7 +224,7 @@ export default function OrganizerEventForm() {
       <KeyboardAvoidingView style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
           {locked ? <Notice tone="warn" icon="lock-closed-outline">{ev?.status === 'SUBMITTED' ? 'This event is in review. Withdraw it from the event page to edit.' : 'This event can no longer be edited.'}</Notice> : null}
-          {live ? <Notice icon="information-circle-outline">The event is live. Poster, description, equipment, contact and instructions update at once; other changes go to the ZCS team for review first.</Notice> : null}
+          {live ? <Notice icon="information-circle-outline">The event is live. Poster, description, equipment, contact and instructions update at once; other changes go to the ZENV team for review first.</Notice> : null}
 
           <SectionTitle kicker="Step 1">Poster & basics</SectionTitle>
           <TouchableOpacity onPress={() => upload('poster')} disabled={!!uploading} accessibilityRole="button" accessibilityLabel={form.posterPath ? 'Change poster' : 'Upload poster'}
@@ -319,7 +319,7 @@ export default function OrganizerEventForm() {
               <Chips<PaymentMode> multi value={form.paymentModes} onChange={(v: PaymentMode[]) => set('paymentModes', v)}
                 options={[
                   { key: 'VENUE', label: 'Pay at venue', hint: 'Collected at entry' },
-                  { key: 'WALLET', label: 'ZCS Wallet', hint: 'Only when ZCS enables it' },
+                  { key: 'WALLET', label: 'ZENV Wallet', hint: 'Only when ZENV enables it' },
                   // Online shows only while the server switch is on; an older event that already has it keeps the chip so it can be removed.
                   ...(onlinePayOn ? [{ key: 'ONLINE' as PaymentMode, label: 'Pay online', hint: 'UPI / card by Razorpay' }]
                     : form.paymentModes.includes('ONLINE') ? [{ key: 'ONLINE' as PaymentMode, label: 'Pay online', hint: 'Not available yet. Tap to remove' }] : []),

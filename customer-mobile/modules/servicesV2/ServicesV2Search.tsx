@@ -16,7 +16,6 @@ import { SHELF_META, detailPath, matchesQuery, shelfPath, storeTakesOrders, useS
 import { useServicesV2Booking } from './useServicesV2Booking';
 import { useStoreBasket } from './useStoreBasket';
 
-const SUGGEST = ['Screen', 'Thermal paste', 'Jeans', 'Dry cleaning', 'Mattress', 'Power bank'];
 
 type Shelf = ReturnType<typeof useShelf>;
 
@@ -79,6 +78,21 @@ export default function ServicesV2Search() {
   const gadgets = useShelf('electronics');
   const all = [repairs, tailoring, laundry, room, gadgets];
   const loading = all.some((d) => d.status === 'loading');
+  // "Try" chips from what is really listed (the fixed Screen / Jeans / Mattress... found nothing with no partners
+  // yet): a few short item names; no chips at all while nothing is listed.
+  const suggest = (() => {
+    const out: string[] = [];
+    const seen = new Set<string>();
+    for (const d of all) for (const i of d.items) {
+      const n = String(i.name || '').trim();
+      if (!n || n.length > 18 || seen.has(n.toLowerCase())) continue;
+      seen.add(n.toLowerCase());
+      out.push(n);
+      if (out.length >= 6) return out;
+    }
+    return out;
+  })();
+  const nothingListed = !loading && all.every((d) => d.items.length === 0);
   const any = !!q.trim() && all.some((d) => d.items.some((i) => matchesQuery(i, q)));
   return (
     <View style={{ flex: 1, backgroundColor: TV.page }}>
@@ -86,11 +100,13 @@ export default function ServicesV2Search() {
         <SearchField value={q} onChange={setQ} placeholder="Repairs, tailoring, laundry, gadgets" autoFocus style={{ marginTop: 6 }} />
       </TopBar>
       <ScrollView contentContainerStyle={{ paddingBottom: (basket.count > 0 ? 110 : 40) + insets.bottom }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        {!q.trim() ? (
+        {!q.trim() && nothingListed ? (
+          <StateBlock kind="empty" title="Coming soon to ZENV" body="Repairs, tailoring, laundry and gadgets will be bookable here as partners join." style={{ marginTop: 18 }} />
+        ) : !q.trim() && suggest.length > 0 ? (
           <View style={{ paddingHorizontal: 16, marginTop: 18 }}>
             <Text style={s.hint}>Try</Text>
             <View style={s.suggest}>
-              {SUGGEST.map((t) => (
+              {suggest.map((t) => (
                 <Press key={t} onPress={() => setQ(t)} label={`Search ${t}`} style={s.sChip} scaleTo={0.95}>
                   <Text style={s.sChipText}>{t}</Text>
                   <IChevronRight size={13} color={TV.faint} strokeWidth={1.8} />

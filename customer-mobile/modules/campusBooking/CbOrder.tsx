@@ -6,7 +6,7 @@
  * nudges this student's socket room on every change.
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { Modal, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Linking, Modal, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import Clipboard from '@react-native-clipboard/clipboard';
@@ -60,7 +60,11 @@ export default function CbOrder({ id }: { id: string }) {
   const live = ['ACCEPTED', 'PREPARING', 'READY'].includes(b.status);
   const minsToReady = b.estimatedReadyAt ? Math.round((new Date(b.estimatedReadyAt).getTime() - Date.now()) / 60000) : null;
   const cancelAfterPay = b.status === 'CANCELLED' && b.paymentVerified;
+  // Cancelled by the stall while it was still checking a payment the student had already sent.
+  const cancelInReview = b.status === 'CANCELLED' && !b.paymentVerified && b.cancellation?.by === 'vendor' && !!b.proof?.submittedAt;
   const stallName = b.stall?.name || 'the stall';
+  // The stall's reasons have no full stop, the student / system ones do: end with exactly one before the refund line.
+  const cancelReason = `${(b.cancellation?.reason || 'This booking was cancelled').trim().replace(/\.+$/, '')}.`;
   const cancel = async () => {
     if (busy) return;
     setBusy(true);
@@ -81,9 +85,9 @@ export default function CbOrder({ id }: { id: string }) {
         {b.status === 'PAYMENT_REVIEW' ? <NoticeBar icon="hourglass-outline" tone="indigo" text={`${stallName} is checking your payment in its UPI app. You get a notification when it is confirmed.`} style={{ marginBottom: 16 }} /> : null}
         {b.status === 'REJECTED' ? <NoticeBar icon="alert-circle-outline" tone="red" text={`${b.rejection?.reason || 'The stall could not verify the payment'}. Send the proof again or cancel.`} style={{ marginBottom: 16 }} /> : null}
         {b.status === 'CANCELLED' ? (
-          <NoticeBar icon="close-circle-outline" tone="red" text={`${b.cancellation?.reason || 'This booking was cancelled.'}${cancelAfterPay ? ` Your payment was verified, so ${stallName} returns the amount to you directly.` : ''}`} style={{ marginBottom: 16 }} />
+          <NoticeBar icon="close-circle-outline" tone="red" text={`${cancelReason}${cancelAfterPay ? ` Your payment was verified, so ${stallName} returns the amount to you directly.` : cancelInReview ? ` If you paid, ${stallName} returns the amount to you directly.` : ''}`} style={{ marginBottom: 16 }} />
         ) : null}
-        {b.status === 'COLLECTED' ? <NoticeBar icon="checkmark-circle-outline" tone="green" text={`Collected ${whenIST(b.collectedAt)}. Thank you for using ZCS.`} style={{ marginBottom: 16 }} /> : null}
+        {b.status === 'COLLECTED' ? <NoticeBar icon="checkmark-circle-outline" tone="green" text={`Collected ${whenIST(b.collectedAt)}. Thank you for using ZENV.`} style={{ marginBottom: 16 }} /> : null}
 
         {(b.status === 'PAYMENT_PENDING' || b.status === 'REJECTED') && b.canSubmitProof ? (
           <View style={{ marginBottom: 12 }}>
@@ -197,6 +201,21 @@ export default function CbOrder({ id }: { id: string }) {
             </Text>
           ) : null}
           {b.note ? <Text style={[s.summaryAddress, { color: p.txtSec }]}>Note: {b.note}</Text> : null}
+          {/* Stationery / print: the PDFs sent with the booking (signed links, valid about an hour) */}
+          {(b.documents || []).map((d) => (
+            <TouchableOpacity
+              key={d.id}
+              disabled={!d.url}
+              onPress={() => { if (d.url) Linking.openURL(d.url).catch(() => {}); }}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel={`Open ${d.name}`}
+            >
+              <Ionicons name="document-text-outline" size={16} color={p.accent} />
+              <Text style={[s.summaryAddress, { color: p.txt, flex: 1, marginTop: 0 }]} numberOfLines={1}>{d.name}</Text>
+              {d.url ? <Ionicons name="open-outline" size={14} color={p.txtSec} /> : null}
+            </TouchableOpacity>
+          ))}
           <Text style={[s.summaryAddress, { color: p.txtSec }]}>Booked {whenIST(b.createdAt)} · pickup at the counter</Text>
         </View>
 
@@ -244,7 +263,7 @@ const updatesOf = (b: CbBooking): Update[] => {
   const prep = b.timeline.find((x) => x.key === 'PREPARING');
   if (prep?.at) out.push({ title: 'Preparing your order', body: `${s} is preparing it.`, at: prep.at, icon: 'flame-outline', tone: 'gold' });
   if (b.readyAt) out.push({ title: 'Ready for pickup', body: 'Show your pickup code at the counter.', at: b.readyAt, icon: 'storefront-outline', tone: 'gold' });
-  if (b.collectedAt) out.push({ title: 'Order completed', body: 'Collected at the stall. Thank you for using ZCS.', at: b.collectedAt, icon: 'checkmark-circle-outline', tone: 'gold' });
+  if (b.collectedAt) out.push({ title: 'Order completed', body: 'Collected at the stall. Thank you for using ZENV.', at: b.collectedAt, icon: 'checkmark-circle-outline', tone: 'gold' });
   if (b.cancelledAt) out.push({ title: 'Booking cancelled', body: b.cancellation?.reason || 'This booking was cancelled.', at: b.cancelledAt, icon: 'close-circle-outline', tone: 'red' });
   return out.sort((x, y) => new Date(y.at).getTime() - new Date(x.at).getTime());
 };

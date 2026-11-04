@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Linking } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import { Flag, Check, Circle, CircleCheck, Phone } from '../../../../components/lucide';
 import * as Haptics from 'expo-haptics';
 import { FriendsSheet } from './FriendsSheet';
 import { FriendsColors, FS, FT, FR, fui } from '../friendsTheme';
 import { fileReport, REPORT_CATEGORIES, REPORT_NOTE_MAX, ReportCategory, ReportTargetType } from '../api/modApi';
 import { errorCode } from '../api/core';
+import { dial } from '../../../../utils/dial';
 
 /** C2: the confirmation every surface shows after a report (Google Play UGC policy). */
 export const REPORTED_CONFIRMATION = 'Reported — thanks, our team will review it within 24 hours.';
@@ -128,11 +129,11 @@ export const ReportSheet: React.FC<{
                 Call 112 for emergencies, or Tele-MANAS (free, 24×7) on 14416. Your report also reaches our team.
               </Text>
               <View style={{ flexDirection: 'row', gap: FS.sm, marginTop: FS.sm }}>
-                <TouchableOpacity style={fui.ghostBtn} onPress={() => Linking.openURL('tel:14416').catch(() => {})} accessibilityRole="button" accessibilityLabel="Call Tele-MANAS 14416">
+                <TouchableOpacity style={fui.ghostBtn} onPress={() => dial('14416', 'Tele-MANAS')} accessibilityRole="button" accessibilityLabel="Call Tele-MANAS 14416">
                   <Phone size={14} color={FriendsColors.ink} />
                   <Text style={fui.ghostBtnText}>14416</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={fui.ghostBtn} onPress={() => Linking.openURL('tel:112').catch(() => {})} accessibilityRole="button" accessibilityLabel="Call emergency 112">
+                <TouchableOpacity style={fui.ghostBtn} onPress={() => dial('112', 'emergency services')} accessibilityRole="button" accessibilityLabel="Call emergency 112">
                   <Phone size={14} color={FriendsColors.ink} />
                   <Text style={fui.ghostBtnText}>112</Text>
                 </TouchableOpacity>

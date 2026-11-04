@@ -19,6 +19,12 @@ export const isSmsSendFailure = (r: SendOtpResult | null | undefined) =>
 
 const FIREBASE_NUMBER_ERRORS = ['auth/invalid-phone-number', 'auth/missing-phone-number'];
 export type OtpPurpose = 'auth' | 'reset_password' | 'change_phone' | 'delete_account';
+/**
+ * Email codes for a NEW account are off: the server no longer creates accounts with them (29 Oct 2026 security pass:
+ * an email code never proves the phone number, so anyone could claim someone else's number). Email codes remain for
+ * password reset and account deletion, where they go to the account's own email.
+ */
+export const EMAIL_SIGNUP_CODES = false;
 /** emailOtp + email: the email backup for a NEW account (sign-up, first Google sign-in). */
 export type PhoneProof = { otp: string } | { firebaseToken: string } | { emailOtp: string; email: string };
 
@@ -96,13 +102,22 @@ export function usePhoneOtp(purpose: OtpPurpose = 'auth', options: Options = {})
     return () => { if (unsub) unsub(); };
   }, [mode, sentTo]);
 
+  const FIREBASE_SEND_TIMEOUT_MS = 45000;
   const sendViaFirebase = async (phone10: string): Promise<SendOtpResult | null> => {
     const fbAuth = getFirebaseAuth();
     if (!fbAuth) return null;
     try {
       // A lingering Firebase session must not count as a fresh verification
       if (fbAuth.currentUser) { try { await fbAuth.signOut(); } catch {} }
-      const confirmation = await fbAuth.signInWithPhoneNumber('+91' + phone10);
+      // An abandoned reCAPTCHA page (or a stuck Play Integrity check) never settles: give up after 45 s and let
+      // send() fall back to the SMS code instead of spinning forever.
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const confirmation = await Promise.race([
+        fbAuth.signInWithPhoneNumber('+91' + phone10),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(Object.assign(new Error('Firebase phone sign-in timed out'), { code: 'zcs/firebase-timeout' })), FIREBASE_SEND_TIMEOUT_MS);
+        }),
+      ]).finally(() => { if (timer) clearTimeout(timer); });
       confirmationRef.current = confirmation;
       if (mountedRef.current) {
         setMode('firebase');

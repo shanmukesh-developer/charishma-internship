@@ -18,12 +18,15 @@ import { COLORS, SHADOWS, surfaceLift } from '../../constants/theme';
 import { API_URL } from '../../constants/api';
 import { apiFetch } from '../../utils/auth';
 import NightClosureBanner from '../../components/NightClosureBanner';
+import NoticeCard from '../../components/NoticeCard';
 import { useCartActions, useCartState, MAX_ITEM_QTY, basketKindOf, BasketKind } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import FssaiLine from '../../components/FssaiLine';
 import { useDietary } from '../../context/DietaryContext';
 import CustomizeDrawer, { isCustomizable } from '../../components/CustomizeDrawer';
+import { fromPrice, productOptions, useAskOptions } from '../../components/ProductOptions';
+import FormattedDescription, { firstParagraph, isStructured, plainDescription } from '../../components/FormattedDescription';
 import { saveRecentlyViewed } from '../../components/RecentlyViewed';
 import DopaminePressable, { CartPressable, ActionPressable, CardPressable } from '../../components/DopaminePressable';
 import { StaggeredSection, FloatingPulse } from '../../components/AnimatedSection';
@@ -37,6 +40,7 @@ import { storeEtaText } from '../../utils/storeEta';
 import { isNewStore } from '../../utils/storeBadge';
 import { getLocalFavorites, toggleFavoriteStore, isFavoriteIn } from '../../utils/favorites';
 import { useTopInset } from '../../utils/useTopInset';
+import { goHome } from '../../utils/goHome';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // Booking-only service stores (backend utils/vendorTypes.js) and the shelf that books them.
@@ -70,6 +74,27 @@ const seedRestaurant = (id: string): any => {
 
 const isVegItem = (item: any) =>
   item?.isVegetarian === true || String(item?.isVegetarian).toLowerCase() === 'true' || Number(item?.isVegetarian) === 1;
+
+/** veg / egg / non-veg of a menu item for the shop filters: the admin's food type first, else the veg flag. */
+const dietKindOf = (item: any): 'veg' | 'egg' | 'nonveg' => {
+  const d = String(item?.dietType || '').toLowerCase().replace(/[^a-z]/g, '');
+  if (d === 'egg') return 'egg';
+  if (d === 'veg') return 'veg';
+  if (d === 'nonveg' || d === 'nonvegetarian') return 'nonveg';
+  return isVegItem(item) ? 'veg' : 'nonveg';
+};
+type ShopFilterKey = 'all' | 'veg' | 'nonveg' | 'egg' | 'under99';
+const SHOP_FILTERS: { key: Exclude<ShopFilterKey, 'all'>; label: string; icon: keyof typeof Ionicons.glyphMap; tint: string }[] = [
+  { key: 'veg', label: 'Veg', icon: 'leaf-outline', tint: '#16A34A' },
+  { key: 'nonveg', label: 'Non-veg', icon: 'restaurant-outline', tint: '#DC2626' },
+  { key: 'egg', label: 'Egg', icon: 'egg-outline', tint: '#D97706' },
+  { key: 'under99', label: 'Under ₹99', icon: 'cash-outline', tint: '#EF4F5F' },
+];
+const inShopFilter = (item: any, key: ShopFilterKey) => {
+  if (key === 'all') return true;
+  if (key === 'under99') { const n = Number(item?.price); return n > 0 && n < 99; }
+  return dietKindOf(item) === key;
+};
 
 /** One dish's ADD button / − qty + stepper: reads the basket itself so only this control re-renders on a change. */
 const MenuAddControl = React.memo(function MenuAddControl({ itemId, soldOut, customizable, isAdded, blocked, closed, eliteLocked, tint, onAdd }: {
@@ -174,6 +199,7 @@ export default function RestaurantDetail() {
   const router = useRouter();
   // Actions only: basket changes re-render just the ADD controls and the floating bar below, not the whole menu.
   const { addToCart } = useCartActions();
+  const askOptions = useAskOptions();
   const { user } = useAuth();
   const { isDark, colors } = useTheme();
   const { dietMode, setDietMode, isItemAllowed } = useDietary();
@@ -187,11 +213,14 @@ export default function RestaurantDetail() {
   const [activeCategory, setActiveCategory] = useState('All');
   // In-store search: filters the loaded menu by dish name, category or tag (all categories at once)
   const [menuSearch, setMenuSearch] = useState('');
+  // Veg / Non-veg / Egg / Under ₹99 chips under the search (only the ones that split this menu).
+  const [shopFilter, setShopFilter] = useState<ShopFilterKey>('all');
+  const [descOpen, setDescOpen] = useState(false);
   // Long menus (a mart can list hundreds of items) mount 20 at a time; more mount as the user nears
   // the end of the list. A category or search change starts again at 20.
   const MENU_PAGE = 20;
   const [menuLimit, setMenuLimit] = useState(MENU_PAGE);
-  useEffect(() => { setMenuLimit(MENU_PAGE); }, [activeCategory, menuSearch, id]);
+  useEffect(() => { setMenuLimit(MENU_PAGE); }, [activeCategory, menuSearch, shopFilter, id]);
   const growingMenu = useRef(false);
   const onMenuScroll = useCallback((e: any) => {
     const ne = e?.nativeEvent || {};
@@ -269,7 +298,7 @@ export default function RestaurantDetail() {
       }
     } catch {
       if (mountedRef.current && mode !== 'silent') {
-        setLoadError({ notFound: false, message: "Can't reach ZCS right now. Check your internet and try again." });
+        setLoadError({ notFound: false, message: "Can't reach ZENV right now. Check your internet and try again." });
       }
     } finally {
       if (mountedRef.current) {
@@ -304,6 +333,18 @@ export default function RestaurantDetail() {
   const fullMenu: any[] = useMemo(() => (Array.isArray(restaurant?.menu) ? restaurant.menu : []), [restaurant]);
   const menu = useMemo(() => fullMenu.filter((item: any) => isItemAllowed(item)), [fullMenu, isItemAllowed]);
   const hiddenByDiet = fullMenu.length - menu.length;
+  // A chip is offered only when it splits the menu (an all-veg menu shows no Veg / Non-veg pair).
+  const shopChips = useMemo(() => {
+    const kinds = new Set(menu.map(dietKindOf));
+    const cheap = menu.filter((m: any) => inShopFilter(m, 'under99')).length;
+    return SHOP_FILTERS.filter((f) => (f.key === 'under99'
+      ? cheap > 0 && cheap < menu.length
+      : kinds.size > 1 && kinds.has(f.key)));
+  }, [menu]);
+  useEffect(() => {
+    if (shopFilter !== 'all' && !shopChips.some((f) => f.key === shopFilter)) setShopFilter('all');
+  }, [shopChips, shopFilter]);
+  const shopFilterLabel = shopFilter === 'all' ? '' : (SHOP_FILTERS.find((f) => f.key === shopFilter)?.label || '');
 
   // Pills come from the dishes' own categories, so every pill has dishes behind it
   const categories = useMemo(() => {
@@ -360,7 +401,7 @@ export default function RestaurantDetail() {
           )}
           <TouchableOpacity
             style={{ paddingHorizontal: 24, paddingVertical: 12, borderRadius: 16, borderWidth: 1, borderColor: COLORS.red }}
-            onPress={() => router.replace('/(tabs)' as any)}
+            onPress={() => goHome(router)}
           >
             <Text style={{ color: COLORS.red, fontSize: 13, fontWeight: '900' }}>Back to Home</Text>
           </TouchableOpacity>
@@ -376,6 +417,11 @@ export default function RestaurantDetail() {
   const txtSec = brand ? (brand.fontColor ? brand.fontColor + 'B0' : colors.textSecondary) : colors.textSecondary;
   const cardBg = brand ? 'rgba(0,0,0,0.6)' : colors.card;
   const border = brand ? 'rgba(255,255,255,0.05)' : (isDark ? COLORS.borderDark : COLORS.borderLight);
+  // Notes, the stall tag and the call button: quiet neutrals in the page's own colours (a brand store's too).
+  const pageDark = !!brand || isDark;
+  const notePalette = { bg: cardBg, border, text: txt, sub: txtSec, dark: pageDark };
+  const quietFill = pageDark ? 'rgba(255,255,255,0.08)' : '#F1F2F5';
+  const quietEdge = pageDark ? 'rgba(255,255,255,0.2)' : 'rgba(15,23,42,0.16)';
 
   const ratingNum = Number(restaurant.rating);
   const hasRating = Number.isFinite(ratingNum) && ratingNum > 0;
@@ -410,9 +456,9 @@ export default function RestaurantDetail() {
 
   const blockedReason = (item: any): string | null => {
     if (!orderable) return closedText;
-    if (stallOffline) return `${restaurant.name} is not taking orders on ZCS right now.`;
+    if (stallOffline) return `${restaurant.name} is not taking orders on ZENV right now.`;
     if (item.isAvailable === false) return `${item.name} is sold out right now.`;
-    if (item.isEliteOnly && !isUserElite) return `${item.name} is for ZCS Elite members.`;
+    if (item.isEliteOnly && !isUserElite) return `${item.name} is for ZENV Elite members.`;
     return null;
   };
 
@@ -420,6 +466,28 @@ export default function RestaurantDetail() {
     const reason = blockedReason(item);
     if (reason) {
       Alert.alert('Not available', reason);
+      return;
+    }
+    // Admin-set choices (weights with their own prices, flavours, types): asked in the options sheet.
+    const groups = productOptions(item);
+    if (groups.length) {
+      askOptions({ name: item.name, price: Number(item.price) || 0, image: item.image || item.imageUrl || null, groups }).then((r) => {
+        if (!r) return;
+        const itemId = String(item.id || item._id);
+        const added = addToCart({
+          id: itemId,
+          name: item.name,
+          price: r.unitPrice,
+          basePrice: Number(item.price) || 0,
+          image: item.image || item.imageUrl || '',
+          restaurantId: String(restaurant.id || restaurant._id || id),
+          restaurantName: restaurant.name,
+          customizations: r.customizations as any,
+          vendorType: restaurant.vendorType || undefined,
+          ...(isLocalVendor ? { isStall: true } : {}),
+        });
+        if (added) flashAdded(itemId);
+      });
       return;
     }
     if (isCustomizable(item)) {
@@ -463,6 +531,7 @@ export default function RestaurantDetail() {
 
   const menuQ = menuSearch.trim().toLowerCase().replace(/\s+/g, ' ');
   const filteredMenu = menu.filter((item: any) => {
+    if (!inShopFilter(item, shopFilter)) return false;
     if (menuQ) {
       const tags = Array.isArray(item.tags) ? item.tags.join(' ') : '';
       const hay = `${item.name || ''} ${item.category || ''} ${tags}`.toLowerCase();
@@ -542,15 +611,31 @@ export default function RestaurantDetail() {
           </View>
 
           <Text style={[st.infoCardName, { color: txt }]}>{restaurant.name}</Text>
-          {!!(restaurant.description || restaurant.stallDescription) && (
-            <Text style={[st.infoCardDesc, { color: txtSec }]}>
-              {restaurant.description || restaurant.stallDescription}
-            </Text>
-          )}
+          {/* The store's own intro: a clean 3-line preview, "More" opens the full text in the owner's layout
+              (headings, lists, **bold**: stores paste Markdown). It used to print every line, marks and all. */}
+          {!!(restaurant.description || restaurant.stallDescription) && (() => {
+            const full = String(restaurant.description || restaurant.stallDescription);
+            const intro = firstParagraph(full);
+            const hasMore = isStructured(full) || intro.length > 160;
+            return (
+              <View style={{ marginBottom: 8 }}>
+                {descOpen && isStructured(full) ? (
+                  <FormattedDescription text={full} color={txtSec} strong={txt} />
+                ) : (
+                  <Text style={[st.infoCardDesc, { color: txtSec, marginBottom: 0 }]} numberOfLines={descOpen ? undefined : 3}>{intro}</Text>
+                )}
+                {hasMore && (
+                  <Text onPress={() => setDescOpen((v) => !v)} style={{ color: brand ? accent : '#EF4F5F', fontSize: 12, fontWeight: '800', marginTop: 4 }} accessibilityRole="button">
+                    {descOpen ? 'Less' : 'More'}
+                  </Text>
+                )}
+              </View>
+            );
+          })()}
 
           {isLocalVendor && (
-            <View style={st.localVendorBadge}>
-              <Text style={st.localVendorBadgeText}>CampusBites local vendor</Text>
+            <View style={[st.localVendorBadge, { backgroundColor: quietFill }]}>
+              <Text style={[st.localVendorBadgeText, { color: txtSec }]}>Campus stall</Text>
             </View>
           )}
 
@@ -573,41 +658,44 @@ export default function RestaurantDetail() {
 
             {isLocalVendor && !!vendorCall && (
               <TouchableOpacity
-                style={[st.contactBtn, { backgroundColor: '#256FEF' }]}
+                style={[st.contactBtn, { borderColor: quietEdge }]}
+                accessibilityRole="button"
                 accessibilityLabel={`Call ${restaurant.name}`}
                 onPress={() => callVendor(restaurant)}
               >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <Ionicons name="call-outline" size={11} color="#fff" />
-                  <Text style={st.contactBtnText}>Call stall</Text>
-                </View>
+                <Ionicons name="call-outline" size={13} color={txt} />
+                <Text style={[st.contactBtnText, { color: txt }]}>Call stall</Text>
               </TouchableOpacity>
             )}
           </View>
           <FssaiLine number={restaurant.fssaiLicenseNumber} color={txtSec} />
         </View>
 
-        {isLocalVendor && (
-          <View style={[st.noticeBar, { backgroundColor: isDark ? 'rgba(249,115,22,0.12)' : 'rgba(249,115,22,0.08)', borderColor: 'rgba(249,115,22,0.3)' }]}>
-            <Ionicons name="storefront-outline" size={16} color="#F97316" />
-            <Text style={{ flex: 1, color: txt, fontSize: 12, fontWeight: '700', lineHeight: 16 }}>
-              {stallOffline ? `${restaurant.name} is not taking orders on ZCS right now.` : `${String(restaurant.name || '').trim() || 'This stall'} delivers this order. Pay them in cash on delivery.`}
-            </Text>
-          </View>
-        )}
+        {isLocalVendor && (stallOffline ? (
+          <NoticeCard icon="pause-circle-outline" title="Not taking orders right now" sub="You can still look at the menu." palette={notePalette} />
+        ) : (
+          <NoticeCard icon="storefront-outline" title={`${String(restaurant.name || '').trim() || 'This stall'} delivers this order`} sub="Pay them in cash on delivery." palette={notePalette} />
+        ))}
 
         {/* Campus night closure (9 PM to 6 AM): one clear banner, from the store's flag or the campus check */}
         {/* A store taking orders for its next slot says so itself below (one note, not two). */}
-        <NightClosureBanner reopensAt={restaurant.campusClosed ? (restaurant.opensAt || '06:00') : takesSlotOrders ? null : undefined} />
+        <NightClosureBanner reopensAt={restaurant.campusClosed ? (restaurant.opensAt || '06:00') : takesSlotOrders ? null : undefined} palette={notePalette} />
         {!isOpen && !restaurant.campusClosed && (
-          <View style={[st.noticeBar, { backgroundColor: isDark ? 'rgba(99,102,241,0.14)' : 'rgba(99,102,241,0.08)', borderColor: 'rgba(99,102,241,0.3)' }]}>
-            <Ionicons name={takesSlotOrders ? 'time-outline' : 'moon-outline'} size={16} color="#6366F1" />
-            <Text style={{ flex: 1, color: txt, fontSize: 12, fontWeight: '700' }}>
-              {takesSlotOrders && restaurant.nextSlotLabel
-                ? `Closed right now. You can order for ${restaurant.nextSlotLabel}${restaurant.nextSlotClosesAt ? ` (order by ${restaurant.nextSlotClosesAt})` : ''}.`
-                : `${String(closedText).replace(/[.\s]+$/, '')}. You can browse the menu and order when it opens.`}
-            </Text>
-          </View>
+          takesSlotOrders && restaurant.nextSlotLabel ? (
+            <NoticeCard
+              icon="time-outline"
+              title="Closed right now"
+              sub={`You can order for ${restaurant.nextSlotLabel}${restaurant.nextSlotClosesAt ? ` (order by ${restaurant.nextSlotClosesAt})` : ''}.`}
+              palette={notePalette}
+            />
+          ) : (
+            <NoticeCard
+              icon="time-outline"
+              title={restaurant.closedReason ? String(restaurant.closedReason).replace(/[.\s]+$/, '') : 'Closed right now'}
+              sub={`${!restaurant.closedReason && opensAtText ? `Opens at ${opensAtText}. ` : ''}You can browse the menu and order when it opens.`}
+              palette={notePalette}
+            />
+          )
         )}
 
         {/* In-store search (shown once a menu is long enough to need it) */}
@@ -630,6 +718,32 @@ export default function RestaurantDetail() {
               </TouchableOpacity>
             )}
           </View>
+        )}
+
+        {/* Shop filters (Veg / Non-veg / Egg / Under ₹99): with the search and the categories; tap again to clear */}
+        {shopChips.length > 0 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10 }} contentContainerStyle={{ paddingHorizontal: 16 }}>
+            {shopChips.map((f) => {
+              const on = shopFilter === f.key;
+              const activeBg = brand ? accent : '#EF4F5F';
+              return (
+                <DopaminePressable
+                  key={f.key}
+                  style={[st.categoryPill, st.shopChip, { backgroundColor: on ? activeBg : cardBg, borderColor: on ? activeBg : border }]}
+                  onPress={() => setShopFilter(on ? 'all' : f.key)}
+                  sound="tabSwitch"
+                  activeScale={0.94}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: on }}
+                  accessibilityLabel={`Filter: ${f.label}`}
+                >
+                  <Ionicons name={f.icon} size={13} color={on ? '#FFF' : f.tint} />
+                  <Text style={[st.categoryText, { color: on ? '#FFF' : txt }]} maxFontSizeMultiplier={1.3}>{f.label}</Text>
+                  {on ? <Ionicons name="close" size={12} color="#FFF" /> : null}
+                </DopaminePressable>
+              );
+            })}
+          </ScrollView>
         )}
 
         {/* Category Filter Pills (hidden while searching: the search covers every category) */}
@@ -662,7 +776,7 @@ export default function RestaurantDetail() {
         <View style={{ padding: 16, paddingBottom: 100 }}>
           <Text style={[st.menuTitle, { color: txt }]}>Menu</Text>
           <Text style={[st.menuSub, { color: txtSec }]}>
-            {menuQ ? `${plural(filteredMenu.length, 'match', 'matches')} for "${menuSearch.trim()}"` : plural(filteredMenu.length, 'item')}{hiddenByDiet > 0 ? ` · ${hiddenByDiet} hidden by your food preferences` : ''}
+            {menuQ ? `${plural(filteredMenu.length, 'match', 'matches')} for "${menuSearch.trim()}"` : plural(filteredMenu.length, 'item')}{shopFilterLabel ? ` · ${shopFilterLabel}` : ''}{hiddenByDiet > 0 ? ` · ${hiddenByDiet} hidden by your food preferences` : ''}
           </Text>
 
           {filteredMenu.length === 0 && menuQ ? (
@@ -678,7 +792,17 @@ export default function RestaurantDetail() {
             </View>
           ) : null}
 
-          {filteredMenu.length === 0 && !menuQ && (
+          {filteredMenu.length === 0 && !menuQ && shopFilter !== 'all' && (
+            <View style={[st.emptyMenu, { backgroundColor: cardBg, borderColor: border }]}>
+              <Ionicons name="filter-outline" size={36} color={txtSec} style={{ marginBottom: 8 }} />
+              <Text style={{ color: txt, fontSize: 14, fontWeight: '800', textAlign: 'center' }}>{`No ${shopFilterLabel.toLowerCase()} items${activeCategory !== 'All' ? ` in ${activeCategory}` : ''}`}</Text>
+              <TouchableOpacity style={[st.emptyMenuBtn, { backgroundColor: brand ? accent : '#EF4F5F' }]} onPress={() => setShopFilter('all')}>
+                <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '900' }}>Show all items</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {filteredMenu.length === 0 && !menuQ && shopFilter === 'all' && (
             <View style={[st.emptyMenu, { backgroundColor: cardBg, borderColor: border }]}>
               <Ionicons name={hiddenByDiet > 0 ? 'filter-outline' : 'file-tray-outline'} size={36} color={txtSec} style={{ marginBottom: 8 }} />
               <Text style={{ color: txt, fontSize: 14, fontWeight: '800', textAlign: 'center' }}>
@@ -706,7 +830,9 @@ export default function RestaurantDetail() {
             const eliteLocked = !!item.isEliteOnly && !isUserElite;
             const specs = parseJson(item.specs);
             const kcal = Number(specs?.kcal);
-            const customizable = isCustomizable(item);
+            const optionGroups = productOptions(item);
+            const variantGroup = optionGroups.find((g) => g.type === 'variant');
+            const customizable = isCustomizable(item) || optionGroups.length > 0;
 
             return (
               <StaggeredSection key={itemId} delay={Math.min(i, 10) * 60} direction="up">
@@ -726,7 +852,7 @@ export default function RestaurantDetail() {
                   )}
                   <Text style={[st.menuItemName, { color: txt }]} numberOfLines={2}>{item.name}</Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginVertical: 2, flexWrap: 'wrap' }}>
-                    <Text style={[st.menuItemPrice, { color: brand ? accent : '#EF4F5F' }]}>{formatINR(item.price)}</Text>
+                    <Text style={[st.menuItemPrice, { color: brand ? accent : '#EF4F5F' }]}>{formatINR(variantGroup ? (fromPrice(optionGroups) ?? item.price) : item.price)}</Text>
                     {Number.isFinite(kcal) && kcal > 0 && (
                       <Text style={{ fontSize: 12, color: txtSec, fontWeight: '700' }}>· {Math.round(kcal)} kcal</Text>
                     )}
@@ -734,8 +860,10 @@ export default function RestaurantDetail() {
                       <Text style={{ fontSize: 12, color: COLORS.gold, fontWeight: '900' }}>· Elite only</Text>
                     )}
                   </View>
-                  {item.description ? <Text style={{ fontSize: 12, color: txtSec, marginTop: 2 }} numberOfLines={2}>{item.description}</Text> : null}
-                  {customizable && <Text style={{ fontSize: 12, color: txtSec, fontWeight: '800', marginTop: 4 }}>Customisable</Text>}
+                  {item.description ? <Text style={{ fontSize: 12, color: txtSec, marginTop: 2 }} numberOfLines={2}>{plainDescription(String(item.description))}</Text> : null}
+                  {variantGroup
+                    ? <Text style={{ fontSize: 12, color: txtSec, fontWeight: '800', marginTop: 4 }} numberOfLines={1}>{(variantGroup.choices || []).map((c) => c.label).join(' · ')}</Text>
+                    : customizable && <Text style={{ fontSize: 12, color: txtSec, fontWeight: '800', marginTop: 4 }}>Customisable</Text>}
                 </View>
 
                 {/* Right image with floating ADD button */}
@@ -796,7 +924,6 @@ export default function RestaurantDetail() {
 const st = StyleSheet.create({
   emptyMenu: { alignItems: 'center', padding: 24, borderRadius: 20, borderWidth: 1, marginTop: 8 },
   emptyMenuBtn: { marginTop: 14, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12 },
-  noticeBar: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginTop: 12, padding: 12, borderRadius: 14, borderWidth: 1 },
   container: { flex: 1, width: '100%', maxWidth: 600, alignSelf: 'center' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   hero: { width: '100%', height: 200, position: 'relative' },
@@ -809,13 +936,13 @@ const st = StyleSheet.create({
   floatingInfoCard: { marginHorizontal: 16, marginTop: -32, borderRadius: 24, padding: 16, borderWidth: 1, ...SHADOWS.card, shadowOpacity: 0.15 },
   infoCardName: { fontSize: 20, fontWeight: '900', letterSpacing: 0.5, marginBottom: 4 },
   infoCardDesc: { fontSize: 12, fontWeight: '500', lineHeight: 14, marginBottom: 8 },
-  localVendorBadge: { alignSelf: 'flex-start', backgroundColor: 'rgba(249,115,22,0.1)', borderWidth: 1, borderColor: 'rgba(249,115,22,0.2)', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, marginVertical: 4 },
-  localVendorBadgeText: { fontSize: 12, fontWeight: '800', color: '#F97316', letterSpacing: 0.2 },
+  localVendorBadge: { alignSelf: 'flex-start', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, marginVertical: 4 },
+  localVendorBadgeText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.3 },
   statusBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, alignSelf: 'flex-start' },
   statusBadgeText: { fontSize: 12, fontWeight: '800', color: '#fff', letterSpacing: 0.2 },
   
-  contactBtn: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
-  contactBtnText: { fontSize: 12, fontWeight: '800', color: '#fff' },
+  contactBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: 1 },
+  contactBtnText: { fontSize: 12, fontWeight: '800' },
 
   brandTag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, alignSelf: 'flex-start' },
   brandTagText: { fontSize: 12, fontWeight: '900', color: '#fff', letterSpacing: 3 },
@@ -893,6 +1020,7 @@ const st = StyleSheet.create({
   menuSearchInput: { flex: 1, fontSize: 13, fontWeight: '600', paddingVertical: 0 },
   categoryPill: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 8, borderWidth: 1 },
   categoryText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.2 },
+  shopChip: { flexDirection: 'row', alignItems: 'center', gap: 6 },
 
   // Floating Cart styles
   floatingCartContainer: {

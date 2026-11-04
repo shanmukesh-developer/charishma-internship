@@ -1,14 +1,14 @@
 /**
  * The one Others header (Food & groceries v2 style), shared by every Others section:
- * back arrow, ZCS emblem + "ZCS" and the section line, plain header icons, a white search pill with
+ * back arrow, the ZENV badge + "ZENV" and the section line, plain header icons, a white search pill with
  * rotating section hints, and the section pills. Each section passes only its own accent colours.
  * Used by Food & groceries (FoodV2HomeTop) and by the other sections in app/(tabs)/others.tsx.
  */
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
-import { Image } from 'expo-image';
+import ZenvBadge from '../../components/ZenvBadge';
 import { PressScale } from '../../modules/others/motion';
 import { Icon } from './FoodV2Icons';
 import { useScreenActive } from '../../utils/useAppActive';
@@ -20,7 +20,6 @@ export type HeaderColors = { top: string; bottom: string; pillOnBg: string; pill
 
 /** Food & groceries: deep emerald (the reference look). */
 export const FOOD_HEADER: HeaderColors = { top: '#0B3D24', bottom: '#0F5132', pillOnBg: '#E6F6EA', pillOnInk: '#0B5A2E' };
-const EMBLEM = require('./assets/food-v2-brand-gold-z-emblem-2026-10-23.webp');
 const SIDE = 16;
 
 /**
@@ -86,11 +85,9 @@ export default function SectionHeader({ topPad, pageW, compact, colors, subtitle
           </PressScale>
         )}
         <View style={st.brandBlock}>
-          <View style={st.emblemGlow}>
-            <View style={st.emblemRing}><Image source={EMBLEM} style={st.emblem} contentFit="cover" accessibilityLabel="ZCS emblem" /></View>
-          </View>
+          <ZenvBadge size={34} />
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={st.brandWord} accessibilityRole="header">ZCS</Text>
+            <Text style={st.brandWord} accessibilityRole="header">ZENV</Text>
             <Text style={[st.brandSub, { fontSize: compact ? 12 : 12.5 }]} numberOfLines={1}>{subtitle}</Text>
           </View>
         </View>
@@ -121,13 +118,7 @@ export default function SectionHeader({ topPad, pageW, compact, colors, subtitle
 const st = StyleSheet.create({
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 16 },
   brandBlock: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  emblemGlow: Platform.select<any>({
-    web: { borderRadius: 17, boxShadow: '0px 0px 12px rgba(212,175,55,0.15)' },
-    default: { borderRadius: 17, shadowColor: '#D4AF37', shadowOpacity: 0.15, shadowRadius: 8, shadowOffset: { width: 0, height: 0 } },
-  }),
-  emblemRing: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, borderColor: '#C9A24A', padding: 1, backgroundColor: '#07140D' },
-  emblem: { width: '100%', height: '100%', borderRadius: 16 },
-  brandWord: { color: '#FFFFFF', fontSize: 22, fontWeight: '600', letterSpacing: 2, lineHeight: 26 },
+  brandWord: { color: '#FFFFFF', fontSize: 22, fontWeight: '600', letterSpacing: 1.2, lineHeight: 26 },
   brandSub: { color: 'rgba(255,255,255,0.72)', fontSize: 12.5, fontWeight: '400', marginTop: 1, letterSpacing: 0.2 },
   iconRow: { flexDirection: 'row', alignItems: 'center', marginRight: -10 },
   hdrBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },

@@ -4,9 +4,6 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Refres
 import { takesSlotOrders } from '../../utils/storeOpenNow';
 import { useSectionUsage, rankByUsage, recordSectionUse } from '../../utils/sectionUsage';
 import { CB_COUNTER_PHOTO } from '../../modules/campusBooking/cbTheme';
-import { useCampusEventsStatus } from '../../modules/campusEvents/ui';
-import { RENTALS_V2_DEMO_CONTENT } from '../../modules/rentalsV2/rentalsV2Demo';
-import { EVENTS_V2_DEMO_CONTENT } from '../../modules/eventsV2/eventsV2Demo';
 import { KeyboardAvoidingView } from '../../components/KeyboardAvoidingView';
 // expo-image (memory + disk cache, downsampled CDN URLs) in place of react-native's Image
 import { CachedImage as Image } from '../../components/SafeImage';
@@ -17,34 +14,35 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, SHADOWS, RADIUS, surfaceLift, surfaceShadow, LIGHT_HAIRLINE } from '../../constants/theme';
 import { API_URL, ENDPOINTS } from '../../constants/api';
 import { useAuth } from '../../context/AuthContext';
-import { useCartState, type BasketKind } from '../../context/CartContext';
+import { type BasketKind } from '../../context/CartContext';
+import { FloatingBasketBar, FloatingBasketButton } from '../../components/FloatingBasket';
 import { useTheme } from '../../context/ThemeContext';
 import { useDietary } from '../../context/DietaryContext';
 import { apiFetch } from '../../utils/auth';
-import { readCache, writeCache, peekCache, RESTAURANTS_CACHE_KEY, useSWRJson } from '../../utils/swrCache';
-import NexusExplorer from '../../components/NexusExplorer';
+import { readCache, writeCache, peekCache, RESTAURANTS_CACHE_KEY, useSWRJson, useCollegeEpoch, getCollegeEpoch } from '../../utils/swrCache';
+import NexusExplorer, { cuisineHasDishes } from '../../components/NexusExplorer';
 import SearchOverlay from '../../components/SearchOverlay';
 import PromoCarousel from '../../components/PromoCarousel';
 import HighClassPromoCarousel from '../../components/HighClassPromoCarousel';
 import CampusLiveTicker from '../../components/CampusLiveTicker';
-import CampusBitesSection from '../../components/CampusBitesSection';
 import { isLocalVendor } from '../../utils/localVendor';
 import RecentlyViewed from '../../components/RecentlyViewed';
 import { useWorldTransitionTrigger } from '../../context/WorldTransitionContext';
 import AmbientBackground from '../../components/AmbientBackground';
 import DopaminePressable, { CardPressable, ActionPressable } from '../../components/DopaminePressable';
-import { StaggeredSection, RestaurantCardSkeleton, PulseGlow, BounceIn, FloatingPulse } from '../../components/AnimatedSection';
+import { StaggeredSection, RestaurantCardSkeleton, PulseGlow, BounceIn } from '../../components/AnimatedSection';
 import NightClosureBanner, { NextSlotHint } from '../../components/NightClosureBanner';
 import { featuredLabel } from '../../utils/promoLabel';
 import ZenvyEcosystemGrid from '../../components/ZenvyEcosystemGrid';
 import SafeImage from '../../components/SafeImage';
 import { Ionicons } from '@expo/vector-icons';
-import { formatINR, istHour, plural } from '../../utils/format';
+import { istHour } from '../../utils/format';
 import { storeEtaMins, storeEtaText } from '../../utils/storeEta';
 import { isNewStore as isNewStoreRule } from '../../utils/storeBadge';
 import { syncFavorites, toggleFavoriteStore, onFavoritesChange, isFavoriteIn } from '../../utils/favorites';
 import { useTopInset } from '../../utils/useTopInset';
 import { useIntroDone } from '../../utils/introGate';
+import { rememberIntroSoundSetting } from '../../components/intro/introSound';
 
 const VaultTimerBadge = ({ pulseAnim }: { pulseAnim: any }) => {
   const [vaultTimer, setVaultTimer] = useState('00:00:00');
@@ -165,7 +163,6 @@ const CLASSICS = [
 // regularly move to the front (utils/sectionUsage). Tech & repairs sits second from last.
 const CATEGORIES = [
   { key: 'food', label: 'Food' },
-  { key: 'basket', label: 'Shopping list' },
   { key: 'pg', label: 'PG stays' },
   { key: 'rides', label: 'Co-Ride' },
   { key: 'rentals', label: 'Rentals' },
@@ -176,14 +173,13 @@ const CATEGORIES = [
 // In-Campus Booking (owner, 27 Oct): ALWAYS the first card, fixed (never ranked); the cards above keep their usage order after it.
 const CAMPUS_BOOKING_CARD = { key: 'campusBooking', label: 'In-Campus Booking' };
 // Its longer label fits the card on every width (about 111 px at 12 px bold): 12 px from ~420 px phones, ~11 px at 390, ~10 px at 360.
-// Usage key per card (the Others section it opens; Shopping list counts on its own).
+// Usage key per card (the Others section it opens).
 const CATEGORY_USAGE_KEY: Record<string, string> = { rides: 'coride' };
 const categoryUsageKeys = (c: { key: string }) => [CATEGORY_USAGE_KEY[c.key] || c.key];
 
-// Licensed photos only: Unsplash (food, basket, services) and the sections' own licensed assets.
+// Licensed photos only: Unsplash (food, services) and the sections' own licensed assets.
 const CATEGORY_IMAGES = {
   food: { uri: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=200&q=80' },
-  basket: { uri: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=200&q=80' },
   pg: require('../../modules/pgV2/assets/pg-v2-building-modern-midrise-greenery-hd-2026-10-26.webp'),
   rides: require('../../modules/corideV2/assets/coride-v2-owner-tile-auto-rickshaw-2026-10-24.webp'),
   rentals: require('../../modules/rentalsV2/assets/rv2-demo-bike-ntorq-1-hd-2026-10-26.webp'),
@@ -252,7 +248,7 @@ const isPureVegRestaurant = (r: any): boolean => {
 
 // Restaurant types shown in the Home food list and the Classics explorer
 const HOME_FOOD_TYPES = ['FOOD', 'RESTAURANT', 'CAFE', 'BAKERY', 'SWEETS', 'DESSERT', 'DESSERTS', 'DRINKS', 'MESS'];
-// CampusBites stalls live in their own section (CampusBitesSection: ADD to basket, the stall delivers, COD), not this grid
+// Stalls near campus are on the Local tab (components/CampusBitesSection: the stall delivers, COD), never in this grid
 const isHomeFoodVendor = (r: any): boolean => {
   if (isLocalVendor(r)) return false;
   const t = String(r?.vendorType || '').toUpperCase();
@@ -300,45 +296,22 @@ const hasDietTag = (r: any, kw: string): boolean => {
 };
 
 /**
- * Floating "N items added" bar: reads the basket totals itself so an ADD doesn't re-render the whole Home screen.
- * Owner rule: every page keeps to its own basket. Home shows the bar only for a basket the student added to ON Home
- * during this visit (lastAddedAt after Home gained focus), never items added on a stall, restaurant or store page.
+ * One rule per filter chip, used both to filter the store grid and to decide which chips show: a chip appears only
+ * while at least one store matches it (3 Nov 2026: "Rated 4.5+", "Featured" or "Jain" with no store behind them
+ * opened an empty list; "Under 20 min" and Favourites already hid themselves this way).
  */
-const HomeFloatingCart = React.memo(function HomeFloatingCart({ isDark, txt, onOpen, focusedAt }: { isDark: boolean; txt: string; onOpen: (kind: BasketKind) => void; focusedAt: number }) {
-  const { basketCounts, basketTotals, lastAddedBasket, lastAddedAt } = useCartState();
-  const kind = lastAddedBasket;
-  if (!kind || !(lastAddedAt >= focusedAt)) return null;
-  const totalItems = basketCounts[kind];
-  const totalPrice = basketTotals[kind];
-  if (!(totalItems > 0)) return null;
-  return (
-    <View style={s.floatingCartWrap} pointerEvents="box-none">
-      <TouchableOpacity
-        activeOpacity={0.92}
-        style={[s.floatingCartBar, { backgroundColor: isDark ? '#1C1917' : '#FFFFFF', borderColor: isDark ? COLORS.gold : COLORS.red }]}
-        onPress={() => onOpen(kind)}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-          <View style={[s.floatingCartBadge, { backgroundColor: isDark ? COLORS.gold : COLORS.red }]}>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: isDark ? '#000' : '#FFF' }}>{totalItems}</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[s.floatingCartLabel, { color: txt }]} numberOfLines={1}>
-              {plural(totalItems, 'item')} added
-            </Text>
-            <Text style={[s.floatingCartSub, { color: isDark ? COLORS.gold : COLORS.red }]}>
-              {formatINR(totalPrice)} subtotal
-            </Text>
-          </View>
-        </View>
-        <View style={[s.floatingCartCta, { backgroundColor: isDark ? COLORS.gold : COLORS.red }]}>
-          <Text style={[s.floatingCartCtaText, { color: isDark ? '#000' : '#FFF' }]}>View basket</Text>
-          <Text style={{ fontSize: 14, color: isDark ? '#000' : '#FFF', fontWeight: '700' }}>›</Text>
-        </View>
-      </TouchableOpacity>
-    </View>
-  );
-});
+const matchesHomeFilter = (r: any, key: string, favorites: any[]): boolean => {
+  if (key === 'favorites') return isFavoriteIn(favorites, r._id || r.id);
+  if (key === 'veg') return isPureVegRestaurant(r);
+  if (key === 'under99') return availableMenu(r).some((i: any) => Number(i.price) <= 99);
+  if (key === 'topRated') return Number(r.rating) >= 4.5;
+  if (key === 'express') { const d = storeEtaMins(r); return !!d && d <= 20; }
+  if (key === 'budget') return availableMenu(r).some((i: any) => Number(i.price) < 150);
+  if (key === 'premium') return r.subscriptionTier === 'premium' || r.isFeatured;
+  if (key === 'jain') return hasDietTag(r, 'jain');
+  if (key === 'eggless') return hasDietTag(r, 'eggless');
+  return true;
+};
 
 export default function HomeScreen() {
   // Home's full content is drawn once the launch intro is done (utils/introGate); its data still loads meanwhile.
@@ -362,7 +335,7 @@ export default function HomeScreen() {
   const carouselVisibleRef = useRef(true);
   // The restaurant grid renders 12 cards first (it sits inside this ScrollView, so it cannot be a
   // virtualized list). It no longer grows on its own while scrolling: a "Show all" button ends it,
-  // so Recently viewed and the stalls below stay reachable without scrolling past every store.
+  // so Recently viewed below stays reachable without scrolling past every store.
   const GRID_PAGE = 12;
   const [gridLimit, setGridLimit] = useState(GRID_PAGE);
   const gridBottom = useRef(0);
@@ -402,24 +375,29 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(() => !peekCache(RESTAURANTS_CACHE_KEY));
   const [refreshing, setRefreshing] = useState(false);
   const [classics, setClassics] = useState<any[]>(CLASSICS);
+  // Popular dishes shows only the cuisines with at least one available dish on today's menus (3 Nov 2026: the fixed
+  // list of ten led mostly to "No pizza dishes on campus menus right now"). Same rule as the dish list (NexusExplorer).
+  const shownClassics = React.useMemo(() => classics.filter((c) => cuisineHasDishes(restaurants, c.name)), [classics, restaurants]);
   const [loadError, setLoadError] = useState<false | 'server' | 'network'>(false);
   // "Rides" shows only while Co-Ride has an upcoming ride (same check as the Others tab).
-  const sectionsSWR = useSWRJson<{ sections?: Record<string, { live?: boolean }> }>('/api/config/sections', { freshMs: 60 * 1000 });
-  // Same visibility as the Others pills: a section the server reports as off (no PG listed, Events closed) has
-  // no card; unknown (offline, older server) shows it.
-  const campusEventsStatus = useCampusEventsStatus(!!(user?._id || user?.id));
+  const sectionsSWR = useSWRJson<{ sections?: Record<string, { live?: boolean; on?: boolean }> }>('/api/config/sections', { freshMs: 60 * 1000 });
+  // The admins' Intro sound switch rides on the same answer; kept for the next app start (the intro plays before
+  // the network answers).
+  const introSoundOn = sectionsSWR.data?.sections?.introSound?.on;
+  useEffect(() => { if (typeof introSoundOn === 'boolean') rememberIntroSoundSetting(introSoundOn); }, [introSoundOn]);
+  // Same visibility as the Services pills: PG follows the server (which reports it always live); unknown (offline,
+  // older server) shows it. Co-Ride, Rentals and Events always show (3 Nov 2026): posting a ride is how Co-Ride's
+  // listings start (the Services pill already always showed), "List your vehicle" lives in Rentals, and with no
+  // events the Events page says "Events open soon".
   const sectionUsage = useSectionUsage();
   const homeCategories = React.useMemo(() => {
     const sec = sectionsSWR.data?.sections;
     const shown = CATEGORIES.filter((c) => {
-      if (c.key === 'rides') return sec?.coride?.live !== false;
       if (c.key === 'pg') return sec?.pg?.live !== false;
-      if (c.key === 'rentals') return RENTALS_V2_DEMO_CONTENT || sec?.rentals?.live !== false;
-      if (c.key === 'events') return EVENTS_V2_DEMO_CONTENT || !!campusEventsStatus?.enabled;
       return true;
     });
     return [CAMPUS_BOOKING_CARD, ...rankByUsage(shown, categoryUsageKeys, sectionUsage)];
-  }, [sectionsSWR.data, campusEventsStatus, sectionUsage]);
+  }, [sectionsSWR.data, sectionUsage]);
   // Live count for the "All restaurants" header: food stores in the grid and how many are open now
   const storeCounts = React.useMemo(() => {
     const food = restaurants.filter(isHomeFoodVendor);
@@ -427,7 +405,6 @@ export default function HomeScreen() {
     return { total: food.length, open: food.filter(isRestaurantOpenNow).length, slot: food.filter((r: any) => !isRestaurantOpenNow(r) && takesSlotOrders(r)).length };
   }, [restaurants]);
   // "Under 20 min" only when the server has measured delivery times (utils/storeEta)
-  const hasMeasuredEta = React.useMemo(() => restaurants.some((r: any) => !!storeEtaMins(r)), [restaurants]);
   // Promo slides for switched-off sections are left out. "Find a ride" waits for a confirmed live
   // Co-Ride (no slide that pops in and out); PG stays unless the server says it is off.
   const hiddenPromoSlides = React.useMemo(() => {
@@ -435,8 +412,12 @@ export default function HomeScreen() {
     const out: string[] = [];
     if (sec?.coride?.live !== true) out.push('ride');
     if (sec?.pg?.live === false) out.push('stays');
+    if (sec?.campus?.live === false) out.push('campus-buddy');
     return out;
   }, [sectionsSWR.data]);
+  // Owner, 31 Oct 2026: Campus can be switched off from the admin (Friends master switch); then the header
+  // button and its promo go. Unknown (offline, older server) keeps them.
+  const campusOff = sectionsSWR.data?.sections?.campus?.live === false;
 
   // Search Overlay State
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -444,6 +425,7 @@ export default function HomeScreen() {
   // Vault and Block challenges Modal States
   const [showVaultModal, setShowVaultModal] = useState(false);
   const [vaultItems, setVaultItems] = useState<any[]>([]);
+  const [vaultChecked, setVaultChecked] = useState(false);
   const [loadingVault, setLoadingVault] = useState(false);
   const [vaultError, setVaultError] = useState(false);
   const [claimingItemId, setClaimingItemId] = useState<string | null>(null);
@@ -456,6 +438,11 @@ export default function HomeScreen() {
 
   // Favorites state and logic
   const [favorites, setFavorites] = useState<string[]>([]);
+  // The filter chips that have at least one food store behind them (matchesHomeFilter); the chosen chip always stays.
+  const chipKeysWithStores = React.useMemo(() => {
+    const food = restaurants.filter(isHomeFoodVendor);
+    return new Set(FILTERS.filter((f) => food.some((r: any) => matchesHomeFilter(r, f.key, favorites))).map((f) => f.key));
+  }, [restaurants, favorites]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadNonce, setUnreadNonce] = useState(0);
   const lastUnreadCheck = useRef<{ key: string; at: number }>({ key: '', at: 0 });
@@ -522,6 +509,7 @@ export default function HomeScreen() {
       if (res.ok) {
         const data = await res.json();
         setVaultItems(Array.isArray(data) ? data : []);
+        setVaultChecked(true);
         setVaultError(false);
       } else if (!silent) {
         setVaultError(true);
@@ -533,6 +521,10 @@ export default function HomeScreen() {
       if (!silent) setLoadingVault(false);
     }
   };
+  // The Daily deals card's "Ends in" countdown shows only while there is a deal to claim (3 Nov 2026: it ran with no
+  // deal behind it, fake urgency); the list is read quietly when Home opens.
+  useEffect(() => { fetchVaultItems({ silent: true }); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const liveDealCount = vaultItems.filter((v: any) => Number(v?.remainingCount ?? 1) > 0).length;
 
   const claimingRef = useRef(false);
   const handleClaimVault = async (itemId: string) => {
@@ -583,9 +575,13 @@ export default function HomeScreen() {
     // up to ~3 minutes while the global "Zenvy is waking up" banner shows (utils/serverWake.ts), so
     // Home never flashes an error during a restart. fields=summary: stores with a light menu (the
     // full menu loads on the store page).
+    // A list asked for before the student changed college is dropped (the newer request owns the screen).
+    const requestEpoch = getCollegeEpoch();
+    let stale = false;
     try {
       const res = await apiFetch(`${ENDPOINTS.restaurants}?fields=summary`);
       const data = await res.json().catch(() => null);
+      if (requestEpoch !== getCollegeEpoch()) { stale = true; return; }
       if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status}`), { status: res.status });
       if (!Array.isArray(data)) throw Object.assign(new Error('Bad restaurants payload'), { status: res.status });
       const cleaned = data.map((r: any) => ({
@@ -598,6 +594,7 @@ export default function HomeScreen() {
       writeCache(RESTAURANTS_CACHE_KEY, cleaned);
       setLoadError(false);
     } catch (e: any) {
+      if (requestEpoch !== getCollegeEpoch()) { stale = true; return; }
       console.warn('[ZENVY_SYNC] Restaurants failed to load:', e?.message || e);
       // Keep whatever is on screen (the cached list); only an empty screen is an error
       const cached = await readCache<any[]>(RESTAURANTS_CACHE_KEY);
@@ -605,10 +602,25 @@ export default function HomeScreen() {
       if (hadCache) setRestaurants((cur) => (cur.length ? cur : cached!.data));
       setLoadError(hadCache ? false : (Number(e?.status) >= 500 ? 'server' : 'network'));
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      // A stale answer leaves the spinner to the request that replaced it (no empty "no stores" flash).
+      if (!stale) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, []);
+
+  // The student changed college (checkout) while Home is open: its stores replace the other college's list. Not on
+  // mount (a change made before Home opened is already in the first fetch).
+  const collegeEpoch = useCollegeEpoch();
+  const epochAtMount = useRef(collegeEpoch);
+  useEffect(() => {
+    if (collegeEpoch === epochAtMount.current) return;
+    epochAtMount.current = collegeEpoch;
+    setRestaurants([]);
+    setLoading(true);
+    fetchData();
+  }, [collegeEpoch, fetchData]);
 
   // Stale-while-revalidate: paint the last good list at once (cold app start included), then refresh.
   useEffect(() => {
@@ -672,7 +684,7 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-        Alert.alert('Close ZCS?', undefined, [
+        Alert.alert('Close ZENV?', undefined, [
           { text: 'Cancel', onPress: () => null, style: 'cancel' },
           { text: 'Close', onPress: () => BackHandler.exitApp() },
         ]);
@@ -698,6 +710,9 @@ export default function HomeScreen() {
   useEffect(() => { setGridLimit(GRID_PAGE); }, [vegOnly, filter, search, classicFilter]);
 
   // Memoized: the list is only re-filtered when its inputs change, not on every render
+  // Loaded, no error, and no food vendor on ZCS at all (the real stores are being entered): the food filters,
+  // "Popular dishes" and the restaurant grid would only lead to empty screens, so Home says so once instead.
+  const noFoodVendors = !loading && !loadError && !restaurants.some(isHomeFoodVendor);
   const filtered = React.useMemo(() => restaurants
     .filter(isHomeFoodVendor)
     .filter(r => {
@@ -706,18 +721,7 @@ export default function HomeScreen() {
       }
       return true;
     })
-    .filter(r => {
-      if (filter === 'favorites') return isFavoriteIn(favorites, r._id || r.id);
-      if (filter === 'veg') return isPureVegRestaurant(r);
-      if (filter === 'under99') return availableMenu(r).some((i:any) => Number(i.price) <= 99);
-      if (filter === 'topRated') return Number(r.rating) >= 4.5;
-      if (filter === 'express') { const d = storeEtaMins(r); return !!d && d <= 20; }
-      if (filter === 'budget') return availableMenu(r).some((i:any) => Number(i.price) < 150);
-      if (filter === 'premium') return r.subscriptionTier === 'premium' || r.isFeatured;
-      if (filter === 'jain') return hasDietTag(r, 'jain');
-      if (filter === 'eggless') return hasDietTag(r, 'eggless');
-      return true;
-    })
+    .filter(r => matchesHomeFilter(r, filter, favorites))
     .filter(r => {
       if (!search) return true;
       const q = search.toLowerCase();
@@ -750,6 +754,7 @@ export default function HomeScreen() {
 
   const goldColor = isDark ? COLORS.gold : colors.gold;
   const goldBorderColor = isDark ? COLORS.goldBorder : 'rgba(239, 79, 95, 0.35)';
+  const avatarLetters = String(user?.name || '').trim().substring(0, 2).toUpperCase();
   const goldMutedColor = isDark ? COLORS.goldMuted : 'rgba(239, 79, 95, 0.1)';
   const goldGlowShadow = isDark ? SHADOWS.goldGlow : SHADOWS.redGlow;
   // Light mode: cards, tiles and pills get a soft lift so they separate from the page (dark: none)
@@ -778,11 +783,16 @@ export default function HomeScreen() {
                 <SafeImage
                   source={{ uri: user.profileImage }}
                   // A broken profile photo shows the user's initials, never a stock photo of someone else.
-                  fallback={<Text style={[s.avatarText, { color: goldColor }]}>{(user?.name||'Z').substring(0,2).toUpperCase()}</Text>}
+                  fallback={avatarLetters
+                    ? <Text style={[s.avatarText, { color: goldColor }]}>{avatarLetters}</Text>
+                    : <Ionicons name="person" size={18} color={goldColor} />}
                   style={{ width: '100%', height: '100%' }}
                 />
+              ) : avatarLetters ? (
+                <Text style={[s.avatarText, { color: goldColor }]}>{avatarLetters}</Text>
               ) : (
-                <Text style={[s.avatarText, { color: goldColor }]}>{(user?.name||'Z').substring(0,2).toUpperCase()}</Text>
+                // A guest (or a name not set yet): a person, not the old "Z" brand letter.
+                <Ionicons name="person" size={18} color={goldColor} accessibilityLabel="Guest" />
               )}
             </View>
             <View>
@@ -799,18 +809,21 @@ export default function HomeScreen() {
           </TouchableOpacity>
 
           <View style={s.navRight}>
-            {/* Campus: the one entry for chats, Friends (Pulse, Spaces, Forum, Tasks, Connect), Around campus and Me */}
-            <DopaminePressable
-              style={[s.campusPill, { backgroundColor: cardBg, borderColor: goldBorderColor }, liftSm]}
-              onPress={() => router.push('/friends' as any)}
-              sound="click"
-              activeScale={0.92}
-              accessibilityRole="button"
-              accessibilityLabel="Open Campus"
-            >
-              <Ionicons name="people-outline" size={16} color={goldColor} />
-              <Text style={[s.campusPillText, { color: goldColor }]}>Campus</Text>
-            </DopaminePressable>
+            {/* Campus: the one entry for chats, Friends (Pulse, Spaces, Forum, Tasks, Connect), Around campus and Me.
+                Hidden while the admin has Campus switched off. */}
+            {campusOff ? null : (
+              <DopaminePressable
+                style={[s.campusPill, { backgroundColor: cardBg, borderColor: goldBorderColor }, liftSm]}
+                onPress={() => router.push('/friends' as any)}
+                sound="click"
+                activeScale={0.92}
+                accessibilityRole="button"
+                accessibilityLabel="Open Campus"
+              >
+                <Ionicons name="people-outline" size={16} color={goldColor} />
+                <Text style={[s.campusPillText, { color: goldColor }]}>Campus</Text>
+              </DopaminePressable>
+            )}
             <DopaminePressable 
               style={[s.navBtn, { backgroundColor: cardBg, borderColor: goldBorderColor }, liftSm]} 
               onPress={toggleTheme}
@@ -906,8 +919,6 @@ export default function HomeScreen() {
                 const kfc = restaurants.find((r: any) => /kfc/i.test(r?.name || ''));
                 if (kfc) router.push(`/restaurant/${kfc.id || kfc._id}` as any);
                 else { setSearch('KFC'); scrollToGrid(); }
-              } else if (slide.id === 'mega-basket') {
-                router.push('/mega-basket' as any);
               } else if (slide.id === 'campus-buddy') {
                 router.push('/friends' as any);
               } else if (slide.id === 'ride') {
@@ -964,9 +975,6 @@ export default function HomeScreen() {
                 if (c.key === 'food') {
                   recordSectionUse('food');
                   scrollToGrid();
-                } else if (c.key === 'basket') {
-                  recordSectionUse('basket');
-                  router.push('/mega-basket' as any);
                 } else if (c.key === 'campusBooking') {
                   router.push('/campus-booking' as any);
                 } else {
@@ -992,7 +1000,8 @@ export default function HomeScreen() {
         </ScrollView>
         </StaggeredSection>
 
-        {/* ── CLASSICS ── */}
+        {/* ── CLASSICS ── (only cuisines with a dish on today's menus; hidden when none has) */}
+        {!noFoodVendors && shownClassics.length > 0 && (<>
         <View style={s.sectionHeader}>
           <Text style={[s.sectionTitle, { color: txt }]}>Popular dishes</Text>
           <DopaminePressable 
@@ -1004,7 +1013,7 @@ export default function HomeScreen() {
           </DopaminePressable>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingLeft: 16, marginBottom: 20 }}>
-          {classics.map((c, i) => {
+          {shownClassics.map((c, i) => {
             const isActive = classicFilter === c.name;
             return (
               <DopaminePressable 
@@ -1069,6 +1078,8 @@ export default function HomeScreen() {
           </Animated.View>
         )}
 
+        </>)}
+
         {/* ── DAILY DEALS ── */}
         <StaggeredSection delay={600} direction="up">
         <CardPressable 
@@ -1086,13 +1097,17 @@ export default function HomeScreen() {
               </PulseGlow>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={[s.vaultTitle, { color: txt }]} numberOfLines={1}>Daily deals</Text>
-                <Text style={[s.vaultSub, { color: txtSec }]} numberOfLines={2}>Today's coupons, valid until midnight</Text>
+                <Text style={[s.vaultSub, { color: txtSec }]} numberOfLines={2}>
+                  {vaultChecked && liveDealCount === 0 ? 'No deals right now. Check back later.' : "Today's coupons, valid until midnight"}
+                </Text>
               </View>
             </View>
-            <View style={s.vaultRight}>
-              <Text style={[s.vaultUntil, { color: txtSec, marginTop: 0, marginBottom: 4 }]}>Ends in</Text>
-              <VaultTimerBadge pulseAnim={pulseAnim} />
-            </View>
+            {vaultChecked && liveDealCount > 0 && (
+              <View style={s.vaultRight}>
+                <Text style={[s.vaultUntil, { color: txtSec, marginTop: 0, marginBottom: 4 }]}>Ends in</Text>
+                <VaultTimerBadge pulseAnim={pulseAnim} />
+              </View>
+            )}
           </View>
         </CardPressable>
         </StaggeredSection>
@@ -1119,7 +1134,7 @@ export default function HomeScreen() {
         <Text style={[s.sectionSub, { color: txtSec }]}>Fresh from campus kitchens, delivered to your hostel</Text>
         <View style={{ marginTop: -4, marginBottom: 12 }}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: 16, paddingRight: 28, paddingVertical: 4 }}>
-            {FILTERS.filter(f => (f.key !== 'express' || hasMeasuredEta) && (f.key !== 'favorites' || favorites.length > 0)).map(f => {
+            {(noFoodVendors ? [] : FILTERS).filter(f => f.key === filter || chipKeysWithStores.has(f.key)).map(f => {
               const isChipActive = filter === f.key;
               const activeBg = isDark ? goldColor : COLORS.red;
               const fg = isChipActive ? (isDark ? '#000' : '#FFF') : txtSec;
@@ -1167,7 +1182,7 @@ export default function HomeScreen() {
             <View style={[s.emptyFilterBox, { backgroundColor: cardBg, borderColor: isDark ? goldBorderColor : COLORS.borderLight }]}>
               <Ionicons name="cloud-offline-outline" size={34} color={txtSec} style={{ marginBottom: 8 }} />
               <Text style={[s.emptyFilterTitle, { color: txt }]}>
-                {loadError === 'server' ? 'ZCS is still starting up' : "Couldn't load restaurants"}
+                {loadError === 'server' ? 'ZENV is still starting up' : "Couldn't load restaurants"}
               </Text>
               <Text style={[s.emptyFilterSub, { color: txtSec }]}>
                 {loadError === 'server'
@@ -1185,6 +1200,19 @@ export default function HomeScreen() {
           ) : filtered.length === 0 ? (
             <View style={[s.emptyFilterBox, { backgroundColor: cardBg, borderColor: isDark ? goldBorderColor : COLORS.borderLight }]}>
               <Ionicons name="restaurant-outline" size={34} color={txtSec} style={{ marginBottom: 8 }} />
+              {noFoodVendors ? (
+                <>
+                  <Text style={[s.emptyFilterTitle, { color: txt }]}>Restaurants are joining ZENV soon</Text>
+                  <Text style={[s.emptyFilterSub, { color: txtSec }]}>Meanwhile, shop pickles and groceries from campus stores.</Text>
+                  <TouchableOpacity
+                    style={[s.resetFilterBtn, { backgroundColor: goldColor }]}
+                    onPress={() => router.push({ pathname: '/(tabs)/others', params: { tab: 'food' } } as any)}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={[s.resetFilterBtnText, { color: isDark ? '#000' : '#fff' }]}>Shop groceries</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (<>
               <Text style={[s.emptyFilterTitle, { color: txt }]}>No restaurants match</Text>
               <Text style={[s.emptyFilterSub, { color: txtSec }]}>
                 {(() => {
@@ -1215,6 +1243,7 @@ export default function HomeScreen() {
                   <Text style={[s.resetFilterBtnText, { color: isDark ? '#000' : '#fff' }]}>Clear filters</Text>
                 </TouchableOpacity>
               )}
+              </>)}
             </View>
           ) : (
             filtered.slice(0, gridLimit).map((r, i) => {
@@ -1438,13 +1467,8 @@ export default function HomeScreen() {
         )}
 
 
-        {/* ── SECTION BREATHING SPACE ── */}
-        <View style={{ height: 20 }} />
-
-        {/* ── CAMPUSBITES: LOCAL VENDORS ── */}
-        <CampusBitesSection restaurants={restaurants} loading={loading} />
-
-        <View style={{ height: 100 }} />
+        {/* ── SECTION BREATHING SPACE ── (stalls near campus live on the Local tab: owner, 3 Nov 2026, "why twice") */}
+        <View style={{ height: 120 }} />
       </ScrollView>
 
       {/* ── Daily deals modal ── */}
@@ -1593,7 +1617,7 @@ export default function HomeScreen() {
               {/* Quick Jump Category Cards */}
               <Text style={{ fontSize: 12, fontWeight: '600', color: txtSec, letterSpacing: 0.2, marginBottom: 8 }}>Popular cuisines</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-                {classics.map((c, i) => {
+                {shownClassics.map((c, i) => {
                   const isSelected = classicFilter === c.name;
                   return (
                     <TouchableOpacity
@@ -1640,22 +1664,10 @@ export default function HomeScreen() {
       {/* ── SEARCH OVERLAY DRAWER ── */}
       <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
 
-      {/* ── FLOATING BOTTOM BASKET BAR (its own component: a basket change re-renders only it) ── */}
-      <HomeFloatingCart isDark={isDark} txt={txt} onOpen={openBasket} focusedAt={homeFocusedAt} />
-
-      {/* ── Floating chat button: opens Campus (same place as the Campus pill) ── */}
-      <FloatingPulse color={COLORS.red} style={s.fabBtnWrap}>
-        <DopaminePressable
-          style={s.fabBtn}
-          onPress={() => router.push('/friends' as any)}
-          sound="click"
-          activeScale={0.88}
-          accessibilityRole="button"
-          accessibilityLabel="Open Campus chats"
-        >
-          <Ionicons name="chatbubbles" size={22} color="#FFFFFF" />
-        </DopaminePressable>
-      </FloatingPulse>
+      {/* ── FLOATING BOTTOM BASKET BAR and the floating basket button (components/FloatingBasket; a basket change
+          re-renders only them) ── */}
+      <FloatingBasketBar isDark={isDark} txt={txt} onOpen={openBasket} focusedAt={homeFocusedAt} />
+      <FloatingBasketButton onPress={() => router.push('/(tabs)/basket' as any)} />
     </KeyboardAvoidingView>
   );
 }
@@ -1808,10 +1820,6 @@ const s = StyleSheet.create({
   blockName: { fontSize: 12, fontWeight: '700' },
   scoreVal: { fontSize: 12, fontWeight: '700' },
 
-  // Floating Community FAB
-  fabBtnWrap: { position: 'absolute', bottom: 20, right: 20, width: 54, height: 54, zIndex: 999 },
-  fabBtn: { width: 54, height: 54, borderRadius: 27, backgroundColor: COLORS.red, alignItems: 'center', justifyContent: 'center', ...SHADOWS.redGlow },
-
   // Separate Hero Card & Premium Categories Grid
   heroCarouselCard: {
     marginHorizontal: 16,
@@ -1899,55 +1907,6 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   resetFilterBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
-
-  // Floating Bottom Cart Bar
-  floatingCartWrap: {
-    position: 'absolute',
-    bottom: 24,
-    left: 16,
-    right: 76,
-    zIndex: 95,
-  },
-  floatingCartBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 18,
-    borderWidth: 1.5,
-    ...SHADOWS.card,
-    elevation: 8,
-  },
-  floatingCartBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  floatingCartLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  floatingCartSub: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  floatingCartCta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  floatingCartCtaText: {
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 0.3,

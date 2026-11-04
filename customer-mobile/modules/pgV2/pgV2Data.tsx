@@ -10,6 +10,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { API_URL, ENDPOINTS } from '../../constants/api';
 import { apiFetch, readJson } from '../../utils/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { cleanAmenities } from '../../modules/pg/ui';
 import { genderKey, inr, type MyPgBooking, type PgDetail, type PgListItem, type PgRoomType } from '../../modules/pg/pgApi';
 import type { GenderKey } from './pgV2Theme';
@@ -35,6 +36,19 @@ let fetchedOnce = false;
 let inflight: Promise<void> | null = null;
 const subs = new Set<(s: Snap) => void>();
 const emit = (patch: Partial<Snap>) => { snap = { ...snap, ...patch }; subs.forEach((f) => f(snap)); };
+
+// Saved PGs are kept on this device (3 Nov 2026: they lived in memory only and were gone after a restart). Read once,
+// written on every heart tap; the backend has no saved-PG list yet.
+const SAVED_KEY = 'zcs_pg_saved_v1';
+let savedLoaded = false;
+const loadSavedPgs = async () => {
+  if (savedLoaded) return;
+  savedLoaded = true;
+  try {
+    const ids = JSON.parse((await AsyncStorage.getItem(SAVED_KEY)) || '[]');
+    if (Array.isArray(ids) && ids.length) emit({ saved: new Set([...ids.map(String), ...snap.saved]) });
+  } catch { /* unreadable: start empty */ }
+};
 
 /** (Re)load the PG list. `silent` keeps the current list on screen while it refreshes. */
 export const reloadPgV2List = (opts?: { silent?: boolean }): Promise<void> => {
@@ -68,14 +82,15 @@ export function PgV2DataProvider({ children }: { children: React.ReactNode }) {
     subs.add(setS);
     setS(snap);
     if (!fetchedOnce) reloadPgV2List();
+    loadSavedPgs();
     return () => { subs.delete(setS); };
   }, []);
   const load = useCallback(() => { reloadPgV2List(); }, []);
-  // Saved PGs live in memory for the session: the backend has no saved-PG list yet (follow-up).
   const toggleSaved = useCallback((id: string) => {
     const next = new Set(snap.saved);
     if (next.has(id)) next.delete(id); else next.add(id);
     emit({ saved: next });
+    AsyncStorage.setItem(SAVED_KEY, JSON.stringify([...next])).catch(() => { /* storage full: this session still has it */ });
   }, []);
   const addRecent = useCallback((q: string) => {
     const v = q.trim();
@@ -180,8 +195,8 @@ export function useMyBookings(enabled: boolean) {
   return { items, state, reload: load };
 }
 
-/** Server copy still says "Zenvy" in places; the app brand is ZCS. */
-const brand = (m: string) => m.replace(/Zenvy/g, 'ZCS');
+/** Server copy may still say "Zenvy" or "ZCS" in places; the app brand is ZENV (4 Nov 2026). */
+const brand = (m: string) => m.replace(/\bZenvy\b|\bZCS\b/g, 'ZENV');
 
 export type SendResult = { ok: true; message: string; whatsappUrl?: string } | { ok: false; status: number; code?: string; message: string };
 
@@ -190,7 +205,7 @@ export const sendBookingRequest = async (roomId: string, checkInDate: string): P
   try {
     const res = await apiFetch(ENDPOINTS.pgBook(roomId), { method: 'POST', body: JSON.stringify({ checkInDate }) });
     const data = await readJson(res);
-    if (res.ok) return { ok: true, message: brand(data?.message || 'Request sent. The ZCS housing team will confirm it with you.'), whatsappUrl: data?.whatsappUrl };
+    if (res.ok) return { ok: true, message: brand(data?.message || 'Request sent. The ZENV housing team will confirm it with you.'), whatsappUrl: data?.whatsappUrl };
     return { ok: false, status: res.status, code: data?.code, message: brand(data?.message || 'Please try again.') };
   } catch {
     return { ok: false, status: 0, message: 'Check your internet and try again.' };

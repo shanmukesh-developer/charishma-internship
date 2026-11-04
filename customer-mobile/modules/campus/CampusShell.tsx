@@ -46,6 +46,7 @@ import { CampusCallModal, IncomingCampusCallOverlay, CampusCallSession, Incoming
 import { QrScannerModal } from './components/QrScannerModal';
 import { connectCampusSocket, disconnectCampusSocket, rejectCampusCall } from './campusSocketClient';
 import { EmptyState, ErrorState, SkeletonRows, Sheet, ListRow, S } from './ui';
+import { goHome } from '../../utils/goHome';
 
 // The campus socket is shared by every mounted shell (a notification can open a second one on top).
 // It is closed only when the last shell unmounts, so a later logout/login never reuses the old identity.
@@ -90,6 +91,8 @@ interface CampusShellProps {
 
 export const CampusShell: React.FC<CampusShellProps> = ({ onBack, link }) => {
   const router = useRouter();
+  // Set while this visit was opened only for college verification (link screen=verification, 3 Nov 2026).
+  const verifyOnlyRef = useRef(false);
   const [activeTab, setActiveTab] = useState<CampusTabKey>('chats');
   // Friends > Pulse: the old campus feed's segment (posts | wall | pulse), kept across tab switches.
   const [pulseSegment, setPulseSegment] = useState<LegacyFeedSegment>('posts');
@@ -347,6 +350,8 @@ export const CampusShell: React.FC<CampusShellProps> = ({ onBack, link }) => {
       setActiveTab('me');
       switchTo('friends');
     } else if (link.screen === 'verification') {
+      // Opened only to verify (Rentals, Events, ...): closing the sheet goes back there, not into Campus.
+      verifyOnlyRef.current = true;
       setActiveTab('me');
       switchTo('verify');
     } else if (link.screen === 'groups') {
@@ -542,6 +547,10 @@ export const CampusShell: React.FC<CampusShellProps> = ({ onBack, link }) => {
           setOverlay(null);
           // Pick up a 'pending review' / verified status without a manual reload.
           loadData({ silent: true });
+          if (verifyOnlyRef.current) {
+            verifyOnlyRef.current = false;
+            if (router.canGoBack()) router.back(); else goHome(router);
+          }
         }}
         profile={profile}
         campuses={campuses}

@@ -39,14 +39,14 @@ export const whatsappVendor = (vendor: any, itemName?: string) => {
   if (!num) return;
   const name = String(vendor?.name || 'your stall');
   const msg = itemName
-    ? `Hi ${name}! I found you on ZCS CampusBites and would like to order ${itemName}.`
-    : `Hi ${name}! I found you on ZCS CampusBites and would like to place an order.`;
+    ? `Hi ${name}! I found you on ZENV and would like to order ${itemName}.`
+    : `Hi ${name}! I found you on ZENV and would like to place an order.`;
   Linking.openURL(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`)
     .catch(() => Alert.alert("Couldn't open WhatsApp", 'Make sure WhatsApp is installed, or call the stall instead.'));
 };
 
 /** Shown on stall pages: how a stall order works. */
-export const STALL_ORDER_COPY = 'Order here on ZCS. The stall delivers it to you themselves — pay them in cash on delivery.';
+export const STALL_ORDER_COPY = 'Order here on ZENV. The stall delivers it to you themselves — pay them in cash on delivery.';
 
 /** "Pay cash to <stall> on delivery" */
 export const stallPayCopy = (stallName?: string | null) => `Pay cash to ${String(stallName || 'the stall').trim() || 'the stall'} on delivery`;

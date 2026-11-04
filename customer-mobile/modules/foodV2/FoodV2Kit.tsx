@@ -2,7 +2,7 @@
  * Food & groceries (owner reference v2, 23 Oct): shared pictures and small drawn graphics.
  *  - FOOD_IMG: Unsplash photos (Unsplash licence: free for commercial use, no attribution needed),
  *    requested at about 2x their on-screen size. Placeholders until the owner supplies own art.
- *  - StorefrontArt / ShoppingBasketArt / WaveArt: drawn here with react-native-svg (no licence needed).
+ *  - StorefrontArt / WaveArt: drawn here with react-native-svg (no licence needed).
  *  - LoadingDots: three green dots for "Loading products…" (still when reduce motion is on).
  */
 import React, { memo, useEffect, useId, useRef } from 'react';
@@ -107,60 +107,6 @@ export const StorefrontArt = memo(({ width = 200 }: { width?: number }) => {
       <Circle cx="106" cy="116" r="1.6" fill="#BFF2CF" />
       {/* ground */}
       <Rect x="40" y="134" width="120" height="5" rx="2.5" fill="#0B5A2E" opacity={0.7} />
-    </Svg>
-    </View>
-  );
-});
-
-/** Basket of groceries on leaves ("Can't find something?" shopping list page). */
-export const ShoppingBasketArt = memo(({ width = 220 }: { width?: number }) => {
-  const id = useSvgId('sb');
-  const h = Math.round(width * 0.62);
-  return (
-    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-    <Svg width={width} height={h} viewBox="0 0 220 136">
-      <Defs>
-        <SvgLinearGradient id={`${id}bk`} x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor="#E9D3A8" />
-          <Stop offset="1" stopColor="#B99460" />
-        </SvgLinearGradient>
-        <RadialGradient id={`${id}tm`} cx="35%" cy="30%" r="70%">
-          <Stop offset="0" stopColor="#FF8C73" /><Stop offset="0.5" stopColor="#EE3B29" /><Stop offset="1" stopColor="#A91B10" />
-        </RadialGradient>
-        <RadialGradient id={`${id}or`} cx="35%" cy="30%" r="70%">
-          <Stop offset="0" stopColor="#FFD37A" /><Stop offset="0.55" stopColor="#FF9F1C" /><Stop offset="1" stopColor="#D06A08" />
-        </RadialGradient>
-        <RadialGradient id={`${id}gr`} cx="35%" cy="30%" r="70%">
-          <Stop offset="0" stopColor="#B4EB7A" /><Stop offset="0.55" stopColor="#4DB33D" /><Stop offset="1" stopColor="#23752A" />
-        </RadialGradient>
-        <SvgLinearGradient id={`${id}lf`} x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor="#5FD68A" /><Stop offset="1" stopColor="#0E6B33" />
-        </SvgLinearGradient>
-      </Defs>
-      <G fill={`url(#${id}lf)`}>
-        <Path d="M30 124 C 6 108, 8 78, 28 64 C 40 86, 44 106, 30 124 Z" />
-        <Path d="M190 124 C 214 108, 212 78, 192 64 C 180 86, 176 106, 190 124 Z" />
-        <Path d="M48 128 C 30 122, 20 102, 26 90 C 40 100, 50 114, 48 128 Z" opacity={0.85} />
-        <Path d="M172 128 C 190 122, 200 102, 194 90 C 180 100, 170 114, 172 128 Z" opacity={0.85} />
-      </G>
-      {/* handle */}
-      <Path d="M68 66 C 68 18, 152 18, 152 66" stroke="#2B2B2B" strokeWidth={7} fill="none" strokeLinecap="round" />
-      {/* produce */}
-      <Path d="M92 54 L 100 22 Q 103 16 108 22 L 112 54 Z" fill="#E23D2E" />
-      <Rect x="114" y="28" width="22" height="30" rx="4" fill="#F2C230" />
-      <Circle cx="84" cy="60" r="15" fill={`url(#${id}or)`} />
-      <Circle cx="112" cy="62" r="14" fill={`url(#${id}tm)`} />
-      <Circle cx="138" cy="60" r="15" fill={`url(#${id}gr)`} />
-      <Ellipse cx="80" cy="55" rx="5" ry="3" fill="#FFFFFF" opacity={0.5} />
-      <Ellipse cx="108" cy="57" rx="4.5" ry="2.6" fill="#FFFFFF" opacity={0.5} />
-      <Ellipse cx="134" cy="55" rx="5" ry="3" fill="#FFFFFF" opacity={0.45} />
-      {/* basket */}
-      <Path d="M56 66 L 164 66 L 156 120 Q 155 126 148 126 L 72 126 Q 65 126 64 120 Z" fill={`url(#${id}bk)`} />
-      <Rect x="52" y="62" width="116" height="10" rx="5" fill="#CFAE78" />
-      <G stroke="#8E6B3A" strokeWidth={1.2} opacity={0.35}>
-        <Path d="M60 86 L 160 86 M 62 102 L 158 102" />
-      </G>
-      <Ellipse cx="110" cy="130" rx="74" ry="5" fill="#000000" opacity={0.25} />
     </Svg>
     </View>
   );

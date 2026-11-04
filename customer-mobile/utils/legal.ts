@@ -1,5 +1,5 @@
 // C4 legal: links to the public policy pages + the current policy version (GET /api/config/legal).
-import { Linking } from 'react-native';
+import { Alert, Linking } from 'react-native';
 import { ENDPOINTS } from '../constants/api';
 
 export type LegalPage = 'terms' | 'privacy' | 'refunds' | 'grievance' | 'community' | 'index' | 'deleteAccount';
@@ -24,8 +24,11 @@ export const LEGAL_LABELS: Record<LegalPage, string> = {
   deleteAccount: 'Delete your account',
 };
 
+/** Opens a policy page; when the phone cannot open it (no browser), says so and shows the address instead of doing nothing. */
 export const openLegal = (page: LegalPage) => {
-  Linking.openURL(LEGAL_LINKS[page]).catch(() => {});
+  Linking.openURL(LEGAL_LINKS[page]).catch(() => {
+    Alert.alert(LEGAL_LABELS[page], `We couldn't open the page here. You can read it at:\n${LEGAL_LINKS[page]}`);
+  });
 };
 
 let cached: { at: number; version: string | null } | null = null;

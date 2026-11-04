@@ -123,7 +123,7 @@ export const ReviewBlock: React.FC<{ review: ForumReview; onChanged: (r: ForumRe
 };
 
 const ResponseView: React.FC<{ response: ForumReviewResponse; mine: boolean; onEdit: () => void; onDelete: () => void }> = ({ response, mine, onEdit, onDelete }) => {
-  const role = response.responderRole === 'faculty' ? 'Faculty reply' : response.responderRole === 'official' ? 'Official reply' : 'ZCS team reply';
+  const role = response.responderRole === 'faculty' ? 'Faculty reply' : response.responderRole === 'official' ? 'Official reply' : 'ZENV team reply';
   return (
     <View style={styles.response} accessible={!mine} accessibilityLabel={`${role} from ${response.responder?.name}: ${response.body}`}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>

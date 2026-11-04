@@ -85,5 +85,10 @@ export function liveOpenState(store: any, now: Date = new Date()): LiveOpenState
  * take an order for its next delivery slot (takesSlotOrders, with nextSlotLabel "Today 4:30–5:30 PM").
  * The server re-checks the slot at checkout, so this only decides whether Add is offered.
  */
+// isOffline only stops a CampusBites STALL (its own app is off). For any other store it means "the rider buys at the
+// counter" and changes nothing about ordering: the server still sends takesSlotOrders: true for it, and treating it
+// as closed dimmed real shops at night ("Opens 9 AM" instead of "Order for the next slot").
 export const takesSlotOrders = (store: any): boolean =>
-  !!store && store.isActive !== false && store.isOffline !== true && store.takesSlotOrders === true;
+  !!store && store.isActive !== false
+  && !(store.isOffline === true && String(store.vendorType || '').toUpperCase() === 'LOCAL_VENDOR')
+  && store.takesSlotOrders === true;

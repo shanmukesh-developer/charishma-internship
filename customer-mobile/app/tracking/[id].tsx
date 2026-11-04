@@ -33,9 +33,11 @@ import FssaiLine from '../../components/FssaiLine';
 import { isVendorFulfilled, vendorCallNumber, callVendor, stallPayCopy } from '../../utils/localVendor';
 import { Ionicons } from '@expo/vector-icons';
 import { formatINR } from '../../utils/format';
+import { orderPicksText } from '../../components/CustomizeDrawer';
 import { useServiceability } from '../../context/CartContext';
 import { orderSlotLabel, istClockLabel as formatSlotClock } from '../../utils/deliverySlots';
 import { useTopInset } from '../../utils/useTopInset';
+import { goHome } from '../../utils/goHome';
 
 
 /**
@@ -173,6 +175,7 @@ export default function TrackingScreen() {
   const refetchQueuedRef = useRef(false);
   // A retry cannot fix "no such order" (bad link / another account): no TRY AGAIN for those.
   const [orderErrorRetryable, setOrderErrorRetryable] = useState(true);
+  const [orderNeedsSignIn, setOrderNeedsSignIn] = useState(false);
   const [receiptLoading, setReceiptLoading] = useState(false);
 
   // C8: signed 15-minute link to the printable receipt (only for this customer's delivered order).
@@ -191,7 +194,7 @@ export default function TrackingScreen() {
       }
       await Linking.openURL(data.url);
     } catch {
-      Alert.alert('Receipt', "Can't reach ZCS right now. Check your internet and try again.");
+      Alert.alert('Receipt', "Can't reach ZENV right now. Check your internet and try again.");
     } finally {
       setReceiptLoading(false);
     }
@@ -239,8 +242,8 @@ export default function TrackingScreen() {
     const stageText = status === 1 ? 'waiting for the store to confirm' : status === 2 ? 'confirmed' : status === 3 ? 'being prepared' : status === 4 ? (isVendorOrder ? `on the way from ${stallLabel}` : 'out for delivery') : status === 5 ? 'at the gate' : 'delivered';
     try {
       await Share.share({
-        message: `My ZCS order${storeName ? ` from ${storeName}` : ''} is ${stageText}.${estMinutes && status >= 2 && status <= 4 ? ` The store estimated about ${estMinutes} min.` : ''}`,
-        title: 'ZCS order status'
+        message: `My ZENV order${storeName ? ` from ${storeName}` : ''} is ${stageText}.${estMinutes && status >= 2 && status <= 4 ? ` The store estimated about ${estMinutes} min.` : ''}`,
+        title: 'ZENV order status'
       });
     } catch {
       // Share sheet dismissed / unavailable: nothing to do.
@@ -265,7 +268,8 @@ export default function TrackingScreen() {
       if (!res.ok) {
         const errData = (await readJson(res)) || {};
         if (!mountedRef.current) return;
-        setOrderErrorRetryable(!(res.status === 404 || res.status === 403));
+        setOrderErrorRetryable(!(res.status === 404 || res.status === 403 || res.status === 401));
+        setOrderNeedsSignIn(res.status === 401);
         setOrderError(
           res.status === 401
             ? 'Please sign in again to see this order.'
@@ -305,7 +309,7 @@ export default function TrackingScreen() {
     } catch (e) {
       if (mountedRef.current) {
         setOrderErrorRetryable(true);
-        setOrderError("Can't reach ZCS right now. Check your internet and try again.");
+        setOrderError("Can't reach ZENV right now. Check your internet and try again.");
       }
     } finally {
       fetchingRef.current = false;
@@ -316,6 +320,12 @@ export default function TrackingScreen() {
       await fetchOrder();
     }
   }, [orderId]);
+
+  // Signed in from the "Sign in" button on the error screen: load the order at once.
+  const signedInId = (user?.id || (user as any)?._id || null) as string | null;
+  useEffect(() => {
+    if (signedInId && orderNeedsSignIn) { setOrderNeedsSignIn(false); setLoadingOrder(true); fetchOrder(); }
+  }, [signedInId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!orderId) {
@@ -440,8 +450,10 @@ export default function TrackingScreen() {
   // Customers can cancel while the store has not accepted yet, or within 2 minutes of placing it (before pickup).
   // Same rule as the server: Pending, or Accepted / Preparing within the window (not ready for pickup / picking).
   const liveStatus = orderInfo?.status;
-  const canCancel = status === 1 ||
-    (cancelSecondsLeft > 0 && (status === 2 || status === 3) && (liveStatus === 'Accepted' || liveStatus === 'Preparing'));
+  // Also not once a rider has claimed it: the server refuses then (buy-at-store shops start at Accepted and go
+  // straight to riders, so the 2-minute window often still runs with a rider assigned).
+  const canCancel = !orderInfo?.deliveryPartner && (status === 1 ||
+    (cancelSecondsLeft > 0 && (status === 2 || status === 3) && (liveStatus === 'Accepted' || liveStatus === 'Preparing')));
 
   // Cancel order handler
   const handleCancelOrder = async () => {
@@ -455,7 +467,9 @@ export default function TrackingScreen() {
       if (!mountedRef.current) return;
       setShowCancelConfirmation(false);
       if (res.ok) {
-        setCancelMessage(data.message || 'Order cancelled.');
+        // The server says what happened to the money; without it the screen builds that line itself (a fallback
+        // "Order cancelled." repeated the title).
+        setCancelMessage(data.message || '');
         setOrderInfo(prev => (prev ? { ...prev, status: 'Cancelled', refundedToWallet: Number(data.refundedToWallet) || 0 } : prev));
         applyStep(-1);
         if (Number(data.refundedToWallet) > 0) refreshUser().catch(() => {});
@@ -547,7 +561,7 @@ export default function TrackingScreen() {
           Alert.alert('Thanks for rating', `${data.tipError}`);
         } else {
           const points = Number(data.zenPointsEarned) || 0;
-          Alert.alert('Thanks for rating', `${data.message || 'Your rating was saved.'}${points ? ` You earned ${points} ZCS Points.` : ''}`);
+          Alert.alert('Thanks for rating', `${data.message || 'Your rating was saved.'}${points ? ` You earned ${points} ZENV Points.` : ''}`);
         }
       } else if (data.code === 'ALREADY_RATED') {
         setShowRatingModal(false);
@@ -620,7 +634,14 @@ export default function TrackingScreen() {
         <Text style={[s.cancelledDesc, { color: txtSec, textAlign: 'center', marginTop: 8 }]}>
           {orderError}
         </Text>
-        {orderErrorRetryable && !!orderId && (
+        {(orderNeedsSignIn || !user) ? (
+          <TouchableOpacity
+            style={[s.returnBtn, { backgroundColor: COLORS.gold, marginTop: 24 }]}
+            onPress={() => router.push('/login' as any)}
+          >
+            <Text style={[s.returnBtnText, { color: '#000' }]}>Sign in</Text>
+          </TouchableOpacity>
+        ) : orderErrorRetryable && !!orderId && (
           <TouchableOpacity
             style={[s.returnBtn, { backgroundColor: COLORS.gold, marginTop: 24 }]}
             onPress={() => { setLoadingOrder(true); fetchOrder(); }}
@@ -628,7 +649,7 @@ export default function TrackingScreen() {
             <Text style={[s.returnBtnText, { color: '#000' }]}>Try again</Text>
           </TouchableOpacity>
         )}
-        <TouchableOpacity style={{ marginTop: 16 }} onPress={() => router.replace('/(tabs)/orders' as any)}>
+        <TouchableOpacity style={{ marginTop: 16 }} onPress={() => goHome(router, '/(tabs)/orders')}>
           <Text style={{ fontSize: 12, fontWeight: '600', color: txtSec }}>View all orders</Text>
         </TouchableOpacity>
       </View>
@@ -642,7 +663,7 @@ export default function TrackingScreen() {
     const refundAmount = Number.isFinite(refunded) && refunded > 0 ? refunded : charged;
     const refundLine = cancelMessage
       || (orderInfo?.paymentMethod === 'Wallet'
-        ? `${formatINR(refundAmount)} was refunded to your ZCS Wallet.`
+        ? `${formatINR(refundAmount)} was refunded to your ZENV Wallet.`
         : 'No payment was taken for this Cash on Delivery order.');
     // Store / system cancels explain why; the customer's own cancel needs no reason line.
     const reasonText = orderInfo?.cancellationReason && !/by customer|by user/i.test(orderInfo.cancellationReason)
@@ -660,10 +681,10 @@ export default function TrackingScreen() {
         <Text style={[s.cancelledDesc, { color: txtSec }]}>
           {refundLine}
         </Text>
-        <TouchableOpacity style={s.returnBtn} onPress={() => router.replace('/(tabs)' as any)}>
+        <TouchableOpacity style={s.returnBtn} onPress={() => goHome(router)}>
           <Text style={s.returnBtnText}>Back to Home</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={{ marginTop: 16 }} onPress={() => router.replace('/(tabs)/orders' as any)}>
+        <TouchableOpacity style={{ marginTop: 16 }} onPress={() => goHome(router, '/(tabs)/orders')}>
           <Text style={{ fontSize: 12, fontWeight: '600', color: txtSec }}>View all orders</Text>
         </TouchableOpacity>
         <TouchableOpacity style={{ marginTop: 12 }} onPress={openHelp}>
@@ -936,7 +957,7 @@ export default function TrackingScreen() {
                           </TouchableOpacity>
                           <Text style={{ fontSize: 12, color: txtSec, marginTop: 6, textAlign: 'center' }}>
                             {orderInfo.paymentMethod === 'Wallet'
-                              ? 'The difference is adjusted in your ZCS Wallet.'
+                              ? 'The difference is adjusted in your ZENV Wallet.'
                               : 'You pay the new total in cash at delivery.'}
                           </Text>
                         </>
@@ -1078,18 +1099,25 @@ export default function TrackingScreen() {
               <Text style={{ fontSize: 12, fontWeight: '700', color: txtSec, letterSpacing: 0.2, marginBottom: 12 }}>
                 Order summary{storeName ? ` · ${storeName}` : ''}
               </Text>
-              {(Array.isArray(orderInfo.items) ? orderInfo.items : []).map((it, idx) => (
-                <View key={idx} style={s.summaryRow}>
-                  <Text style={[s.summaryItem, { color: txt }]} numberOfLines={2}>
-                    {it?.quantity || 1} × {it?.name || 'Item'}
-                  </Text>
-                </View>
-              ))}
+              {(Array.isArray(orderInfo.items) ? orderInfo.items : []).map((it, idx) => {
+                // The customer's own weight / flavour / portion under the line (1 kg vs 250 g is not the same order).
+                const picks = orderPicksText((it as any)?.customizations);
+                return (
+                  <View key={idx} style={s.summaryRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[s.summaryItem, { color: txt }]} numberOfLines={2}>
+                        {it?.quantity || 1} × {it?.name || 'Item'}
+                      </Text>
+                      {picks ? <Text style={{ fontSize: 11.5, color: txtSec, marginTop: 1 }} numberOfLines={2}>{picks}</Text> : null}
+                    </View>
+                  </View>
+                );
+              })}
               <View style={[s.summaryDivider, { backgroundColor: border }]} />
               <View style={s.summaryRow}>
                 <Text style={[s.summaryTotalLabel, { color: txt }]}>
                   {orderInfo.paymentMethod === 'Wallet' && !isVendorOrder
-                    ? 'Paid from ZCS Wallet'
+                    ? 'Paid from ZENV Wallet'
                     : status >= 6
                       ? (isVendorOrder ? `Paid to ${stallLabel} in cash` : 'Paid in cash')
                       : isVendorOrder ? stallPayCopy(stallLabel) : 'To pay (Cash on Delivery)'}
@@ -1143,7 +1171,7 @@ export default function TrackingScreen() {
             <Text style={[s.cancelModalTitle, { color: txt }]}>Cancel this order?</Text>
             <Text style={[s.cancelModalDesc, { color: txtSec }]}>
               {orderInfo?.paymentMethod === 'Wallet'
-                ? `${formatINR(Number(orderInfo?.finalPrice ?? orderInfo?.totalPrice ?? 0) || 0)} will go straight back to your ZCS Wallet.`
+                ? `${formatINR(Number(orderInfo?.finalPrice ?? orderInfo?.totalPrice ?? 0) || 0)} will go straight back to your ZENV Wallet.`
                 : 'No payment has been taken for this Cash on Delivery order.'}
             </Text>
             <TouchableOpacity

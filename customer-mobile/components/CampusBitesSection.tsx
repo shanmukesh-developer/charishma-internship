@@ -1,23 +1,23 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { forwardRef, useState, useMemo, useEffect, useRef, useImperativeHandle } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Platform } from 'react-native';
 
-// react-native-web turns role "button" into a real <button>; stall cards hold buttons (add, more),
-// which nests <button>s on web only. Native keeps the role for screen readers.
+// react-native-web turns role "button" into a real <button>. The stall cards' tap area and their Add buttons are
+// siblings (components/StallCard), so nothing here nests a button in a button; the Home controls below keep the
+// native-only role they always had. Native keeps the role for screen readers.
 const BTN_ROLE = Platform.OS === 'web' ? undefined : ('button' as const);
-// expo-image (memory + disk cache, downsampled CDN URLs) in place of react-native's Image
-import { CachedImage as Image } from './SafeImage';
-import ShimmerLoader from './ShimmerLoader';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, TYPE, surfaceLift } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
 import { API_URL } from '../constants/api';
-import { isLocalVendor, vendorCallNumber, callVendor } from '../utils/localVendor';
+import { isLocalVendor } from '../utils/localVendor';
 import { useSWRJson } from '../utils/swrCache';
 import { useLiveSync } from '../utils/useLiveSync';
-import { useCartActions, useCartState } from '../context/CartContext';
+import { useCartActions } from '../context/CartContext';
+import { productOptions } from './ProductOptions';
 import { isCustomizable } from './CustomizeDrawer';
 import CampusBitesAdWindow from './CampusBitesAdWindow';
+import { StallCard, StallCardSkeleton, StallFilterChip, StallListMessage } from './StallCard';
 import { liveOpenState, takesSlotOrders } from '../utils/storeOpenNow';
 
 /**
@@ -27,7 +27,13 @@ import { liveOpenState, takesSlotOrders } from '../utils/storeOpenNow';
  * and GET /api/campus/campuses. The home list is only used for an instant first paint.
  * Stall orders are cash on delivery to the stall, and the stall delivers them itself.
  * Stalls are added only by the admin in the admin portal (no sign-up path in the customer app).
- * Layout: section header, the stall ad window (CampusBitesAdWindow), then the stall list.
+ * Two layouts (owner, 3 Nov 2026: the stalls in the Zomato / Swiggy listing style):
+ *  - 'section' (Home): section header, the stall ad window (CampusBitesAdWindow), campus pills, search, the cards.
+ *  - 'page' (the Local tab, app/(tabs)/local.tsx, which refreshes it through the ref): a big search bar and filter
+ *    chips (Open now, Rated 4+, campuses), the page's banner, the ad window, a list heading with the live count,
+ *    then the cards. While a search or filter is on, the banner and ad window step aside so the results sit right
+ *    under the controls.
+ * The cards themselves (photo-first, offer and status on the photo) are components/StallCard.
  */
 
 interface CampusBitesSectionProps {
@@ -35,6 +41,10 @@ interface CampusBitesSectionProps {
   restaurants: any[];
   /** True while the home list has nothing to show yet (first launch, no cache). */
   loading?: boolean;
+  /** 'section' (default, Home) or 'page' (the Local tab). */
+  variant?: 'section' | 'page';
+  /** 'page' only: shown under the filter chips, above the stall list (the Local tab's In-Campus Booking banner). */
+  banner?: React.ReactNode;
 }
 
 interface CampusItem { id: string; code: string; name: string }
@@ -78,7 +88,7 @@ const closedLabel = (vendor: any): string => {
   return at ? `Closed · opens ${at}` : 'Closed now';
 };
 
-/** "21:00" -> "9 pm", "09:30" -> "9:30 am" (compact, for the card footer). */
+/** "21:00" -> "9 pm", "09:30" -> "9:30 am" (compact, for the card's facts row). */
 const fmtShort = (hhmm: any): string | null => {
   const m = /^(\d{1,2}):(\d{2})$/.exec(String(hhmm || '').trim());
   if (!m) return null;
@@ -137,28 +147,50 @@ const isNewStall = (vendor: any): boolean => {
   return Number.isFinite(at) && Date.now() - at < NEW_FOR_MS;
 };
 
-/** Dish categories that are not food: no veg / non-veg mark. */
-const NON_FOOD_CATEGORY = /stationery|xerox|print|toiletr|laundry|household|electronic/i;
-
 const idOf = (x: any) => String(x?._id || x?.id || '');
 const availableMenu = (vendor: any): any[] => (Array.isArray(vendor.menu) ? vendor.menu : []).filter((m: any) => m && m.isAvailable !== false);
 
-/** The Add button's label: the only part of the section that re-renders when the basket changes. */
-const StallAddLabel = React.memo(function StallAddLabel({ itemId, justAdded, color }: { itemId: string; justAdded: boolean; color: string }) {
-  const { quantityOf } = useCartState();
-  const inBasket = quantityOf(itemId);
-  return (
-    <Text style={[s.addBtnText, { color: justAdded ? '#FFF' : color }]}>
-      {justAdded ? 'Added' : inBasket > 0 ? `Add · ${inBasket}` : 'Add'}
-    </Text>
-  );
-});
+/** The real rating (from delivered-order ratings), or null while the stall has none. */
+const ratingOf = (vendor: any): number | null => {
+  const count = Number(vendor.ratingCount) || 0;
+  const r = Number(vendor.rating);
+  return count > 0 && Number.isFinite(r) && r > 0 ? r : null;
+};
 
-export default function CampusBitesSection({ restaurants, loading: homeLoading = false }: CampusBitesSectionProps) {
+/** "from ₹40": the lowest price on sale now, main dishes only (an add-on at ₹10 is not what a meal costs). */
+const fromPriceOf = (vendor: any): number | null => {
+  const priced = availableMenu(vendor).filter((m) => Number(m.price) > 0);
+  const mains = priced.filter((m) => !isAddOn(m));
+  const pool = mains.length ? mains : priced;
+  return pool.length ? Math.min(...pool.map((m) => Number(m.price))) : null;
+};
+
+/** In place of the price when nothing is on sale. */
+const menuNoteOf = (vendor: any): string | null => {
+  const all = (Array.isArray(vendor.menu) ? vendor.menu : []).filter(Boolean);
+  if (!all.length) return 'Menu coming soon';
+  return availableMenu(vendor).length ? null : 'Sold out right now';
+};
+
+/** "4 stalls · 3 open now" for the stalls on screen. */
+const countLineOf = (shown: number, open: number): string | null => {
+  if (shown <= 0) return null;
+  if (shown === 1) return `1 stall · ${open ? 'open now' : 'closed now'}`;
+  return `${shown} stalls · ${open === 0 ? 'all closed now' : `${open} open now`}`;
+};
+
+/** What the screen around the section can call: the Local tab's pull-to-refresh asks for the stalls again. */
+export type CampusBitesSectionHandle = { refresh: () => Promise<void> };
+
+const CampusBitesSection = forwardRef<CampusBitesSectionHandle, CampusBitesSectionProps>(function CampusBitesSection({ restaurants, loading: homeLoading = false, variant = 'section', banner }, ref) {
   const router = useRouter();
   const { isDark } = useTheme();
+  const isPage = variant === 'page';
   const [selectedCampus, setSelectedCampus] = useState('ALL');
   const [stallSearch, setStallSearch] = useState('');
+  // Local tab filter chips (the Home section has none, so these stay off there).
+  const [openOnly, setOpenOnly] = useState(false);
+  const [rated4, setRated4] = useState(false);
   const { addToCart } = useCartActions();
   const [addedKey, setAddedKey] = useState<string | null>(null);
   // Re-check open / closed every minute (a stall closing at 9 PM flips without a refetch).
@@ -173,6 +205,10 @@ export default function CampusBitesSection({ restaurants, loading: homeLoading =
 
   // Admin / vendor changed a store or a dish (hours, open switch, menu, stock): refetch silently.
   useLiveSync({ types: ['store', 'product'], onChange: () => { stallsSWR.refresh({ silent: true }); } });
+  // The Local tab's pull-to-refresh: the stalls and the campus list again; resolves once both have answered.
+  useImperativeHandle(ref, () => ({
+    refresh: async () => { await Promise.all([stallsSWR.refresh({ silent: true }), campusSWR.refresh({ silent: true })]); },
+  }), [stallsSWR.refresh, campusSWR.refresh]);
   // Home pull-to-refresh (new store list) refreshes the stalls too.
   const refreshRef = useRef(stallsSWR.refresh);
   refreshRef.current = stallsSWR.refresh;
@@ -205,19 +241,25 @@ export default function CampusBitesSection({ restaurants, loading: homeLoading =
   useEffect(() => {
     if (selectedCampus !== 'ALL' && !campusPills.some((c) => c.code === selectedCampus)) setSelectedCampus('ALL');
   }, [campusPills, selectedCampus]);
+  // "Rated 4+" only while some stall has real ratings.
+  const anyRated = useMemo(() => allVendors.some((v) => ratingOf(v) != null), [allVendors]);
+  useEffect(() => { if (!anyRated && rated4) setRated4(false); }, [anyRated, rated4]);
 
   const q = stallSearch.trim().toLowerCase();
   const results = useMemo(() => {
     const matchDish = (m: any) => [m?.name, m?.category, m?.description].some((t) => String(t || '').toLowerCase().includes(q));
     return allVendors
       .filter((r) => selectedCampus === 'ALL' || campusOf(r)?.code === selectedCampus)
+      .filter((r) => !openOnly || isVendorOpen(r))
+      .filter((r) => !rated4 || (ratingOf(r) ?? 0) >= 4)
       .map((r) => {
-        if (!q) return { vendor: r, dishes: mainsFirst(availableMenu(r)).slice(0, PREVIEW_DISHES), dishMatches: 0 };
+        // Outside a search the card shows no dishes (tap it for the menu).
+        if (!q) return { vendor: r, dishes: [] as any[], dishMatches: 0 };
         const stallHit = [r.name, r.stallDescription, r.description, r.location, campusOf(r)?.name, ...(Array.isArray(r.tags) ? r.tags : [])]
           .some((t) => String(t || '').toLowerCase().includes(q));
         const hits = availableMenu(r).filter(matchDish);
         if (!stallHit && !hits.length) return null;
-        return { vendor: r, dishes: mainsFirst(hits.length ? hits : availableMenu(r)).slice(0, PREVIEW_DISHES), dishMatches: hits.length };
+        return { vendor: r, dishes: mainsFirst(hits).slice(0, PREVIEW_DISHES), dishMatches: hits.length };
       })
       .filter(Boolean)
       // Open stalls first (stable: the server's featured / rating order is kept inside each group).
@@ -225,7 +267,7 @@ export default function CampusBitesSection({ restaurants, loading: homeLoading =
       .sort((a, b) => (Number(isVendorOpen(b.x.vendor)) - Number(isVendorOpen(a.x.vendor))) || (a.i - b.i))
       .map(({ x }) => x);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allVendors, selectedCampus, q, campusOf, clockTick]);
+  }, [allVendors, selectedCampus, q, campusOf, clockTick, openOnly, rated4]);
 
   /** ADD a stall dish straight to the basket (customisable dishes open their page first). */
   const addStallItem = (vendor: any, item: any, open: boolean) => {
@@ -242,7 +284,8 @@ export default function CampusBitesSection({ restaurants, loading: homeLoading =
       Alert.alert('Sold out', `${item.name} is sold out right now.`);
       return;
     }
-    if (isCustomizable(item)) {
+    // Choices to make (customisable, or admin-set weights / portions): the product page asks for them.
+    if (isCustomizable(item) || productOptions(item).length) {
       router.push(`/products/${itemId}` as any);
       return;
     }
@@ -280,22 +323,23 @@ export default function CampusBitesSection({ restaurants, loading: homeLoading =
   const txt = isDark ? COLORS.textPrimary : COLORS.textDark;
   const txtSec = isDark ? COLORS.textSecondary : COLORS.textDarkSecondary;
   const border = isDark ? COLORS.borderDark : COLORS.borderLight;
-  // Light: white card on the soft layered shadow (no outline). Dark: the dark card with its hairline.
-  const cardLift = surfaceLift(isDark);
   // Restrained palette: ONE accent (gold in dark, the app's primary accent in light) for actions only;
-  // muted green / red only for the open / closed text; everything else neutral theme colours.
+  // everything else neutral theme colours.
   const accent = isDark ? COLORS.gold : COLORS.red;
-  const openInk = isDark ? '#6FBF8B' : '#2F7D4F';
-  const closedInk = isDark ? '#E08A84' : '#B4473F';
-  const chipBg = isDark ? 'rgba(255,255,255,0.05)' : '#F4F4F5';
 
   // Nothing to show yet: skeleton while the first stall list (or the home list) is still loading.
   const waiting = allVendors.length === 0 && (stallsSWR.loading || (homeLoading && !stallsSWR.data));
   const noStallsYet = !waiting && allVendors.length === 0;
-  // Ad window "see all stalls": clear the campus filter, optionally search, and bring the list into view.
+  const hasStalls = !waiting && allVendors.length > 0;
+  // A search or filter is on (only meaningful while there are stalls to search: the controls hide without them).
+  const filtering = hasStalls && (!!q || openOnly || rated4 || selectedCampus !== 'ALL');
+  const clearFilters = () => { setStallSearch(''); setSelectedCampus('ALL'); setOpenOnly(false); setRated4(false); };
+  // Ad window "see all stalls": clear the filters, optionally search, and bring the list into view.
   const listTopRef = useRef<View>(null);
   const showList = (searchFor?: string) => {
     setSelectedCampus('ALL');
+    setOpenOnly(false);
+    setRated4(false);
     setStallSearch(searchFor || '');
     if (Platform.OS === 'web') {
       setTimeout(() => {
@@ -304,10 +348,190 @@ export default function CampusBitesSection({ restaurants, loading: homeLoading =
     }
   };
   const openCount = allVendors.filter(isVendorOpen).length;
+  const countLine = countLineOf(results.length, results.filter((x) => isVendorOpen(x.vendor)).length);
   // Header chips: neutral surface, secondary text, muted icon.
   const pillStyle = isDark
     ? { backgroundColor: 'rgba(255,255,255,0.05)', borderColor: COLORS.borderDark }
     : { backgroundColor: '#FFF', borderColor: 'transparent', ...surfaceLift(false, true) };
+
+  const searchInput = (
+    <TextInput
+      style={[isPage ? s.bigSearchInput : s.searchInput, { color: txt }]}
+      placeholder="Search stalls or dishes"
+      placeholderTextColor={txtSec}
+      value={stallSearch}
+      onChangeText={setStallSearch}
+      returnKeyType="search"
+      autoCorrect={false}
+      accessibilityLabel="Search local stalls and dishes"
+    />
+  );
+
+  const stallCards = results.map(({ vendor, dishes, dishMatches }) => {
+    const isOpen = isVendorOpen(vendor);
+    // Closed right now but taking orders for its next delivery slot (server takesSlotOrders).
+    const orderable = isOpen || takesSlotOrders(vendor);
+    const campus = campusPills.length >= 2 ? campusOf(vendor) : null; // only when stalls span campuses
+    const rating = ratingOf(vendor);
+    const promo = typeof vendor.promoOffer === 'string' && vendor.promoOffer.trim() ? vendor.promoOffer.trim() : null;
+    const status = statusLine(vendor, isOpen);
+    const name = vendor.name || 'Local stall';
+    return (
+      <StallCard
+        key={idOf(vendor)}
+        name={name}
+        photo={vendor.imageUrl || vendor.logoUrl || vendor.image || null}
+        tag={vendor.subscriptionTier === 'premium' ? 'Featured' : isNewStall(vendor) ? 'New' : null}
+        isOpen={isOpen}
+        orderable={orderable}
+        photoNote={isOpen ? promo : status}
+        rating={rating}
+        meta={[menuCategories(vendor), campus?.name, landmarkOf(vendor)].filter(Boolean).join(' · ')}
+        hours={hoursShort(vendor)}
+        fromPrice={fromPriceOf(vendor)}
+        menuNote={menuNoteOf(vendor)}
+        dishes={dishes}
+        dishMatches={dishMatches}
+        addedId={addedKey}
+        accessibilityLabel={[name, status, rating != null ? `rated ${rating.toFixed(1)}` : null, isOpen ? promo : null].filter(Boolean).join(', ')}
+        onPress={() => openStall(vendor)}
+        onAdd={(m) => addStallItem(vendor, m, orderable)}
+      />
+    );
+  });
+
+  const body = waiting ? (
+    <View accessibilityLabel="Loading local stalls">
+      <StallCardSkeleton />
+      <StallCardSkeleton />
+    </View>
+  ) : noStallsYet ? (
+    stallsSWR.error && !stallsSWR.data ? (
+      <StallListMessage
+        inCard={!isPage}
+        icon="cloud-offline-outline"
+        title="Couldn't load the stalls"
+        sub="Check your connection and try again."
+        action="Try again"
+        onAction={() => stallsSWR.refresh({ silent: false })}
+      />
+    ) : (
+      // Two balanced lines (a free wrap left "join." alone on the second line of a 375 px phone).
+      <StallListMessage inCard={!isPage} icon="storefront-outline" title="No stalls yet" sub={'Stalls around campus show here\nas soon as they join.'} />
+    )
+  ) : (<>
+    {/* Home: campus filter (only when stalls span 2+ campuses) and the search, as before */}
+    {!isPage && campusPills.length >= 2 && (
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.campusScroll}>
+        {[{ code: 'ALL', name: 'All campuses' }, ...campusPills].map((c) => {
+          const isActive = selectedCampus === c.code;
+          return (
+            <TouchableOpacity
+              key={c.code}
+              style={[s.campusPill, { backgroundColor: cardBg, borderColor: isActive ? accent : border }]}
+              onPress={() => setSelectedCampus(c.code)}
+              accessibilityRole={BTN_ROLE}
+              accessibilityState={{ selected: isActive }}
+            >
+              <Text style={[s.campusLabel, { color: isActive ? accent : txtSec }]} numberOfLines={1}>
+                {c.code === 'ALL' ? 'All' : c.name}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    )}
+    {!isPage && <View ref={listTopRef} />}
+    {!isPage && (
+      <View style={[s.searchWrap, { backgroundColor: cardBg, borderColor: border }, surfaceLift(isDark, true)]}>
+        <Ionicons name="search" size={16} color={txtSec} />
+        {searchInput}
+        {!!stallSearch && (
+          <TouchableOpacity onPress={() => setStallSearch('')} accessibilityLabel="Clear search" hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="close-circle" size={18} color={txtSec} />
+          </TouchableOpacity>
+        )}
+      </View>
+    )}
+
+    {results.length === 0 ? (
+      <StallListMessage
+        inCard={!isPage}
+        icon="search-outline"
+        title={q ? `No stall or dish matches "${stallSearch.trim()}"` : (openOnly || rated4) ? 'No stalls match these filters' : 'No stalls listed for this campus yet'}
+        action={filtering ? 'Show all stalls' : undefined}
+        onAction={clearFilters}
+      />
+    ) : stallCards}
+  </>);
+
+  if (isPage) {
+    return (
+      <View style={s.page}>
+        {/* Search and filter chips: only with stalls to search */}
+        {hasStalls && (
+          <>
+            <View style={[s.bigSearch, { backgroundColor: cardBg, borderColor: border }, surfaceLift(isDark, true)]}>
+              <Ionicons name="search" size={19} color={accent} />
+              {searchInput}
+              {!!stallSearch && (
+                <TouchableOpacity onPress={() => setStallSearch('')} accessibilityRole="button" accessibilityLabel="Clear search" hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  <Ionicons name="close-circle" size={19} color={txtSec} />
+                </TouchableOpacity>
+              )}
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={s.chipScroll} contentContainerStyle={s.chipRow}>
+              <StallFilterChip label="Open now" selected={openOnly} onPress={() => setOpenOnly((v) => !v)} />
+              {anyRated && <StallFilterChip label="Rated 4+" selected={rated4} onPress={() => setRated4((v) => !v)} />}
+              {campusPills.length >= 2 && (
+                <>
+                  <View style={[s.chipDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)' }]} />
+                  {campusPills.map((c) => (
+                    <StallFilterChip
+                      key={c.code}
+                      label={c.name}
+                      selected={selectedCampus === c.code}
+                      onPress={() => setSelectedCampus((cur) => (cur === c.code ? 'ALL' : c.code))}
+                    />
+                  ))}
+                </>
+              )}
+            </ScrollView>
+          </>
+        )}
+
+        {/* The page's banner and the stall promos; they step aside while a search or filter is on */}
+        {!filtering && !!banner && <View style={s.bannerWrap}>{banner}</View>}
+        {!filtering && hasStalls && (
+          <View style={s.adWindowPage}>
+            <CampusBitesAdWindow stalls={allVendors} isOpen={isVendorOpen} onOpenStall={openStall} onShowList={showList} accent={accent} />
+          </View>
+        )}
+
+        {/* List heading: the live count and the stall rules, small and neutral */}
+        <View ref={listTopRef} style={s.listHead}>
+          <Text style={[s.listTitle, { color: txt }]} accessibilityRole="header">Stalls near campus</Text>
+          {hasStalls && !!countLine && <Text style={[s.listCount, { color: txtSec }]}>{countLine}</Text>}
+          {hasStalls && (
+            <View style={s.factRow}>
+              <View style={s.fact}>
+                <Ionicons name="cash-outline" size={13} color={txtSec} />
+                <Text style={[s.factText, { color: txtSec }]}>Cash only</Text>
+              </View>
+              <View style={s.fact}>
+                <Ionicons name="time-outline" size={13} color={txtSec} />
+                <Text style={[s.factText, { color: txtSec }]}>Delivered by the stall in about 30 min</Text>
+              </View>
+            </View>
+          )}
+        </View>
+
+        {body}
+
+        {hasStalls && <Text style={[s.disclaimer, { color: txtSec }]}>Coupons don't apply to stall orders.</Text>}
+      </View>
+    );
+  }
 
   return (
     <View style={s.section}>
@@ -324,7 +548,7 @@ export default function CampusBitesSection({ restaurants, loading: homeLoading =
       </View>
       {/* Full width under the title row and never clipped: it wraps (2 lines on a 360 px phone) */}
       <Text style={[s.sectionSub, { color: txtSec }]}>
-        Food from stalls around campus, at your door in about 30 minutes. Pay the stall in cash.
+        Food from stalls around campus, at your hostel gate in about 30 minutes. Pay the stall in cash.
       </Text>
       {/* Chips: full width under the subtitle, neutral with a muted icon */}
       <View style={s.pillRow}>
@@ -344,255 +568,28 @@ export default function CampusBitesSection({ restaurants, loading: homeLoading =
         )}
       </View>
 
-      {/* Ad window: stall promos, same carousel as the Home hero (it brings its own 16 px side padding) */}
-      {!waiting && (
+      {/* Ad window: stall promos, same carousel as the Home hero (it brings its own 16 px side padding). Only with real
+          stalls: with none it was a "Coming soon" stock-photo carousel stacked on the empty card below. */}
+      {hasStalls && (
         <View style={s.adWindow}>
           <CampusBitesAdWindow stalls={allVendors} isOpen={isVendorOpen} onOpenStall={openStall} onShowList={showList} accent={accent} />
         </View>
       )}
 
-      {waiting ? (
-        <View style={{ gap: 12 }} accessibilityLabel="Loading local stalls">
-          {[0, 1].map((i) => (
-            <View key={i} style={[s.card, { backgroundColor: cardBg, borderColor: border }, cardLift]}>
-              <View style={s.cardTop}>
-                <ShimmerLoader width={68} height={68} borderRadius={12} />
-                <View style={{ flex: 1, gap: 8 }}>
-                  <ShimmerLoader width="70%" height={14} borderRadius={6} />
-                  <ShimmerLoader width="40%" height={10} borderRadius={5} />
-                  <ShimmerLoader width="90%" height={10} borderRadius={5} />
-                </View>
-              </View>
-            </View>
-          ))}
-        </View>
-      ) : noStallsYet ? (
-        <View style={[s.emptyState, { backgroundColor: cardBg, borderColor: border }, cardLift]}>
-          <Ionicons name="storefront-outline" size={28} color={txtSec} style={{ marginBottom: 8 }} />
-          {stallsSWR.error && !stallsSWR.data ? (
-            <>
-              <Text style={[s.emptyText, { color: txt, marginBottom: 4 }]}>Couldn't load the stalls</Text>
-              <Text style={[s.emptySub, { color: txtSec, marginBottom: 14 }]}>Check your connection and try again.</Text>
-              <TouchableOpacity
-                onPress={() => stallsSWR.refresh({ silent: false })}
-                activeOpacity={0.85}
-                accessibilityRole={BTN_ROLE}
-                style={[s.ctaBtn, { borderColor: accent }]}
-              >
-                <Text style={[s.ctaText, { color: accent }]}>Try again</Text>
-              </TouchableOpacity>
-            </>
-          ) : (
-            <Text style={[s.emptySub, { color: txtSec }]}>Campus stalls will appear here soon.</Text>
-          )}
-        </View>
-      ) : (<>
-      {/* Campus filter: from the real campus list, only when stalls span 2+ campuses */}
-      {campusPills.length >= 2 && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.campusScroll}>
-          {[{ code: 'ALL', name: 'All campuses' }, ...campusPills].map((c) => {
-            const isActive = selectedCampus === c.code;
-            return (
-              <TouchableOpacity
-                key={c.code}
-                style={[s.campusPill, { backgroundColor: cardBg, borderColor: isActive ? accent : border }]}
-                onPress={() => setSelectedCampus(c.code)}
-                accessibilityRole={BTN_ROLE}
-                accessibilityState={{ selected: isActive }}
-              >
-                <Text style={[s.campusLabel, { color: isActive ? accent : txtSec }]} numberOfLines={1}>
-                  {c.code === 'ALL' ? 'All' : c.name}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      )}
-
-      {/* Search across stalls and their dishes */}
-      <View ref={listTopRef} />
-      <View style={[s.searchWrap, { backgroundColor: cardBg, borderColor: border }, surfaceLift(isDark, true)]}>
-        <Ionicons name="search" size={16} color={txtSec} />
-        <TextInput
-          style={[s.searchInput, { color: txt }]}
-          placeholder="Search stalls or dishes"
-          placeholderTextColor={txtSec}
-          value={stallSearch}
-          onChangeText={setStallSearch}
-          returnKeyType="search"
-          autoCorrect={false}
-          accessibilityLabel="Search local stalls and dishes"
-        />
-        {!!stallSearch && (
-          <TouchableOpacity onPress={() => setStallSearch('')} accessibilityLabel="Clear search" hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Ionicons name="close-circle" size={18} color={txtSec} />
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Stall cards */}
-      {results.length === 0 ? (
-        <View style={[s.emptyState, { backgroundColor: cardBg, borderColor: border }, cardLift]}>
-          <Ionicons name="search-outline" size={26} color={txtSec} style={{ marginBottom: 8 }} />
-          <Text style={[s.emptyText, { color: txt }]}>
-            {q ? `No stall or dish matches "${stallSearch.trim()}"` : 'No stalls listed for this campus yet'}
-          </Text>
-          {(q || selectedCampus !== 'ALL') && (
-            <TouchableOpacity onPress={() => { setStallSearch(''); setSelectedCampus('ALL'); }} style={{ marginTop: 10 }} accessibilityRole={BTN_ROLE}>
-              <Text style={[s.linkText, { color: accent }]}>Show all stalls</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      ) : (
-        results.map(({ vendor, dishes, dishMatches }) => {
-          const vid = idOf(vendor);
-          const isPremium = vendor.subscriptionTier === 'premium';
-          const isOpen = isVendorOpen(vendor);
-          // Closed right now but taking orders for its next delivery slot (server takesSlotOrders).
-          const orderable = isOpen || takesSlotOrders(vendor);
-          const vendorImg = vendor.imageUrl || vendor.logoUrl || vendor.image || null;
-          const campus = campusPills.length >= 2 ? campusOf(vendor) : null; // only when stalls span campuses
-          const ratingCount = Number(vendor.ratingCount) || 0;
-          const rating = Number(vendor.rating);
-          const rated = ratingCount > 0 && Number.isFinite(rating) && rating > 0;
-          const hours = hoursShort(vendor);
-          const menuCount = availableMenu(vendor).length;
-          const meta = [menuCategories(vendor), campus?.name, landmarkOf(vendor)].filter(Boolean).join(' · ');
-          const footLeft = [
-            q && dishMatches > 0 ? `${dishMatches} matching` : null,
-            menuCount > 0 ? `${menuCount} ${menuCount === 1 ? 'item' : 'items'}` : null,
-            hours,
-          ].filter(Boolean).join(' · ');
-
-          return (
-            <TouchableOpacity
-              key={vid}
-              activeOpacity={0.92}
-              style={[s.card, { backgroundColor: cardBg, borderColor: border }, cardLift]}
-              onPress={() => openStall(vendor)}
-              accessibilityRole={BTN_ROLE}
-              accessibilityLabel={`${vendor.name || 'Local stall'}, ${statusLine(vendor, isOpen)}`}
-            >
-              {/* Top: photo, name, one meta line, status */}
-              <View style={s.cardTop}>
-                <View style={[s.photo, { borderColor: border }]}>
-                  {vendorImg ? (
-                    <Image source={{ uri: vendorImg }} style={s.photoImg} placeholderIcon="storefront-outline" />
-                  ) : (
-                    <View style={[s.photoImg, s.noImg, { backgroundColor: chipBg }]}>
-                      <Ionicons name="storefront-outline" size={26} color={txtSec} />
-                    </View>
-                  )}
-                </View>
-
-                <View style={s.info}>
-                  <View style={s.nameRow}>
-                    <Text style={[s.nameText, { color: txt }]} numberOfLines={1}>{vendor.name || 'Local stall'}</Text>
-                    {isPremium ? (
-                      <View style={[s.tag, { backgroundColor: chipBg }]}>
-                        <Text style={[s.tagText, { color: accent }]}>Featured</Text>
-                      </View>
-                    ) : isNewStall(vendor) ? (
-                      <View style={[s.tag, { backgroundColor: chipBg }]}>
-                        <Text style={[s.tagText, { color: txtSec }]}>New</Text>
-                      </View>
-                    ) : null}
-                  </View>
-                  {!!meta && <Text style={[s.metaText, { color: txtSec }]} numberOfLines={1}>{meta}</Text>}
-                  <View style={s.statusRow}>
-                    <Ionicons name="time-outline" size={13} color={isOpen ? openInk : closedInk} />
-                    <Text style={[s.statusText, { color: isOpen ? openInk : closedInk }]} numberOfLines={1}>{statusLine(vendor, isOpen)}</Text>
-                    {rated && (
-                      <>
-                        <Text style={[s.statusText, { color: txtSec }]}>·</Text>
-                        <Ionicons name="star" size={11} color={txtSec} />
-                        <Text style={[s.statusText, { color: txt }]}>{rating.toFixed(1)} ({ratingCount})</Text>
-                      </>
-                    )}
-                  </View>
-                  {!!vendor.promoOffer && (
-                    <Text style={[s.offerText, { color: txt }]} numberOfLines={1}>{String(vendor.promoOffer)}</Text>
-                  )}
-                </View>
-              </View>
-
-              {/* Dishes: 2-3 popular (or matching) ones. Stall not taking orders: dimmed, no buttons. */}
-              {dishes.length > 0 ? (
-                <View style={[s.dishList, { borderTopColor: border }, !orderable && { opacity: 0.55 }]}>
-                  {dishes.map((m: any) => {
-                    const mId = idOf(m);
-                    const justAdded = addedKey === mId;
-                    // No veg mark on non-food products (stationery, toiletries...): they are stored as veg.
-                    const diet = NON_FOOD_CATEGORY.test(String(m.category || '')) ? null
-                      : m.dietType === 'nonveg' ? 'nonveg' : m.dietType === 'egg' ? 'egg' : (m.dietType === 'veg' || m.isVegetarian === true) ? 'veg' : null;
-                    const dietColor = diet === 'nonveg' ? '#C0392B' : diet === 'egg' ? '#B7791F' : '#1E8E3E';
-                    return (
-                      <View key={mId} style={s.dishRow}>
-                        {diet ? (
-                          <View style={[s.dietBox, { borderColor: dietColor }]} accessibilityLabel={diet === 'nonveg' ? 'Non-veg' : diet === 'egg' ? 'Contains egg' : 'Veg'}>
-                            <View style={[s.dietDot, { backgroundColor: dietColor }]} />
-                          </View>
-                        ) : <View style={s.dietSpacer} />}
-                        <Text style={[s.dishName, { color: txt }]} numberOfLines={1}>{m.name}</Text>
-                        <Text style={[s.dishPrice, { color: txt }]}>₹{Number(m.price) || 0}</Text>
-                        {orderable && (
-                          <TouchableOpacity
-                            style={[s.addBtn, { borderColor: accent }, justAdded && { backgroundColor: accent }]}
-                            accessibilityLabel={`Add ${m.name} from ${vendor.name || 'the stall'} to your basket`}
-                            hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
-                            onPress={() => addStallItem(vendor, m, orderable)}
-                          >
-                            <StallAddLabel itemId={mId} justAdded={justAdded} color={accent} />
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                    );
-                  })}
-                </View>
-              ) : (
-                <Text style={[s.emptyDishes, { color: txtSec }]}>
-                  {menuCount === 0 ? 'Menu coming soon.' : 'Everything is sold out right now.'}
-                </Text>
-              )}
-
-              {/* Footer: items and hours on the left, View menu on the right */}
-              <View style={[s.footer, { borderTopColor: border }]}>
-                <Text style={[s.footText, { color: txtSec }]} numberOfLines={1}>{footLeft}</Text>
-                <View style={s.footActions}>
-                  {!!vendorCallNumber(vendor) && (
-                    <TouchableOpacity
-                      style={[s.callBtn, { borderColor: border }]}
-                      accessibilityLabel={`Call ${vendor.name || 'the stall'}`}
-                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                      onPress={() => { trackClick(vid); callVendor(vendor); }}
-                    >
-                      <Ionicons name="call-outline" size={15} color={txt} />
-                    </TouchableOpacity>
-                  )}
-                  <TouchableOpacity
-                    style={s.viewMenu}
-                    accessibilityLabel={`See the full menu of ${vendor.name || 'the stall'}`}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 4 }}
-                    onPress={() => openStall(vendor)}
-                  >
-                    <Text style={[s.viewMenuText, { color: accent }]}>View menu</Text>
-                    <Ionicons name="chevron-forward" size={16} color={accent} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </TouchableOpacity>
-          );
-        })
-      )}
-      </>)}
+      {body}
 
       {/* Footer: the stall rule in one short line */}
-      {!noStallsYet && !waiting && (
+      {hasStalls && (
         <Text style={[s.disclaimer, { color: txtSec }]}>Stall orders are cash only. Coupons don't apply.</Text>
       )}
     </View>
   );
-}
+});
+
+export default CampusBitesSection;
+
+// Web: no browser focus ring drawn inside the rounded search field (the caret shows focus), as in the Groceries search.
+const WEB_NO_OUTLINE: any = Platform.OS === 'web' ? { outlineStyle: 'none' } : null;
 
 const s = StyleSheet.create({
   section: { paddingHorizontal: 16, marginTop: 32, marginBottom: 28 },
@@ -611,48 +608,24 @@ const s = StyleSheet.create({
   campusLabel: { ...TYPE.chip },
 
   searchWrap: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, height: 44, borderRadius: 12, borderWidth: 1, gap: 8, marginBottom: 12 },
-  searchInput: { flex: 1, ...TYPE.body, fontSize: 14 },
+  searchInput: { flex: 1, ...TYPE.body, fontSize: 14, ...WEB_NO_OUTLINE },
 
-  emptyState: { padding: 24, borderRadius: 16, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  emptyText: { ...TYPE.heading, textAlign: 'center' },
-  emptySub: { ...TYPE.body, textAlign: 'center' },
-  linkText: { ...TYPE.label },
-  ctaBtn: { paddingHorizontal: 16, height: 40, justifyContent: 'center', borderRadius: 12, borderWidth: 1 },
-  ctaText: { ...TYPE.button },
+  // Local tab ('page'): big search, chips, banner, list heading.
+  page: { paddingHorizontal: 16, marginBottom: 28 },
+  bigSearch: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 50, paddingHorizontal: 16, borderRadius: 16, borderWidth: 1, marginBottom: 12 },
+  bigSearchInput: { flex: 1, minWidth: 0, fontSize: 15, fontWeight: '500', paddingVertical: 0, ...WEB_NO_OUTLINE },
+  // Edge to edge so the chips scroll under the screen edge; the padding leaves room for the chips' shadow.
+  chipScroll: { marginHorizontal: -16, marginBottom: 14 },
+  chipRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 4 },
+  chipDivider: { width: 1, height: 20, marginHorizontal: 2 },
+  bannerWrap: { marginBottom: 22 },
+  adWindowPage: { marginHorizontal: -16, marginBottom: 18 },
+  listHead: { marginBottom: 14 },
+  listTitle: { fontSize: 18, fontWeight: '700', letterSpacing: 0.1 },
+  listCount: { fontSize: 13, fontWeight: '500', marginTop: 3 },
+  factRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: 14, rowGap: 4, marginTop: 6 },
+  fact: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  factText: { fontSize: 12, fontWeight: '500' },
 
-  // Stall card: radius 16 like the Home restaurant cards, 16 px padding, 12 px gaps.
-  card: { borderRadius: 16, borderWidth: 1, marginBottom: 12, padding: 16, overflow: 'hidden' },
-  cardTop: { flexDirection: 'row', gap: 12, alignItems: 'center' },
-  photo: { width: 68, height: 68, borderRadius: 12, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth },
-  photoImg: { width: '100%', height: '100%' },
-  noImg: { alignItems: 'center', justifyContent: 'center' },
-  info: { flex: 1, minWidth: 0, gap: 3 },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  nameText: { flexShrink: 1, fontSize: 16, fontWeight: '600', letterSpacing: 0.1 },
-  tag: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6 },
-  tagText: { fontSize: 11, fontWeight: '600', letterSpacing: 0.2 },
-  metaText: { fontSize: 13, fontWeight: '400' },
-  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  statusText: { fontSize: 12, fontWeight: '500' },
-  offerText: { fontSize: 12, fontWeight: '500' },
-
-  dishList: { marginTop: 12, paddingTop: 4, borderTopWidth: StyleSheet.hairlineWidth },
-  dishRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
-  dietBox: { width: 12, height: 12, borderRadius: 2, borderWidth: 1.2, alignItems: 'center', justifyContent: 'center' },
-  dietDot: { width: 5, height: 5, borderRadius: 3 },
-  dietSpacer: { width: 12 },
-  dishName: { flex: 1, fontSize: 14, fontWeight: '500' },
-  dishPrice: { fontSize: 14, fontWeight: '600' },
-  addBtn: { height: 32, minWidth: 64, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  addBtnText: { fontSize: 13, fontWeight: '600', letterSpacing: 0.2 },
-  emptyDishes: { ...TYPE.body, marginTop: 12 },
-
-  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 8, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth },
-  footText: { flex: 1, fontSize: 12, fontWeight: '400' },
-  footActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  callBtn: { width: 32, height: 32, borderRadius: 16, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  viewMenu: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  viewMenuText: { fontSize: 14, fontWeight: '600' },
-
-  disclaimer: { fontSize: 12, fontWeight: '600', textAlign: 'center', marginTop: 8, lineHeight: 16 }
+  disclaimer: { fontSize: 12, fontWeight: '600', textAlign: 'center', marginTop: 4, lineHeight: 16 }
 });

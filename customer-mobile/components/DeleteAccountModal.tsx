@@ -123,7 +123,7 @@ export default function DeleteAccountModal({ visible, phone, onClose, onDeleted 
               {step === 'info' && (
                 <>
                   <Text style={[s.title, { color: RED }]}>Delete my account</Text>
-                  <Text style={[s.body, { color: txt }]}>This permanently closes your ZCS account. It cannot be undone.</Text>
+                  <Text style={[s.body, { color: txt }]}>This permanently closes your ZENV account. It cannot be undone.</Text>
                   <Text style={[s.h, { color: txt }]}>We delete</Text>
                   <Text style={[s.body, { color: sub }]}>
                     {'• Your name, mobile number, email, hostel, room, address and profile photo\n'}
@@ -219,7 +219,7 @@ export default function DeleteAccountModal({ visible, phone, onClose, onDeleted 
               {step === 'done' && (
                 <>
                   <Text style={[s.title, { color: txt }]}>Account deleted</Text>
-                  <Text style={[s.body, { color: sub }]}>Your ZCS account and personal data have been deleted. Thank you for using ZCS.</Text>
+                  <Text style={[s.body, { color: sub }]}>Your ZENV account and personal data have been deleted. Thank you for using ZENV.</Text>
                   <TouchableOpacity style={[s.dangerBtn, { backgroundColor: colors.gold }]} onPress={finish}>
                     <Text style={s.dangerText}>OK</Text>
                   </TouchableOpacity>

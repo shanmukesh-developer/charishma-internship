@@ -1,8 +1,6 @@
 /**
  * Food & groceries v2: the sample sheet. Opens when a sample item (foodV2Demo.ts) is tapped anywhere in the
- * store. It explains that the item is a sample and is never added, saved or sent. The only action besides
- * closing is "Request it on a shopping list": it opens the shopping list screen with the name typed in;
- * nothing is added until the student adds that list themselves (the normal Mega Basket flow).
+ * store. It explains that the item is a sample and is never added, saved or sent. Its only action is closing.
  * Others → Food & groceries (modules/foodV2).
  */
 import React from 'react';
@@ -17,15 +15,9 @@ import Thumb from './FoodV2Thumb';
 import { BUTTON_ROLE } from '../../utils/pressRole';
 
 export default function FoodV2SampleSheet() {
-  const { sampleOpen: p, setSampleOpen, isDark, c, push, setFirstReqName } = useFoodV2();
+  const { sampleOpen: p, setSampleOpen, isDark, c } = useFoodV2();
   const insets = useSafeAreaInsets();
   const close = () => setSampleOpen(null);
-  const request = () => {
-    if (!p) return;
-    setFirstReqName(p.name);
-    setSampleOpen(null);
-    push({ name: 'mega' });
-  };
   return (
     <Modal visible={!!p} transparent animationType="slide" onRequestClose={close} statusBarTranslucent>
       <View style={st.backdrop}>
@@ -40,14 +32,11 @@ export default function FoodV2SampleSheet() {
               {!!p.weight && <Text style={[st.meta, { color: c.slate }]}>{p.weight}</Text>}
               <Text style={[st.meta, { color: c.slate }]}>Expected price around {fmt(p.price)}</Text>
               <Text style={[st.body, { color: c.slate }]}>
-                This is a sample to show what's coming to the campus store. It can't be ordered yet. If you need it now, request it on a shopping list and a shopper will buy it for you.
+                This is a sample to show what's coming to the campus store. It can't be ordered yet. New products are added often.
               </Text>
             </View>
             <PressScale style={[st.primary, { backgroundColor: FOOD.primary }]} onPress={close} accessibilityRole={BUTTON_ROLE} accessibilityLabel="Got it">
               <Text style={st.primaryText}>Got it</Text>
-            </PressScale>
-            <PressScale style={[st.ghost, { borderColor: c.line }]} onPress={request} accessibilityRole={BUTTON_ROLE} accessibilityLabel={`Request ${p.name} on a shopping list`}>
-              <Text style={[st.ghostText, { color: isDark ? '#7FDCA3' : FOOD.primary }]}>Request it on a shopping list</Text>
             </PressScale>
           </View>
         )}
@@ -65,6 +54,4 @@ const st = StyleSheet.create({
   body: { fontSize: 14, lineHeight: 20, textAlign: 'center', marginTop: 12, paddingHorizontal: 6 },
   primary: { height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 20 },
   primaryText: { color: '#FFFFFF', fontSize: 15, fontWeight: '500' },
-  ghost: { height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 10, borderWidth: 1 },
-  ghostText: { fontSize: 15, fontWeight: '500' },
 });

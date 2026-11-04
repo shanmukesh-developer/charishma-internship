@@ -3,16 +3,17 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, Platform, ScrollVi
 import { KeyboardAvoidingView } from '../components/KeyboardAvoidingView';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useIsFocused, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SHADOWS } from '../constants/theme';
 import { ENDPOINTS } from '../constants/api';
 import { useAuth } from '../context/AuthContext';
 import { StaggeredSection } from '../components/AnimatedSection';
 import { setToken, postAuth, normalizePhone, isValidIndianMobile, NETWORK_ERROR_MESSAGE } from '../utils/auth';
-import { usePhoneOtp, PhoneProof, isSmsSendFailure } from '../utils/phoneOtp';
+import { usePhoneOtp, PhoneProof, isSmsSendFailure, EMAIL_SIGNUP_CODES } from '../utils/phoneOtp';
 import DopaminePressable, { ActionPressable } from '../components/DopaminePressable';
 import ServerWakeupOverlay from '../components/ServerWakeupOverlay';
-import TermsConsent from '../components/TermsConsent';
-import { consentFields } from '../utils/legal';
+import ZenvBadge from '../components/ZenvBadge';
+import { consentFields, openLegal } from '../utils/legal';
 
 import { useTheme } from '../context/ThemeContext';
 
@@ -41,6 +42,7 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState(typeof params.phone === 'string' ? normalizePhone(params.phone) : '');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   // Invite code from a friend (Profile → Invite friends). Prefilled from a ?ref= link.
   const [referralCode, setReferralCode] = useState(typeof params.ref === 'string' ? params.ref.trim().toUpperCase().slice(0, 20) : '');
   const [showReferral, setShowReferral] = useState(typeof params.ref === 'string' && !!params.ref);
@@ -53,6 +55,16 @@ export default function RegisterScreen() {
   const [otp, setOtp] = useState('');
   // C4: required Terms / Privacy checkbox on account creation.
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [focusedField, setFocusedField] = useState<'name' | 'phone' | 'email' | 'password' | 'confirmPassword' | 'referral' | null>(null);
+
+  const isNameValid = name.trim().length >= 2;
+  const isPhoneValid = normalizePhone(phone).length === 10;
+  const isEmailValid = !email.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const isPasswordValid = password.length >= 6;
+  const doPasswordsMatch = confirmPassword.length > 0 && confirmPassword === password;
+
   const busyRef = useRef(false);
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
@@ -135,8 +147,12 @@ export default function RegisterScreen() {
       setError('Please enter a valid email address, or leave it empty.');
       return false;
     }
-    if (password && password.length < 6) {
-      setError('Password must be at least 6 characters (or leave it empty to sign in with OTP).');
+    if (!password || password.length < 6) {
+      setError('Password is required and must be at least 6 characters.');
+      return false;
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match. Please re-enter.');
       return false;
     }
     if (!acceptedTerms) {
@@ -298,15 +314,6 @@ export default function RegisterScreen() {
 
   const busy = loading || phoneOtp.sending;
   const fieldsLocked = isOtpSent || busy;
-  const inputStyle = [
-    s.input,
-    {
-      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F9FAFB',
-      borderColor: isDark ? COLORS.borderDark : '#E5E7EB',
-      color: isDark ? '#FFF' : '#111827'
-    }
-  ];
-  const labelColor = { color: isDark ? COLORS.textSecondary : '#4B5563' };
 
   return (
     <View
@@ -329,7 +336,7 @@ export default function RegisterScreen() {
       <ServerWakeupOverlay
         visible={showWakeup}
         onWakeupComplete={() => setShowWakeup(false)}
-        offlineText="Still can't reach ZCS. Check your internet and try again."
+        offlineText="Still can't reach ZENV. Check your internet and try again."
       />
 
       {/* Background Slideshow with Parallax Shift */}
@@ -370,23 +377,18 @@ export default function RegisterScreen() {
           showsVerticalScrollIndicator={false}
         >
 
-          {/* Header Branding */}
-          <Animated.View style={[s.logoWrap, { transform: [{ translateX: pan.x }, { translateY: pan.y }] }]}>
-            <StaggeredSection delay={0} direction="down">
-              <View style={s.iconBadge}>
-                <Text style={s.logoIcon}>✨</Text>
-              </View>
-              <Text style={s.brand}>ZCS</Text>
-              <Text style={s.tagline}>Create your account</Text>
-            </StaggeredSection>
-          </Animated.View>
+          {/* Clean Brand Header: the ZENV badge (brand, 4 Nov 2026) */}
+          <View style={s.brandHeaderWrap} accessible accessibilityRole="header" accessibilityLabel="ZENV">
+            <ZenvBadge size={56} lift />
+            <Text style={s.brandTitle}>ZENV</Text>
+          </View>
 
           {/* Registration Form Sheet */}
           <Animated.View style={[
             s.card,
             {
-              backgroundColor: isDark ? 'rgba(26,26,28,0.95)' : '#FFFFFF',
-              borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
+              backgroundColor: isDark ? '#141417' : '#FFFFFF',
+              borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
               transform: [
                 { translateY: Animated.add(slideUp, Animated.multiply(pan.y, -0.4)) },
                 { translateX: Animated.multiply(pan.x, -0.4) }
@@ -394,126 +396,329 @@ export default function RegisterScreen() {
             }
           ]}>
             <StaggeredSection delay={100} direction="up">
-              <Text style={[s.cardTitle, { color: isDark ? '#FFF' : '#111827' }]}>
-                {phoneVerified ? 'One last step 🎉' : 'Create Your Account'}
+              <Text style={[s.cardTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>
+                {phoneVerified ? 'One last step' : 'Create Your Account'}
               </Text>
-              <Text style={[s.cardSubtitle, { color: isDark ? COLORS.textSecondary : '#6B7280' }]}>
+              <Text style={[s.cardSubtitle, { color: isDark ? '#94A3B8' : '#64748B' }]}>
                 {phoneVerified
-                  ? 'Your number is verified. Tell us your name to finish.'
-                  : 'Get campus food & essentials delivered to your hostel room'}
+                  ? 'Your phone is verified. Enter your name to finish.'
+                  : 'Join your campus food & essentials network'}
               </Text>
 
-              <Text style={[s.label, labelColor]}>Full name</Text>
-              <TextInput
-                style={inputStyle}
-                value={name}
-                onChangeText={(t) => { setName(t); if (error) setError(''); }}
-                placeholder="Enter your full name"
-                placeholderTextColor={isDark ? COLORS.textMuted : '#9CA3AF'}
-                autoCapitalize="words"
-                textContentType="name"
-                autoComplete="name"
-                maxLength={60}
-                autoFocus={phoneVerified}
-                editable={!busy}
-              />
+              {/* Full Name */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={[s.fieldLabel, { color: isDark ? '#E2E8F0' : '#334155' }]}>Full name</Text>
+                {name.length > 0 && (
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: isNameValid ? '#10B981' : '#EF4444' }}>
+                    {isNameValid ? '✓ Valid' : 'Min 2 characters'}
+                  </Text>
+                )}
+              </View>
+              <View style={[
+                s.inputWrapper,
+                {
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
+                  borderColor: focusedField === 'name' ? (isDark ? COLORS.gold : '#0F172A') : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0')
+                }
+              ]}>
+                <Ionicons name="person-outline" size={18} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginLeft: 14, marginRight: 8 }} />
+                <TextInput
+                  style={[s.inputText, { color: isDark ? '#FFFFFF' : '#0F172A' }]}
+                  value={name}
+                  onChangeText={(t) => { setName(t); if (error) setError(''); }}
+                  placeholder="Enter your full name"
+                  placeholderTextColor={isDark ? '#71717A' : '#94A3B8'}
+                  autoCapitalize="words"
+                  textContentType="name"
+                  autoComplete="name"
+                  maxLength={60}
+                  autoFocus={phoneVerified}
+                  onFocus={() => setFocusedField('name')}
+                  onBlur={() => setFocusedField(null)}
+                  editable={!busy}
+                />
+                {isNameValid && (
+                  <View style={{ paddingRight: 12 }}>
+                    <Ionicons name="checkmark-circle" size={18} color="#10B981" />
+                  </View>
+                )}
+              </View>
 
-              <Text style={[s.label, labelColor]}>Phone number</Text>
+              {/* Phone Number */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+                <Text style={[s.fieldLabel, { color: isDark ? '#E2E8F0' : '#334155' }]}>Phone number</Text>
+                {!phoneVerified && phone.length > 0 && (
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: isPhoneValid ? '#10B981' : '#EF4444' }}>
+                    {isPhoneValid ? '✓ 10 digits' : `${phone.length}/10 digits`}
+                  </Text>
+                )}
+              </View>
+
               {phoneVerified ? (
-                <View style={[inputStyle, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
-                  <Text style={{ fontSize: 13, fontWeight: '700', color: isDark ? '#FFF' : '#111827' }}>+91 {normalizePhone(phone)}</Text>
-                  <Text style={{ fontSize: 12, fontWeight: '800', color: '#10B981' }}>Verified</Text>
+                <View style={[s.inputWrapper, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.08)' : '#ECFDF5', borderColor: '#10B981' }]}>
+                  <Ionicons name="call-outline" size={18} color="#10B981" style={{ marginLeft: 14, marginRight: 8 }} />
+                  <Text style={{ flex: 1, fontSize: 15, fontWeight: '700', color: isDark ? '#FFFFFF' : '#065F46' }}>+91 {normalizePhone(phone)}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingRight: 12 }}>
+                    <Ionicons name="checkmark-circle" size={18} color="#10B981" />
+                    <Text style={{ fontSize: 12, fontWeight: '800', color: '#10B981' }}>Verified</Text>
+                  </View>
                 </View>
               ) : (
-                <TextInput
-                  style={inputStyle}
-                  value={phone}
-                  onChangeText={(t) => { setPhone(t); if (error) setError(''); }}
-                  placeholder="10-digit mobile number"
-                  placeholderTextColor={isDark ? COLORS.textMuted : '#9CA3AF'}
-                  keyboardType="phone-pad"
-                  textContentType="telephoneNumber"
-                  autoComplete="tel"
-                  editable={!fieldsLocked}
-                />
+                <View style={[
+                  s.inputWrapper,
+                  {
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
+                    borderColor: focusedField === 'phone' ? (isDark ? COLORS.gold : '#0F172A') : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0')
+                  }
+                ]}>
+                  <View style={s.countryCodeBox}>
+                    <Ionicons name="call-outline" size={17} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginRight: 6 }} />
+                    <Text style={[s.countryCodeText, { color: isDark ? '#E2E8F0' : '#334155' }]}>+91</Text>
+                    <View style={[s.countryCodeDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : '#CBD5E1' }]} />
+                  </View>
+                  <TextInput
+                    style={[s.inputText, { color: isDark ? '#FFFFFF' : '#0F172A' }]}
+                    value={phone}
+                    onChangeText={(t) => { setPhone(t.replace(/\D/g, '').slice(0, 10)); if (error) setError(''); }}
+                    placeholder="10-digit mobile number"
+                    placeholderTextColor={isDark ? '#71717A' : '#94A3B8'}
+                    keyboardType="phone-pad"
+                    textContentType="telephoneNumber"
+                    autoComplete="tel"
+                    maxLength={10}
+                    onFocus={() => setFocusedField('phone')}
+                    onBlur={() => setFocusedField(null)}
+                    editable={!fieldsLocked}
+                  />
+                  {isPhoneValid ? (
+                    <View style={{ paddingRight: 12 }}>
+                      <Ionicons name="checkmark-circle" size={19} color="#10B981" />
+                    </View>
+                  ) : phone.length > 0 ? (
+                    <TouchableOpacity onPress={() => setPhone('')} style={{ paddingRight: 12 }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                      <Ionicons name="close-circle" size={18} color={isDark ? '#71717A' : '#94A3B8'} />
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
               )}
 
-              <Text style={[s.label, labelColor]}>Email (optional)</Text>
-              <TextInput
-                style={inputStyle}
-                value={email}
-                onChangeText={(t) => { setEmail(t); if (error) setError(''); }}
-                placeholder="name@example.com"
-                placeholderTextColor={isDark ? COLORS.textMuted : '#9CA3AF'}
-                keyboardType="email-address"
-                textContentType="emailAddress"
-                autoComplete="email"
-                autoCapitalize="none"
-                editable={!busy}
-              />
+              {/* Email (Optional) */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+                <Text style={[s.fieldLabel, { color: isDark ? '#E2E8F0' : '#334155' }]}>Email <Text style={{ fontWeight: '400', fontSize: 12, color: '#94A3B8' }}>(optional)</Text></Text>
+                {email.trim().length > 0 && (
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: isEmailValid ? '#10B981' : '#EF4444' }}>
+                    {isEmailValid ? '✓ Valid' : 'Invalid email'}
+                  </Text>
+                )}
+              </View>
+              <View style={[
+                s.inputWrapper,
+                {
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
+                  borderColor: focusedField === 'email' ? (isDark ? COLORS.gold : '#0F172A') : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0')
+                }
+              ]}>
+                <Ionicons name="mail-outline" size={18} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginLeft: 14, marginRight: 8 }} />
+                <TextInput
+                  style={[s.inputText, { color: isDark ? '#FFFFFF' : '#0F172A' }]}
+                  value={email}
+                  onChangeText={(t) => { setEmail(t.trim()); if (error) setError(''); }}
+                  placeholder="name@example.com"
+                  placeholderTextColor={isDark ? '#71717A' : '#94A3B8'}
+                  keyboardType="email-address"
+                  textContentType="emailAddress"
+                  autoComplete="email"
+                  autoCapitalize="none"
+                  onFocus={() => setFocusedField('email')}
+                  onBlur={() => setFocusedField(null)}
+                  editable={!busy}
+                />
+                {email.trim().length > 0 && (
+                  <TouchableOpacity onPress={() => setEmail('')} style={{ paddingRight: 12 }}>
+                    <Ionicons name="close-circle" size={18} color={isDark ? '#71717A' : '#94A3B8'} />
+                  </TouchableOpacity>
+                )}
+              </View>
 
-              {showReferral ? (
-                <>
-                  <Text style={[s.label, labelColor]}>Invite code (optional)</Text>
-                  <TextInput
-                    style={[inputStyle, referralError ? { borderColor: '#EF4444', borderWidth: 1.5 } : null]}
-                    value={referralCode}
-                    onChangeText={(t) => { setReferralCode(t.toUpperCase().replace(/\s/g, '').slice(0, 20)); if (referralError) setReferralError(''); if (error) setError(''); }}
-                    placeholder="e.g. ZV-ABC123"
-                    placeholderTextColor={isDark ? COLORS.textMuted : '#9CA3AF'}
-                    autoCapitalize="characters"
-                    autoCorrect={false}
-                    editable={!busy}
+              {/* Password (Mandatory) */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 }}>
+                <Text style={[s.fieldLabel, { color: isDark ? '#E2E8F0' : '#334155' }]}>
+                  Create password <Text style={{ color: '#EF4444' }}>*</Text>
+                </Text>
+                {password.length > 0 && (
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: isPasswordValid ? '#10B981' : '#EF4444' }}>
+                    {isPasswordValid ? '✓ Min 6 characters' : `${password.length}/6 characters`}
+                  </Text>
+                )}
+              </View>
+              <View style={[
+                s.inputWrapper,
+                {
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
+                  borderColor: focusedField === 'password' ? (isDark ? COLORS.gold : '#0F172A') : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0')
+                }
+              ]}>
+                <Ionicons name="lock-closed-outline" size={18} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginLeft: 14, marginRight: 8 }} />
+                <TextInput
+                  style={[s.inputText, { color: isDark ? '#FFFFFF' : '#0F172A' }]}
+                  value={password}
+                  onChangeText={(t) => { setPassword(t); if (error) setError(''); }}
+                  placeholder="At least 6 characters"
+                  placeholderTextColor={isDark ? '#71717A' : '#94A3B8'}
+                  secureTextEntry={!showPassword}
+                  textContentType="newPassword"
+                  autoComplete="password-new"
+                  onFocus={() => setFocusedField('password')}
+                  onBlur={() => setFocusedField(null)}
+                  editable={!busy}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={{ paddingHorizontal: 12, paddingVertical: 10 }}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel="Toggle password visibility"
+                >
+                  <Ionicons
+                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={20}
+                    color={isDark ? '#A1A1AA' : '#64748B'}
                   />
+                </TouchableOpacity>
+              </View>
+
+              {/* Confirm Password (Mandatory) */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 }}>
+                <Text style={[s.fieldLabel, { color: isDark ? '#E2E8F0' : '#334155' }]}>
+                  Confirm password <Text style={{ color: '#EF4444' }}>*</Text>
+                </Text>
+                {confirmPassword.length > 0 && (
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: doPasswordsMatch ? '#10B981' : '#EF4444' }}>
+                    {doPasswordsMatch ? '✓ Passwords match' : 'Passwords do not match'}
+                  </Text>
+                )}
+              </View>
+              <View style={[
+                s.inputWrapper,
+                {
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
+                  borderColor: focusedField === 'confirmPassword' ? (isDark ? COLORS.gold : '#0F172A') : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0')
+                }
+              ]}>
+                <Ionicons name="shield-checkmark-outline" size={18} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginLeft: 14, marginRight: 8 }} />
+                <TextInput
+                  style={[s.inputText, { color: isDark ? '#FFFFFF' : '#0F172A' }]}
+                  value={confirmPassword}
+                  onChangeText={(t) => { setConfirmPassword(t); if (error) setError(''); }}
+                  placeholder="Re-enter your password"
+                  placeholderTextColor={isDark ? '#71717A' : '#94A3B8'}
+                  secureTextEntry={!showConfirmPassword}
+                  textContentType="newPassword"
+                  autoComplete="password-new"
+                  onFocus={() => setFocusedField('confirmPassword')}
+                  onBlur={() => setFocusedField(null)}
+                  editable={!busy}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={{ paddingHorizontal: 12, paddingVertical: 10 }}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel="Toggle confirm password visibility"
+                >
+                  <Ionicons
+                    name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={20}
+                    color={isDark ? '#A1A1AA' : '#64748B'}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* Referral Code Pill */}
+              {showReferral ? (
+                <View style={{ marginTop: 12 }}>
+                  <Text style={[s.fieldLabel, { color: isDark ? '#E2E8F0' : '#334155' }]}>Invite code</Text>
+                  <View style={[
+                    s.inputWrapper,
+                    {
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
+                      borderColor: referralError ? '#EF4444' : (focusedField === 'referral' ? (isDark ? COLORS.gold : '#0F172A') : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0'))
+                    }
+                  ]}>
+                    <Ionicons name="pricetag-outline" size={18} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginLeft: 14, marginRight: 8 }} />
+                    <TextInput
+                      style={[s.inputText, { textTransform: 'uppercase', color: isDark ? '#FFFFFF' : '#0F172A' }]}
+                      value={referralCode}
+                      onChangeText={(t) => { setReferralCode(t.toUpperCase().replace(/\s/g, '').slice(0, 20)); if (referralError) setReferralError(''); if (error) setError(''); }}
+                      placeholder="e.g. ZV-ABC123"
+                      placeholderTextColor={isDark ? '#71717A' : '#94A3B8'}
+                      autoCapitalize="characters"
+                      autoCorrect={false}
+                      onFocus={() => setFocusedField('referral')}
+                      onBlur={() => setFocusedField(null)}
+                      editable={!busy}
+                    />
+                  </View>
                   {referralError ? (
                     <Text style={{ color: '#EF4444', fontSize: 12, fontWeight: '700', marginTop: 4 }}>{referralError}</Text>
                   ) : (
-                    <Text style={{ color: isDark ? COLORS.textMuted : '#6B7280', fontSize: 12, fontWeight: '600', marginTop: 4 }}>
-                      You and your friend both get 50 ZCS Points.
+                    <Text style={{ color: isDark ? '#94A3B8' : '#64748B', fontSize: 12, fontWeight: '500', marginTop: 4 }}>
+                      You and your friend each get 50 bonus points.
                     </Text>
                   )}
-                </>
+                </View>
               ) : (
-                <TouchableOpacity onPress={() => setShowReferral(true)} disabled={busy} style={{ marginTop: 12, alignSelf: 'flex-start' }}>
-                  <Text style={{ color: COLORS.gold, fontSize: 12, fontWeight: '800' }}>🎁 Have an invite code?</Text>
+                <TouchableOpacity
+                  onPress={() => setShowReferral(true)}
+                  disabled={busy}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6,
+                    marginTop: 14,
+                    alignSelf: 'flex-start',
+                    paddingVertical: 6,
+                    paddingHorizontal: 10,
+                    borderRadius: 8,
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F1F5F9'
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="pricetag-outline" size={15} color={isDark ? COLORS.gold : '#2563EB'} />
+                  <Text style={{ color: isDark ? COLORS.gold : '#2563EB', fontSize: 12, fontWeight: '700' }}>
+                    Have an invite code?
+                  </Text>
                 </TouchableOpacity>
               )}
 
-              <Text style={[s.label, labelColor]}>Password (optional)</Text>
-              <TextInput
-                style={inputStyle}
-                value={password}
-                onChangeText={(t) => { setPassword(t); if (error) setError(''); }}
-                placeholder="Min 6 characters — or just use OTP"
-                placeholderTextColor={isDark ? COLORS.textMuted : '#9CA3AF'}
-                secureTextEntry
-                textContentType="newPassword"
-                autoComplete="password-new"
-                editable={!busy}
-              />
-
+              {/* OTP Verification Box */}
               {isOtpSent && !phoneVerified && (
-                <View style={{ marginTop: 12 }}>
-                  <Text style={[s.label, { color: COLORS.gold, fontWeight: '900' }]}>
-                    {phoneOtp.mode === 'email' ? `Enter the 6-digit code sent to ${phoneOtp.emailSentTo || 'your email'}` : `Enter the 6-digit code sent to +91 ${phoneOtp.sentTo}`}
+                <View style={{ marginTop: 16, padding: 14, borderRadius: 14, backgroundColor: isDark ? 'rgba(212, 175, 122, 0.08)' : '#FEF3C7', borderWidth: 1, borderColor: isDark ? 'rgba(212, 175, 122, 0.3)' : '#FDE68A' }}>
+                  <Text style={{ fontSize: 13, fontWeight: '800', color: isDark ? '#D4AF7A' : '#92400E', marginBottom: 8, textAlign: 'center' }}>
+                    {phoneOtp.mode === 'email' ? `Enter code sent to ${phoneOtp.emailSentTo || 'your email'}` : `Enter code sent to +91 ${phoneOtp.sentTo}`}
                   </Text>
                   <TextInput
                     style={[
-                      s.input,
+                      s.inputText,
                       {
-                        backgroundColor: isDark ? 'rgba(201,168,76,0.1)' : '#FEF3C7',
-                        borderColor: COLORS.gold,
-                        fontSize: 20,
-                        letterSpacing: 6,
+                        backgroundColor: isDark ? '#1E2024' : '#FFFFFF',
+                        borderWidth: 1.5,
+                        borderColor: isDark ? '#D4AF7A' : '#D97706',
+                        borderRadius: 12,
+                        paddingVertical: 12,
+                        fontSize: 22,
+                        letterSpacing: 8,
                         textAlign: 'center',
                         fontWeight: '900',
-                        color: isDark ? '#FFF' : '#78350F'
+                        color: isDark ? '#FFFFFF' : '#0F172A'
                       }
                     ]}
                     value={otp}
                     onChangeText={(t) => { setOtp(t.replace(/\D/g, '')); if (error) setError(''); }}
                     placeholder="••••••"
-                    placeholderTextColor={isDark ? COLORS.textMuted : '#B45309'}
+                    placeholderTextColor={isDark ? '#71717A' : '#94A3B8'}
                     keyboardType="number-pad"
                     textContentType="oneTimeCode"
                     autoComplete="sms-otp"
@@ -523,16 +728,16 @@ export default function RegisterScreen() {
                     onSubmitEditing={handleRegister}
                     editable={!busy}
                   />
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
                     <TouchableOpacity disabled={busy} onPress={editDetails} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                      <Text style={{ fontSize: 12, fontWeight: '800', color: COLORS.gold }}>← Edit details</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '800', color: isDark ? '#D4AF7A' : '#B45309' }}>← Edit details</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       disabled={phoneOtp.countdown > 0 || busy}
                       onPress={handleSendOtp}
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     >
-                      <Text style={{ fontSize: 12, fontWeight: '800', color: (phoneOtp.countdown > 0 || busy) ? (isDark ? COLORS.textMuted : '#9CA3AF') : COLORS.gold }}>
+                      <Text style={{ fontSize: 12, fontWeight: '800', color: (phoneOtp.countdown > 0 || busy) ? (isDark ? '#71717A' : '#9CA3AF') : (isDark ? '#D4AF7A' : '#B45309') }}>
                         {phoneOtp.countdown > 0 ? `Resend in ${phoneOtp.countdown}s` : 'Resend code'}
                       </Text>
                     </TouchableOpacity>
@@ -543,36 +748,57 @@ export default function RegisterScreen() {
               {info && !error ? <Text style={s.info}>{info}</Text> : null}
               {error ? <Text style={s.error}>{error}</Text> : null}
 
-              <TermsConsent isDark={isDark} checked={acceptedTerms} onToggle={() => { setAcceptedTerms(v => !v); if (error) setError(''); }} disabled={busy} />
+              {/* Terms Checkbox */}
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 16, paddingRight: 8 }}
+                onPress={() => { setAcceptedTerms(!acceptedTerms); if (error) setError(''); }}
+                activeOpacity={0.8}
+              >
+                <Ionicons
+                  name={acceptedTerms ? 'checkbox' : 'square-outline'}
+                  size={20}
+                  color={acceptedTerms ? (isDark ? COLORS.gold : '#0F172A') : (isDark ? '#71717A' : '#94A3B8')}
+                  style={{ marginTop: 2 }}
+                />
+                <Text style={{ flex: 1, fontSize: 12, lineHeight: 18, color: isDark ? '#94A3B8' : '#64748B' }}>
+                  I agree to the <Text style={{ color: isDark ? COLORS.gold : '#2563EB', fontWeight: '700' }} onPress={() => openLegal('terms')} accessibilityRole="link">Terms of Service</Text> and <Text style={{ color: isDark ? COLORS.gold : '#2563EB', fontWeight: '700' }} onPress={() => openLegal('privacy')} accessibilityRole="link">Privacy Policy</Text> (I am 18+ or have parent/guardian consent).
+                </Text>
+              </TouchableOpacity>
 
-              {phoneVerified || isOtpSent ? (
-                <ActionPressable style={[s.regBtn, busy && { opacity: 0.7 }]} onPress={handleRegister} disabled={busy} sound="click">
-                  {busy ? (
-                    <ActivityIndicator color="#000" size="small" />
-                  ) : (
-                    <Text style={s.regBtnText}>{phoneVerified ? 'Create account' : 'Verify and create account'}</Text>
-                  )}
-                </ActionPressable>
-              ) : (
-                <ActionPressable style={[s.regBtn, busy && { opacity: 0.7 }]} onPress={handleSendOtp} disabled={busy} sound="click">
-                  {busy ? (
-                    <ActivityIndicator color="#000" size="small" />
-                  ) : (
-                    <Text style={s.regBtnText}>Verify phone and continue</Text>
-                  )}
-                </ActionPressable>
-              )}
-              {smsFailed && !isOtpSent && !phoneVerified && (
+              {/* Primary Action Button */}
+              <TouchableOpacity
+                style={[
+                  s.primaryBtn,
+                  { backgroundColor: isDark ? COLORS.gold : '#0F172A' },
+                  busy && { opacity: 0.7 }
+                ]}
+                onPress={phoneVerified || isOtpSent ? handleRegister : handleSendOtp}
+                disabled={busy}
+                activeOpacity={0.85}
+              >
+                {busy ? (
+                  <ActivityIndicator color={isDark ? '#000000' : '#FFFFFF'} size="small" />
+                ) : (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                    <Text style={[s.primaryBtnText, { color: isDark ? '#000000' : '#FFFFFF' }]}>
+                      {phoneVerified ? 'Create account' : isOtpSent ? 'Verify and create account' : 'Verify phone & continue'}
+                    </Text>
+                    <Ionicons name="arrow-forward" size={17} color={isDark ? '#000000' : '#FFFFFF'} />
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              {EMAIL_SIGNUP_CODES && smsFailed && !isOtpSent && !phoneVerified && (
                 <TouchableOpacity onPress={handleSendEmailCode} disabled={busy} style={{ marginTop: 14, alignSelf: 'center' }} accessibilityRole="button">
-                  <Text style={{ fontSize: 14, fontWeight: '800', color: COLORS.gold }}>Send the code by email instead</Text>
+                  <Text style={{ fontSize: 13, fontWeight: '800', color: isDark ? COLORS.gold : '#2563EB' }}>Send verification code by email instead</Text>
                 </TouchableOpacity>
               )}
 
-              <DopaminePressable onPress={goToLogin} style={s.switchLink} sound="click">
-                <Text style={[s.switchText, { color: isDark ? COLORS.textSecondary : '#6B7280' }]}>
-                  Already have an account? <Text style={{ color: COLORS.gold, fontWeight: '800' }}>Sign in</Text>
+              <TouchableOpacity onPress={goToLogin} style={s.switchLink} activeOpacity={0.8}>
+                <Text style={[s.switchText, { color: isDark ? '#94A3B8' : '#64748B' }]}>
+                  Already have an account? <Text style={{ color: isDark ? COLORS.gold : '#2563EB', fontWeight: '800' }}>Sign in</Text>
                 </Text>
-              </DopaminePressable>
+              </TouchableOpacity>
             </StaggeredSection>
           </Animated.View>
 
@@ -592,47 +818,100 @@ const s = StyleSheet.create({
     paddingTop: Platform.OS === 'web' ? 20 : 10,
   },
   
-  logoWrap: { 
+  brandHeaderWrap: { 
     alignItems: 'center', 
     marginBottom: 20, 
-    marginTop: Platform.OS === 'web' ? 30 : 40, 
+    marginTop: Platform.OS === 'web' ? 24 : 32, 
     paddingHorizontal: 24, 
     zIndex: 5 
   },
-  iconBadge: { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(212, 175, 122, 0.1)', borderWidth: 1.5, borderColor: COLORS.goldBorder, alignItems: 'center', justifyContent: 'center', ...SHADOWS.goldGlow },
-  logoIcon: { fontSize: 28 },
-  brand: { fontSize: 32, fontWeight: '900', color: COLORS.gold, letterSpacing: 8, marginTop: 10, textShadowColor: COLORS.borderGold, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 8 },
-  tagline: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary, marginTop: 4 },
-  
+  brandTitle: { 
+    fontSize: 26, 
+    fontWeight: '900', 
+    color: '#FFFFFF', 
+    letterSpacing: 3, 
+    // Web and iOS add the spacing after the last letter too: the same space in front keeps the word centred.
+    paddingLeft: Platform.OS === 'android' ? 0 : 3,
+    marginTop: 10,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
+  },
+
   card: {
-    backgroundColor: 'rgba(26,26,28,0.94)',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    borderBottomLeftRadius: Platform.OS === 'web' ? 32 : 0,
-    borderBottomRightRadius: Platform.OS === 'web' ? 32 : 0,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 28,
+    borderWidth: 1,
     paddingHorizontal: 24,
     paddingTop: 24,
-    paddingBottom: Platform.OS === 'ios' ? 44 : 36,
+    paddingBottom: Platform.OS === 'ios' ? 44 : 32,
     width: '100%',
-    maxWidth: 520,
+    maxWidth: 480,
     alignSelf: 'center',
-    marginBottom: Platform.OS === 'web' ? 24 : 0,
-    ...SHADOWS.card,
+    marginBottom: Platform.OS === 'web' ? 32 : 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.35,
+    shadowRadius: 24,
+    elevation: 12,
     zIndex: 15,
   },
-  cardTitle: { fontSize: 20, fontWeight: '900', color: '#fff', letterSpacing: 0.5 },
-  cardSubtitle: { fontSize: 12, color: COLORS.textSecondary, fontWeight: '600', marginTop: 4, marginBottom: 8, letterSpacing: 0.5 },
-  
-  label: { fontSize: 13, fontWeight: '700', color: COLORS.textSecondary, marginBottom: 5, marginTop: 10 },
-  input: { backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: COLORS.borderDark, borderRadius: 14, padding: 13, fontSize: 13, color: '#fff', fontWeight: '600' },
+  cardTitle: { fontSize: 22, fontWeight: '800', letterSpacing: -0.3 },
+  cardSubtitle: { fontSize: 13, fontWeight: '500', marginTop: 4, marginBottom: 16 },
+
+  fieldLabel: { fontSize: 13, fontWeight: '700', marginBottom: 6 },
+
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  inputText: {
+    flex: 1,
+    paddingVertical: 13,
+    paddingHorizontal: 10,
+    fontSize: 15,
+    fontWeight: '600',
+  },
+
+  countryCodeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 14,
+    paddingRight: 8,
+  },
+  countryCodeText: {
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  countryCodeDivider: {
+    width: 1,
+    height: 22,
+    marginLeft: 10,
+  },
+
+  primaryBtn: {
+    paddingVertical: 15,
+    borderRadius: 14,
+    alignItems: 'center',
+    marginTop: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  primaryBtnText: {
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+
   error: { color: '#EF4444', fontSize: 12, fontWeight: '600', marginTop: 8 },
   info: { color: '#10B981', fontSize: 12, fontWeight: '700', marginTop: 8 },
-  
-  regBtn: { backgroundColor: COLORS.gold, paddingVertical: 16, borderRadius: 14, alignItems: 'center', marginTop: 20, ...SHADOWS.goldGlow },
-  regBtnText: { fontSize: 15, fontWeight: '800', color: '#000' },
-  
-  switchLink: { alignItems: 'center', marginTop: 20 },
-  switchText: { fontSize: 12, color: COLORS.textSecondary },
+
+  switchLink: { alignItems: 'center', marginTop: 20, paddingVertical: 4 },
+  switchText: { fontSize: 13, fontWeight: '500' },
 });

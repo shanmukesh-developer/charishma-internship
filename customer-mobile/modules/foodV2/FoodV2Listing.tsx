@@ -98,10 +98,7 @@ export default function FoodV2Listing({ shelf }: { shelf: string }) {
     <View style={[s.emptyCard, { backgroundColor: c.soft, marginHorizontal: 16 }]}>
       <Icon name={q ? 'search-outline' : 'basket-outline'} size={34} color={FOOD.primary} />
       <Text style={[s.emptyTitle, { color: c.title }]}>{q ? 'No matches' : 'Nothing here yet'}</Text>
-      <Text style={[s.emptyText, { color: c.slate }]}>{q ? `Nothing matches "${query.trim()}". Request it and a shopper will buy it for you.` : 'Request it and a shopper will buy it for you.'}</Text>
-      <PressScale style={[s.emptyBtn, { backgroundColor: FOOD.primary }]} onPress={() => push({ name: 'mega' })} accessibilityRole={BUTTON_ROLE}>
-        <Text style={s.emptyBtnText}>Start a shopping list</Text>
-      </PressScale>
+      <Text style={[s.emptyText, { color: c.slate }]}>{q ? `Nothing matches "${query.trim()}". New products are added often.` : 'New products are added often.'}</Text>
     </View>
   );
   const onScroll = Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: NATIVE });

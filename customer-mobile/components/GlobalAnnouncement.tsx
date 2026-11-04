@@ -20,7 +20,7 @@ try {
 }
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
 import { safeId } from '../utils/ids';
 
 const { width } = Dimensions.get('window');
@@ -64,7 +64,7 @@ const PUSH_ASK_AGAIN_MS = 3 * 24 * 60 * 60 * 1000;
 const askBeforePushPermission = () => new Promise<boolean>((resolve) => {
   Alert.alert(
     'Get order and rider updates',
-    'ZCS sends a notification when the store accepts your order, when the rider is at your gate, and when a quote is ready. No ads.',
+    'ZENV sends a notification when the store accepts your order, when the rider is at your gate, and when a quote is ready. No ads.',
     [
       { text: 'Not now', style: 'cancel', onPress: () => resolve(false) },
       { text: 'Turn on', onPress: () => resolve(true) },
@@ -75,6 +75,10 @@ const askBeforePushPermission = () => new Promise<boolean>((resolve) => {
 
 export default function GlobalAnnouncement() {
   const router = useRouter();
+  // The screen on show, read by the notification-tap handler (registered once) to avoid stacking a duplicate.
+  const pathname = usePathname();
+  const pathnameRef = React.useRef(pathname);
+  pathnameRef.current = pathname;
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
   const slideAnim = React.useRef(new Animated.Value(-150)).current;
   const hideTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -106,10 +110,58 @@ export default function GlobalAnnouncement() {
   const hideRef = React.useRef(hideAnnouncement);
   hideRef.current = hideAnnouncement;
 
-  // Register this phone's push token once per signed-in account
+  // Register this phone's push token once per signed-in account. One failed POST (offline, server waking up) used
+  // to mean no order or rider pushes until the next cold start: the sync now rides out a cold start, is retried
+  // whenever the app comes back to the foreground until the server has the token, and follows token rotation.
   useEffect(() => {
     if (Platform.OS === 'web' || !userId || !Notifications) return;
     let cancelled = false;
+    let syncing = false;
+    const Constants = require('expo-constants').default;
+
+    const currentToken = async (): Promise<string> => {
+      try {
+        const deviceTokenData = await Notifications.getDevicePushTokenAsync();
+        return String(deviceTokenData.data || '');
+      } catch (deviceError) {
+        console.warn('FCM native token failed in GlobalAnnouncement, trying Expo fallback:', deviceError);
+        let projectId = Constants.expoConfig?.extra?.eas?.projectId || Constants.easConfig?.projectId;
+        if (!projectId || projectId === 'your-eas-project-id') {
+          projectId = undefined;
+        }
+        const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
+        return String(tokenData.data || '');
+      }
+    };
+
+    // Sync with backend (the server detaches this token from any other account). Sending the same token again is
+    // harmless (one row per device), so it is marked idempotent and retried through a server cold start.
+    const syncToken = async (fcmToken: string) => {
+      if (!fcmToken || cancelled || syncing) return;
+      syncing = true;
+      try {
+        const { apiFetch } = require('../utils/auth');
+        const res = await apiFetch(`${API_URL}/api/users/fcm-token`, {
+          method: 'POST',
+          idempotent: true,
+          body: JSON.stringify({
+            fcmToken,
+            appVersion: Constants.expoConfig?.version,
+            platform: Platform.OS,
+          })
+        });
+        if (res.ok) {
+          // Remembered so logout can unregister this device (and so the foreground retry below stops)
+          await AsyncStorage.setItem('zenvy_push_token', fcmToken).catch(() => {});
+        } else {
+          console.warn('[PUSH] Auto-register failed:', res.status);
+        }
+      } catch (err) {
+        console.warn('[PUSH] Auto-register error:', err);
+      } finally {
+        syncing = false;
+      }
+    };
 
     const registerPushToken = async () => {
       try {
@@ -133,46 +185,31 @@ export default function GlobalAnnouncement() {
         }
         if (finalStatus !== 'granted' || cancelled) return;
 
-        const Constants = require('expo-constants').default;
-        let fcmToken = '';
-        try {
-          const deviceTokenData = await Notifications.getDevicePushTokenAsync();
-          fcmToken = deviceTokenData.data;
-        } catch (deviceError) {
-          console.warn('FCM native token failed in GlobalAnnouncement, trying Expo fallback:', deviceError);
-          let projectId = Constants.expoConfig?.extra?.eas?.projectId || Constants.easConfig?.projectId;
-          if (!projectId || projectId === 'your-eas-project-id') {
-            projectId = undefined;
-          }
-          const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
-          fcmToken = tokenData.data;
-        }
-
+        const fcmToken = await currentToken();
         if (!fcmToken || cancelled) return;
-
-        // Sync with backend (the server detaches this token from any other account)
-        const { apiFetch } = require('../utils/auth');
-        const res = await apiFetch(`${API_URL}/api/users/fcm-token`, {
-          method: 'POST',
-          body: JSON.stringify({
-            fcmToken,
-            appVersion: Constants.expoConfig?.version,
-            platform: Platform.OS,
-          })
-        });
-        if (res.ok) {
-          // Remembered so logout can unregister this device
-          await AsyncStorage.setItem('zenvy_push_token', fcmToken).catch(() => {});
-        } else {
-          console.warn('[PUSH] Auto-register failed:', res.status);
-        }
+        await syncToken(fcmToken);
       } catch (err) {
         console.warn('[PUSH] Auto-register error:', err);
       }
     };
 
     const timer = setTimeout(registerPushToken, 3000);
-    return () => { cancelled = true; clearTimeout(timer); };
+    // Back in the foreground and the server still has no token from this phone: try again (never asks for
+    // permission again; that keeps its own spacing above).
+    const appSub = AppState.addEventListener('change', async (state) => {
+      if (state !== 'active' || cancelled) return;
+      try {
+        if (await AsyncStorage.getItem('zenvy_push_token')) return;
+        const perm = await Notifications.getPermissionsAsync();
+        if (perm.status !== 'granted' || cancelled) return;
+        await syncToken(await currentToken());
+      } catch { /* next foreground */ }
+    });
+    // Android can rotate the FCM token while the app is running: send the new one.
+    const tokenSub = typeof Notifications.addPushTokenListener === 'function'
+      ? Notifications.addPushTokenListener((t: { data?: unknown }) => { if (typeof t?.data === 'string') syncToken(t.data); })
+      : null;
+    return () => { cancelled = true; clearTimeout(timer); appSub.remove(); tokenSub?.remove?.(); };
   }, [userId]);
 
   useEffect(() => {
@@ -225,8 +262,14 @@ export default function GlobalAnnouncement() {
         const { actionIdentifier, notification } = response || {};
         const data = notification?.request?.content?.data || {};
         const { router: nav } = require('expo-router');
+        // Already on that screen (e.g. the order being tracked): replace it with the fresh one instead of
+        // stacking a second copy that Back would have to walk through.
         const go = (path: string) => setTimeout(() => {
-          try { nav.push(path as any); } catch (e) { console.warn('Notification nav failed:', e); }
+          try {
+            const target = path.split('?')[0];
+            if (target && target === pathnameRef.current) nav.replace(path as any);
+            else nav.push(path as any);
+          } catch (e) { console.warn('Notification nav failed:', e); }
         }, delayMs);
 
         const campusHref = campusHrefForNotification(data.type, data);
@@ -257,14 +300,17 @@ export default function GlobalAnnouncement() {
           go('/friends?tab=friends&sub=pulse&segment=posts');
         } else if (data.type === 'promo' || data.type === 'offer') {
           go('/others');
-        } else if (['badge', 'BADGE', 'SPIN_EARNED', 'points', 'coupon', 'streak_nudge'].includes(data.type)) {
+        } else if (['badge', 'BADGE', 'SPIN_EARNED', 'points', 'coupon', 'WALL_WINNER_REWARD'].includes(data.type)) {
+          // A Wall prize opens the coupons it won, as the inbox does (it used to open the Wall, inside Campus).
           go('/rewards');
         } else if (data.type === 'PG_BOOKING' || data.type === 'PG_BOOKING_STATUS') {
-          go('/others?tab=stays');
+          // The student's PG bookings (accepted / declined / ended), not the PG home page.
+          go('/pg/bookings');
         } else if (typeof data.type === 'string' && data.type.startsWith('WALL_')) {
           go('/friends?tab=friends&sub=pulse&segment=wall');
-        } else if (data.type === 'abandoned_cart') {
-          go('/basket');
+        } else if (data.type === 'abandoned_cart' || data.type === 'streak_nudge') {
+          // Win-back and streak nudges ("place an order") open Home, as the inbox does (the basket was usually empty).
+          go('/(tabs)');
         } else if (ORDER_PUSH_TYPES.includes(data.type)) {
           const orderIdStr = safeId(data.orderId) || safeId(data.id);
           go(orderIdStr ? `/tracking/${orderIdStr}` : '/(tabs)/orders');
@@ -307,7 +353,7 @@ export default function GlobalAnnouncement() {
         if (data?.type === 'call' || data?.source === 'zenvy_socket') return; // socket toasts are saved below
         saveToHistory({
           id: notification?.request?.identifier || `${Date.now()}-${Math.random()}`,
-          title: title || '📢 ZCS',
+          title: title || '📢 ZENV',
           body: body || '',
           type: data?.type || 'info',
           ...(data?.orderId ? { orderId: String(data.orderId) } : {}),
@@ -370,7 +416,7 @@ export default function GlobalAnnouncement() {
         }
         processedMessage = processedMessage.replace(/{{username}}/g, userName);
       }
-      const title = data.type === 'emergency' ? '🚨 ZCS Alert' : data.type === 'promo' ? '🎉 ZCS Update' : '📢 ZCS Announcement';
+      const title = data.type === 'emergency' ? '🚨 ZENV Alert' : data.type === 'promo' ? '🎉 ZENV Update' : '📢 ZENV Announcement';
 
       // In the background the toast is invisible: show a system notification instead
       if (AppState.currentState !== 'active') {

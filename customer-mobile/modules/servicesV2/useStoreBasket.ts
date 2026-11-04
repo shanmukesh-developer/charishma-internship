@@ -1,12 +1,13 @@
 /**
  * The campus store ("others") basket for Room essentials and Chargers & gadgets: the same CartContext rules the old
  * category page used (basket 'store', one store per basket with the "Replace basket?" prompt, closed store / sold out
- * alerts, a Mega Basket shopping request is ordered on its own).
+ * alerts; products with choices open the options sheet).
  */
 import { useCallback } from 'react';
 import { Alert } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { useCart, isCustomRequest } from '../../context/CartContext';
+import { useCart } from '../../context/CartContext';
+import { productOptions, useAskOptions } from '../../components/ProductOptions';
 import { formatClock } from '../../utils/format';
 import { storeTakesOrders, type ShelfItem, type ShelfStore } from './servicesV2Data';
 
@@ -15,6 +16,7 @@ const opensAtText = (hhmm: string | null) => (hhmm && /^\d{1,2}:\d{2}$/.test(hhm
 export function useStoreBasket() {
   const { addToCart, baskets, basketCounts, basketTotals, updateQuantity, clearBasket } = useCart();
   const lines = baskets.store;
+  const askOptions = useAskOptions();
 
   const lineFor = useCallback((id: string) => lines.find((l) => l.cartKey === id || (l.id === id && !l.customizations)), [lines]);
 
@@ -32,7 +34,15 @@ export function useStoreBasket() {
       Alert.alert('Not available right now', `${item.name} cannot be ordered right now. Check back later.`);
       return;
     }
-    const doAdd = () => {
+    // Products with choices (weights with their own prices, flavours): asked in the options sheet first.
+    const groups = productOptions(item);
+    const doAdd = async () => {
+      let extra: { price?: number; basePrice?: number; customizations?: any } = {};
+      if (groups.length) {
+        const r = await askOptions({ name: item.name, price: item.price, image: item.image || null, groups });
+        if (!r) return;
+        extra = { price: r.unitPrice, basePrice: item.price, customizations: r.customizations };
+      }
       const ok = addToCart({
         id: item.id,
         name: item.name,
@@ -42,18 +52,12 @@ export function useStoreBasket() {
         restaurantId: item.restaurantId,
         restaurantName: item.storeName || fallbackName,
         basket: 'store',
+        ...extra,
       });
       if (ok) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     };
-    if (lines.some((l) => isCustomRequest(l))) {
-      Alert.alert('Start a new basket?', 'Your basket has a shopping request, which is ordered separately. Clear it and add this item?', [
-        { text: 'Keep basket', style: 'cancel' },
-        { text: 'Clear & add', style: 'destructive', onPress: () => { clearBasket('store'); doAdd(); } },
-      ]);
-      return;
-    }
     doAdd();
-  }, [addToCart, lines, clearBasket]);
+  }, [addToCart, askOptions]);
 
   return {
     lineFor,

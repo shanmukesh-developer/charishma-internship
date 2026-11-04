@@ -6,7 +6,7 @@
  * No search bar (owner, 26 Oct): it only opened the grocery search, which is not what Deals is for.
  */
 import React from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -16,9 +16,10 @@ import { useUnreadDot } from '../foodV2/FoodV2HomeTop';
 import SectionPillRail from '../others/SectionPillRail';
 import { DV, W } from './dealsV2Theme';
 import { Press, usePageW } from './DealsV2Kit';
-import { ZCS_EMBLEM } from './DealsV2Wheel';
+import ZenvBadge from '../../components/ZenvBadge';
 import { IArrowLeft, IBell, IHeart } from './DealsV2Icons';
 import { useNav } from './dealsV2Nav';
+import { goHome } from '../../utils/goHome';
 
 // Chocolates in a violet gift box on violet (Unsplash photo-1629610306962-a8aa73153d0e, free licence), 1290 px wide
 // for a 2.75x phone; the section's own colours, no brand on it.
@@ -48,14 +49,12 @@ export function HomeTop({ sections, onSaved }: { sections?: { key: string; label
       </Svg>
 
       <View style={s.brandRow}>
-        <Press onPress={() => router.replace('/(tabs)' as any)} label="Back to Home" style={s.iconBtn} scaleTo={0.9}>
+        <Press onPress={() => goHome(router)} label="Back to Home" style={s.iconBtn} scaleTo={0.9}>
           <IArrowLeft size={22} color="#FFFFFF" strokeWidth={1.6} />
         </Press>
-        <View style={s.emblemGlow}>
-          <View style={s.emblemRing}><Image source={ZCS_EMBLEM} style={{ width: '100%', height: '100%', borderRadius: 17 }} contentFit="cover" accessibilityLabel="ZCS emblem" /></View>
-        </View>
+        <ZenvBadge size={36} />
         <View style={{ flex: 1, marginLeft: 10, minWidth: 0 }}>
-          <Text style={s.brand} accessibilityRole="header">ZCS</Text>
+          <Text style={s.brand} accessibilityRole="header">ZENV</Text>
           <Text style={s.brandSub} numberOfLines={1}>Deals & Spin</Text>
         </View>
         <Press onPress={onSaved || (() => nav.onSection?.('food'))} label="Saved items in Food & groceries" style={s.iconBtn} scaleTo={0.9}>
@@ -80,12 +79,7 @@ export function HomeTop({ sections, onSaved }: { sections?: { key: string; label
 const s = StyleSheet.create({
   brandRow: { flexDirection: 'row', alignItems: 'center', paddingLeft: 6, paddingRight: 16, paddingTop: 12 },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  emblemGlow: Platform.select<any>({
-    web: { borderRadius: 18, boxShadow: '0 0 14px rgba(246,196,83,0.35)' },
-    default: { borderRadius: 18, shadowColor: '#F6C453', shadowOpacity: 0.35, shadowRadius: 9, shadowOffset: { width: 0, height: 0 } },
-  }),
-  emblemRing: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: '#C9A24A', padding: 1, backgroundColor: '#140A3A' },
-  brand: { color: '#FFFFFF', fontSize: 21, fontWeight: W.title, letterSpacing: 1.6, lineHeight: 25 },
+  brand: { color: '#FFFFFF', fontSize: 21, fontWeight: W.title, letterSpacing: 1.2, lineHeight: 25 },
   brandSub: { color: 'rgba(235,230,255,0.8)', fontSize: 12.5, marginTop: 1, letterSpacing: 0.2 },
   dot: { position: 'absolute', top: 10, right: 11, width: 9, height: 9, borderRadius: 5, backgroundColor: DV.bellDot, borderWidth: 1.5, borderColor: DV.header[1] },
   lead: { color: '#FFFFFF', fontSize: 14, lineHeight: 20, marginTop: 14, marginBottom: 58, marginHorizontal: 16, maxWidth: 300 },

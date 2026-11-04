@@ -120,8 +120,11 @@ export function myRideInfo(ride: any, myId: string) {
   else if (pending.length) badge = { label: `${pending.length} new request${pending.length === 1 ? '' : 's'}`, tone: 'warning' };
   else badge = { label: 'Open', tone: 'neutral' };
 
-  const isPast = !isOpenRide || (!isCreator && (myStatus === 'Rejected' || myStatus === 'Cancelled'));
-  return { isCreator, requests, pending, approved, myStatus, isOpenRide, isPast, badge };
+  // Left 3+ hours ago but never marked complete: it belongs under Past (it used to sit in Upcoming forever). The host
+  // keeps Complete there; passengers no longer get Withdraw / Leave on a ride that has gone.
+  const departed = Date.now() - (new Date(ride.departureTime).getTime() || Date.now()) > 3 * 60 * 60 * 1000;
+  const isPast = !isOpenRide || departed || (!isCreator && (myStatus === 'Rejected' || myStatus === 'Cancelled'));
+  return { isCreator, requests, pending, approved, myStatus, isOpenRide, isPast, departed, badge };
 }
 
 /** Upcoming (soonest first) and Past (latest first). */

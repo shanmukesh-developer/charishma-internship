@@ -17,7 +17,7 @@ import FssaiLine from '../../components/FssaiLine';
 import { resolveMediaUrl } from '../../utils/imageUpload';
 import { useTopInset } from '../../utils/useTopInset';
 import { cbApi, type CbMenuItem, type CbStall as Stall } from './cbApi';
-import { cbCart, useCbCart } from './cbCart';
+import { cbCart, useCbCart, MAX_QTY_STATIONERY } from './cbCart';
 import { COLORS, SHADOWS, hhmm12, inr, surfaceLift, useCbTheme } from './cbTheme';
 import { AddControl, DopaminePressable, EmptyCard, NoticeBar, StaggeredSection, useCbBack, useCbLive } from './cbKit';
 import { isSampleId, sampleStallById, type CbSampleMenuItem } from './campusBookingDemo';
@@ -259,7 +259,8 @@ export default function CbStall({ id }: { id: string }) {
                             qty={qty}
                             soldOut={!m.isAvailable}
                             closed={!stall.isOpen}
-                            onAdd={() => { if (stall.isOpen) cbCart.change(id, { menuItemId: m.id, name: m.name, price: m.price, isVeg: m.isVeg, category: m.category }, 1); }}
+                            max={stall.category === 'stationery' ? MAX_QTY_STATIONERY : undefined}
+                            onAdd={() => { if (stall.isOpen) cbCart.change(id, { menuItemId: m.id, name: m.name, price: m.price, isVeg: m.isVeg, category: m.category }, 1, stall.category === 'stationery' ? MAX_QTY_STATIONERY : undefined); }}
                             onRemove={() => cbCart.change(id, { menuItemId: m.id, name: m.name, price: m.price, isVeg: m.isVeg, category: m.category }, -1)}
                           />
                           )}
@@ -280,7 +281,7 @@ export default function CbStall({ id }: { id: string }) {
                 ...(stall.location ? [['location-outline', stall.location]] : []),
                 ['hourglass-outline', `Usually ready in about ${stall.prepMinutes} minutes after the stall accepts`],
                 ['storefront-outline', 'Pickup only. Collect at the counter with your pickup code.'],
-                ...(sample ? [] : [['qr-code-outline', 'You pay the stall directly by UPI. ZCS does not take or hold the money.']]),
+                ...(sample ? [] : [['qr-code-outline', 'You pay the stall directly by UPI. ZENV does not take or hold the money.']]),
                 ['pricetag-outline', `${stall.categoryLabel}${stall.itemCount ? ` · ${stall.itemCount} items` : ''}`],
               ].map(([icon, text]) => (
                 <View key={text} style={st.aboutRow}>

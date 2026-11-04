@@ -2,7 +2,7 @@
  * The app's REAL prize wheel, drawn premium: the same sectors, colours, order and labels as
  * components/others/SpinWheelSvg (segment i centred at i × 360/n degrees clockwise from the top, the angle the spin
  * lands on for the server's prizeIndex), with glossy per-segment gradients, an indigo rim with a row of lights, a
- * glass gloss, a hub holding the ZCS Z emblem and a pointer. Still: it only turns while a real spin runs.
+ * glass gloss, a hub holding the ZENV badge and a pointer. Still: it only turns while a real spin runs.
  *   WheelDisk   the rotating part (segments + labels)
  *   PrizeWheel  the full wheel: rim + lights + disk (optionally rotated) + gloss + hub + pointer
  */
@@ -14,7 +14,7 @@ import { WHEEL_COLORS, wheelLabelLines } from '../../components/others/SpinWheel
 import type { Prize } from './dealsV2Data';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-export const ZCS_EMBLEM = require('../foodV2/assets/food-v2-brand-gold-z-emblem-2026-10-23.webp');
+export const ZCS_EMBLEM = require('../../assets/zenv-brand-badge-2026-11-04.webp');
 const FONT = Platform.OS === 'web' ? 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' : undefined;
 
 const polar = (c: number, r: number, deg: number) => {
@@ -111,7 +111,7 @@ export function PrizeWheel({ prizes, size, rotate, labels = true, style }: {
   const c = size / 2;
   const ring = Math.max(8, size * 0.085);
   const disk = size - ring * 2;
-  const hub = Math.max(22, size * 0.2);
+  const hub = 2 * Math.round(Math.max(22, size * 0.2) / 2); // even whole pixels: the badge stays centred on the hub cap
   const bulbs = size >= 160 ? 20 : 14;
   const spin = rotate ? { transform: [{ rotate: rotate.interpolate({ inputRange: [0, 360], outputRange: ['0deg', '360deg'] }) }] } : null;
   return (
@@ -159,12 +159,12 @@ export function PrizeWheel({ prizes, size, rotate, labels = true, style }: {
         <Circle cx={c} cy={size * 0.03} r={Math.max(2, size * 0.014)} fill="#FFFFFF" />
       </Svg>
       <View pointerEvents="none" style={[st.hub, { width: hub, height: hub, borderRadius: hub / 2, left: c - hub / 2, top: c - hub / 2 }]}>
-        <Image source={ZCS_EMBLEM} style={{ width: '100%', height: '100%' }} contentFit="cover" accessibilityLabel="ZCS" />
+        <Image source={ZCS_EMBLEM} style={{ width: '100%', height: '100%' }} contentFit="cover" accessibilityLabel="ZENV logo" />
       </View>
     </View>
   );
 }
 
 const st = StyleSheet.create({
-  hub: { position: 'absolute', overflow: 'hidden', backgroundColor: '#1A0F3D', borderWidth: 1, borderColor: 'rgba(255,240,200,0.9)' },
+  hub: { position: 'absolute', overflow: 'hidden', backgroundColor: '#FAE04B', borderWidth: 1, borderColor: 'rgba(255,240,200,0.9)' },
 });

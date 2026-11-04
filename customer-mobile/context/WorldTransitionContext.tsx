@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useCallback, useRef, useEff
 import { useRouter } from 'expo-router';
 import { playSound, resumeAudio } from '../utils/sounds';
 
-export type WorldType = 'food' | 'pg' | 'bikepool' | 'others' | 'comms' | 'mega-basket';
+export type WorldType = 'food' | 'pg' | 'bikepool' | 'others' | 'comms';
 
 interface WorldTheme {
   label: string;
@@ -13,9 +13,8 @@ export const WORLD_THEMES: Record<WorldType, WorldTheme> = {
   food: { label: 'Food', colors: ['#EF4F5F', '#F5A623'] },
   pg: { label: 'PG stays', colors: ['#6366F1', '#4F46E5'] },
   bikepool: { label: 'Co-Ride', colors: ['#10B981', '#059669'] },
-  others: { label: 'Others', colors: ['#8B5CF6', '#EC4899'] },
+  others: { label: 'Groceries', colors: ['#8B5CF6', '#EC4899'] },
   comms: { label: 'Campus', colors: ['#F43F5E', '#FB923C'] },
-  'mega-basket': { label: 'Mega basket', colors: ['#10B981', '#D4AF7A'] }
 };
 
 interface WorldTransitionContextType {

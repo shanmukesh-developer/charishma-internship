@@ -91,9 +91,9 @@ const RETRY_DELAY_MS = 1500;
 export const UPLOAD_MESSAGES = {
   tooLarge: 'That photo is too large. Please choose a smaller one.',
   session: 'Your session has expired. Please sign in again to upload photos.',
-  waking: 'ZCS is waking up, please try again in a few seconds.',
+  waking: 'ZENV is waking up, please try again in a few seconds.',
   interrupted: 'The upload was interrupted. Please try again.',
-  unreachable: "Couldn't reach ZCS. Check your Wi-Fi or mobile data, then try again.",
+  unreachable: "Couldn't reach ZENV. Check your Wi-Fi or mobile data, then try again.",
 } as const;
 
 export class ImageUploadError extends Error {

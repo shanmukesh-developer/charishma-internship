@@ -56,10 +56,10 @@ export default function TermsUpdateSheet() {
         setUser({ termsCurrentVersion: data.termsCurrentVersion, termsUpdateRequired: true });
         setError(data.message || 'The Terms changed again. Please review the latest version.');
       } else {
-        setError(data.message || 'Could not save right now. You can keep using ZCS and try again later.');
+        setError(data.message || 'Could not save right now. You can keep using ZENV and try again later.');
       }
     } catch {
-      setError('You seem to be offline. You can keep using ZCS and accept later.');
+      setError('You seem to be offline. You can keep using ZENV and accept later.');
     } finally {
       setBusy(false);
     }
@@ -78,7 +78,7 @@ export default function TermsUpdateSheet() {
           <Text style={[s.title, { color: fg }]}>We&apos;ve updated our Terms</Text>
           <Text style={[s.body, { color: muted }]}>
             Please take a moment to read our Terms of Service and Privacy Policy (version {version}). They explain how
-            orders, cancellations, refunds, the ZCS Wallet and community features work, and how we handle your data.
+            orders, cancellations, refunds, the ZENV Wallet and community features work, and how we handle your data.
           </Text>
           <View style={s.links}>
             {links.map((p) => (

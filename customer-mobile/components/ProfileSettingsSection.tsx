@@ -92,7 +92,7 @@ export default function ProfileSettingsSection({
       <View style={card}>
         <TouchableOpacity style={st.row} onPress={onOpenHelp} activeOpacity={0.6} accessibilityRole="button" accessibilityLabel="Help and FAQ">
           <Icon name="help-circle-outline" />
-          <Text style={[st.title, st.rowText, { color: colors.text }]}>Help & FAQ</Text>
+          <Text style={[st.title, st.rowText, { color: colors.text }]}>Help and FAQ</Text>
           <Chevron />
         </TouchableOpacity>
         {legal.map((l) => (
@@ -108,9 +108,9 @@ export default function ProfileSettingsSection({
         {onOpenAbout ? (
           <>
             <Divider />
-            <TouchableOpacity style={st.row} onPress={onOpenAbout} activeOpacity={0.6} accessibilityRole="button" accessibilityLabel="About ZCS">
+            <TouchableOpacity style={st.row} onPress={onOpenAbout} activeOpacity={0.6} accessibilityRole="button" accessibilityLabel="About ZENV">
               <Icon name="information-circle-outline" />
-              <Text style={[st.title, st.rowText, { color: colors.text }]}>About ZCS</Text>
+              <Text style={[st.title, st.rowText, { color: colors.text }]}>About ZENV</Text>
               <Chevron />
             </TouchableOpacity>
           </>
@@ -139,7 +139,7 @@ export default function ProfileSettingsSection({
         </TouchableOpacity>
       ) : null}
 
-      <Text style={[st.version, { color: colors.textMuted }]} accessibilityLabel={`ZCS version ${appVersionText()}`}>ZCS · Version {appVersionText()}</Text>
+      <Text style={[st.version, { color: colors.textMuted }]} accessibilityLabel={`ZENV version ${appVersionText()}`}>ZENV · Version {appVersionText()}</Text>
     </View>
   );
 }

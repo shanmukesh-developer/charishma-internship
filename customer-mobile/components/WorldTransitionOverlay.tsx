@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Dimensions, Animated, Easing, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useWorldTransition, WORLD_THEMES } from '../context/WorldTransitionContext';
+import ZenvBadge from './ZenvBadge';
 
 const { width: W, height: H } = Dimensions.get('window');
 
@@ -338,14 +339,10 @@ export default function WorldTransitionOverlay() {
           },
         ]}
       >
-        {/* Crest Badge */}
-        <View style={s.crestBadge}>
-          <View style={s.crestInner}>
-            <Text style={s.crestLetter}>Z</Text>
-          </View>
-        </View>
+        {/* Crest: the ZENV badge (brand, 4 Nov 2026) */}
+        <ZenvBadge size={72} style={s.crest} />
 
-        <Text style={s.gatewayLabel}>ZCS</Text>
+        <Text style={s.gatewayLabel}>ZENV</Text>
         <Text style={s.worldTitle}>{theme.label}</Text>
 
         {/* Gold Line Divider */}
@@ -446,36 +443,8 @@ const s = StyleSheet.create({
     paddingHorizontal: 24,
   },
 
-  crestBadge: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: 'rgba(212,175,122,0.5)',
-    padding: 3,
+  crest: {
     marginBottom: 20,
-    shadowColor: '#D4AF7A',
-    shadowRadius: 20,
-    shadowOpacity: 0.4,
-    elevation: 10,
-  },
-  crestInner: {
-    flex: 1,
-    borderRadius: 16,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    borderWidth: 1,
-    borderColor: 'rgba(212,175,122,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  crestLetter: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: '#D4AF37',
-    fontStyle: 'italic',
-    textShadowColor: 'rgba(212,175,55,0.5)',
-    textShadowRadius: 10,
-    textShadowOffset: { width: 0, height: 2 },
   },
 
   gatewayLabel: {

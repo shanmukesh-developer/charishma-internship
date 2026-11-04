@@ -1,5 +1,5 @@
 /**
- * "About ZCS" sheet (opened from Profile). The gold ZCS mark from the intro with its full name, one
+ * "About ZENV" sheet (opened from Profile). The ZENV badge and name, one
  * readable line about the app, real info rows (version and build from the app config, platform, the
  * campus chosen for checkout) and the credit line. Follows light / dark mode; Android back closes it.
  */
@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { COLORS, surfaceLift } from '../constants/theme';
 import { appVersionText } from './ProfileSettingsSection';
+import ZenvBadge from './ZenvBadge';
 
 // Same key and names as checkout.tsx / onboarding.tsx.
 const CHECKOUT_CAMPUS_KEY = 'zenvy_checkout_campus';
@@ -20,11 +21,6 @@ const BRAND_FONT = Platform.select({
   android: { fontFamily: 'sans-serif-medium', fontWeight: '500' as const },
   ios: { fontFamily: 'Avenir Next', fontWeight: '500' as const },
   default: { fontFamily: '"Avenir Next", Montserrat, "Segoe UI", Roboto, Helvetica, Arial, sans-serif', fontWeight: '500' as const },
-});
-const BRAND_SUB_FONT = Platform.select({
-  android: { fontFamily: 'sans-serif-light', fontWeight: '300' as const },
-  ios: { fontFamily: 'Avenir Next', fontWeight: '400' as const },
-  default: { fontFamily: '"Avenir Next", Montserrat, "Segoe UI", Roboto, Helvetica, Arial, sans-serif', fontWeight: '300' as const },
 });
 
 const platformName = () => (Platform.OS === 'ios' ? 'iOS' : Platform.OS === 'android' ? 'Android' : 'Web');
@@ -43,7 +39,7 @@ export default function AboutZcsModal({ visible, onClose }: { visible: boolean; 
   const rows: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string }[] = [
     { icon: 'pricetag-outline', label: 'Version', value: appVersionText() },
     { icon: 'phone-portrait-outline', label: 'Platform', value: platformName() },
-    { icon: 'school-outline', label: 'Campus', value: campus || 'Not chosen yet' },
+    { icon: 'school-outline', label: 'College', value: campus || 'Not chosen yet' },
   ];
 
   return (
@@ -57,10 +53,9 @@ export default function AboutZcsModal({ visible, onClose }: { visible: boolean; 
           </TouchableOpacity>
 
           {/* Brand */}
-          <View style={st.brand} accessible accessibilityLabel="ZCS, Zenvy Community and Services">
-            <Text allowFontScaling={false} style={[st.wordmark, { color: gold }]}>ZCS</Text>
-            <View style={[st.rule, { backgroundColor: gold }]} />
-            <Text allowFontScaling={false} style={[st.fullName, { color: colors.textSecondary }]}>Zenvy Community and Services</Text>
+          <View style={st.brand} accessible accessibilityLabel="ZENV">
+            <ZenvBadge size={76} lift={!isDark} />
+            <Text allowFontScaling={false} style={[st.wordmark, { color: gold }]}>ZENV</Text>
           </View>
           <Text style={[st.tagline, { color: colors.text }]}>Food, groceries and campus services, delivered to your hostel.</Text>
 
@@ -94,9 +89,8 @@ const st = StyleSheet.create({
   grabber: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, marginBottom: 8 },
   close: { position: 'absolute', top: 14, right: 16, width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', zIndex: 2 },
   brand: { alignItems: 'center', marginTop: 16 },
-  wordmark: { ...BRAND_FONT, fontSize: 34, letterSpacing: 12, paddingLeft: 12, marginTop: 12 },
-  rule: { width: 56, height: 1, opacity: 0.6, marginTop: 8 },
-  fullName: { ...BRAND_SUB_FONT, fontSize: 12, letterSpacing: 2.4, marginTop: 8 },
+  // Web and iOS add the letter spacing after the last letter too; the same space in front keeps the word centred.
+  wordmark: { ...BRAND_FONT, fontSize: 30, letterSpacing: 6, paddingLeft: Platform.OS === 'android' ? 0 : 6, marginTop: 14 },
   tagline: { fontSize: 15, lineHeight: 22, textAlign: 'center', marginTop: 16, marginHorizontal: 8 },
   card: { borderRadius: 18, borderWidth: 1, marginTop: 20, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52, paddingHorizontal: 14 },

@@ -7,6 +7,8 @@ import { Ionicons } from '@expo/vector-icons';
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
+  /** Leave the broken screen for Home ("Try again" alone re-rendered the same crash, a dead end). */
+  onGoHome?: () => void;
 }
 
 interface State {
@@ -65,6 +67,15 @@ export class ErrorBoundary extends Component<Props, State> {
             <TouchableOpacity style={styles.primaryButton} activeOpacity={0.85} onPress={this.handleReset}>
               <Text style={styles.primaryButtonText}>Try again</Text>
             </TouchableOpacity>
+            {this.props.onGoHome && (
+              <TouchableOpacity
+                style={{ marginTop: 14, paddingVertical: 8, paddingHorizontal: 16 }}
+                activeOpacity={0.7}
+                onPress={() => { try { this.props.onGoHome?.(); } catch { /* still reset below */ } this.handleReset(); }}
+              >
+                <Text style={{ color: '#A1A1AA', fontSize: 13, fontWeight: '700' }}>Go to Home</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </SafeAreaView>
       );

@@ -72,7 +72,7 @@ export default function ServicesV2Products({ shelf }: { shelf: ProductShelf }) {
         ) : status !== 'ready' && !items.length ? (
           <StateBlock kind={status === 'offline' ? 'offline' : status === 'waking' ? 'waking' : 'error'} action="Try again" onAction={retry} style={{ marginTop: 16 }} />
         ) : !items.length ? (
-          <StateBlock kind="empty" title="Nothing on this shelf yet" body="New items are added often. Need something now? Send it as a shopping list." action="Open shopping list" onAction={() => router.push('/mega-basket' as any)} style={{ marginTop: 16 }} />
+          <StateBlock kind="empty" title="Nothing on this shelf yet" body="New items are added often." style={{ marginTop: 16 }} />
         ) : !shown.length ? (
           <StateBlock kind="search" title={q ? `No results for “${q.trim()}”` : 'Nothing in this filter'} body={q ? 'Check the spelling or try a shorter word.' : 'Pick another filter to see more.'} action={q ? 'Clear search' : 'Show all'} onAction={() => (q ? setQ('') : setChip('all'))} style={{ marginTop: 16 }} />
         ) : (

@@ -50,7 +50,7 @@ export function priceForDuration(item: RItem, d: Duration): { price: number | nu
 export function vehicleSafeguards(item: RItem, safety: SafetyInfo | null): string[] {
   const car = item.category === 'car';
   const lines = [
-    `Your driving licence (${car ? 'LMV' : 'MCWOG or MCWG'}) is checked by the ZCS team before your first booking.`,
+    `Your driving licence (${car ? 'LMV' : 'MCWOG or MCWG'}) is checked by the ZENV team before your first booking.`,
     item.deposit ? `Refundable deposit of ${inr(item.deposit)}, paid in cash at pickup and returned at drop-off.` : 'Rent is paid at pickup. Nothing is charged online.',
     'Pickup and return are confirmed with a one-time PIN, with condition photos on both sides.',
   ];
@@ -123,7 +123,7 @@ export default function RentalsV2Vehicle() {
 
           <SectionTitle>Safe and simple</SectionTitle>
           <Safeguards lines={vehicleSafeguards(item, safety)} />
-          {safety?.disclaimer ? <Text style={[v.muted, { marginTop: 10, lineHeight: 17 }]}>{safety.disclaimer.replace(/Zenvy/g, 'ZCS')}</Text> : null}
+          {safety?.disclaimer ? <Text style={[v.muted, { marginTop: 10, lineHeight: 17 }]}>{safety.disclaimer.replace(/\bZenvy\b|\bZCS\b/g, 'ZENV')}</Text> : null}
 
           {reviews.length ? (
             <>

@@ -139,7 +139,7 @@ export const CAMPUS_BITES_PROMOS: CampusBitesPromo[] = [
   },
   {
     id: 'how-it-works',
-    tag: 'How CampusBites works',
+    tag: 'How stall orders work',
     title: 'Order here, pay cash',
     subtitle: 'The stall delivers. Pay cash.',
     cta: 'See all stalls',

@@ -92,7 +92,7 @@ export default function SupportScreen() {
       }
     } catch (e) {
       console.error('Error fetching tickets:', e);
-      if (mountedRef.current) setLoadError("Can't reach ZCS right now. Check your internet and try again.");
+      if (mountedRef.current) setLoadError("Can't reach ZENV right now. Check your internet and try again.");
     } finally {
       if (mountedRef.current) {
         setLoading(false);
@@ -157,7 +157,7 @@ export default function SupportScreen() {
         Alert.alert("Couldn't send your reply", friendlyMessage(res, data, 'Please try again in a moment.'));
       }
     } catch {
-      if (mountedRef.current) Alert.alert("Couldn't send your reply", "Can't reach ZCS right now. Check your internet and try again.");
+      if (mountedRef.current) Alert.alert("Couldn't send your reply", "Can't reach ZENV right now. Check your internet and try again.");
     } finally {
       if (mountedRef.current) setReplySending(false);
     }
@@ -257,8 +257,8 @@ export default function SupportScreen() {
   };
 
   const whatsappText = linkedOrderId
-    ? `Hi ZCS Support, I need help with order #${shortId(linkedOrderId)}`
-    : 'Hi ZCS Support, I need help';
+    ? `Hi ZENV Support, I need help with order #${shortId(linkedOrderId)}`
+    : 'Hi ZENV Support, I need help';
 
   const txt = colors.text;
   const txtSec = colors.textSecondary;
@@ -328,7 +328,7 @@ export default function SupportScreen() {
 
         {/* Helpline Card */}
         <View style={[s.formCard, { backgroundColor: cardBg, borderColor: border, marginBottom: 16 }]}>
-          <Text style={[s.subText, { color: goldColor, marginBottom: 4 }]}>ZCS helpline</Text>
+          <Text style={[s.subText, { color: goldColor, marginBottom: 4 }]}>ZENV helpline</Text>
           <Text style={{ fontSize: 13, fontWeight: '800', color: txt, marginBottom: 4 }}>Need urgent help with a live order?</Text>
           <Text style={{ fontSize: 12, color: txtSec, lineHeight: 16, marginBottom: 14 }}>
             For a delayed order or trouble meeting your rider, message or call our support team directly.
@@ -620,7 +620,7 @@ export default function SupportScreen() {
                       {thread.map((r, i) => (
                         <View key={`${r.at || ''}-${i}`} style={i > 0 ? { marginTop: 10 } : undefined}>
                           <Text style={[s.responseLabel, r.by === 'customer' && { color: txtSec }]}>
-                            {r.by === 'customer' ? 'You' : 'ZCS support'}{r.at ? ` · ${formatWhen(r.at)}` : ''}
+                            {r.by === 'customer' ? 'You' : 'ZENV support'}{r.at ? ` · ${formatWhen(r.at)}` : ''}
                           </Text>
                           <Text style={[s.responseText, { color: txt }]}>{r.text}</Text>
                         </View>
@@ -628,7 +628,7 @@ export default function SupportScreen() {
                     </View>
                   ) : !!ticket.adminResponse && (
                     <View style={[s.responseBox, { backgroundColor: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.03)', borderColor: border }]}>
-                      <Text style={s.responseLabel}>Reply from ZCS support</Text>
+                      <Text style={s.responseLabel}>Reply from ZENV support</Text>
                       <Text style={[s.responseText, { color: txt }]}>{ticket.adminResponse}</Text>
                     </View>
                   )}

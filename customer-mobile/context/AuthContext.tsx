@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo, ReactNode } from 'react';
-import { AppState } from 'react-native';
+import { Alert, AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getUser, setUser as saveUser, removeToken, removeUser, getToken, onSessionInvalid, refreshSessionIfNeeded } from '../utils/auth';
+import { getUser, setUser as saveUser, removeToken, removeUser, getToken, onSessionInvalid, refreshSessionIfNeeded, tokenReadFailed } from '../utils/auth';
 
 // Per-user data kept on the device. Cleared on logout so the next account on a shared phone
 // never sees the previous user's addresses, favourites or alerts.
@@ -18,8 +18,12 @@ const USER_SCOPED_KEYS = [
   'zenvy_push_prefs_v1',
   'zenvy_recently_viewed',
   'zenvy_fav_dishes',
+  'zcs.campusBooking.carts.v1',
 ];
 const USER_SCOPED_PREFIXES = ['zenvy_reviews_'];
+
+/** The "Account suspended" notice is shown once per app run. */
+let suspendedNoticeShown = false;
 
 const normalizeUserId = <T extends Record<string, any> | null>(u: T): T => {
   if (!u) return u;
@@ -101,6 +105,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const [stored, token] = await Promise.all([getUser(), getToken()]);
       if (stored && token) {
         setUserState(normalizeUserId(stored));
+      } else if (stored && !token && tokenReadFailed()) {
+        // The phone's keystore failed this read (it happens after an update or under memory pressure): that is
+        // not "signed out". Keep the account and check again shortly instead of deleting the session.
+        setUserState(normalizeUserId(stored));
+        setTimeout(() => { refreshUserRef.current().catch(() => {}); }, 1500);
       } else {
         await removeToken();
         await removeUser();
@@ -178,6 +187,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.warn('[LOGOUT] local data cleanup failed:', e);
     }
 
+    // In-Campus Booking stall carts live in memory too (modules/campusBooking/cbCart).
+    try { require('../modules/campusBooking/cbCart').cbCart.clearAll(); } catch {}
+
     // 3. Re-handshake the realtime socket as a guest, and close the signed-in-only campus socket
     //    (required lazily: campusSocketClient imports this module's helpers).
     reconnectSocket();
@@ -219,9 +231,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const data = await response.json();
         setUser(data);
       } else if (response.status === 401) {
-        // Token has expired or is invalid -> force logout immediately to prevent redirect loop
+        // Token has expired or is invalid (or the account was deleted on another phone) -> sign out
         await logout();
       } else {
+        // Suspended by ZCS: say so once (every request is refused), keep the session for when it is lifted.
+        if (response.status === 403) {
+          const body = await response.clone().json().catch(() => null);
+          if (body && body.code === 'ACCOUNT_SUSPENDED' && !suspendedNoticeShown) {
+            suspendedNoticeShown = true;
+            Alert.alert('Account suspended', `${body.message || 'Your ZENV account is suspended.'} Until then you can browse, but orders and bookings are paused.`);
+          }
+        }
         // Fallback to local storage if API call fails due to other reasons (e.g. network offline)
         const stored = await getUser();
         if (stored) setUserState(normalizeUserId(stored));

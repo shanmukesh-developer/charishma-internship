@@ -14,7 +14,7 @@ export const FOOD = {
   /** Home hero card (dark green) and its border. */
   hero: ['#04391F', '#042F20'] as [string, string],
   heroLine: 'rgba(140,220,170,0.28)',
-  /** Bright pill on dark green ("Shop now", "Start a shopping list"). */
+  /** Bright pill on dark green ("Shop now"). */
   bright: ['#2DAD64', '#3BC671'] as [string, string],
   /** Primary green: "+", selected chips, buttons on white. */
   primary: '#07843F',

@@ -26,7 +26,7 @@ type Family = 'repairs' | 'tailoring' | 'print' | 'laundry';
 const HERO: Record<Family, { kicker: string; title: string; sub: string; cta: string; image: string; icon: IconName }> = {
   repairs: { kicker: 'Campus tech care', title: 'Laptop & phone repair', sub: 'Doorstep pickup. You approve the quote before any work.', cta: 'Book a repair', image: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=900&q=80', icon: 'laptop-outline' },
   tailoring: { kicker: 'Campus tailoring', title: 'Tailoring & alterations', sub: 'Alterations, fittings and stitching, collected from your hostel.', cta: 'Book a tailor', image: 'https://images.unsplash.com/photo-1630930678172-63343537a00a?w=900&q=80', icon: 'cut-outline' },
-  print: { kicker: 'Document hub', title: 'Print & binding', sub: 'Assignments, A3 drawings and thesis binding, delivered to your room.', cta: 'Send a print job', image: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=900&q=80', icon: 'print-outline' },
+  print: { kicker: 'Document hub', title: 'Print & binding', sub: 'Assignments, A3 drawings and thesis binding, delivered to your hostel gate.', cta: 'Send a print job', image: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=900&q=80', icon: 'print-outline' },
   laundry: { kicker: 'Pickup & drop', title: 'Laundry & dry cleaning', sub: 'Washed, ironed and folded. Collected from your hostel.', cta: 'Schedule a pickup', image: 'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=900&q=80', icon: 'shirt-outline' },
 };
 

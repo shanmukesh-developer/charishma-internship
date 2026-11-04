@@ -448,7 +448,7 @@ export const ChatDetailScreen: React.FC<ChatDetailScreenProps> = ({
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
       const code = (e as any)?.code;
       if (code === 'CONTENT_BLOCKED') {
-        Alert.alert('Please rephrase', (e as any)?.message || "That has words that aren't allowed on ZCS. Please rephrase it and try again.");
+        Alert.alert('Please rephrase', (e as any)?.message || "That has words that aren't allowed on ZENV. Please rephrase it and try again.");
       } else if (code === 'BLOCKED' || code === 'RATE_LIMITED' || code === 'CHAT_CLOSED') {
         Alert.alert('Message not sent', (e as any)?.message || "We couldn't send your message.");
       } else {

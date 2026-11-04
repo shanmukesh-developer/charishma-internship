@@ -97,12 +97,12 @@ export function DealsV2HomeBody({ sections }: { sections?: { key: string; label:
 
       {/* Invite friends (real referral code) */}
       {d.signedIn && d.referralCode ? (
-        <Press onPress={() => nav.push({ name: 'refer' })} label="Invite friends, earn ZCS Points" style={[s.refer, shadow(2)]}>
+        <Press onPress={() => nav.push({ name: 'refer' })} label="Invite friends, earn ZENV Points" style={[s.refer, shadow(2)]}>
           <LinearGradient colors={['#FFFFFF', '#F1ECFF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
           <IconPlate size={46}><IUserPlus size={21} color="#FFFFFF" strokeWidth={1.6} /></IconPlate>
           <View style={{ flex: 1, minWidth: 0, marginLeft: 10 }}>
-            <Text style={s.referTitle}>Invite friends, earn ZCS Points</Text>
-            <Text style={s.referSub}>You and your friend each get 50 ZCS Points when they sign up with your code.</Text>
+            <Text style={s.referTitle}>Invite friends, earn ZENV Points</Text>
+            <Text style={s.referSub}>You and your friend each get 50 ZENV Points when they sign up with your code.</Text>
           </View>
           <IChevronRight size={18} color={DV.violet} strokeWidth={1.8} />
         </Press>

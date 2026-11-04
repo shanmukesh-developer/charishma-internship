@@ -37,7 +37,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { apiFetch } from '../utils/auth';
-import { readCache, writeCache } from '../utils/swrCache';
+import { readCache, writeCache, useSWRJson } from '../utils/swrCache';
 import { StaggeredSection, FloatingPulse, BounceIn } from '../components/AnimatedSection';
 import DopaminePressable, { ActionPressable } from '../components/DopaminePressable';
 import { stallErrorMessage, stallPayCopy } from '../utils/localVendor';
@@ -50,6 +50,8 @@ import { formatINR, formatClock, plural } from '../utils/format';
 import { plainDiscountLabel } from '../utils/billLabel';
 import { useTopInset } from '../utils/useTopInset';
 import { syncPlaces, addPlace, removePlace, placeText, placeFromText, PLACE_LABELS, type SavedPlace } from '../utils/savedAddresses';
+import { setCollege, clearCollege } from '../utils/college';
+import { goHome } from '../utils/goHome';
 
 const PLACE_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
   Hostel: 'home-outline', Library: 'library-outline', Lab: 'flask-outline', Friend: 'people-outline', Other: 'location-outline',
@@ -117,6 +119,8 @@ interface UserCoupon {
   expiresInDays?: number | null;
 }
 
+// Server answers about colleges (backend utils/campuses): the basket or the college has to change, not the bill.
+const COLLEGE_CODES = ['STORE_NOT_AT_CAMPUS', 'CAMPUS_PAUSED', 'CAMPUS_SOON'];
 // Campuses the order service delivers to (server: resolveCampus in orderController).
 // The label also starts the delivery address sent to the server ("SRM AP - Ganga, Room 304").
 const CAMPUSES: { key: CampusKey; label: string; sub: string; code: string }[] = [
@@ -174,10 +178,26 @@ export default function CheckoutScreen() {
   // No silent default: the last campus picked here, else the college email's campus, else the customer picks.
   const [campus, setCampusState] = useState<CampusKey | null>(null);
   const campusTouchedRef = useRef(false);
+  // Colleges' status (GET /api/config/campuses): a coming-soon college cannot be picked, a paused one says so (the
+  // server refuses both; same defaults as the server until it answers).
+  const campusesSWR = useSWRJson<{ campuses?: { key: string; status: string }[] }>('/api/config/campuses', { freshMs: 30 * 1000 });
+  const campusStatus = (key: CampusKey): 'open' | 'paused' | 'soon' => {
+    const row = campusesSWR.data?.campuses?.find((c) => c.key === key);
+    if (row) return row.status === 'paused' || row.status === 'soon' ? row.status : 'open';
+    return key === 'amrita' ? 'soon' : 'open';
+  };
+  // Destructive only on the server's answer (never on the built-in defaults while it loads): once Amrita opens, a
+  // student's Amrita pick must not be wiped for a moment on every checkout.
+  const statusKnown = Array.isArray(campusesSWR.data?.campuses);
+  const campusSoon = statusKnown && campus ? campusStatus(campus) === 'soon' : false;
+  // A saved college that is not open yet (picked in an older build): forgotten here and for every list, so the
+  // student picks an open one instead of every bill failing with "starts soon".
+  useEffect(() => { if (campusSoon) { setCampusState(null); clearCollege(); } }, [campusSoon]);
   const setCampus = (key: CampusKey) => {
     campusTouchedRef.current = true;
     setCampusState(key);
-    AsyncStorage.setItem(CHECKOUT_CAMPUS_KEY, key).catch(() => {});
+    // The student's college for every list too (utils/college: saved under the same key, lists refresh for it).
+    setCollege(key);
   };
   const [address, setAddress] = useState('');
   // Saved places (utils/savedAddresses): local list, synced to the account when signed in
@@ -218,6 +238,13 @@ export default function CheckoutScreen() {
   const basketKeyRef = useRef<{ sig: string; key: string } | null>(null);
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
+  // A missing college, address or slot scrolls to that section (2 Nov 2026: after "Pick your college" the page
+  // stayed at the bottom with the college picker off screen); the address case puts the cursor in the field.
+  const scrollRef = useRef<ScrollView>(null);
+  const addressRef = useRef<TextInput>(null);
+  const sectionY = useRef({ college: 0, slot: 0 });
+  // Instant: the alert that opens with it cancels a smooth scroll on the web.
+  const scrollToSection = (key: 'college' | 'slot') => scrollRef.current?.scrollTo({ y: Math.max(0, sectionY.current[key] - 12), animated: false });
 
   const orderLines = useMemo(() => cart.filter((i) => !isCustomRequest(i)), [cart]);
   const customLines = useMemo(() => cart.filter((i) => isCustomRequest(i)), [cart]);
@@ -263,7 +290,11 @@ export default function CheckoutScreen() {
       try { saved = await AsyncStorage.getItem(CHECKOUT_CAMPUS_KEY); } catch {}
       if (cancelled || campusTouchedRef.current) return;
       const guess = isCampusKey(saved) ? saved : campusFromEmail((user as any)?.email);
-      if (guess) setCampusState(guess);
+      if (guess) {
+        setCampusState(guess);
+        // The college email's campus is the student's college for the lists and the bill too.
+        if (!isCampusKey(saved)) setCollege(guess);
+      }
     })();
     return () => { cancelled = true; };
   }, [user]);
@@ -357,10 +388,12 @@ export default function CheckoutScreen() {
     return () => { cancelled = true; };
   }, [user]);
 
-  // An invalid coupon is dropped with the server's reason
+  // A coupon the server refuses for this basket (not valid any more, another store, a missing item, below its
+  // minimum, or it would save nothing) is dropped with the server's reason, so the bill comes back at once.
   useEffect(() => {
-    if (quoteError?.code === 'COUPON_INVALID' && couponCode) {
-      Alert.alert('Coupon not applied', quoteError.message);
+    const code = String(quoteError?.code || '');
+    if (couponCode && code.startsWith('COUPON_') && code !== 'COUPON_NOT_FOR_STALL') {
+      Alert.alert('Coupon not applied', quoteError?.message || 'This coupon does not work on this order.');
       setCouponCode(null);
     }
   }, [quoteError, couponCode]);
@@ -464,6 +497,21 @@ export default function CheckoutScreen() {
     ]);
   };
 
+  /** OPTION_INVALID: a weight / flavour pick is missing or no longer offered. Retrying gives the same answer. */
+  const chooseOptionsAgain = (body: any) => {
+    const id = body?.menuItemId ? String(body.menuItemId) : null;
+    if (id) {
+      removeItems({ ids: [id] });
+      router.push(`/products/${id}` as any);
+    } else goHome(router, '/(tabs)/basket');
+  };
+  const offerChooseOptions = (message: string, body: any) => {
+    Alert.alert('Choose again', message || 'One item needs its options chosen again.', [
+      { text: 'Keep editing', style: 'cancel' },
+      { text: 'Choose again', onPress: () => chooseOptionsAgain(body) },
+    ]);
+  };
+
   const offerRemoveStallAddOns = (message: string) => {
     Alert.alert('Remove add-ons', message || `Add-ons can't be added to a ${stallName} order.`, [
       { text: 'Keep editing', style: 'cancel' },
@@ -552,14 +600,19 @@ export default function CheckoutScreen() {
       return;
     }
     if (!campus) {
-      Alert.alert('Pick your campus', 'Choose the campus we should deliver to.');
+      scrollToSection('college');
+      Alert.alert('Pick your college', 'Choose the college we should deliver to.');
       return;
     }
     if (address.trim().length < 3) {
-      Alert.alert('Where should we deliver?', `Add your hostel block and room number (e.g. Ganga, Room 304) so ${isStallOrder ? stallName : 'the rider'} can find you.`);
+      scrollToSection('college');
+      Alert.alert('Where should we deliver?', `Add your hostel block and room number (e.g. Ganga, Room 304). ${isStallOrder ? stallName : 'The rider'} calls you at your hostel gate.`, [
+        { text: 'OK', onPress: () => addressRef.current?.focus() },
+      ]);
       return;
     }
     if (slotsOn && !selectedSlot) {
+      scrollToSection('slot');
       Alert.alert('Pick a delivery slot', 'Choose when we should deliver your order.');
       return;
     }
@@ -567,10 +620,13 @@ export default function CheckoutScreen() {
       if (quoteLoading) Alert.alert('One moment', 'We are updating your bill. Try again in a second.');
       else if (quoteError?.code === 'ITEMS_UNAVAILABLE' || quoteError?.code === 'BOOKING_ONLY_ITEMS') offerRemoveUnavailable(quoteError.message, quoteError.body);
       else if (quoteError?.code === 'ADDONS_NOT_FOR_STALL') offerRemoveStallAddOns(quoteError.message);
+      else if (quoteError?.code === 'OPTION_INVALID') offerChooseOptions(quoteError.message, quoteError.body);
       else if (quoteError && stallErrorMessage(quoteError.code, quoteError.message, errorStoreName)) {
         const m = stallErrorMessage(quoteError.code, quoteError.message, errorStoreName)!;
         Alert.alert(m.title, m.message);
       }
+      // College rules (pick your college / a store at your college): retrying gives the same answer.
+      else if (quoteError && COLLEGE_CODES.includes(String(quoteError.code))) Alert.alert('Not available at your college', quoteError.message);
       else if (quoteError) Alert.alert("We couldn't calculate your bill", quoteError.message, [{ text: 'OK', style: 'cancel' }, { text: 'Retry', onPress: refreshQuote }]);
       return;
     }
@@ -606,8 +662,8 @@ export default function CheckoutScreen() {
       const n = snap.orderLines.reduce((a, i) => a + i.quantity, 0);
       lines.push(`${plural(n, 'item')} from ${quote.store?.name || 'your store'} · ${formatINR(quote.finalPrice)}`);
       lines.push(snap.isStallOrder
-        ? `Payment: ${stallPayCopy(stallName)} (${stallName} delivers it, no ZCS rider)`
-        : `Payment: ${snap.paymentMethod === 'Wallet' ? 'ZCS Wallet' : 'Cash on Delivery'}`);
+        ? `Payment: ${stallPayCopy(stallName)} (${stallName} delivers it, no ZENV rider)`
+        : `Payment: ${snap.paymentMethod === 'Wallet' ? 'ZENV Wallet' : 'Cash on Delivery'}`);
     }
     if (hasCustom) {
       lines.push(`Shopping list (${customLines.length}) · est. ${formatINR(customEstimate)} + fees, cash on delivery`);
@@ -709,7 +765,14 @@ export default function CheckoutScreen() {
         }
         const data = await res.json().catch(() => null);
         const code = data?.code;
-        // The server answered: the attempt is settled, except "still being placed" (same key in flight).
+        // A gateway / proxy error (502 / 503 / 504 HTML page, no JSON) is NOT an answer from our server: the order may
+        // have gone through. Keep the attempt and its key (the next tap checks Orders first, and the same key makes
+        // the server return that order instead of placing a second one - a double Wallet charge otherwise).
+        if (!data && res.status >= 500) {
+          Alert.alert('Connection problem', `${friendlyNetworkMessage} If your order went through, it will show up in Orders.`);
+          return;
+        }
+        // Our server answered: the attempt is settled, except "still being placed" (same key in flight).
         if (code !== 'ORDER_IN_PROGRESS') attemptRef.current = null;
         if (res.ok && data && (data._id || data.id)) {
           placedOrderId = String(data._id || data.id);
@@ -731,6 +794,7 @@ export default function CheckoutScreen() {
             return;
           }
           if (code === 'ITEMS_UNAVAILABLE' || code === 'BOOKING_ONLY_ITEMS') offerRemoveUnavailable(message, data);
+          else if (code === 'OPTION_INVALID') offerChooseOptions(message, data);
           else if (code === 'STALL_COD_ONLY') {
             setPaymentMethod('COD');
             Alert.alert('Cash only', `${message} Payment is now set to cash. Tap Place order again.`);
@@ -887,7 +951,7 @@ export default function CheckoutScreen() {
           <Ionicons name="basket-outline" size={44} color={txtSec} style={{ marginBottom: 12 }} />
           <Text style={[s.centerTitle, { color: txt }]}>Your basket is empty</Text>
           <Text style={[s.centerSub, { color: txtSec }]}>Add something from a campus store to check out.</Text>
-          <TouchableOpacity style={s.primaryBtn} onPress={() => router.replace('/(tabs)' as any)}>
+          <TouchableOpacity style={s.primaryBtn} onPress={() => goHome(router)}>
             <Text style={s.primaryBtnText}>Browse stores</Text>
           </TouchableOpacity>
         </View>
@@ -943,6 +1007,7 @@ export default function CheckoutScreen() {
       {header}
 
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={[s.scroll, { paddingBottom: 220 }]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
@@ -959,35 +1024,41 @@ export default function CheckoutScreen() {
         )}
 
         {/* Campus Selection */}
-        <StaggeredSection delay={50} direction="up">
-          <Text style={[s.sectionTitle, { color: txt }]}>Delivery campus</Text>
+        <StaggeredSection delay={50} direction="up" onLayout={(e) => { sectionY.current.college = e.nativeEvent.layout.y; }}>
+          <Text style={[s.sectionTitle, { color: txt }]}>Your college</Text>
           {!campus && (
-            <Text style={[s.helperText, { color: COLORS.red }]}>Pick the campus we should deliver to.</Text>
+            <Text style={[s.helperText, { color: COLORS.red }]}>Pick the college we should deliver to.</Text>
           )}
           <View style={s.campusRow}>
             {CAMPUSES.map(item => {
               const isActive = campus === item.key;
+              const st = campusStatus(item.key);
+              const soon = st === 'soon';
               return (
                 <DopaminePressable
                   key={item.key}
                   style={[
                     s.campusBtnNew,
                     { backgroundColor: cardBg, borderColor: border },
-                    isActive && { borderColor: goldColor, backgroundColor: isDark ? 'rgba(201,168,76,0.08)' : 'rgba(239,79,95,0.05)' }
+                    isActive && { borderColor: goldColor, backgroundColor: isDark ? 'rgba(201,168,76,0.08)' : 'rgba(239,79,95,0.05)' },
+                    soon && { opacity: 0.5 },
                   ]}
+                  disabled={soon}
                   onPress={() => setCampus(item.key)}
                   sound="click"
                   activeScale={0.95}
                   accessibilityRole="radio"
-                  accessibilityLabel={`${item.label}, ${item.sub}`}
-                  accessibilityState={{ selected: isActive, checked: isActive }}
+                  accessibilityLabel={`${item.label}, ${item.sub}${soon ? ', coming soon' : st === 'paused' ? ', ordering paused for now' : ''}`}
+                  accessibilityState={{ selected: isActive, checked: isActive, disabled: soon }}
                 >
                   <Text style={[s.campusLabelNew, { color: isActive ? goldColor : txt }]}>{item.label}</Text>
-                  <Text style={[s.campusSubLabelNew, { color: txtSec }]} numberOfLines={2}>{item.sub}</Text>
+                  <Text style={[s.campusSubLabelNew, { color: st === 'paused' ? COLORS.red : txtSec }]} numberOfLines={2}>{soon ? 'Coming soon' : st === 'paused' ? 'Ordering paused' : item.sub}</Text>
                   {isActive && (
-                    <BounceIn delay={0}>
+                    // The bounce wrapper itself sits in the top-right corner (it was in the text flow, so the tick
+                    // landed on the second line of "SRM University AP").
+                    <BounceIn delay={0} style={s.activeCheckWrap}>
                       <View style={[s.activeCheckBadge, { backgroundColor: goldColor }]}>
-                        <Text style={s.activeCheckText}>✓</Text>
+                        <Ionicons name="checkmark" size={11} color="#000" />
                       </View>
                     </BounceIn>
                   )}
@@ -1028,6 +1099,7 @@ export default function CheckoutScreen() {
           )}
 
           <TextInput
+            ref={addressRef}
             style={[s.input, { backgroundColor: cardBg, color: txt, borderColor: address.trim().length >= 3 ? border : 'rgba(239,68,68,0.5)' }]}
             placeholder="Hostel block & room no. (e.g. Ganga, Room 304)"
             placeholderTextColor={txtSec}
@@ -1177,7 +1249,7 @@ export default function CheckoutScreen() {
             <View style={{ flex: 1 }}>
               <Text style={[s.noticeTitle, { color: txt }]}>{stallName} delivers this order</Text>
               <Text style={[s.noticeSub, { color: txtSec }]}>
-                {stallPayCopy(stallName)}. No ZCS rider and no Delivery PIN. Coupons and add-ons don't apply to stall orders.
+                {stallPayCopy(stallName)}. No ZENV rider and no Delivery PIN. Coupons and add-ons don't apply to stall orders.
               </Text>
               {addOnLines.length > 0 && (
                 <TouchableOpacity style={[s.smallBtn, { marginTop: 10 }]} onPress={removeAddOns}>
@@ -1230,7 +1302,7 @@ export default function CheckoutScreen() {
 
         {/* Delivery slot: Today / Tomorrow (server slots; picking one is required) */}
         {(slotsOn || (hasCustom && !hasOrder && listSlotsLoading)) && (
-          <StaggeredSection delay={260} direction="up">
+          <StaggeredSection delay={260} direction="up" onLayout={(e) => { sectionY.current.slot = e.nativeEvent.layout.y; }}>
             <View style={{ marginTop: 24 }}>
               <DeliverySlotPicker
                 info={slotsOn ? slotInfo : null}
@@ -1253,14 +1325,15 @@ export default function CheckoutScreen() {
               { key: 'COD' as PayMethod, title: 'Cash on Delivery', desc: 'Pay the rider in cash when it arrives', icon: 'cash-outline' as IonName, enabled: true },
               {
                 key: 'Wallet' as PayMethod,
-                title: 'ZCS Wallet',
-                desc: !hasOrder
-                  ? 'Shopping lists are paid in cash on delivery'
-                  : storeCodOnly
-                    ? 'This store takes cash on delivery only'
-                    : walletAllowed
+                title: 'ZENV Wallet',
+                desc: storeCodOnly
+                  ? 'This store takes cash on delivery only'
+                  : walletAllowed
                     ? `Balance ${formatINR(walletBalance)}`
-                    : `Balance ${formatINR(walletBalance)} · not enough for this order`,
+                    // No bill yet (loading, or it failed): "not enough" would be a guess.
+                    : !quote
+                      ? (quoteError && !quoteLoading ? `Balance ${formatINR(walletBalance)}` : `Balance ${formatINR(walletBalance)} · checking the bill…`)
+                      : `Balance ${formatINR(walletBalance)} · not enough for this order`,
                 icon: 'wallet-outline' as IonName,
                 enabled: walletAllowed,
               },
@@ -1319,9 +1392,9 @@ export default function CheckoutScreen() {
 
             {hasOrder && !quote && !quoteLoading && quoteError && (
               <View style={{ paddingVertical: 8 }}>
-                <Text style={[s.noticeTitle, { color: txt }]}>We couldn't calculate your bill</Text>
+                <Text style={[s.noticeTitle, { color: txt }]}>{COLLEGE_CODES.includes(String(quoteError.code)) ? 'Not available at your college' : "We couldn't calculate your bill"}</Text>
                 <Text style={[s.noticeSub, { color: txtSec, marginBottom: 10 }]}>{quoteError.message}</Text>
-                {quoteError.code === 'ITEMS_UNAVAILABLE' || quoteError.code === 'BOOKING_ONLY_ITEMS' ? (
+                {quoteError.code === 'CAMPUS_SOON' ? null : quoteError.code === 'ITEMS_UNAVAILABLE' || quoteError.code === 'BOOKING_ONLY_ITEMS' ? (
                   <TouchableOpacity style={s.smallBtn} onPress={() => { const u = unavailableFrom(quoteError.body); removeItems(u); }}>
                     <Text style={s.smallBtnText}>Remove unavailable items</Text>
                   </TouchableOpacity>
@@ -1329,9 +1402,13 @@ export default function CheckoutScreen() {
                   <TouchableOpacity style={s.smallBtn} onPress={removeAddOns}>
                     <Text style={s.smallBtnText}>Remove add-ons</Text>
                   </TouchableOpacity>
-                ) : quoteError.code === 'MULTIPLE_STORES' || quoteError.code === 'ADDONS_ONLY' || quoteError.code === 'TOO_MANY_LINES' || quoteError.code === 'INVALID_QUANTITY' || quoteError.code === 'STORE_CLOSED' ? (
+                ) : quoteError.code === 'OPTION_INVALID' ? (
+                  <TouchableOpacity style={s.smallBtn} onPress={() => chooseOptionsAgain(quoteError.body)}>
+                    <Text style={s.smallBtnText}>Choose again</Text>
+                  </TouchableOpacity>
+                ) : quoteError.code === 'MULTIPLE_STORES' || quoteError.code === 'ADDONS_ONLY' || quoteError.code === 'TOO_MANY_LINES' || quoteError.code === 'INVALID_QUANTITY' || quoteError.code === 'STORE_CLOSED' || quoteError.code === 'STORE_NOT_AT_CAMPUS' ? (
                   // Retrying gives the same answer: the basket itself has to change.
-                  <TouchableOpacity style={s.smallBtn} onPress={() => router.replace('/(tabs)/basket' as any)}>
+                  <TouchableOpacity style={s.smallBtn} onPress={() => goHome(router, '/(tabs)/basket')}>
                     <Text style={s.smallBtnText}>Edit basket</Text>
                   </TouchableOpacity>
                 ) : quoteError.code === 'MIN_ORDER_NOT_MET' && quoteError.body?.storeId ? (
@@ -1446,8 +1523,8 @@ const s = StyleSheet.create({
   campusBtnNew: { flex: 1, paddingVertical: 12, paddingHorizontal: 6, borderRadius: 16, alignItems: 'center', borderWidth: 1.5, position: 'relative', overflow: 'hidden' },
   campusLabelNew: { fontSize: 12, fontWeight: '700', letterSpacing: 0.2 },
   campusSubLabelNew: { fontSize: 12, fontWeight: '600', color: COLORS.textMuted, marginTop: 2, textAlign: 'center' },
-  activeCheckBadge: { position: 'absolute', top: 0, right: 0, borderBottomLeftRadius: 8, width: 14, height: 14, alignItems: 'center', justifyContent: 'center' },
-  activeCheckText: { color: '#000', fontSize: 12, fontWeight: '700' },
+  activeCheckWrap: { position: 'absolute', top: 6, right: 6 },
+  activeCheckBadge: { width: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   input: { borderWidth: 1, borderRadius: 12, padding: 14, fontSize: 13, marginBottom: 10, fontWeight: '600' },
   blockChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, borderWidth: 1.5 },
   placeChip: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 14, borderWidth: 1.5 },

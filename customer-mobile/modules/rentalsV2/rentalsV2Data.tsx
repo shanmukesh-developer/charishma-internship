@@ -16,6 +16,7 @@ import { DEMO_ITEMS, RENTALS_V2_DEMO_CONTENT, demoArt, type Feature } from './re
 import type { Category } from './rentalsV2Theme';
 import { apiFetch, readJson } from '../../utils/auth';
 import { API_URL } from '../../constants/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type LoadState = 'loading' | 'ready' | 'error';
 type Img = ImageSourcePropType | { uri: string };
@@ -154,6 +155,19 @@ type Snap = {
 let snap: Snap = { vehicles: [], vState: 'loading', vError: null, featureOff: false, rooms: [], rState: 'loading', elig: null, saved: new Set(), recent: [] };
 const subs = new Set<(s: Snap) => void>();
 const emit = (patch: Partial<Snap>) => { snap = { ...snap, ...patch }; subs.forEach((f) => f(snap)); };
+
+// Saved listings are kept on this device (3 Nov 2026: they lived in memory only and were gone after a restart). Read
+// once, written on every heart tap; the backend has no saved-rentals list yet.
+const SAVED_KEY = 'zcs_rentals_saved_v1';
+let savedLoaded = false;
+const loadSavedRentals = async () => {
+  if (savedLoaded) return;
+  savedLoaded = true;
+  try {
+    const ids = JSON.parse((await AsyncStorage.getItem(SAVED_KEY)) || '[]');
+    if (Array.isArray(ids) && ids.length) emit({ saved: new Set([...ids.map(String), ...snap.saved]) });
+  } catch { /* unreadable: start empty */ }
+};
 let started = false;
 let vInflight: Promise<void> | null = null;
 let rInflight: Promise<void> | null = null;
@@ -230,12 +244,14 @@ export function RentalsV2Provider({ children }: { children: React.ReactNode }) {
     subs.add(setS);
     setS(snap);
     if (!started) { started = true; reloadAll(); }
+    loadSavedRentals();
     return () => { subs.delete(setS); };
   }, []);
   const toggleSaved = useCallback((id: string) => {
     const next = new Set(snap.saved);
     if (next.has(id)) next.delete(id); else next.add(id);
     emit({ saved: next });
+    AsyncStorage.setItem(SAVED_KEY, JSON.stringify([...next])).catch(() => { /* storage full: this session still has it */ });
   }, []);
   const addRecent = useCallback((q: string) => {
     const v = q.trim();

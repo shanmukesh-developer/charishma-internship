@@ -22,7 +22,7 @@ import { formatLocal } from './RelativeTime';
 const REASON_COPY: Record<FriendsReason, { title: string; body: string }> = {
   ACCOUNT_SUSPENDED: {
     title: 'Your account is suspended',
-    body: 'Friends is not available while your ZCS account is suspended. Contact support if you think this is a mistake.',
+    body: 'Friends is not available while your ZENV account is suspended. Contact support if you think this is a mistake.',
   },
   CAMPUS_REQUIRED: {
     title: 'Pick your campus',

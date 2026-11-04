@@ -26,7 +26,7 @@ const FRIENDLY: Record<string, string> = {
   WOMEN_ONLY_HOST: 'Women-only rides can be posted by hosts whose profile gender is Female. Set your gender first.',
   WOMEN_ONLY: 'This ride is for women only, so you cannot join it.',
   NOT_ON_RIDE: 'SOS from the app works for the host and confirmed riders of this ride. Call 112 for any emergency.',
-  SOS_RATE_LIMIT: 'Your SOS was already sent a moment ago. ZCS support is on it. Call 112 if you are in danger.',
+  SOS_RATE_LIMIT: 'Your SOS was already sent a moment ago. ZENV support is on it. Call 112 if you are in danger.',
   TEMPLATE_LIMIT: 'You can save up to 10 regular rides. Delete one first.',
 };
 export const friendly = (code?: string, message?: string) => (code && FRIENDLY[code]) || message || 'Something went wrong. Please try again.';

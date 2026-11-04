@@ -101,7 +101,7 @@ export default function EventsV2Detail() {
       : `https://www.google.com/maps/search/?api=1&query=${q}${q ? '+SRM+University+AP' : ''}`;
     Linking.openURL(url as string).catch(() => Alert.alert('Could not open maps'));
   };
-  const share = () => Share.share({ message: `${ev.title} · ${fmtWhen(ev.startAt)}${ev.venue ? ` · ${ev.venue}` : ''}. Find it in ZCS, Others → Campus events.` }).catch(() => {});
+  const share = () => Share.share({ message: `${ev.title} · ${fmtWhen(ev.startAt)}${ev.venue ? ` · ${ev.venue}` : ''}. Find it in ZENV, Services → Campus events.` }).catch(() => {});
 
   const heroH = Math.round(w * 0.82);
   return (

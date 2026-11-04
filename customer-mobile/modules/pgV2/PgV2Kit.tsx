@@ -100,7 +100,7 @@ export function Pill({ text, ink, soft, icon: Icon, style }: { text: string; ink
 /** Blue "Verified" badge; only rendered for PGs the housing team verified. */
 export function Verified({ small }: { small?: boolean }) {
   return (
-    <View style={[k.verified, small && { paddingVertical: 2, paddingHorizontal: 6 }]} accessibilityLabel="Verified by ZCS">
+    <View style={[k.verified, small && { paddingVertical: 2, paddingHorizontal: 6 }]} accessibilityLabel="Verified by ZENV">
       <IBadgeCheck size={small ? 11 : 13} color="#FFFFFF" strokeWidth={2} />
       <Text style={[k.verifiedText, small && { fontSize: 10 }]}>Verified</Text>
     </View>

@@ -105,7 +105,7 @@ export default function LicenceScreen() {
               {lic.frontImage ? <Image source={{ uri: lic.frontImage }} style={{ width: '100%', height: 160, borderRadius: 12, marginTop: 12 }} resizeMode="cover" accessibilityLabel="Your licence photo" /> : null}
             </Card>
             {!lic.expiresOn ? <Notice tone="warn">Add your licence's "valid till" date to keep booking: tap Update licence and save it again.</Notice> : lic.expiresOn < istDate(0) ? <Notice tone="danger">Your licence has expired. Upload your renewed licence to book vehicles.</Notice> : null}
-            {lic.status === 'PENDING' ? <Notice tone="info">ZCS is checking your licence. You can already send booking requests; owners and lenders can accept once it is verified.</Notice> : null}
+            {lic.status === 'PENDING' ? <Notice tone="info">ZENV is checking your licence. You can already send booking requests; owners and lenders can accept once it is verified.</Notice> : null}
             {lic.status === 'REJECTED' ? <Notice tone="danger">Not accepted{lic.rejectionReason ? `: ${lic.rejectionReason}` : ''}. Upload it again.</Notice> : null}
             {lic.status === 'VERIFIED' ? <Notice tone="success">You can rent or borrow {[(lic.verifiedClasses || []).some((c) => c.startsWith('MC')) ? 'bikes / scooters' : null, (lic.verifiedClasses || []).some((c) => c.startsWith('LMV') || c === 'TRANS') ? 'cars' : null].filter(Boolean).join(' and ') || 'vehicles'}.</Notice> : null}
             <Btn label={lic.status === 'REJECTED' ? 'Upload again' : 'Update licence'} kind={lic.status === 'REJECTED' ? 'primary' : 'secondary'} onPress={() => setEditing(true)} />
@@ -114,7 +114,7 @@ export default function LicenceScreen() {
 
         {editing && lic !== undefined ? (
           <>
-            <Notice tone="info">Your licence is private: only you and the ZCS team see it. Owners and lenders only see that it is verified. One licence can be linked to one ZCS account.</Notice>
+            <Notice tone="info">Your licence is private: only you and the ZENV team see it. Owners and lenders only see that it is verified. One licence can be linked to one ZENV account.</Notice>
             <Field label="Licence number" value={number} onChangeText={(t) => setNumber(t.toUpperCase().slice(0, 24))} autoCapitalize="characters" placeholder="AP07 20190012345" />
             <Text style={{ fontSize: 12, fontWeight: '800', color: p.sub, marginBottom: 6 }}>Classes on your licence</Text>
             <Chips<string> multi options={LICENCE_CLASSES} value={classes} onChange={setClasses} />

@@ -294,7 +294,7 @@ export function VerifiedBadge({ verified }: { verified: boolean }) {
   const p = usePalette();
   if (!verified) return null;
   return (
-    <View style={[s.verified, { backgroundColor: p.accentSoft }]} accessibilityLabel="Verified ZCS Auto driver">
+    <View style={[s.verified, { backgroundColor: p.accentSoft }]} accessibilityLabel="Verified ZENV Auto driver">
       <Ionicons name="shield-checkmark" size={12} color={p.accent} />
       <Text style={{ fontSize: 11, fontWeight: '800', color: p.accent }}>Verified</Text>
     </View>
@@ -368,13 +368,16 @@ export function useAutoRideLive(onChange: (e: { kind?: string; id?: string | nul
     try { socket = connectSocket(); } catch { return; }
     let timer: ReturnType<typeof setTimeout> | null = null;
     let last: any = {};
-    const fire = (e: any) => {
-      last = e || {};
+    let lastRank = -1;
+    // One call per window with its most important event: reconnect (2) over the student's own update (1) over a
+    // public change (0); keeping only the latest let a public change hide the student's own update (31 Oct 2026).
+    const fire = (e: any, rank: number) => {
+      if (rank >= lastRank) { last = e || {}; lastRank = rank; }
       if (timer) return;
-      timer = setTimeout(() => { timer = null; try { ref.current(last); } catch { /* screen gone */ } }, 350);
+      timer = setTimeout(() => { timer = null; const ev = last; lastRank = -1; try { ref.current(ev); } catch { /* screen gone */ } }, 350);
     };
-    const onAuto = (e: any) => fire(e && typeof e === 'object' ? e : {});
-    const onData = (e: any) => { if (e && e.type === 'auto_trip') fire({ kind: 'trip', id: e.id }); };
+    const onAuto = (e: any) => fire(e && typeof e === 'object' ? e : {}, 1);
+    const onData = (e: any) => { if (e && e.type === 'auto_trip') fire({ kind: 'trip', id: e.id }, 0); };
     let connectedOnce = socket.connected;
     // A flapping connection (bad network, proxy without websockets) reconnects every few seconds; refetching on
     // each one sent hundreds of requests. Catch up at most once per RECONNECT_REFETCH_MS; real nudges are not limited.
@@ -383,7 +386,7 @@ export function useAutoRideLive(onChange: (e: { kind?: string; id?: string | nul
       const now = Date.now();
       if (connectedOnce && now - lastReconnectFire >= RECONNECT_REFETCH_MS) {
         lastReconnectFire = now;
-        fire({ kind: 'reconnect' });
+        fire({ kind: 'reconnect' }, 2);
       }
       connectedOnce = true;
     };
@@ -436,7 +439,7 @@ export const refreshAutoRideStatus = async () => {
   return statusMem;
 };
 
-export function AutoHero({ title, subtitle, kicker = 'ZCS Auto · verified drivers' }: { title: string; subtitle: string; kicker?: string }) {
+export function AutoHero({ title, subtitle, kicker = 'ZENV Auto · verified drivers' }: { title: string; subtitle: string; kicker?: string }) {
   return (
     <LinearGradient colors={AUTO_GRAD} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
       <Text style={{ fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.85)' }}>{kicker}</Text>

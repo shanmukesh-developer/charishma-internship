@@ -27,7 +27,7 @@ export function Gallery({ item, height }: { item: RItem; height: number }) {
   const photos = item.gallery.length ? item.gallery : item.photo ? [item.photo] : [];
   const plate = PLATE[item.category];
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => setPage(Math.round(e.nativeEvent.contentOffset.x / Math.max(1, w)));
-  const share = () => Share.share({ message: `${item.title} on ZCS Rentals${item.price ? ` · ₹${item.price.toLocaleString('en-IN')}` : ''}` }).catch(() => {});
+  const share = () => Share.share({ message: `${item.title} on ZENV Rentals${item.price ? ` · ₹${item.price.toLocaleString('en-IN')}` : ''}` }).catch(() => {});
   return (
     <View style={{ height, width: w, backgroundColor: plate.bg[1] }}>
       {photos.length ? (

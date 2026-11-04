@@ -32,7 +32,7 @@ const TYPE_LABEL: Record<string, string> = {
 const shareInvite = (name: string, code?: string) => {
   if (!code) return;
   Share.share({
-    message: `Join "${name}" on ZCS Campus with code ${code}. Open ZCS > Campus > + > Join with code.`,
+    message: `Join "${name}" on ZENV Campus with code ${code}. Open ZENV > Campus > + > Join with code.`,
   }).catch(() => {});
 };
 
@@ -74,7 +74,7 @@ export const CreateGroupSheet: React.FC<{
       onCreated({ ...group, discoverable: isPublic, isAdmin: true });
     } catch (e: any) {
       setError(e?.code === 'CONTENT_BLOCKED'
-        ? e?.message || "That name has words that aren't allowed on ZCS. Please rephrase it."
+        ? e?.message || "That name has words that aren't allowed on ZENV. Please rephrase it."
         : e?.message || "Couldn't create the group. Please try again.");
     } finally {
       setBusy(false);

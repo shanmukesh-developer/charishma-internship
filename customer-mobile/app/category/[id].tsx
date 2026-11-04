@@ -22,6 +22,7 @@ import { useTheme } from '../../context/ThemeContext';
 import FssaiLine from '../../components/FssaiLine';
 import { useAuth } from '../../context/AuthContext';
 import { useCart, MAX_ITEM_QTY } from '../../context/CartContext';
+import { productOptions, useAskOptions } from '../../components/ProductOptions';
 import { API_URL } from '../../constants/api';
 import { apiFetch } from '../../utils/auth';
 import { useLiveSync } from '../../utils/useLiveSync';
@@ -35,6 +36,7 @@ import ServicesV2List from '../../modules/servicesV2/ServicesV2List';
 import ServicesV2Products from '../../modules/servicesV2/ServicesV2Products';
 import { isProductShelf, isServiceShelf } from '../../modules/servicesV2/servicesV2Data';
 import { formatClock, formatINR, plural } from '../../utils/format';
+import { goHome } from '../../utils/goHome';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -85,6 +87,8 @@ interface CatalogueItem {
   /** Server `orderable`: in stock AND the store is open right now. */
   orderable: boolean;
   inStock: boolean;
+  /** Admin-set (or automatic weight) choices from the server: components/ProductOptions. */
+  options?: any[];
 }
 
 interface StoreInfo {
@@ -120,6 +124,7 @@ function CategoryDetailScreen() {
   const { user } = useAuth();
   // Shop categories fill the campus store basket.
   const { addToCart: addAnyBasket, baskets, basketCounts, basketTotals, updateQuantity } = useCart();
+  const askOptions = useAskOptions();
   const cart = baskets.store;
   const totalItems = basketCounts.store;
   const totalPrice = basketTotals.store;
@@ -194,6 +199,7 @@ function CategoryDetailScreen() {
         bookingOnly: !!it.bookingOnly,
         orderable: it.orderable !== false && it.isAvailable !== false,
         inStock: it.isAvailable !== false,
+        ...(Array.isArray(it.options) && it.options.length ? { options: it.options } : {}),
       } as CatalogueItem;
     }));
   }, []);
@@ -295,16 +301,26 @@ function CategoryDetailScreen() {
       Alert.alert('Not available right now', `${item.name} cannot be ordered right now. Check back later.`);
       return;
     }
-    const added = addToCart({
-      id: item.id,
-      name: item.name,
-      price: item.price,
-      image: item.image || '',
-      quantity: 1,
-      restaurantId: item.restaurantId,
-      restaurantName: item.restaurantName || meta.title,
+    // Products with choices (weights with their own prices, flavours): asked in the options sheet first; added
+    // bare, checkout refused them ("please choose a Weight").
+    const groups = productOptions(item);
+    const finish = (extra: { price?: number; basePrice?: number; customizations?: any } = {}) => {
+      const added = addToCart({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        image: item.image || '',
+        quantity: 1,
+        restaurantId: item.restaurantId,
+        restaurantName: item.restaurantName || meta.title,
+        ...extra,
+      });
+      if (added) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    };
+    if (!groups.length) { finish(); return; }
+    askOptions({ name: item.name, price: item.price, image: item.image || null, groups }).then((r) => {
+      if (r) finish({ price: r.unitPrice, basePrice: item.price, customizations: r.customizations });
     });
-    if (added) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
   };
 
   // Light / dark tokens for this screen (stores use the app red; services use the booking sheet's blue)
@@ -341,7 +357,7 @@ function CategoryDetailScreen() {
           title="This shelf is not open yet"
           body="We could not find this category. Browse the other stores instead."
           action="Browse stores"
-          onAction={() => router.replace('/(tabs)/others' as any)}
+          onAction={() => goHome(router, '/(tabs)/others')}
         />
       );
     }
@@ -380,9 +396,7 @@ function CategoryDetailScreen() {
       <StateView
         icon={meta.icon}
         title="Nothing on this shelf yet"
-        body="New items are added often. Need something now? Send it as a shopping list."
-        action="Open shopping list"
-        onAction={() => router.push('/mega-basket' as any)}
+        body="New items are added often."
       />
     );
   };

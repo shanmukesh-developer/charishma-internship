@@ -41,6 +41,7 @@ import {
   openCampusDm,
 } from '../campusApi';
 import { CampusUserData } from '../../../types/campus';
+import { dial } from '../../../utils/dial';
 
 interface LostFoundModalProps {
   visible: boolean;
@@ -470,7 +471,7 @@ export const LostFoundModal: React.FC<LostFoundModalProps> = ({
                               const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact);
                               const buttons: any[] = [{ text: 'Close', style: 'cancel' }];
                               if (isPhone) {
-                                buttons.push({ text: 'Call', onPress: () => Linking.openURL(`tel:${digits}`).catch(() => {}) });
+                                buttons.push({ text: 'Call', onPress: () => dial(digits) });
                               } else if (isEmail) {
                                 buttons.push({ text: 'Email', onPress: () => Linking.openURL(`mailto:${contact}`).catch(() => {}) });
                               }

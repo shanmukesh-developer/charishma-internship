@@ -180,7 +180,9 @@ export function NoticeBar({ icon, text, tone = 'orange', style }: { icon: IconNa
  * Refetch when the server nudges this student (`campusbooking:changed` { id, status } in their own room), when a
  * stall changed (`data:changed` type 'store' / 'product'), and after a reconnect. Payloads are ids only.
  */
-export function useCbLive(onChange: (e: { id?: string; status?: string; kind?: string }) => void, enabled = true) {
+// catalog: also refresh on public store / product changes (menus, stock). Off for lists of the student's own bookings
+// (Orders tab): that tab stays mounted, and every stock toggle on campus would otherwise re-read each student's bookings.
+export function useCbLive(onChange: (e: { id?: string; status?: string; kind?: string }) => void, enabled = true, { catalog = true }: { catalog?: boolean } = {}) {
   const ref = useRef(onChange);
   ref.current = onChange;
   useEffect(() => {
@@ -189,30 +191,34 @@ export function useCbLive(onChange: (e: { id?: string; status?: string; kind?: s
     try { socket = connectSocket(); } catch { return; }
     let timer: ReturnType<typeof setTimeout> | null = null;
     let last: any = {};
-    const fire = (e: any) => {
-      last = e || {};
+    let lastRank = -1;
+    // One call per 300 ms window with the most important event of the window: a reconnect (2) over the student's own
+    // booking update (1) over a public store / product change (0). Keeping only the latest let a stock change on
+    // campus hide the student's own "Ready" (31 Oct 2026).
+    const fire = (e: any, rank: number) => {
+      if (rank >= lastRank) { last = e || {}; lastRank = rank; }
       if (timer) return;
-      timer = setTimeout(() => { timer = null; try { ref.current(last); } catch { /* screen gone */ } }, 300);
+      timer = setTimeout(() => { timer = null; const ev = last; lastRank = -1; try { ref.current(ev); } catch { /* screen gone */ } }, 300);
     };
-    const onBooking = (e: any) => fire(e && typeof e === 'object' ? { ...e, kind: 'booking' } : {});
-    const onData = (e: any) => { if (e && (e.type === 'store' || e.type === 'product')) fire({ kind: e.type, id: e.storeId || e.id }); };
+    const onBooking = (e: any) => fire(e && typeof e === 'object' ? { ...e, kind: 'booking' } : {}, 1);
+    const onData = (e: any) => { if (e && (e.type === 'store' || e.type === 'product')) fire({ kind: e.type, id: e.storeId || e.id }, 0); };
     let connectedOnce = socket.connected;
     let lastReconnect = 0;
     const onConnect = () => {
       const now = Date.now();
-      if (connectedOnce && now - lastReconnect > 15000) { lastReconnect = now; fire({ kind: 'reconnect' }); }
+      if (connectedOnce && now - lastReconnect > 15000) { lastReconnect = now; fire({ kind: 'reconnect' }, 2); }
       connectedOnce = true;
     };
     socket.on('campusbooking:changed', onBooking);
-    socket.on('data:changed', onData);
+    if (catalog) socket.on('data:changed', onData);
     socket.on('connect', onConnect);
     return () => {
       if (timer) clearTimeout(timer);
       socket.off('campusbooking:changed', onBooking);
-      socket.off('data:changed', onData);
+      if (catalog) socket.off('data:changed', onData);
       socket.off('connect', onConnect);
     };
-  }, [enabled]);
+  }, [enabled, catalog]);
 }
 
 export const k = StyleSheet.create({

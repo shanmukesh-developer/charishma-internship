@@ -140,11 +140,6 @@ export const ENDPOINTS = {
   communityDelete: (id: string) => `${API_URL}/api/community/${id}`,
   uploadImage: `${API_URL}/api/upload`,
   
-  // Mega Basket
-  megaBasketList: `${API_URL}/api/mega-basket`,
-  megaBasketCreate: `${API_URL}/api/mega-basket`,
-  megaBasketApprove: (id: string) => `${API_URL}/api/mega-basket/${id}/approve`,
-
   // Birthdays
   birthdaysActive: `${API_URL}/api/birthdays/active`,
   birthdaysPending: `${API_URL}/api/birthdays/pending`,

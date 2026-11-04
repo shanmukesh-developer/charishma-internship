@@ -16,6 +16,7 @@ import { useConnectionState, type ConnectionState } from '../../utils/offlineSta
 import { autoRideApi, AutoRideError, newIdempotencyKey, type ChargeLine, type RouteFull, type Booking } from '../../modules/autoRide/autoRideApi';
 import { groupMyRides, myRideInfo, topDestinations } from '../../modules/coride/coRideFormat';
 import { useAutoRideLive } from '../../modules/autoRide/ui';
+import { useUserLiveEvent } from '../../utils/useUserLiveEvent';
 import { coRideApi, friendly, type Template } from './coRideV2Api';
 import { sampleRides, sampleMyRides, sampleAutoLines } from './coRideV2Samples';
 
@@ -205,6 +206,9 @@ export function CoRideV2Provider({ children }: { children: React.ReactNode }) {
     reloadAuto();
     if (e?.kind === 'reconnect' && Date.now() - lastCatchUp.current > 15000) { lastCatchUp.current = Date.now(); reload(); }
   }, !!myId);
+  // Requests, approvals, declines, cancellations and leaves (server: coride:changed to this user's sockets) refresh the
+  // rides while Co-Ride is open (31 Oct 2026: a host on My rides never saw a new request appear).
+  useUserLiveEvent('coride:changed', reload, !!myId);
 
   const joinStatus = useMemo(() => {
     const out: Record<string, string> = {};

@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import React, { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo, memo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Dimensions, useWindowDimensions, Platform, TextInput, ActivityIndicator, Alert, Modal, Animated, Vibration, RefreshControl, BackHandler, Share } from 'react-native';
 import { PressScale, BounceOnChange, FadeInUp, StateCard, SlowLoadHint } from '../../modules/others/motion';
 import { KeyboardAvoidingView } from '../../components/KeyboardAvoidingView';
@@ -13,6 +13,7 @@ import { useAuth } from '../../context/AuthContext';
 import { apiFetch, readJson, SERVER_BUSY_MESSAGE, NETWORK_ERROR_MESSAGE } from '../../utils/auth';
 import { readCache, writeCache, useSWRJson } from '../../utils/swrCache';
 import { ENDPOINTS, API_URL, ZENVY_SUPPORT_PHONE } from '../../constants/api';
+import { fetchCatalogueType } from '../../utils/catalogueFetch';
 import { useCart, isCustomRequest } from '../../context/CartContext';
 import PromoCarousel from '../../components/PromoCarousel';
 import SpinWheelSvg from '../../components/others/SpinWheelSvg';
@@ -30,11 +31,8 @@ import { reloadPgV2List } from '../../modules/pgV2/pgV2Data';
 import { PG_HEADER as PG_V2_HEADER, PG_HINTS as PG_V2_HINTS } from '../../modules/pgV2/PgV2Home';
 import { useLiveSync, hasType } from '../../utils/useLiveSync';
 import RentalsV2Home from '../../modules/rentalsV2/RentalsV2Screen';
-import { RENTALS_V2_DEMO_CONTENT } from '../../modules/rentalsV2/rentalsV2Demo';
 import { useAutoRideStatus } from '../../modules/autoRide/ui';
-import { useCampusEventsStatus } from '../../modules/campusEvents/ui';
 import EventsV2Home from '../../modules/eventsV2/EventsV2Screen';
-import { EVENTS_V2_DEMO_CONTENT } from '../../modules/eventsV2/eventsV2Demo';
 import DealsV2Home from '../../modules/dealsV2/DealsV2Screen';
 import { refreshRewards as refreshDealsV2Rewards } from '../../modules/dealsV2/dealsV2Data';
 import { CoRideV2OthersSection } from '../../modules/corideV2/CoRideV2Screen';
@@ -43,6 +41,7 @@ import SectionHeader, { FOOD_HEADER, type HeaderColors } from '../../modules/foo
 import { useUnreadDot } from '../../modules/foodV2/FoodV2HomeTop';
 import { ACCENTS as OTHERS_ACCENTS, PILL_ACCENT, shadow as othersShadow, TYPE as OTHERS_TYPE, RADIUS as OTHERS_RADIUS, STATUS as OTHERS_STATUS, SURFACE as OTHERS_SURFACE } from '../../modules/others/othersTheme';
 import { useTopInset } from '../../utils/useTopInset';
+import { setTabBarTone, type TabBarTone } from '../../utils/tabBarTone';
 import FoodV2Screen from '../../modules/foodV2/FoodV2Screen';
 import ServicesV2Home from '../../modules/servicesV2/ServicesV2Home';
 
@@ -103,6 +102,33 @@ const TABS: { key: string; label: string; icon: IonName }[] = [
   { key: 'promos', label: 'Deals & spin', icon: 'gift-outline' },
 ];
 
+/**
+ * Two bottom tabs run this same screen (owner, 28 Oct 2026: the Basket tab became Services):
+ *   Groceries (app/(tabs)/others.tsx)   Food & groceries, Deals & spin
+ *   Services (app/(tabs)/services.tsx)  PG stays, Co-Ride, Rentals, Campus events, Tech & repairs
+ * Each keeps the fixed pill order above. A link into a section of the other hub (every older
+ * /(tabs)/others?tab=pg style link) is forwarded there with its params, so no caller had to change.
+ */
+export type Hub = 'explore' | 'services';
+export const HUB_SECTIONS: Record<Hub, string[]> = {
+  explore: ['food', 'promos'],
+  services: ['pg', 'coride', 'rentals', 'events', 'services'],
+};
+const HUB_ROUTE: Record<Hub, string> = { explore: '/(tabs)/others', services: '/(tabs)/services' };
+/** The section a ?tab= link means (old aliases included), or null. */
+const sectionFromParam = (t?: string): string | null => {
+  if (!t) return null;
+  if (t === 'rides' || t === 'coride') return 'coride';
+  if (t === 'pg' || t === 'stays') return 'pg';
+  if (t === 'promos' || t === 'offers') return 'promos';
+  if (t === 'food' || t === 'basket') return 'food';
+  if (t === 'rentals' || t === 'rental' || t === 'vehicles') return 'rentals';
+  if (t === 'events' || t === 'campus-events') return 'events';
+  if (t === 'services') return 'services';
+  return null;
+};
+const hubOf = (section: string): Hub => (HUB_SECTIONS.services.includes(section) ? 'services' : 'explore');
+
 
 const BB_CATEGORIES: { key: string; label: string; icon: IonName }[] = [
   { key: 'Fresh', label: 'Fruits & veggies', icon: 'nutrition-outline' },
@@ -157,7 +183,7 @@ const PROMOS_CORIDE = [
 ];
 
 const PROMOS_OFFERS = [
-  { id: 'o1', tagline: 'Order rewards', title: 'Spin the reward wheel', subtitle: '', desc: 'Every 2 delivered orders earn a spin. Win ZCS Points or a free-delivery coupon.', btn: 'Spin the wheel', img: 'https://images.unsplash.com/photo-1596451190630-186aff535bf2?w=900&q=80' },
+  { id: 'o1', tagline: 'Order rewards', title: 'Spin the reward wheel', subtitle: '', desc: 'Every 2 delivered orders earn a spin. Win ZENV Points or a free-delivery coupon.', btn: 'Spin the wheel', img: 'https://images.unsplash.com/photo-1596451190630-186aff535bf2?w=900&q=80' },
   { id: 'o2', tagline: 'Your coupons', title: 'Ready to use at checkout', subtitle: '', desc: 'Coupons you have won show up here with their expiry date.', btn: 'See my coupons', img: 'https://images.unsplash.com/photo-1607344645866-009c320b63e0?w=900&q=80' },
 ];
 
@@ -259,6 +285,14 @@ const SECTION_HEADER: Record<string, HeaderColors> = {
   promos: { top: '#2A1670', bottom: '#381F94', pillOnBg: '#EFEBFF', pillOnInk: '#4B2BC8' },
   neutral: { top: '#1B2433', bottom: '#263247', pillOnBg: '#F1F3F6', pillOnInk: '#1E293B' },
 };
+// Sections that draw a page of a fixed colour in every theme give the bottom bar that page's colour (the rest follow
+// the theme): Rentals and Campus events are night pages, Tech & repairs and Deals light ones.
+const PAGE_BAR_TONE: Record<string, TabBarTone | undefined> = {
+  rentals: { bg: '#141438', dark: true },
+  events: { bg: '#13123A', dark: true },
+  services: { bg: '#FFFFFF', dark: false },
+  promos: { bg: '#FFFFFF', dark: false },
+};
 const SECTION_SUBTITLE: Record<string, string> = {
   services: 'Campus services', pg: 'PG stays near campus', coride: 'Co-Ride · Lifts and autos',
   rentals: 'Rentals', events: 'Campus events', promos: 'Deals & spin',
@@ -335,8 +369,6 @@ const OTHERS_CATALOGUE_KEY = 'others:catalogue';
 /** Re-focusing the tab within this window reuses what is on screen (live sync covers edits). */
 const FOCUS_REFRESH_MS = 60000;
 const PRODUCT_FALLBACK_IMG = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&q=80';
-// Custom "please buy this for me" requests keep using the Mega Basket shopping flow (POST /api/mega-basket).
-const MEGA_BASKET_VENDOR = 'mega-basket-vendor';
 
 const toCatalogueList = (rawItems: any[]): CatalogueItem[] => {
   const seen = new Set<string>();
@@ -347,6 +379,11 @@ const toCatalogueList = (rawItems: any[]): CatalogueItem[] => {
   });
   return items;
 };
+
+/** A text field from the server: a non-empty string (a number written out), anything else null (a numeric brand or
+ * category used to crash the lower-casing filters below). */
+const textOf = (v: any): string | null =>
+  typeof v === 'string' ? (v.trim() ? v : null) : typeof v === 'number' && Number.isFinite(v) ? String(v) : null;
 
 const toCatalogueItem = (raw: any): CatalogueItem | null => {
   if (!raw || !raw.id || !raw.name) return null;
@@ -360,17 +397,17 @@ const toCatalogueItem = (raw: any): CatalogueItem | null => {
     price,
     originalPrice: Number.isFinite(original) && original > price ? original : null,
     discountPercent: Number.isFinite(discount) && discount > 0 ? Math.round(discount) : null,
-    weight: raw.weight || null,
-    brand: raw.brand || null,
-    category: raw.category || null,
+    weight: textOf(raw.weight),
+    brand: textOf(raw.brand),
+    category: textOf(raw.category),
     image: raw.image || raw.imageUrl || null,
     isVegetarian: raw.isVegetarian !== false,
     isAvailable: raw.isAvailable !== false,
     orderable: raw.orderable !== false,
     bookingOnly: !!raw.bookingOnly,
     restaurantId: String(raw.restaurantId || raw.storeId || ''),
-    storeName: raw.storeName || null,
-    vendorType: raw.vendorType || null,
+    storeName: textOf(raw.storeName),
+    vendorType: textOf(raw.vendorType),
     rating: Number.isFinite(Number(raw.rating)) && Number(raw.rating) > 0 ? Number(raw.rating) : null,
     ratingCount: Math.max(0, Math.floor(Number(raw.ratingCount) || 0)),
   };
@@ -545,6 +582,10 @@ const Confetti = memo(() => (
 ));
 
 export default function OthersScreen() {
+  return <HubScreen hub="explore" />;
+}
+
+export function HubScreen({ hub }: { hub: Hub }) {
   // Real status-bar inset, never less than the old fixed padding (utils/useTopInset)
   const topPad = useTopInset(36, Platform.OS === 'web' ? 12 : 44);
   const { isDark, toggleTheme, colors } = useTheme();
@@ -555,16 +596,11 @@ export default function OthersScreen() {
   const router = useRouter();
   const unreadDot = useUnreadDot();
   const { tab, sub, seg } = useLocalSearchParams<{ tab: string; sub?: string; seg?: string }>();
-  const [activeTab, setActiveTab] = useState('food');
+  const homeSection = HUB_SECTIONS[hub][0];
+  const [activeTab, setActiveTab] = useState(homeSection);
   const [groceryMode, setGroceryMode] = useState<'home' | 'categories'>('home');
   const [selectedBBOption, setSelectedBBOption] = useState('Fresh');
   const [showVegOnly, setShowVegOnly] = useState(false);
-  const [listText, setListText] = useState('');
-  const [showAutoFillCard, setShowAutoFillCard] = useState(false);
-  const [customItemName, setCustomItemName] = useState('');
-  const [customItemQty, setCustomItemQty] = useState('1');
-  const [customItemPrice, setCustomItemPrice] = useState('');
-  const [showCustomForm, setShowCustomForm] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   // Header search on PG stays / Co-Ride: bumped to focus that section's own search box.
   const [sectionSearchTick, setSectionSearchTick] = useState(0);
@@ -579,6 +615,19 @@ export default function OthersScreen() {
 
   // Synchronize active tab from navigation parameter (e.g. from Home category pills)
   useEffect(() => {
+    const wanted = sectionFromParam(tab);
+    if (wanted && hubOf(wanted) !== hub) {
+      // A link into a section that lives in the other tab: open it there, with the same sub-page params. This tab's
+      // own params are cleared first: the tab screen stays mounted, so the same link again (Home's PG card tapped a
+      // second time) found the same param, never re-ran this effect and left the user here (3 Nov 2026).
+      const q = new URLSearchParams();
+      q.set('tab', String(tab));
+      if (sub) q.set('sub', String(sub));
+      if (seg) q.set('seg', String(seg));
+      try { router.setParams({ tab: undefined, sub: undefined, seg: undefined } as any); } catch {}
+      try { router.replace(`${HUB_ROUTE[hubOf(wanted)]}?${q.toString()}` as any); } catch {}
+      return;
+    }
     if (tab) {
       // A pill tap or a link into a section counts as using it (orders Home's feature cards).
       recordSectionUse(tab === 'rides' ? 'coride' : tab === 'stays' ? 'pg' : tab === 'offers' ? 'promos' : tab === 'campus-events' ? 'events' : tab === 'rental' || tab === 'vehicles' ? 'rentals' : tab);
@@ -598,7 +647,7 @@ export default function OthersScreen() {
         setActiveTab('events');
       }
     }
-  }, [tab]);
+  }, [tab, hub]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keep the route param in sync with the chip, so a later Home shortcut (same param) still switches tabs.
   const selectTab = useCallback((key: string) => {
@@ -607,33 +656,30 @@ export default function OthersScreen() {
   }, [router]);
 
   const myId = String(user?._id || user?.id || '');
-  // Campus Events chip: GET /api/campus-events/status once (cached); hidden while off or on any error.
-  const campusEventsStatus = useCampusEventsStatus(!!myId);
-  // Campus events v2 (modules/eventsV2): while its sample layer is on, the section always shows; with the server
-  // switch off it shows the samples with an "Events open soon" note.
-  const campusEventsOn = !!campusEventsStatus?.enabled || EVENTS_V2_DEMO_CONTENT;
-  // Sections with no live listings yet (no PG, no upcoming ride, no rental) are hidden and come back as
-  // soon as one is listed (GET /api/config/sections, cached 60 s). Food & groceries, Tech & Repairs and
-  // Deals always show; unknown (offline, older server) shows everything.
+  // Campus events (modules/eventsV2) always shows (3 Nov 2026: its sample events are gone): with the server switch
+  // off or no events yet, the page says "Events open soon".
+  // PG follows GET /api/config/sections (cached 60 s; the server reports it always live). Food & groceries, Co-Ride
+  // (posting a ride is how its listings start), Rentals ("List your vehicle" lives there), Tech & Repairs and Deals
+  // always show; unknown (offline, older server) shows everything.
   const sectionsSWR = useSWRJson<{ sections?: Record<string, { live?: boolean }> }>('/api/config/sections', { freshMs: 60 * 1000 });
   const sectionLive = useCallback((key: string) => {
     const sec = sectionsSWR.data?.sections;
-    // Co-Ride always shows: posting a ride is how its listings start, so hiding it while empty was a dead end.
-    // Rentals too while its sample layer is on (modules/rentalsV2/rentalsV2Demo.ts): "List your vehicle" lives there.
-    const k = key === 'pg' ? 'pg' : key === 'rentals' && !RENTALS_V2_DEMO_CONTENT ? 'rentals' : null;
+    const k = key === 'pg' ? 'pg' : null;
     if (!k || !sec || !sec[k]) return true;
     return sec[k].live !== false;
   }, [sectionsSWR.data]);
   const visibleTabs = useMemo(
-    () => TABS.filter(t => (t.key !== 'events' || campusEventsOn) && sectionLive(t.key)),
-    [campusEventsOn, sectionLive],
+    () => TABS.filter(t => HUB_SECTIONS[hub].includes(t.key) && sectionLive(t.key)),
+    [sectionLive, hub],
   );
   useEffect(() => {
-    if (activeTab === 'events' && campusEventsStatus && !campusEventsStatus.enabled && !EVENTS_V2_DEMO_CONTENT) setActiveTab('food');
-  }, [activeTab, campusEventsStatus]);
-  useEffect(() => {
-    if (!sectionLive(activeTab)) setActiveTab('food');
-  }, [activeTab, sectionLive]);
+    // A hidden section (no live listings) or one of the other hub falls back to this hub's first visible section.
+    if (!sectionLive(activeTab) || !HUB_SECTIONS[hub].includes(activeTab)) setActiveTab(visibleTabs[0]?.key || homeSection);
+  }, [activeTab, sectionLive, hub, visibleTabs, homeSection]);
+  // The bottom bar takes the colour of a fixed-colour page (utils/tabBarTone); set before paint, so it never lags the page.
+  useLayoutEffect(() => {
+    setTabBarTone(hub === 'services' ? 'services' : 'others', PAGE_BAR_TONE[activeTab] || null);
+  }, [hub, activeTab]);
   const isMountedRef = useRef(true);
   // Set true in the body too: fast refresh / StrictMode re-run effects, and a ref left false would drop every later update.
   useEffect(() => { isMountedRef.current = true; return () => { isMountedRef.current = false; }; }, []);
@@ -669,17 +715,16 @@ export default function OthersScreen() {
     try {
       // One store type failing (e.g. a slow request) must not blank the whole store.
       const settled = await Promise.allSettled(SHOP_TYPES.map(async t => {
-        const res = await apiFetch(`${API_URL}/api/catalogue/items?type=${encodeURIComponent(t)}&limit=200`);
-        if (!res.ok) throw new Error(`catalogue ${res.status}`);
-        const data = await readJson(res);
+        // Every page of the type (utils/catalogueFetch): past 200 products the rest used to be cut off.
+        const data = await fetchCatalogueType(t);
         // Store hours (isOpen / opensAt) so closed shops show "Opens 9 am" on their cards.
         const hours: Record<string, { name: string; isOpen: boolean; opensAt: string | null }> = {};
-        (Array.isArray(data?.stores) ? data.stores : []).forEach((st: any) => {
+        data.stores.forEach((st: any) => {
           const sid = String(st?.id || st?._id || '');
           if (sid) hours[sid] = { name: String(st.name || ''), isOpen: st.isOpen !== false, opensAt: typeof st.opensAt === 'string' ? st.opensAt : null };
         });
         if (isMountedRef.current && Object.keys(hours).length) setStoreHours(prev => ({ ...prev, ...hours }));
-        return Array.isArray(data?.items) ? data.items : [];
+        return data.items;
       }));
       const ok = settled.filter((r): r is PromiseFulfilledResult<any[]> => r.status === 'fulfilled');
       if (!ok.length) throw (settled[0] as PromiseRejectedResult)?.reason || new Error('catalogue unavailable');
@@ -1122,6 +1167,8 @@ export default function OthersScreen() {
     if ((tab === 'coride' || tab === 'rides') && sub === 'auto') {
       const more = seg === 'bookings' || seg === 'shared' || seg === 'full' || seg === 'pickups';
       router.push((more ? `/coride/auto-more?seg=${seg}` : '/coride/auto') as any);
+      // Used once (as the spin link): left in place, the next Co-Ride pill tap (setParams merges) pushed it again.
+      try { router.setParams({ sub: undefined, seg: undefined } as any); } catch {}
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, sub, seg]);
@@ -1235,115 +1282,6 @@ export default function OthersScreen() {
       if (isMountedRef.current) setRefreshing(false);
     }
   }, [loadActiveTab]);
-
-  // ── Mega Basket: quick list & custom shopping requests ──
-  const handleSmartAutoFill = () => {
-    if (!listText.trim()) {
-      Alert.alert('Your list is empty', 'Type or paste your shopping list first, e.g. "2 maggi, 1 atta".');
-      return;
-    }
-    if (catalogueStatus !== 'ready' || catalogue.length === 0) {
-      Alert.alert('Store is still loading', 'Give it a second and try again.');
-      return;
-    }
-
-    const matched: { item: CatalogueItem; qty: number }[] = [];
-    const missed: string[] = [];
-    listText.split(/[,\n;]+/).map(t => t.trim()).filter(Boolean).forEach(line => {
-      const qtyMatch = line.match(/^(\d+)\s*(x\s*)?/i);
-      const qty = Math.min(20, Math.max(1, qtyMatch ? parseInt(qtyMatch[1], 10) : 1));
-      const q = line.replace(/^(\d+)\s*(x\s*)?/i, '').trim().toLowerCase();
-      if (!q) return;
-      const item = catalogue.find(p => p.orderable && p.isAvailable && (p.name.toLowerCase().includes(q) || (p.brand || '').toLowerCase().includes(q)));
-      if (item) matched.push({ item, qty });
-      else missed.push(line);
-    });
-
-    if (matched.length === 0) {
-      Alert.alert('No matches found', 'Try simple words like "atta", "chips" or "maggi" — or add it as a custom request.');
-      return;
-    }
-
-    // One store per order: keep the lines from the first matched store.
-    const storeId = matched[0].item.restaurantId;
-    const sameStore = matched.filter(m => m.item.restaurantId === storeId);
-    const skipped = matched.length - sameStore.length;
-    let shownPrompt = false;
-    sameStore.forEach(m => {
-      const ok = addToCart({
-        id: m.item.id,
-        name: m.item.name,
-        price: m.item.price,
-        quantity: m.qty,
-        image: m.item.image || PRODUCT_FALLBACK_IMG,
-        restaurantId: m.item.restaurantId,
-        restaurantName: m.item.storeName || 'Campus store',
-      });
-      if (!ok) shownPrompt = true;
-    });
-
-    setListText('');
-    setShowAutoFillCard(false);
-    if (shownPrompt) return; // the "Replace basket?" prompt is already on screen
-
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-    const notes2: string[] = [];
-    if (missed.length) notes2.push(`Not found: ${missed.join(', ')}`);
-    if (skipped) notes2.push(`${skipped} item${skipped === 1 ? '' : 's'} from another store were skipped (one store per order).`);
-    Alert.alert('Added to basket', `${sameStore.length} item${sameStore.length === 1 ? '' : 's'} from ${sameStore[0].item.storeName || 'the store'}.${notes2.length ? `\n\n${notes2.join('\n')}` : ''}`);
-  };
-
-  const openCustomRequest = () => {
-    setGroceryMode('categories');
-    setShowAutoFillCard(false);
-    setShowCustomForm(true);
-  };
-
-  const handleAddCustomRequest = () => {
-    const name = customItemName.trim();
-    if (!name) {
-      Alert.alert('What should we buy?', 'Please type the item name (and brand, if you have one in mind).');
-      return;
-    }
-    const price = Number(customItemPrice);
-    if (!Number.isFinite(price) || price <= 0 || price > 10000) {
-      Alert.alert('Add an estimated price', 'Enter the approximate price per unit (₹1 – ₹10,000). You approve the real bill later.');
-      return;
-    }
-    const qty = Math.min(20, Math.max(1, parseInt(customItemQty, 10) || 1));
-
-    const doAdd = () => {
-      addToCart({
-        id: `custom-${Date.now()}`,
-        name: `[Custom Request] ${name}`,
-        price: Math.round(price * 100) / 100,
-        quantity: qty,
-        image: '', // a shopping request has no product photo; the basket shows its placeholder
-        restaurantId: MEGA_BASKET_VENDOR,
-        restaurantName: 'Shopping list',
-      });
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      Alert.alert('Request added', `"${name}" × ${qty} is in your basket. A shopper buys it for you, and you approve the final bill before paying.`);
-      setCustomItemName('');
-      setCustomItemPrice('');
-      setCustomItemQty('1');
-      setShowCustomForm(false);
-    };
-
-    // Shopping requests are placed separately from store orders.
-    if (cart.some(i => !isCustomRequest(i))) {
-      Alert.alert(
-        'Start a new basket?',
-        'Shopping requests are ordered separately from store and restaurant items. Clear your basket and add this request?',
-        [
-          { text: 'Keep basket', style: 'cancel' },
-          { text: 'Clear & add', style: 'destructive', onPress: () => { clearCart(); doAdd(); } },
-        ]
-      );
-      return;
-    }
-    doAdd();
-  };
 
   // ── Saved items (stored on this device; cleared on logout) ──
   type SavedItem = { id: string; title: string; subtitle: string; price: string; image: string; targetRoute: string };
@@ -1715,7 +1653,10 @@ export default function OthersScreen() {
         onPill={selectTab}
         onBack={() => router.replace('/(tabs)')}
         actions={[
-          { icon: 'heart-outline', label: 'Saved items', onPress: () => setFavoritesModalVisible(true) },
+          // On PG stays the heart opens the saved PGs (it used to show saved store products there too).
+          activeTab === 'pg'
+            ? { icon: 'heart-outline', label: 'Saved PGs', onPress: () => router.push('/pg/list?saved=1' as any) }
+            : { icon: 'heart-outline', label: 'Saved items', onPress: () => setFavoritesModalVisible(true) },
           { icon: 'notifications-outline', label: unreadDot ? 'Notifications, unread' : 'Notifications', onPress: () => router.push('/notifications' as any), dot: unreadDot },
         ]}
       />
@@ -1749,7 +1690,7 @@ export default function OthersScreen() {
               <View style={s.dlHeroText}>
                 <Text style={s.dlHeroTitle} accessibilityRole="header">Deals & spin</Text>
                 <Text style={s.dlHeroTag}>Spin. Win. Save.</Text>
-                <Text style={s.dlHeroSub}>Every 2 delivered orders earn a spin. Win ZCS Points or a free-delivery coupon.</Text>
+                <Text style={s.dlHeroSub}>Every 2 delivered orders earn a spin. Win ZENV Points or a free-delivery coupon.</Text>
                 <PressScale style={s.dlHeroBtn} onPress={() => setSpinOpen(true)} accessibilityRole="button" accessibilityLabel="Spin now">
                   <Ionicons name="sync-circle-outline" size={16} color={dp.heroB} />
                   <Text style={[s.dlHeroBtnText, { color: dp.heroB }]}>{!myId || spinsLeft > 0 ? 'Spin now' : 'See the wheel'}</Text>
@@ -1773,7 +1714,7 @@ export default function OthersScreen() {
                   <View style={[s.dlStatIcon, { backgroundColor: dp.tint }]}>
                     <Ionicons name="diamond-outline" size={18} color={dp.ink} />
                   </View>
-                  <Text style={[s.dlStatLabel, { color: txtSec }]}>ZCS Points</Text>
+                  <Text style={[s.dlStatLabel, { color: txtSec }]}>ZENV Points</Text>
                   <Text style={[s.dlStatValue, { color: txt }]}>{zenPoints.toLocaleString('en-IN')}</Text>
                 </View>
                 <PressScale
@@ -1799,7 +1740,7 @@ export default function OthersScreen() {
                 </View>
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text style={[s.dlCardTitle, { color: txt }]}>Sign in for your rewards</Text>
-                  <Text style={[s.dlCardSub, { color: txtSec }]}>See your spins, ZCS Points, coupons and wallet.</Text>
+                  <Text style={[s.dlCardSub, { color: txtSec }]}>See your spins, ZENV Points, coupons and wallet.</Text>
                 </View>
                 <PressScale style={[s.dlSmallBtn, { backgroundColor: dp.solid }]} onPress={() => router.push('/login' as any)} accessibilityRole="button">
                   <Text style={s.dlSmallBtnText}>Sign in</Text>
@@ -1963,8 +1904,8 @@ export default function OthersScreen() {
                     <Ionicons name="gift-outline" size={20} color={dp.ink} />
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={[s.dlCardTitle, { color: txt }]}>Invite friends, earn ZCS Points</Text>
-                    <Text style={[s.dlCardSub, { color: txtSec }]}>When a friend signs up with your code, you both get 50 ZCS Points.</Text>
+                    <Text style={[s.dlCardTitle, { color: txt }]}>Invite friends, earn ZENV Points</Text>
+                    <Text style={[s.dlCardSub, { color: txtSec }]}>When a friend signs up with your code, you both get 50 ZENV Points.</Text>
                   </View>
                 </View>
                 <View style={s.dlReferRow}>
@@ -1985,7 +1926,7 @@ export default function OthersScreen() {
                     onPress={async () => {
                       const name = (user as any)?.name?.split(' ')[0] || 'Your friend';
                       try {
-                        await Share.share({ message: `${name} invited you: campus food and essentials delivered to your hostel. Sign up with code ${(user as any).referralCode} and you both get 50 ZCS Points.` });
+                        await Share.share({ message: `${name} invited you: campus food and essentials delivered to your hostel. Sign up with code ${(user as any).referralCode} and you both get 50 ZENV Points.` });
                       } catch {}
                     }}
                     accessibilityRole="button"
@@ -2094,7 +2035,7 @@ export default function OthersScreen() {
                 </View>
               )}
               <Text style={s.spTitle}>Spin the wheel</Text>
-              <Text style={s.spSub}>Win ZCS Points or a free-delivery coupon</Text>
+              <Text style={s.spSub}>Win ZENV Points or a free-delivery coupon</Text>
 
               <View style={[s.spWheelWrap, { width: spinWheelSize + 24, height: spinWheelSize + 24 }]}>
                 <View style={[s.spGlow, { width: spinWheelSize + 24, height: spinWheelSize + 24, borderRadius: (spinWheelSize + 24) / 2 }]} />
@@ -2152,7 +2093,7 @@ export default function OthersScreen() {
                 <View style={s.spNoteIcon}>
                   <Ionicons name="information-circle-outline" size={20} color="#F6C453" />
                 </View>
-                <Text style={s.spNoteText}>Every 2 delivered orders earn a spin. ZCS Points are added to your balance at once; a coupon shows up in Your coupons.</Text>
+                <Text style={s.spNoteText}>Every 2 delivered orders earn a spin. ZENV Points are added to your balance at once; a coupon shows up in Your coupons.</Text>
               </View>
             </ScrollView>
           </LinearGradient>
@@ -2186,7 +2127,7 @@ export default function OthersScreen() {
               <View style={[s.wonPrize, { backgroundColor: isDark ? 'rgba(246,196,83,0.10)' : '#FFF8E6', borderColor: '#F6C453' }]}>
                 <Text style={[s.wonPrizeText, { color: txt }]}>{stripEmoji(wheelResult.display) || wheelResult.display}</Text>
                 <Text style={[s.wonPrizeSub, { color: txtSec }]}>
-                  {wheelResult.coupon ? 'Your coupon is ready to use at checkout.' : 'Added to your ZCS Points balance.'}
+                  {wheelResult.coupon ? 'Your coupon is ready to use at checkout.' : 'Added to your ZENV Points balance.'}
                 </Text>
               </View>
             )}

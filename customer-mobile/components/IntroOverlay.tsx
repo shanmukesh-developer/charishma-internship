@@ -1,49 +1,53 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Animated, Platform, Easing, TouchableOpacity, StatusBar, useWindowDimensions } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, Text, StyleSheet, Animated, Platform, Easing, TouchableOpacity, StatusBar, useWindowDimensions, InteractionManager } from 'react-native';
 import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
+import { useEventListener } from 'expo';
+import { useVideoPlayer, VideoView } from 'expo-video';
+import { Image } from 'expo-image';
+import ZenvBadge, { ZENV_YELLOW } from './ZenvBadge';
+import { createIntroSound, type IntroSound } from './intro/introSound';
 import { useReduceMotion } from '../utils/reduceMotion';
 import { markIntroDone } from '../utils/introGate';
 
-// ZCS (Zenvy Community and Services) cold-start intro: a film-studio style logo reveal.
+// ZENV cold-start intro (owner, 4 Nov 2026: "THIS IS MY INTRO BUDDY FOR THIS APPLICATION"): the owner's own 3.35 s
+// clip, assets/zenv-intro-delivery-rider-2026-11-04.mp4 (1920x1080, 24 fps, white background). The rider rides in
+// from the left edge into the yellow disc and ZENV appears under him (about 1.5 s), then the logo holds.
+//   - Whole clip, centred (contain): the rider crosses the frame, so cover would cut his entry off on a portrait phone.
+//   - White stage: every edge pixel of the clip is pure white, so the clip on a white stage reads as full screen. The
+//     stage fades in from the splash's dark colour once the first frame is on screen (never a black frame).
+//   - Always muted, never takes audio focus. Its own soundtrack (the same audio, copied out of the clip) plays through
+//     components/intro/introSound with the existing rules: silent ringer, Profile > App sounds, the admins' switch.
+//   - The video has 1.5 s after the app is ready for it. If it errors or has not started by then, the ZENV badge pops
+//     in on the dark background instead (soft spring, a faint glow), holds, then hands over to Home the same way.
+//   - Reduce motion: no clip, the still badge and a short fade.
+// Skip, the hand-over to Home (wait for the app, settle two frames, push-in and fade) and the caps are as before.
 
-// Every size-based value follows the live window (useWindowDimensions): split screen, rotation and
-// the resizable web preview never leave gaps or cut the title.
 const ND = Platform.OS !== 'web'; // native driver on phones; the web preview animates in JS
 
-// Splash backgroundColor in app.json: the first intro frame matches it exactly (no flash).
-const BG = '#0A0A0B';
-const GOLD = '#D4AF37';
+const INTRO_VIDEO = require('../assets/zenv-intro-delivery-rider-2026-11-04.mp4');
+const INTRO_LAST_FRAME = require('../assets/zenv-intro-last-frame-2026-11-04.png');
 
-// ── Timeline (ms) ── one native clock drives the whole sequence, so it plays the same on every phone
-// and never depends on JS timers firing on time.
-// Paced like a film title card: the full title is complete at TITLE_DONE and holds ~750 ms.
-const TITLE_DONE = 2600;
-const SEQ_END = 3350;   // choreography finished; exit starts here if the app is ready
-const EXIT_MS = 600;    // push-in and fade into the app  →  minimum on screen ≈ 3.95 s
-const START_CAP = 2200; // from mount: the choreography starts by now even if the app never reports it has settled
-const HOLD_CAP = 5200;  // from mount: exit starts by now whatever happens (app not ready, delayed start)  →  ≤ ≈ 4.5 s
-const SKIP_EXIT_MS = 180; // tap / Skip: near-instant fade (the app is usable from the tap)
-const RM_HOLD = 250;    // reduce motion: static logo…
+// Splash backgroundColor in app.json: now #FFFFFF (white), matching the video stage — zero visual jump at any point.
+// The launch screen is plain white, so every mode of the intro (clip, fallback badge, reduce motion) is on white too:
+// the fallback used to cut from white to near-black, a hard flash seen on the emulator, 4 Nov.
+const BG = '#FFFFFF';
+// The clip's own background: the stage behind it is the same white, so its edges never show.
+const STAGE = '#FFFFFF';
+
+// ── Timeline (ms) ── the clock starts with the clip's first frame and plays the same on every phone.
+const SEQ_END = 3330;   // the clip is 3.33 s (80 frames @ 24fps) and holds its last frame (the logo)
+const EXIT_MS = 500;    // smooth dissolve into the app
+const START_CAP = 2200; // from mount: the clip is started by now even if the app never reports it has settled
+const HOLD_CAP = 5200;  // from the start: exit starts by now whatever happens (app not ready, slow start)
+const SKIP_EXIT_MS = 260; // Skip: a quick fade, once Home has drawn behind the still logo
+const SKIP_PAINT_CAP = 600; // Skip: wait for Home's first full draw at most this long (the logo is still meanwhile)
+const RM_HOLD = 250;    // reduce motion: still badge…
 const RM_FADE = 350;    // …then a plain fade (≈ 600 ms total)
-
-const LETTERS = ['Z', 'C', 'S'];
-const MAX_CELL = 80;     // equal letter cells (even cinematic tracking, no width jitter), shrunk on narrow windows
-const SIDE_PAD = 24;
-const LETTER_START = 1000;
-const LETTER_STAGGER = 220;
-const LETTER_RISE = 600;
-const SHIMMER = [2050, 2550] as const;
-const SOFT_BAND = 72;
-const CORE_BAND = 26;
-const NAME = 'Zenvy Community and Services';
-
-/** Title geometry for the current window width: three equal cells that always fit with side padding. */
-function titleGeometry(winW: number) {
-  const cell = Math.max(48, Math.min(MAX_CELL, Math.floor((winW - SIDE_PAD * 2) / LETTERS.length)));
-  return { cell, rowW: cell * LETTERS.length, rowH: Math.round(cell * 1.1), font: Math.round(cell * 0.8) };
-}
-type Geometry = ReturnType<typeof titleGeometry>;
+const STAGE_IN_MS = 300;  // dark splash colour → white stage, from the first frame
+const START_GRACE = 1500; // the clip must have started this long after the app is ready for it, else the badge
+const FRAME_GRACE = 250;  // playing but no first-frame callback yet: show the stage anyway after this
+const PAINT_CAP = 900;    // hand-over: wait for Home to finish drawing behind the still logo, at most this long
+const BADGE_HOLD = 1000;  // the fallback badge: from its pop to the hand-over
 
 interface IntroOverlayProps {
   onComplete: () => void;
@@ -51,8 +55,8 @@ interface IntroOverlayProps {
   ready?: boolean;
   /**
    * The app tree behind the intro has finished its first mount. Measured on a Vivo V2439: mounting the app froze the
-   * UI thread for up to 0.6 s at a time during the first ~2 s, so motion started then stuttered. The choreography now
-   * starts only once this is true (or after START_CAP); until then the intro holds its first frame (black).
+   * UI thread for up to 0.6 s at a time during the first ~2 s, so motion started then stuttered. The clip now starts
+   * only once this is true (or after START_CAP); until then the intro holds its first frame (the splash colour).
    */
   start?: boolean;
 }
@@ -60,7 +64,6 @@ interface IntroOverlayProps {
 // ── Keyframe helpers ── Native-driver interpolations are piecewise linear (no easing), so curves are
 // sampled into a few keyframes once at mount. Nothing runs per frame on the JS thread.
 type Ease = (x: number) => number;
-const linear: Ease = (x) => x;
 const outCubic: Ease = (x) => 1 - Math.pow(1 - x, 3);
 const inOutCubic: Ease = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
 type Pt = [ms: number, value: number, ease?: Ease];
@@ -71,9 +74,8 @@ function curve(v: Animated.Value, pts: Pt[], steps = 5) {
   for (let i = 1; i < pts.length; i++) {
     const [a, va] = pts[i - 1];
     const [b, vb, e = outCubic] = pts[i];
-    const n = e === linear ? 1 : steps;
-    for (let s = 1; s <= n; s++) {
-      const p = s / n;
+    for (let s = 1; s <= steps; s++) {
+      const p = s / steps;
       inR.push(a + (b - a) * p);
       outR.push(va + (vb - va) * e(p));
     }
@@ -81,77 +83,31 @@ function curve(v: Animated.Value, pts: Pt[], steps = 5) {
   return v.interpolate({ inputRange: inR, outputRange: outR, extrapolate: 'clamp' });
 }
 
-// `flareHalf` (flare travel, from the window width) and `bandSpan` (sweep travel, from the title width)
-// are Animated values updated on resize, so the timeline is built once and never re-attached.
-function buildTimeline(t: Animated.Value, exit: Animated.Value, flareHalf: Animated.Value, bandSpan: Animated.Value) {
-  // Light-sweep band centre travels across the letters; each clip window moves with it while its
-  // copy of the letters moves the opposite way, so the light stays locked to the glyphs.
-  const sweep = curve(t, [[SHIMMER[0], 0], [SHIMMER[1], 1, inOutCubic]]);
-  const band = (w: number) => {
-    const x = Animated.add(Animated.multiply(sweep, bandSpan), -SOFT_BAND - w / 2);
-    return { x, inner: Animated.multiply(x, -1) };
-  };
-  const soft = band(SOFT_BAND);
-  const core = band(CORE_BAND);
-
-  const stageOpacity = exit.interpolate({ inputRange: [0, 0.75, 1], outputRange: [1, 0, 0] });
-
+function buildTimeline(t: Animated.Value, exit: Animated.Value, pop: Animated.Value) {
+  const stageOpacity = exit.interpolate({ inputRange: [0, 1], outputRange: [1, 0] });
   return {
-    // Beat 1: black, then a soft vignette.
-    backdrop: curve(t, [[0, 0], [600, 1]]),
-    // Skip fades in early and leaves together with the stage.
-    skipFade: Animated.multiply(curve(t, [[600, 0], [900, 1]]), stageOpacity),
-
-    // Beat 2: a thin gold light line opens from the centre while a lens flare sweeps across it (~1 s).
-    streakOpacity: curve(t, [[300, 0], [550, 0.9], [1150, 0.6, linear], [1550, 0]]),
-    streakScale: curve(t, [[300, 0.05], [1150, 1]]),
-    flareX: Animated.multiply(curve(t, [[300, -1], [1300, 1, inOutCubic]], 8), flareHalf),
-    flareOpacity: curve(t, [[300, 0], [450, 1], [1150, 1, linear], [1350, 0]]),
-
-    // Beat 3: Z, C, S rise into place one by one in the flare's wake (opacity + translateY only).
-    letters: LETTERS.map((_, i) => {
-      const s = LETTER_START + i * LETTER_STAGGER;
-      return {
-        opacity: curve(t, [[s, 0], [s + 360, 1]]),
-        y: curve(t, [[s, 14], [s + LETTER_RISE, 0]]),
-      };
-    }),
-    softX: soft.x,
-    softInner: soft.inner,
-    coreX: core.x,
-    coreInner: core.inner,
-
-    // Beat 4: hairline and the full name.
-    hairline: curve(t, [[1900, 0], [2350, 1]]),
-    hairlineOpacity: curve(t, [[1900, 0], [2050, 1]]),
-    nameOpacity: curve(t, [[2150, 0], [TITLE_DONE, 1]]),
-    nameY: curve(t, [[2150, 6], [TITLE_DONE, 0]]),
-
-    // Beat 5: glow pulse behind the monogram.
-    glow: curve(t, [[1600, 0], [2250, 0.9, inOutCubic], [SEQ_END, 0.55, inOutCubic]]),
-    glowScale: curve(t, [[1600, 0.8], [2250, 1.08], [SEQ_END, 1, inOutCubic]]),
-
-    // Four faint dust motes, all on the same clock (no loops), gone before the sequence ends.
-    motes: Array.from({ length: 4 }).map((_, i) => {
-      const d = 300 + i * 300;
-      const peak = 0.25 + Math.random() * 0.3;
-      return {
-        left: `${Math.round(15 + Math.random() * 70)}%` as const,
-        size: 2 + Math.random() * 1.5,
-        y: curve(t, [[d, 0], [d + 1600, -(130 + Math.random() * 80), linear]]),
-        opacity: curve(t, [[d, 0], [d + 400, peak], [d + 1200, peak * 0.8, linear], [d + 1600, 0]]),
-      };
-    }),
-
-    // Exit (its own value; the timing easing applies): the camera pushes in through the monogram,
-    // the backdrop lingers a beat and then dissolves into the app.
-    stageScale: exit.interpolate({ inputRange: [0, 1], outputRange: [1, 1.3] }),
+    // The white stage with the clip comes up from the splash colour as the first frame shows.
+    stageIn: curve(t, [[0, 0], [STAGE_IN_MS, 1, inOutCubic]]),
+    // A white veil over the clip until it is really playing, then it lifts: the launch screen is plain white (app.json
+    // splash), so launch screen -> intro is one continuous white, and the rider and disc fade up out of it.
+    veil: curve(t, [[0, 1], [STAGE_IN_MS, 0, inOutCubic]]),
+    // Skip button fades in early and leaves smoothly with exit.
+    skipFade: Animated.multiply(curve(t, [[600, 0], [900, 1]]), exit.interpolate({ inputRange: [0, 0.4, 1], outputRange: [1, 0, 0] })),
+    // Fallback badge: a soft spring (pop overshoots 1 a little and settles), fading in on its first half.
+    badgeOpacity: pop.interpolate({ inputRange: [0, 0.55], outputRange: [0, 1], extrapolate: 'clamp' }),
+    badgeScale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.86, 1] }),
+    badgeGlow: pop.interpolate({ inputRange: [0, 1], outputRange: [0, 1], extrapolate: 'clamp' }),
+    badgeSkip: Animated.multiply(pop.interpolate({ inputRange: [0, 1], outputRange: [0, 1], extrapolate: 'clamp' }), exit.interpolate({ inputRange: [0, 0.4, 1], outputRange: [1, 0, 0] })),
+    // Exit (its own value; the timing easing applies): a gentle push-in, the backdrop lingers a beat and dissolves.
+    videoScale: exit.interpolate({ inputRange: [0, 1], outputRange: [1, 1.04] }),
+    badgeExitScale: exit.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] }),
     stageOpacity,
-    fade: exit.interpolate({ inputRange: [0, 0.4, 1], outputRange: [1, 0.9, 0] }),
+    // Root container fade: clean, continuous dissolve directly onto the app screen (no black dip).
+    fade: exit.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
   };
 }
 
-// Dev web preview only: `?introAt=1200` freezes the intro at that moment (tap to dismiss), for screenshots.
+// Dev web preview only: `?introAt=1200` freezes the intro at that moment of the clip (tap to dismiss), for screenshots.
 function devFreezeAt(): number | null {
   if (!__DEV__ || Platform.OS !== 'web') return null;
   try {
@@ -164,64 +120,78 @@ function devFreezeAt(): number | null {
   }
 }
 
-function GoldGlow({ id, w, h, strength, color = GOLD }: { id: string; w: number; h: number; strength: number; color?: string }) {
+// Dev web preview only: `?introSound=tap` holds the intro on its first frame until a tap, then plays it with its sound
+// (browsers block sound until the page is tapped; the app itself starts on its own).
+function devTapToStart(): boolean {
+  if (!__DEV__ || Platform.OS !== 'web') return false;
+  try {
+    return new URLSearchParams(window.location.search).get('introSound') === 'tap';
+  } catch {
+    return false;
+  }
+}
+
+// Dev web preview only: `?introFallback=1` shows the fallback (the badge), as when the clip cannot play.
+function devFallback(): boolean {
+  if (!__DEV__ || Platform.OS !== 'web') return false;
+  try {
+    return new URLSearchParams(window.location.search).get('introFallback') === '1';
+  } catch {
+    return false;
+  }
+}
+
+function Glow({ id, size, color, strength }: { id: string; size: number; color: string; strength: number }) {
   return (
-    <Svg width={w} height={h}>
+    <Svg width={size} height={size}>
       <Defs>
         <RadialGradient id={id} cx="50%" cy="50%" r="50%">
           <Stop offset="0" stopColor={color} stopOpacity={strength} />
-          <Stop offset="0.45" stopColor={color} stopOpacity={strength * 0.3} />
+          <Stop offset="0.5" stopColor={color} stopOpacity={strength * 0.28} />
           <Stop offset="1" stopColor={color} stopOpacity={0} />
         </RadialGradient>
       </Defs>
-      <Rect x={0} y={0} width={w} height={h} fill={`url(#${id})`} />
+      <Rect x={0} y={0} width={size} height={size} fill={`url(#${id})`} />
     </Svg>
   );
 }
 
-// Refined system faces (no font download, nothing to wait for): Roboto Medium / Light on Android,
-// Avenir Next on iOS. Medium weight, never black.
-const LETTER_FONT = Platform.select({
-  android: { fontFamily: 'sans-serif-medium', fontWeight: '500' as const },
-  ios: { fontFamily: 'Avenir Next', fontWeight: '500' as const },
-  default: { fontFamily: '"Avenir Next", Montserrat, "Segoe UI", Roboto, Helvetica, Arial, sans-serif', fontWeight: '500' as const },
-});
-const NAME_FONT = Platform.select({
-  android: { fontFamily: 'sans-serif-light', fontWeight: '300' as const },
-  ios: { fontFamily: 'Avenir Next', fontWeight: '400' as const },
-  default: { fontFamily: '"Avenir Next", Montserrat, "Segoe UI", Roboto, Helvetica, Arial, sans-serif', fontWeight: '300' as const },
-});
-
-/** One letter in its fixed cell: champagne gold with a slightly lighter upper half (a soft metallic sheen). */
-function GoldLetter({ ch, g }: { ch: string; g: Geometry }) {
-  const box = { width: g.cell, height: g.rowH };
-  const type = [styles.letter, box, { lineHeight: g.rowH, fontSize: g.font }];
-  return (
-    <View style={box}>
-      <Text allowFontScaling={false} style={[type, styles.letterBase]}>{ch}</Text>
-      <View style={[styles.sheenClip, { width: g.cell, height: g.rowH * 0.5 }]}>
-        <Text allowFontScaling={false} style={[type, styles.letterSheen]}>{ch}</Text>
-      </View>
-    </View>
-  );
-}
-
-type Phase = 'intro' | 'hold' | 'still' | 'frozen' | 'exit';
+type Phase = 'intro' | 'badge' | 'hold' | 'skip' | 'still' | 'frozen' | 'exit';
+type Mode = 'video' | 'badge' | 'still';
 
 export default function IntroOverlay({ onComplete, ready = true, start = true }: IntroOverlayProps) {
   // From the first exit frame the overlay stops catching touches (the app underneath is usable).
   const [exiting, setExiting] = useState(false);
-  const [still, setStill] = useState(false);
+  const [frozenAt] = useState(devFreezeAt);
+  const [mode, setMode] = useState<Mode>(() => (devFallback() ? 'badge' : 'video'));
+  const modeRef = useRef<Mode>(mode);
+  modeRef.current = mode;
   const phase = useRef<Phase>('intro');
   const readyRef = useRef(ready);
   readyRef.current = ready;
-  const [startNow, setStartNow] = useState(start);
+  const [startNow, setStartNow] = useState(true); // play immediately — video decoder is a hardware thread, won't stutter
   useEffect(() => { if (start) setStartNow(true); }, [start]);
   useEffect(() => {
     if (startNow) return;
     const t0 = setTimeout(() => setStartNow(true), START_CAP);
     return () => clearTimeout(t0);
   }, [startNow]);
+  // Dev web preview with sound: wait for the tap that unlocks the browser's audio.
+  const [tapToStart] = useState(devTapToStart);
+  const [tapped, setTapped] = useState(false);
+  const go = startNow && (!tapToStart || tapped);
+
+  // The intro sound (components/intro/introSound): prepared now, started with the clip's first frame, faded on skip,
+  // freed at the end.
+  const sound = useRef<IntroSound | null>(null);
+  useEffect(() => {
+    // Phones only (a browser blocks sound until a tap), except the dev web preview with sound (?introSound=tap).
+    if (devFreezeAt() !== null || devFallback() || (Platform.OS === 'web' && !devTapToStart())) return undefined;
+    const s = createIntroSound();
+    sound.current = s;
+    return () => { s.stop(0); sound.current = null; };
+  }, []);
+
 
   // onComplete runs once, whichever path ends the intro.
   const doneRef = useRef(false);
@@ -235,283 +205,312 @@ export default function IntroOverlay({ onComplete, ready = true, start = true }:
   }, []);
 
   const { width: winW } = useWindowDimensions();
-  const g = titleGeometry(winW);
+  // The fallback badge: about 40% of the window width, 120 to 168 dp, a whole number of pixels.
+  const badgeSize = Math.round(Math.max(120, Math.min(168, winW * 0.4)));
+  const glowSize = Math.round(badgeSize * 1.9);
 
   const t = useRef(new Animated.Value(0)).current;
   const exit = useRef(new Animated.Value(0)).current;
-  const breath = useRef(new Animated.Value(1)).current;
-  const flareHalf = useRef(new Animated.Value(winW * 0.65)).current;
-  const bandSpan = useRef(new Animated.Value(g.rowW + SOFT_BAND * 2)).current;
+  const pop = useRef(new Animated.Value(devFallback() ? 1 : 0)).current;
   const tl = useRef<ReturnType<typeof buildTimeline> | null>(null);
-  if (!tl.current) tl.current = buildTimeline(t, exit, flareHalf, bandSpan);
+  if (!tl.current) tl.current = buildTimeline(t, exit, pop);
   const a = tl.current;
 
-  // Window resized (split screen, rotation, web preview): retarget the size-based travel.
-  useEffect(() => {
-    flareHalf.setValue(winW * 0.65);
-    bandSpan.setValue(g.rowW + SOFT_BAND * 2);
-  }, [winW, g.rowW, flareHalf, bandSpan]);
+  // The player is created on the first render and starts loading the bundled clip at once (preloaded before it shows).
+  const player = useVideoPlayer(INTRO_VIDEO, (p) => {
+    p.loop = false;
+    p.muted = true; // the soundtrack plays through introSound, which respects the silent ringer and the switches
+    p.audioMixingMode = 'mixWithOthers'; // never takes audio focus from music
+    p.keepScreenOnWhilePlaying = false;
+  });
 
-  const breathLoop = useRef<Animated.CompositeAnimation | null>(null);
   const exitAnim = useRef<Animated.CompositeAnimation | null>(null);
+  const seqAnim = useRef<Animated.CompositeAnimation | null>(null);
   const safety = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const rafs = useRef<number[]>([]);
+  const later = (fn: () => void, ms: number) => { timers.current.push(setTimeout(fn, ms)); };
+  const frame = (fn: () => void) => { rafs.current.push(requestAnimationFrame(fn)); };
+
+  // Android draws the video surface (TextureView) as a BLACK box while it is faded out (measured on the emulator,
+  // 4 Nov: frames of a black rectangle where the clip was during the dissolve). So the clip never takes part in the
+  // fade: at the end it is swapped for its identical last frame (already decoded underneath, so the swap is
+  // invisible), and on Skip it is removed and the white stage fades on its own.
+  const [videoOff, setVideoOff] = useState<'no' | 'still' | 'blank'>('no');
+  const videoOffRef = useRef<'no' | 'still' | 'blank'>('no');
+  const retireVideo = useCallback((how: 'still' | 'blank') => {
+    if (videoOffRef.current !== 'no') return;
+    videoOffRef.current = how;
+    setVideoOff(how);
+    try { player.pause(); } catch { /* released */ }
+  }, [player]);
 
   const beginExit = useCallback((ms: number) => {
     if (phase.current === 'exit') return;
     phase.current = 'exit';
     setExiting(true);
-    breathLoop.current?.stop();
-    exitAnim.current = Animated.timing(exit, {
-      toValue: 1,
-      duration: ms,
-      easing: Easing.inOut(Easing.cubic),
-      useNativeDriver: ND,
-    });
-    exitAnim.current.start(() => finish());
-    // Backup in case the completion callback never arrives (e.g. a backgrounded web tab).
-    safety.current = setTimeout(finish, ms + 150);
-  }, [exit, finish]);
+    const run = () => {
+      exitAnim.current = Animated.timing(exit, {
+        toValue: 1,
+        duration: ms,
+        easing: Easing.inOut(Easing.cubic),
+        useNativeDriver: ND,
+      });
+      exitAnim.current.start(() => finish());
+      // Backup in case the completion callback never arrives (e.g. a backgrounded web tab).
+      safety.current = setTimeout(finish, ms + 150);
+    };
+    if (modeRef.current === 'video' && videoOffRef.current === 'no') {
+      // Skip (or the cap) mid-clip: take the clip off first, start the fade once that has been drawn.
+      retireVideo('blank');
+      frame(() => frame(run));
+    } else {
+      run();
+    }
+  }, [exit, finish, retireVideo]);
 
-  // Main sequence.
-  useEffect(() => {
-    const frozen = devFreezeAt();
-    if (frozen !== null) {
-      phase.current = 'frozen';
-      t.setValue(Math.min(frozen, SEQ_END));
-      if (frozen > SEQ_END) exit.setValue(inOutCubic(Math.min(1, (frozen - SEQ_END) / EXIT_MS)));
+  // The clip (or the fallback badge) has finished: hand over to Home.
+  const handOver = useCallback(() => {
+    if (phase.current !== 'intro' && phase.current !== 'badge') return;
+    if (modeRef.current === 'video') retireVideo('still'); // the identical still logo from here on
+    if (readyRef.current) {
+      // Let Home draw its full content now, behind the finished (still) logo, then fade out once it has painted
+      // (after the JS render and two frames). A stall on a still frame is invisible; a stall during motion is not.
+      // Home's first full render can block the phone for a few hundred ms; waiting for it (the logo is still, so the
+      // wait is invisible) keeps the fade itself smooth instead of stuttering through Home's mount.
+      markIntroDone();
+      let gone = false;
+      const go = () => { if (gone) return; gone = true; frame(() => frame(() => beginExit(EXIT_MS))); };
+      later(() => InteractionManager.runAfterInteractions(go), 60);
+      later(go, PAINT_CAP);
       return;
     }
+    // Slow phone: the app is still rendering. The logo stays on screen until it is (or until the cap).
+    phase.current = 'hold';
+  }, [beginExit, retireVideo]);
 
-    if (!startNow) return; // hold the first (black) frame until the app behind has mounted
-    const seq = Animated.timing(t, { toValue: SEQ_END, duration: SEQ_END, easing: Easing.linear, useNativeDriver: ND });
-    // Start after the first two frames: the overlay (and the app behind it) mounts first, so no frames drop at t=0.
-    let raf2 = 0;
-    let settleRaf1 = 0;
-    let settleRaf2 = 0;
-    let settleRaf3 = 0;
-    let settleTimer: ReturnType<typeof setTimeout> | null = null;
-    const raf1 = requestAnimationFrame(() => { raf2 = requestAnimationFrame(() => seq.start(onSeqEnd)); });
-    function onSeqEnd({ finished }: { finished: boolean }) {
-      if (!finished || phase.current !== 'intro') return;
-      if (readyRef.current) {
-        // Let Home draw its full content now, behind the finished (still) title, then fade out once it has painted
-        // (after the JS render and two frames). A stall on a still frame is invisible; a stall during motion is not.
-        markIntroDone();
-        settleRaf1 = requestAnimationFrame(() => {
-          settleTimer = setTimeout(() => {
-            settleRaf2 = requestAnimationFrame(() => { settleRaf3 = requestAnimationFrame(() => beginExit(EXIT_MS)); });
-          }, 60);
-        });
-        return;
-      }
-      // Slow phone: the app is still rendering. The glow breathes gently until it is (or until the cap).
-      phase.current = 'hold';
-      breathLoop.current = Animated.loop(Animated.sequence([
-        Animated.timing(breath, { toValue: 0.65, duration: 700, easing: Easing.inOut(Easing.sin), useNativeDriver: ND }),
-        Animated.timing(breath, { toValue: 1, duration: 700, easing: Easing.inOut(Easing.sin), useNativeDriver: ND }),
-      ]));
-      breathLoop.current.start();
+  // ── The clip ──
+  const begun = useRef(false);
+  const frameShown = useRef(false);
+  const playingNow = useRef(false);
+
+  // First frame on screen and playing: the clock, the stage fade and the sound start together.
+  const begin = useCallback(() => {
+    if (begun.current || phase.current !== 'intro' || modeRef.current !== 'video') return;
+    begun.current = true;
+    seqAnim.current = Animated.timing(t, { toValue: SEQ_END, duration: SEQ_END, easing: Easing.linear, useNativeDriver: ND });
+    seqAnim.current.start(({ finished }) => { if (finished) handOver(); });
+    sound.current?.start();
+  }, [t, handOver]);
+
+  // The fallback: the ZENV badge on the dark background, a soft spring and a faint glow, then the same hand-over.
+  const showBadge = useCallback(() => {
+    if (begun.current || phase.current !== 'intro') return;
+    phase.current = 'badge';
+    setMode('badge');
+    try { player.pause(); } catch { /* released */ }
+    sound.current?.stop(0); // the soundtrack belongs to the clip
+    Animated.spring(pop, { toValue: 1, friction: 7, tension: 46, useNativeDriver: ND }).start();
+    later(handOver, BADGE_HOLD);
+  }, [player, pop, handOver]);
+
+  useEventListener(player, 'playingChange', ({ isPlaying }) => {
+    if (!isPlaying || begun.current || frozenAt !== null) return;
+    playingNow.current = true;
+    if (frameShown.current) begin();
+    else later(begin, FRAME_GRACE); // some players report the first frame late: never wait on it for long
+  });
+  useEventListener(player, 'playToEnd', () => {
+    handOver();
+  });
+  // Dev freeze: show that moment of the clip, still.
+  const freezeFrame = useCallback(() => {
+    if (frozenAt === null) return;
+    try { player.pause(); player.currentTime = Math.min(frozenAt, 3340) / 1000; } catch { /* not ready yet */ }
+  }, [player, frozenAt]);
+  useEventListener(player, 'statusChange', ({ status }) => {
+    if (frozenAt !== null) { if (status === 'readyToPlay') freezeFrame(); return; }
+    if (status === 'error') showBadge();
+  });
+  const onFirstFrame = useCallback(() => {
+    frameShown.current = true;
+    if (frozenAt !== null) { freezeFrame(); return; }
+    if (playingNow.current) begin();
+  }, [frozenAt, freezeFrame, begin]);
+
+  // Main sequence: once the app behind has mounted, play the clip; the badge if it has not started in time.
+  useEffect(() => {
+    if (frozenAt !== null) {
+      phase.current = 'frozen';
+      t.setValue(Math.min(Math.max(frozenAt, STAGE_IN_MS), SEQ_END));
+      if (frozenAt > SEQ_END) exit.setValue(inOutCubic(Math.min(1, (frozenAt - SEQ_END) / EXIT_MS)));
+      return;
+    }
+    if (!go) return; // hold the first frame (the splash colour) until the app behind has mounted
+    if (modeRef.current === 'badge') {
+      // ?introFallback=1 (dev): the badge from the start.
+      phase.current = 'badge';
+      later(handOver, BADGE_HOLD);
+    } else if (phase.current === 'intro') {
+      try { player.play(); } catch { showBadge(); }
+      later(() => { if (!begun.current) showBadge(); }, START_GRACE);
     }
     const cap = setTimeout(() => beginExit(EXIT_MS), HOLD_CAP);
+    return () => { clearTimeout(cap); };
+  }, [go, t, exit, player, frozenAt, handOver, showBadge, beginExit]);
 
-    return () => {
-      clearTimeout(cap);
-      cancelAnimationFrame(raf1);
-      cancelAnimationFrame(raf2);
-      cancelAnimationFrame(settleRaf1);
-      cancelAnimationFrame(settleRaf2);
-      cancelAnimationFrame(settleRaf3);
-      if (settleTimer) clearTimeout(settleTimer);
-      if (safety.current) clearTimeout(safety.current);
-      seq.stop();
-      breathLoop.current?.stop();
-      exitAnim.current?.stop();
-    };
-  }, [t, exit, breath, beginExit, startNow]);
+  // Everything still pending is dropped when the intro leaves.
+  useEffect(() => () => {
+    timers.current.forEach(clearTimeout);
+    rafs.current.forEach(cancelAnimationFrame);
+    if (safety.current) clearTimeout(safety.current);
+    seqAnim.current?.stop();
+    exitAnim.current?.stop();
+  }, []);
 
   // The app became ready during the hold: leave now.
   useEffect(() => {
     if (ready && phase.current === 'hold') beginExit(EXIT_MS);
   }, [ready, beginExit]);
 
-  // Reduce motion (OS setting): no choreography, just the finished logo and a short fade.
+  // Reduce motion (OS setting): no clip, just the still badge and a short fade.
   const reduceMotion = useReduceMotion();
   useEffect(() => {
     if (!reduceMotion || phase.current === 'exit' || phase.current === 'frozen') return;
-    t.stopAnimation();
-    t.setValue(SEQ_END);
+    seqAnim.current?.stop();
+    try { player.pause(); } catch { /* released */ }
+    sound.current?.stop(0); // the sound follows the clip: none for the still badge
     phase.current = 'still';
-    setStill(true);
+    pop.setValue(1);
+    setMode('still');
     const h = setTimeout(() => beginExit(RM_FADE), RM_HOLD);
     return () => clearTimeout(h);
-  }, [reduceMotion, t, beginExit]);
+  }, [reduceMotion, player, pop, beginExit]);
 
-  const skip = useCallback(() => beginExit(SKIP_EXIT_MS), [beginExit]);
+  // Skip: Home only draws its full content once the intro is done (utils/introGate), so fading straight away showed
+  // Home's empty dark page (the owner's "black screen", 4 Nov). Now Skip ends the clip on its still logo, lets Home draw
+  // behind it, then fades: the same clean hand-over as the natural end, just sooner.
+  const skip = useCallback(() => {
+    if (phase.current === 'exit' || phase.current === 'skip') return;
+    phase.current = 'skip';
+    sound.current?.stop(220);
+    seqAnim.current?.stop();
+    if (modeRef.current === 'video') {
+      retireVideo('still');
+      t.setValue(SEQ_END); // lifts the veil if the clip had barely started; Skip stays visible until the fade
+    }
+    markIntroDone();
+    let gone = false;
+    const go = () => { if (gone) return; gone = true; frame(() => frame(() => beginExit(SKIP_EXIT_MS))); };
+    later(() => InteractionManager.runAfterInteractions(go), 40);
+    later(go, SKIP_PAINT_CAP);
+  }, [beginExit, retireVideo, t]);
 
-  const rowBox = { width: g.rowW, height: g.rowH };
-  const shineRow = (color: string) => (
-    <View style={[styles.lettersRow, rowBox]}>
-      {LETTERS.map((ch) => (
-        <Text
-          key={ch}
-          allowFontScaling={false}
-          style={[styles.letter, { width: g.cell, height: g.rowH, lineHeight: g.rowH, fontSize: g.font, color }]}
-        >
-          {ch}
-        </Text>
-      ))}
-    </View>
-  );
+  const still = mode === 'still';
+  const onLight = true; // every mode is on the white stage
 
   return (
     <Animated.View
-      style={[styles.container, { opacity: a.fade, pointerEvents: exiting ? 'none' : 'auto' }]}
+      style={[
+        styles.container,
+        {
+          // Container stays dark (#0A0A0B) — matches the native splash. The white stage inside is always
+          // visible from first render so there is zero dark gap before the video plays.
+          opacity: a.fade,
+          pointerEvents: exiting ? 'none' : 'auto',
+        },
+      ]}
+      // Fade the intro as ONE flat picture: without these Android fades each layer (white stage, still logo) on its
+      // own, and where they overlap the logo's strip showed lighter than the rest during the dissolve.
+      // Only during the fade: kept on all the time it froze the video's TextureView (the clip never started).
+      needsOffscreenAlphaCompositing={exiting}
+      renderToHardwareTextureAndroid={exiting}
       onStartShouldSetResponder={() => true}
-      onResponderRelease={skip}
+      // A tap on the picture does nothing (a stray touch used to cut the intro); only the Skip pill skips. The
+      // responder still swallows touches so nothing underneath reacts during the intro.
+      onResponderRelease={tapToStart && !tapped ? () => setTapped(true) : undefined}
       // No button role here: the Skip pill inside is the accessible button (a role here nests buttons on web).
-      accessibilityLabel="ZCS, Zenvy Community and Services. Tap to skip"
+      accessibilityLabel="ZENV intro"
     >
-      {/* ── Beat 1: black with a soft cinematic vignette ── */}
-      <Animated.View style={[StyleSheet.absoluteFill, { opacity: a.backdrop }]} renderToHardwareTextureAndroid shouldRasterizeIOS>
-        <LinearGradient colors={[BG, '#110E0A', BG]} locations={[0, 0.48, 1]} style={StyleSheet.absoluteFill} />
-        <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
-          <Defs>
-            <RadialGradient id="zcsIntroVignette" cx="50%" cy="46%" r="70%">
-              <Stop offset="0" stopColor="#000" stopOpacity={0} />
-              <Stop offset="0.45" stopColor="#000" stopOpacity={0.12} />
-              <Stop offset="1" stopColor="#000" stopOpacity={0.9} />
-            </RadialGradient>
-          </Defs>
-          <Rect x={0} y={0} width="100%" height="100%" fill="url(#zcsIntroVignette)" />
-        </Svg>
-      </Animated.View>
+      {tapToStart && !tapped && (
+        <View style={styles.tapHint} pointerEvents="none">
+          <Text style={styles.tapHintText}>Tap to play the intro with sound</Text>
+        </View>
+      )}
 
-      {!still && a.motes.map((m, i) => (
+      {/* ── The clip on its white stage ── always visible from first render so no dark gap before the video */}
+      {mode === 'video' && (
+        <View style={[StyleSheet.absoluteFill, styles.stage]} pointerEvents="none">
+          <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ scale: a.videoScale }] }]}>
+            {/* The clip's last frame, decoded from the start and kept UNDER the clip: if a phone clears the video
+                surface at the end, the identical logo is already there (no swap, no blink at the hand-over). */}
+            <Image
+              source={INTRO_LAST_FRAME}
+              style={[styles.video, videoOff === 'blank' && styles.hidden]}
+              contentFit="contain"
+              transition={0}
+              accessible={false}
+            />
+            {videoOff === 'no' && (
+              <VideoView
+                player={player}
+                // Explicit 100% size: on web the <video> would otherwise keep its intrinsic 1920 x 1080 box.
+                style={styles.video}
+                contentFit="contain"
+                nativeControls={false}
+                fullscreenOptions={{ enable: false }}
+                allowsPictureInPicture={false}
+                playsInline
+                // A TextureView takes part in the fade and the push-in (a SurfaceView would ignore them).
+                surfaceType="textureView"
+                onFirstFrameRender={onFirstFrame}
+                accessible={false}
+                importantForAccessibility="no-hide-descendants"
+              />
+            )}
+            {/* White veil: hides the video surface (black or the still logo underneath) until the clip is playing. */}
+            <Animated.View style={[StyleSheet.absoluteFill, styles.stage, { opacity: a.veil }]} />
+          </Animated.View>
+        </View>
+      )}
+
+      {/* ── Fallback (and reduce motion): the ZENV badge on the dark background ── */}
+      {mode !== 'video' && (
         <Animated.View
-          key={i}
-          style={[
-            styles.mote,
-            {
-              left: m.left,
-              top: '62%',
-              width: m.size,
-              height: m.size,
-              borderRadius: m.size / 2,
-              opacity: m.opacity,
-              transform: [{ translateY: m.y }],
-            },
-          ]}
-        />
-      ))}
-
-      {/* ── Stage (pushes in on exit) ── */}
-      <Animated.View
-        style={[styles.stage, { opacity: a.stageOpacity, transform: still ? [] : [{ scale: a.stageScale }] }]}
-        renderToHardwareTextureAndroid={exiting}
-        shouldRasterizeIOS={exiting}
-      >
-        <View style={[styles.wordmark, { height: g.rowH }]}>
-          {/* Beat 5 glow sits behind everything in the monogram */}
-          <View style={[styles.centreLayer, { top: (g.rowH - GLOW_H) / 2, height: GLOW_H }]}>
-            <Animated.View style={{ opacity: breath }}>
-              <Animated.View style={{ opacity: a.glow, transform: [{ scale: a.glowScale }] }} renderToHardwareTextureAndroid shouldRasterizeIOS>
-                <GoldGlow id="zcsIntroGlow" w={GLOW_W} h={GLOW_H} strength={0.3} />
-              </Animated.View>
+          style={[styles.badgeStage, { opacity: a.stageOpacity, transform: still ? [] : [{ scale: a.badgeExitScale }] }]}
+          pointerEvents="none"
+        >
+          <View style={[styles.centreLayer, { width: glowSize, height: glowSize }]}>
+            <Animated.View style={{ opacity: still ? 1 : a.badgeGlow }}>
+              <Glow id="zenvIntroGlow" size={glowSize} color={ZENV_YELLOW} strength={0.3} />
             </Animated.View>
           </View>
-
-          {/* Beat 2: light line (full window width) + lens flare through the letters' centre line */}
-          {!still && (
-            <>
-              <Animated.View style={[styles.streak, { top: g.rowH / 2 - 0.75, opacity: a.streakOpacity, transform: [{ scaleX: a.streakScale }] }]} renderToHardwareTextureAndroid shouldRasterizeIOS>
-                <LinearGradient
-                  colors={['rgba(212,175,55,0)', 'rgba(212,175,55,0.55)', 'rgba(255,240,200,0.95)', 'rgba(212,175,55,0.55)', 'rgba(212,175,55,0)']}
-                  locations={[0, 0.3, 0.5, 0.7, 1]}
-                  start={{ x: 0, y: 0.5 }}
-                  end={{ x: 1, y: 0.5 }}
-                  style={StyleSheet.absoluteFill}
-                />
-              </Animated.View>
-              <View style={[styles.centreLayer, { top: (g.rowH - FLARE_H) / 2, height: FLARE_H }]}>
-                <Animated.View style={[styles.flare, { opacity: a.flareOpacity, transform: [{ translateX: a.flareX }] }]} renderToHardwareTextureAndroid shouldRasterizeIOS>
-                  <GoldGlow id="zcsIntroFlareHalo" w={FLARE_W} h={FLARE_H} strength={0.55} />
-                  <View style={styles.flareCore}>
-                    <GoldGlow id="zcsIntroFlareCore" w={56} h={56} strength={0.95} color="#FFF4D6" />
-                  </View>
-                </Animated.View>
-              </View>
-            </>
-          )}
-
-          {/* Beat 3: the monogram, centred by flexbox */}
-          <View style={rowBox}>
-            <View style={[styles.lettersRow, rowBox]}>
-              {LETTERS.map((ch, i) => (
-                <Animated.View
-                  key={ch}
-                  style={{ opacity: a.letters[i].opacity, transform: [{ translateY: a.letters[i].y }] }}
-                  renderToHardwareTextureAndroid
-                  shouldRasterizeIOS
-                >
-                  <GoldLetter ch={ch} g={g} />
-                </Animated.View>
-              ))}
-            </View>
-
-            {!still && (
-              <>
-                <Animated.View style={[styles.band, { width: SOFT_BAND, height: g.rowH, opacity: 0.55, transform: [{ translateX: a.softX }] }]}>
-                  <Animated.View style={[styles.bandInner, rowBox, { transform: [{ translateX: a.softInner }] }]} renderToHardwareTextureAndroid shouldRasterizeIOS>
-                    {shineRow('#F3DFA6')}
-                  </Animated.View>
-                </Animated.View>
-                <Animated.View style={[styles.band, { width: CORE_BAND, height: g.rowH, transform: [{ translateX: a.coreX }] }]}>
-                  <Animated.View style={[styles.bandInner, rowBox, { transform: [{ translateX: a.coreInner }] }]} renderToHardwareTextureAndroid shouldRasterizeIOS>
-                    {shineRow('#FFF7E2')}
-                  </Animated.View>
-                </Animated.View>
-              </>
-            )}
-          </View>
-        </View>
-
-        {/* Beat 4: hairline + the full name */}
-        <Animated.View style={{ opacity: a.hairlineOpacity, transform: [{ scaleX: a.hairline }] }} renderToHardwareTextureAndroid shouldRasterizeIOS>
-          <LinearGradient
-            colors={['rgba(212,175,55,0)', 'rgba(212,175,55,0.8)', 'rgba(212,175,55,0)']}
-            start={{ x: 0, y: 0.5 }}
-            end={{ x: 1, y: 0.5 }}
-            style={styles.hairline}
-          />
+          <Animated.View style={{ opacity: still ? 1 : a.badgeOpacity, transform: still ? [] : [{ scale: a.badgeScale }] }}>
+            <ZenvBadge size={badgeSize} />
+          </Animated.View>
         </Animated.View>
-        <Animated.View style={{ opacity: a.nameOpacity, transform: [{ translateY: a.nameY }] }} renderToHardwareTextureAndroid shouldRasterizeIOS>
-          <Text allowFontScaling={false} style={[styles.name, { maxWidth: winW - SIDE_PAD * 2 }]}>{NAME}</Text>
-        </Animated.View>
-      </Animated.View>
+      )}
 
       {/* ── Skip ── */}
-      <Animated.View style={[styles.skipWrap, { opacity: still ? a.stageOpacity : a.skipFade }]}>
+      <Animated.View style={[styles.skipWrap, { opacity: still ? a.stageOpacity : mode === 'video' ? a.skipFade : a.badgeSkip }]}>
         <TouchableOpacity
-          style={styles.skipBtn}
+          style={[styles.skipBtn, onLight ? styles.skipBtnLight : styles.skipBtnDark]}
           onPress={skip}
           activeOpacity={0.75}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           accessibilityRole="button"
           accessibilityLabel="Skip intro"
         >
-          <Text style={styles.skipText}>Skip</Text>
+          <Text style={[styles.skipText, onLight ? styles.skipTextLight : styles.skipTextDark]}>Skip</Text>
         </TouchableOpacity>
       </Animated.View>
     </Animated.View>
   );
 }
 
-const GLOW_W = 360;
-const GLOW_H = 190;
-const FLARE_W = 240;
-const FLARE_H = 70;
-
 const styles = StyleSheet.create({
+  tapHint: { position: 'absolute', left: 0, right: 0, bottom: '16%', alignItems: 'center', zIndex: 5 },
+  tapHintText: { color: 'rgba(255,255,255,0.72)', fontSize: 14, letterSpacing: 0.6 },
   container: {
     position: 'absolute',
     top: 0,
@@ -523,92 +522,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  mote: {
-    position: 'absolute',
-    backgroundColor: GOLD,
-  },
-
   stage: {
-    alignSelf: 'stretch',
-    alignItems: 'center',
-    marginBottom: 40,
+    backgroundColor: STAGE,
   },
-  wordmark: {
-    alignSelf: 'stretch',
+  video: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
+  hidden: { opacity: 0 },
+  badgeStage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // Full-width absolute layer whose child is centred by flexbox (no x offsets from a stale width).
+  // The glow is centred on the badge by flexbox (no offsets from a stale width).
   centreLayer: {
     position: 'absolute',
-    left: 0,
-    right: 0,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  streak: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 1.5,
-  },
-  flare: {
-    width: FLARE_W,
-    height: FLARE_H,
-  },
-  flareCore: {
-    position: 'absolute',
-    left: (FLARE_W - 56) / 2,
-    top: (FLARE_H - 56) / 2,
-  },
-  lettersRow: {
-    flexDirection: 'row',
-  },
-  band: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    overflow: 'hidden',
-  },
-  bandInner: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-  },
-
-  hairline: {
-    width: 170,
-    height: 1,
-    marginTop: 4,
-    marginBottom: 14,
-  },
-  letter: {
-    ...LETTER_FONT,
-    textAlign: 'center',
-    includeFontPadding: false,
-  },
-  letterBase: {
-    color: '#CFA94E',
-    textShadowColor: 'rgba(212,175,55,0.35)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 12,
-  },
-  sheenClip: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    overflow: 'hidden',
-  },
-  letterSheen: {
-    color: '#E9CF86',
-  },
-  name: {
-    ...NAME_FONT,
-    color: '#D9C795',
-    opacity: 0.82,
-    fontSize: 11.5,
-    letterSpacing: 3,
-    textAlign: 'center',
   },
 
   skipWrap: {
@@ -620,14 +552,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 7,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(212,175,55,0.35)',
   },
+  // On the white stage: the badge's navy.
+  skipBtnLight: { backgroundColor: 'rgba(15,57,96,0.05)', borderColor: 'rgba(15,57,96,0.22)' },
+  // On the dark background (fallback badge, reduce motion).
+  skipBtnDark: { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(250,224,75,0.35)' },
   skipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#E9D28F',
     letterSpacing: 0.3,
   },
+  skipTextLight: { color: '#0F3960' },
+  skipTextDark: { color: '#F4E48E' },
 });

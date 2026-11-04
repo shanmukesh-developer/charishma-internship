@@ -25,7 +25,6 @@ const INSTRUCTION_LABELS: Record<string, string> = {
   no_cutlery: 'No plastic cutlery',
   call_arrival: 'Call when you arrive',
   guard_desk: 'Leave with the hostel guard',
-  quiet_knock: 'Knock gently',
 };
 const EMOJI_RE = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]\uFE0F?/gu;
 const stripEmoji = (t: string) => t.replace(EMOJI_RE, '').replace(/\s{2,}/g, ' ').trim();
@@ -130,15 +129,30 @@ export default function BasketScreen() {
   const storeOpensAt = storeClosed && typeof quoteError?.body?.opensAt === 'string' ? formatClock(quoteError.body.opensAt) : '';
   const storeClosedTitle = basketKind === 'stall' ? 'This stall is closed now' : `${stallLine?.restaurantName || cart[0]?.restaurantName || 'This store'} is closed now`;
   const storeClosedText = storeOpensAt ? `Opens at ${storeOpensAt}. Your basket is saved.` : 'Your basket is saved. Check back when it opens.';
+  // A weight / flavour pick is missing or no longer offered (OPTION_INVALID): checkout would refuse it too.
+  const optionInvalid = quoteError?.code === 'OPTION_INVALID';
+  // College rules (backend utils/campuses): a store of another college or a coming-soon college; a retry gives the
+  // same answer (a paused college may reopen, so Try again stays for it).
+  const collegeRefusal = ['STORE_NOT_AT_CAMPUS', 'CAMPUS_PAUSED', 'CAMPUS_SOON'].includes(String(quoteError?.code || ''));
+  const collegeFinal = quoteError?.code === 'STORE_NOT_AT_CAMPUS' || quoteError?.code === 'CAMPUS_SOON';
+  const optionItemId: string | null = optionInvalid && quoteError?.body?.menuItemId ? String(quoteError.body.menuItemId) : null;
+  const chooseAgain = () => {
+    if (optionItemId) {
+      removeItems({ ids: [optionItemId] });
+      router.push(`/products/${optionItemId}` as any);
+    }
+  };
   // Don't send people to checkout just to be refused there.
-  const checkoutBlocked = !!user && (isClosed || storeClosed || unavailable.length > 0);
+  const checkoutBlocked = !!user && (isClosed || storeClosed || unavailable.length > 0 || optionInvalid);
   const checkoutLabel = !user
     ? `Go to checkout · ${plural(totalItems, 'item')}`
     : isClosed || storeClosed
       ? 'Ordering closed'
       : unavailable.length > 0
         ? 'Remove unavailable items first'
-        : `Go to checkout · ${plural(totalItems, 'item')}`;
+        : optionInvalid
+          ? 'Choose the item options first'
+          : `Go to checkout · ${plural(totalItems, 'item')}`;
 
   const bg = colors.bg;
   const cardBg = colors.card;
@@ -540,9 +554,13 @@ export default function BasketScreen() {
                   </>
                 ) : quoteError ? (
                   <View>
-                    <Text style={{ fontSize: 12, fontWeight: '800', color: txt, marginBottom: 4 }}>We couldn't calculate your bill</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '800', color: txt, marginBottom: 4 }}>{collegeRefusal ? 'Not available at your college' : "We couldn't calculate your bill"}</Text>
                     <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600', lineHeight: 16, marginBottom: 10 }}>{quoteError.message}</Text>
-                    {unavailable.length === 0 && (
+                    {optionInvalid && optionItemId ? (
+                      <TouchableOpacity style={[s.bannerBtn, { alignSelf: 'flex-start' }]} onPress={chooseAgain}>
+                        <Text style={s.bannerBtnText}>Choose again</Text>
+                      </TouchableOpacity>
+                    ) : unavailable.length === 0 && !collegeFinal && (
                       <TouchableOpacity style={[s.bannerBtn, { alignSelf: 'flex-start' }]} onPress={refreshQuote}>
                         <Text style={s.bannerBtnText}>Try again</Text>
                       </TouchableOpacity>

@@ -42,7 +42,7 @@ const CAMPUS_SERVICES_MAP: ServicePillar[] = [
     howToAccess: 'Home tab ➔ pick a restaurant or a cuisine under Popular dishes.',
     keyFeatures: [
       'Real menus and prices from campus kitchens',
-      'Ordering open 6 AM – 9 PM, Cash on Delivery or ZCS Wallet',
+      'Ordering open 6 AM – 9 PM, Cash on Delivery or ZENV Wallet',
       'Live order status and a Delivery PIN only you can share'
     ],
     image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=80',
@@ -51,14 +51,14 @@ const CAMPUS_SERVICES_MAP: ServicePillar[] = [
   {
     id: 'grocery',
     icon: '🛒',
-    title: 'Kirana & shopping list',
+    title: 'Kirana & essentials',
     category: 'GROCERIES & DAILY NEEDS',
     tagline: 'Snacks, staples and hostel essentials',
-    howToAccess: 'Others tab ➔ "Food & groceries", or Home ➔ Shopping list for a custom list.',
+    howToAccess: 'Groceries tab ➔ "Food & groceries".',
     keyFeatures: [
       'Noodles, snacks, drinks and daily essentials',
-      'Shopping list: a rider shops your list and sends the real bill',
-      'You approve the bill before you pay'
+      'Shop by category, brand or deal',
+      'Cash on delivery or ZENV Wallet'
     ],
     image: 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=600&q=80',
     accentColor: '#10B981',
@@ -69,7 +69,7 @@ const CAMPUS_SERVICES_MAP: ServicePillar[] = [
     title: 'Laundry & Ironing',
     category: 'HOUSEKEEPING',
     tagline: 'Book a wash, dry clean or ironing pickup',
-    howToAccess: 'Others tab ➔ "Tech & Repairs" ➔ "Wash, Dry Clean & Ironing".',
+    howToAccess: 'Services tab ➔ "Tech & Repairs" ➔ "Wash, Dry Clean & Ironing".',
     keyFeatures: [
       'Pick a service and see its price before booking',
       'Doorstep pickup from your hostel',
@@ -84,7 +84,7 @@ const CAMPUS_SERVICES_MAP: ServicePillar[] = [
     title: 'Pharmacy Essentials',
     category: 'HEALTHCARE',
     tagline: 'Basic over-the-counter care, delivered',
-    howToAccess: 'Others tab ➔ "Food & groceries" ➔ search for medicine & first-aid.',
+    howToAccess: 'Groceries tab ➔ "Food & groceries" ➔ search for medicine & first-aid.',
     keyFeatures: [
       'First-aid and everyday health items',
       'Same Cash on Delivery or Wallet checkout',
@@ -99,7 +99,7 @@ const CAMPUS_SERVICES_MAP: ServicePillar[] = [
     title: 'PG & Student Stays',
     category: 'ACCOMMODATION',
     tagline: 'Browse PGs and rooms near campus',
-    howToAccess: 'Others tab ➔ "PG Stays".',
+    howToAccess: 'Services tab ➔ "PG Stays".',
     keyFeatures: [
       'Rooms, rent and amenities listed by each PG',
       'Book a room right in the app'
@@ -113,7 +113,7 @@ const CAMPUS_SERVICES_MAP: ServicePillar[] = [
     title: 'Co-Ride for Students',
     category: 'CAMPUS TRANSIT',
     tagline: 'Share a ride with students going your way',
-    howToAccess: 'Others tab ➔ "Co-Ride" ➔ post or join a ride.',
+    howToAccess: 'Services tab ➔ "Co-Ride" ➔ post or join a ride.',
     keyFeatures: [
       'Post a trip or join one',
       'The rider approves who hops on',
@@ -127,12 +127,12 @@ const CAMPUS_SERVICES_MAP: ServicePillar[] = [
     icon: '🎁',
     title: 'Rewards & Daily Deals',
     category: 'PERKS & LOYALTY',
-    tagline: 'ZCS Points, spins and daily deals',
-    howToAccess: 'Others tab ➔ "Deals & Spin", or Home ➔ Daily Deals.',
+    tagline: 'ZENV Points, spins and daily deals',
+    howToAccess: 'Groceries tab ➔ "Deals & Spin", or Home ➔ Daily Deals.',
     keyFeatures: [
       'Every 2 delivered orders earn a spin',
       'Daily deals give a coupon valid until midnight',
-      '200+ ZCS Points unlock free delivery'
+      '200+ ZENV Points unlock free delivery'
     ],
     image: 'https://images.unsplash.com/photo-1596451190630-186aff535bf2?w=600&q=80',
     accentColor: '#EC4899',
@@ -235,7 +235,7 @@ export default function CampusServicesMapModal({ visible, onClose }: Props) {
                   </Text>
                   <View style={{ backgroundColor: `${activePillar.accentColor}20`, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
                     <Text style={{ color: activePillar.accentColor, fontSize: 12, fontWeight: '900' }}>
-                      On ZCS
+                      On ZENV
                     </Text>
                   </View>
                 </View>

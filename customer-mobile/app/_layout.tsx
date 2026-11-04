@@ -1,12 +1,13 @@
 import 'react-native-gesture-handler';
 import React from 'react';
-import { Stack } from 'expo-router';
-import { Platform, View, StyleSheet, Alert, ActivityIndicator, LogBox, InteractionManager } from 'react-native';
+import { Stack, useNavigationContainerRef, usePathname, useRouter } from 'expo-router';
+import { Platform, View, StyleSheet, Alert, ActivityIndicator, LogBox, InteractionManager, BackHandler } from 'react-native';
 
 // Web preview only: react-native-web renders nested touchables as nested <button>s and logs a
 // dev warning. It never happens on Android/iOS, so keep it out of the preview overlay.
 if (Platform.OS === 'web') LogBox.ignoreLogs(['cannot contain a nested']);
 import { useFonts } from 'expo-font';
+import AdSplashHost from '../components/adSplash/AdSplashHost';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import { StatusBar as RNStatusBar } from 'react-native';
@@ -15,6 +16,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { AuthProvider } from '../context/AuthContext';
 import { CartProvider } from '../context/CartContext';
+import { OptionsSheetProvider } from '../components/ProductOptions';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { DietaryProvider } from '../context/DietaryContext';
 import { WorldTransitionProvider } from '../context/WorldTransitionContext';
@@ -65,6 +67,29 @@ function SettleSignal({ onSettled }: { onSettled: () => void }) {
   return null;
 }
 
+/**
+ * A screen opened straight from a notification or a link has nothing under it, so Android Back closed the app.
+ * It now goes Home instead. Tabs, onboarding and sign-in keep the normal "Back leaves the app"; whenever the
+ * navigator can go back itself, it does (this only answers when nothing else can).
+ */
+const ROOT_PATHS = new Set(['/', '/basket', '/local', '/orders', '/others', '/profile', '/services', '/onboarding', '/login', '/register']);
+function BackToHomeFromDeepLink() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const pathRef = React.useRef(pathname);
+  pathRef.current = pathname;
+  React.useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (router.canGoBack() || ROOT_PATHS.has(pathRef.current || '/')) return false;
+      router.replace('/(tabs)' as any);
+      return true;
+    });
+    return () => sub.remove();
+  }, [router]);
+  return null;
+}
+
 const AppTree = React.memo(function AppTree({ isDark, onSettled }: { isDark: boolean; onSettled: () => void }) {
   return (
     // initialWindowMetrics: real status-bar / notch insets from the first frame (without it every inset reads 0
@@ -78,7 +103,10 @@ const AppTree = React.memo(function AppTree({ isDark, onSettled }: { isDark: boo
           <UpdateGate>
           <AuthProvider>
           <CartProvider>
+          {/* Admin-set product choices (weights, flavours, types): the "choose before adding" sheet. */}
+          <OptionsSheetProvider>
             <Stack screenOptions={ROOT_STACK_OPTIONS} />
+            <BackToHomeFromDeepLink />
             <WorldTransitionOverlay />
             <GlobalAnnouncement />
             {/* C4: one-time, non-blocking "We've updated our Terms" sheet */}
@@ -88,6 +116,7 @@ const AppTree = React.memo(function AppTree({ isDark, onSettled }: { isDark: boo
             {/* Backend cold start: calm "waking up" banner while apiFetch retries (utils/serverWake.ts) */}
             <ServerWakeBanner />
             <SettleSignal onSettled={onSettled} />
+          </OptionsSheetProvider>
           </CartProvider>
         </AuthProvider>
           </UpdateGate>
@@ -100,7 +129,7 @@ const AppTree = React.memo(function AppTree({ isDark, onSettled }: { isDark: boo
 
 function AppContainer() {
   const { isDark, isThemeReady } = useTheme();
-  // The Zenvy intro plays on every app start (cold launch). It is dark on its own, so it shows from the
+  // The ZENV intro plays on every app start (cold launch). It is dark on its own, so it shows from the
   // first frame without waiting for the saved theme to load.
   const [showIntro, setShowIntro] = React.useState(true);
 
@@ -159,39 +188,35 @@ function AppContainer() {
   const handleSettled = React.useCallback(() => setAppSettled(true), []);
 
   // Intro on top of everything; after it, a dark cover only if the saved theme is somehow still loading.
+  // Keyed: the two returns below have different siblings before it, and without a key the intro (and its video
+  // player) was unmounted and started again from scratch the moment the icon fonts finished loading.
   const introLayer = showIntro ? (
-    <IntroOverlay ready={(fontsLoaded || !!fontError) && isThemeReady} start={appSettled} onComplete={handleIntroComplete} />
+    <IntroOverlay key="intro" ready={(fontsLoaded || !!fontError) && isThemeReady} start={appSettled} onComplete={handleIntroComplete} />
   ) : !isThemeReady ? (
-    <View style={[StyleSheet.absoluteFill, { backgroundColor: '#0A0A0B', zIndex: 999999 }]} />
+    <View key="intro-cover" style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? '#0A0A0B' : '#F5F5F7', zIndex: 999999 }]} />
   ) : null;
-
-  // Wait for icon fonts to load (critical for Expo Web)
-  // If the font fails to load, render anyway (icons fall back) instead of spinning forever
-  // (The intro layer sits beside the app in one stable spot, so it never restarts when the fonts finish.)
-  if (!fontsLoaded && !fontError) {
-    return (
-      <View style={{ flex: 1 }}>
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? '#0A0A0B' : '#F5F5F7' }}>
-          <ActivityIndicator size="large" color="#F59E0B" />
-        </View>
-        {introLayer}
-      </View>
-    );
-  }
 
   return (
     <View style={{ flex: 1 }}>
-      <AppTree isDark={isDark} onSettled={handleSettled} />
+      {!fontsLoaded && !fontError ? (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? '#0A0A0B' : '#F5F5F7' }}>
+          <ActivityIndicator size="large" color="#F59E0B" />
+        </View>
+      ) : (
+        <AppTree isDark={isDark} onSettled={handleSettled} />
+      )}
+      {/* Sponsored splash: one admin-created store ad right after the intro, once per open (components/adSplash). */}
+      <AdSplashHost introDone={!showIntro} />
       {introLayer}
     </View>
   );
 }
 
-/** Web only: the browser tab reads "ZCS" (the brand), whatever a screen or the app name sets. */
+/** Web only: the browser tab reads "ZENV" (the brand), whatever a screen or the app name sets. */
 function useWebTitle() {
   React.useEffect(() => {
     if (Platform.OS !== 'web' || typeof document === 'undefined') return;
-    const want = 'ZCS';
+    const want = 'ZENV';
     if (document.title !== want) document.title = want;
     const el = document.querySelector('title');
     if (!el || typeof MutationObserver === 'undefined') return;
@@ -203,8 +228,11 @@ function useWebTitle() {
 
 export default function RootLayout() {
   useWebTitle();
+  // A screen that crashes on render: "Go to Home" puts the navigation back to the tabs before the app re-renders.
+  const navRef = useNavigationContainerRef();
+  const goHome = React.useCallback(() => { navRef.resetRoot({ index: 0, routes: [{ name: '(tabs)' }] } as any); }, [navRef]);
   return (
-    <ErrorBoundary>
+    <ErrorBoundary onGoHome={goHome}>
       <ThemeProvider>
         <DietaryProvider>
           <AppContainer />

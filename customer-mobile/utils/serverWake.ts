@@ -49,6 +49,8 @@ export const coldStartWait = async (res: Response): Promise<number | null> => {
   try { body = await res.clone().json(); } catch { body = null; }
   if (body && typeof body === 'object') {
     const code = String(body.code || '');
+    // The sign-in check hit a database hiccup (backend authMiddleware, 503 + Retry-After 2): not signed out, retry.
+    if (code === 'AUTH_UNAVAILABLE') return 2000;
     if (code !== 'SERVER_STARTING' && code !== 'STARTING') return null;
     const after = Number(body.retryAfter);
     return Number.isFinite(after) && after > 0 ? after * 1000 : 0;

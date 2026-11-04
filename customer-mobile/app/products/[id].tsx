@@ -34,7 +34,10 @@ import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { formatINR, isAmount, plural } from '../../utils/format';
 import FoodV2ProductView from '../../modules/foodV2/FoodV2ProductView';
+import { fromPrice, productDetails, productOptions, useAskOptions } from '../../components/ProductOptions';
+import FormattedDescription, { isStructured } from '../../components/FormattedDescription';
 import { takesSlotOrders } from '../../utils/storeOpenNow';
+import { goHome } from '../../utils/goHome';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -47,8 +50,20 @@ const NON_FOOD_REVIEW_TAGS = ['Good quality', 'As described', 'Good value'];
 // Vendor types where a veg / non-veg mark makes no sense.
 const NON_FOOD_TYPES = ['ELECTRONICS', 'HOME_ESSENTIALS', 'STATIONERY', 'STATIONARY', 'TOYS', 'SEEDS', 'RENTALS', 'RENTAL', 'REPAIRS', 'PRINT', 'LAUNDRY', 'TAILORING', 'PHARMACY'];
 
-// specs keys that are internal bookkeeping (or rendered elsewhere) and must not be listed as product details.
-const HIDDEN_SPEC_KEYS = ['catalogueKey', 'originalPrice', 'rating', 'ratingCount', 'bookingOnly', 'extraFor', 'emoji', 'legacyIds', 'variants'];
+// specs keys that are internal bookkeeping (or rendered elsewhere) and must not be listed as product details. The
+// import scripts' markers (demoFillKey, demoStallKey, ownerMenuKey, hiddenBy, addedBy, priceApprox) and the admin's
+// option switches (autoWeights, packGrams) used to show as "Demo Fill Key: ..." rows under More information
+// ("Owner menu key: owner-menu:..." on the Amrutham dishes, 1 Nov; the server no longer stores it either).
+const HIDDEN_SPEC_KEYS = ['catalogueKey', 'originalPrice', 'rating', 'ratingCount', 'bookingOnly', 'extraFor', 'emoji', 'legacyIds', 'variants',
+  'options', 'details', 'sortOrder', 'customizable', 'images', 'demoFillKey', 'demoStallKey', 'ownerMenuKey', 'hiddenBy', 'addedBy', 'priceApprox',
+  'autoWeights', 'packGrams'];
+
+/** A pack weight stored as a bare number of grams reads "1 kg" / "500 g", never "1000". */
+const packText = (raw: unknown): string | null => {
+  const n = typeof raw === 'number' ? raw : typeof raw === 'string' && /^\d+(\.\d+)?$/.test(raw.trim()) ? Number(raw) : NaN;
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return n >= 1000 ? `${Number((n / 1000).toFixed(2))} kg` : `${n} g`;
+};
 
 /** Only real images: http(s) URLs and uploaded data:image URIs. Anything else -> no image (neutral placeholder). */
 export function getRealImageUri(uri?: string | null): string | null {
@@ -83,11 +98,16 @@ function specIcon(label: string): React.ComponentProps<typeof Ionicons>['name'] 
 /** Turns MenuItem.specs into displayable rows. Only real, admin/restaurant-entered values are shown. */
 function buildSpecRows(specs: any): { label: string; value: string }[] {
   if (!specs || typeof specs !== 'object') return [];
+  // The admin's own product details, exactly in the order entered (docs/PRODUCT_OPTIONS.md).
+  const own = productDetails({ specs });
+  if (own) return own;
   const rows: { label: string; value: string }[] = [];
   Object.entries(specs).forEach(([key, raw]) => {
     if (HIDDEN_SPEC_KEYS.includes(key)) return;
     let value: string | null = null;
-    if (typeof raw === 'string') value = raw.trim();
+    const grams = key === 'weight' ? packText(raw) : null;
+    if (grams) value = grams;
+    else if (typeof raw === 'string') value = raw.trim();
     else if (typeof raw === 'number' && Number.isFinite(raw)) value = String(raw);
     else if (typeof raw === 'boolean') value = raw ? 'Yes' : 'No';
     else if (Array.isArray(raw)) value = raw.filter((x) => typeof x === 'string' || typeof x === 'number').join(', ');
@@ -124,7 +144,7 @@ type LoadState = 'loading' | 'ready' | 'notfound' | 'error';
 
 // Booking-only services (backend utils/vendorTypes.js) open their booking page
 /** Store types sold on Others → Food & groceries (FoodV2ProductView). */
-const SHOP_VENDOR_TYPES = ['GROCERY', 'TOYS', 'SEEDS', 'ELECTRONICS'];
+const SHOP_VENDOR_TYPES = ['GROCERY', 'TOYS', 'SEEDS', 'ELECTRONICS', 'BAKERY'];
 
 const SERVICE_CATEGORY_BY_VENDOR: Record<string, string> = {
   REPAIRS: 'repairs',
@@ -142,6 +162,7 @@ export default function ProductDetailScreen() {
   const { user } = useAuth();
   const { isDark, colors } = useTheme();
   const [customizing, setCustomizing] = useState(false);
+  const askOptions = useAskOptions();
 
   const mountedRef = useRef(true);
   useEffect(() => {
@@ -310,6 +331,8 @@ export default function ProductDetailScreen() {
         nextSlotLabel: typeof data.nextSlotLabel === 'string' ? data.nextSlotLabel : null,
         specRows: buildSpecRows(specs),
         specs: specs && typeof specs === 'object' ? specs : null,
+        // Customer choices from the server: the admin's, else automatic weights (docs/PRODUCT_OPTIONS.md).
+        options: Array.isArray(data.options) ? data.options : undefined,
         tags: Array.isArray(data.tags) ? data.tags.filter((t: any) => typeof t === 'string') : [],
         isEliteOnly: !!data.isEliteOnly,
       };
@@ -404,7 +427,7 @@ export default function ProductDetailScreen() {
       Alert.alert('Review posted', 'Thanks for your review.');
       loadReviews(product.id);
     } catch (e) {
-      if (mountedRef.current) Alert.alert('No connection', 'Could not reach ZCS. Check your internet and try again.');
+      if (mountedRef.current) Alert.alert('No connection', 'Could not reach ZENV. Check your internet and try again.');
     } finally {
       submittingRef.current = false;
       if (mountedRef.current) setSubmittingReview(false);
@@ -455,7 +478,7 @@ export default function ProductDetailScreen() {
         ) : (
           <TouchableOpacity
             style={{ backgroundColor: COLORS.red, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 16, ...SHADOWS.redGlow }}
-            onPress={() => router.replace('/(tabs)' as any)}
+            onPress={() => goHome(router)}
           >
             <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '900' }}>Back to Home</Text>
           </TouchableOpacity>
@@ -482,7 +505,7 @@ export default function ProductDetailScreen() {
     : product.isVaultItem
     ? 'Daily deal — claim it from Home'
     : eliteLocked
-      ? 'For ZCS Elite members only'
+      ? 'For ZENV Elite members only'
       : product.bookingOnly
       ? 'This is a doorstep service — book a pickup instead'
       : !product.isAvailable
@@ -532,7 +555,7 @@ export default function ProductDetailScreen() {
     try {
       await Share.share({
         // No zenvy:// link: it opens nothing for friends who don't have the app yet.
-        message: `Check out ${product.name}${product.restaurantName ? ` from ${product.restaurantName}` : ''} on ZCS.`,
+        message: `Check out ${product.name}${product.restaurantName ? ` from ${product.restaurantName}` : ''} on ZENV.`,
       });
     } catch (e) {
       // user dismissed the share sheet
@@ -754,12 +777,17 @@ export default function ProductDetailScreen() {
 
             {product.description ? (
               <>
-                <Text
-                  style={[styles.pdpDescriptionText, { color: isDark ? '#94A3B8' : '#475569' }]}
-                  numberOfLines={descExpanded ? undefined : 3}
-                >
-                  {product.description}
-                </Text>
+                {isStructured(product.description) && descExpanded ? (
+                  // Expanded: the admin's own layout (headings, lists, "Label: value" lines).
+                  <FormattedDescription text={product.description} color={isDark ? '#94A3B8' : '#475569'} strong={isDark ? '#FFFFFF' : '#0F172A'} />
+                ) : (
+                  <Text
+                    style={[styles.pdpDescriptionText, { color: isDark ? '#94A3B8' : '#475569' }]}
+                    numberOfLines={descExpanded ? undefined : 3}
+                  >
+                    {product.description}
+                  </Text>
+                )}
                 {product.description.length > 140 && (
                   <TouchableOpacity onPress={() => setDescExpanded(!descExpanded)} style={styles.readMoreTouch}>
                     <Text style={styles.readMoreLink}>{descExpanded ? 'Show less ▴' : 'Read more ▾'}</Text>
@@ -971,7 +999,7 @@ export default function ProductDetailScreen() {
                 <View style={styles.reviewUserRow}>
                   <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                      <Text style={[styles.reviewUserName, { color: isDark ? '#FFF' : COLORS.ink }]}>{rev.name || 'ZCS customer'}</Text>
+                      <Text style={[styles.reviewUserName, { color: isDark ? '#FFF' : COLORS.ink }]}>{rev.name || 'ZENV customer'}</Text>
                       {rev.verified ? (
                         <View style={styles.verifiedBadge}>
                           <Text style={styles.verifiedBadgeText}>Ordered</Text>
@@ -1016,7 +1044,7 @@ export default function ProductDetailScreen() {
             <View style={styles.bottomPriceCol}>
               <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
                 <Text style={[styles.bottomPriceBig, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>
-                  {formatINR(product.price)}
+                  {formatINR(fromPrice(productOptions(product)) ?? product.price)}
                 </Text>
                 {product.originalPrice ? (
                   <Text style={styles.bottomPriceStrikethrough}>{formatINR(product.originalPrice)}</Text>
@@ -1031,7 +1059,13 @@ export default function ProductDetailScreen() {
                 style={styles.bottomAddCtaBtn}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-                  if (customizable) setCustomizing(true);
+                  // Admin-set choices (weights, flavours, types) are asked in the options sheet first.
+                  const groups = productOptions(product);
+                  if (groups.length) {
+                    askOptions({ name: product.name, price: Number(product.price) || 0, image: product.images[0] || null, groups }).then((r) => {
+                      if (r) addWithStoreCheck({ ...productPayload(), price: r.unitPrice, basePrice: Number(product.price) || 0, customizations: r.customizations });
+                    });
+                  } else if (customizable) setCustomizing(true);
                   else addWithStoreCheck(productPayload());
                 }}
               >
@@ -1057,7 +1091,8 @@ export default function ProductDetailScreen() {
                 </LinearGradient>
               </TouchableOpacity>
             ) : product.isVaultItem ? (
-              <TouchableOpacity activeOpacity={0.86} style={styles.bottomAddCtaBtn} onPress={() => router.replace('/(tabs)' as any)}>
+              // The deals list itself (same vault list and claim as Home's Daily deals card); it used to drop the user on Home.
+              <TouchableOpacity activeOpacity={0.86} style={styles.bottomAddCtaBtn} onPress={() => router.push('/deals/today' as any)}>
                 <LinearGradient colors={['#F59E0B', '#D97706']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.bottomCtaGradient}>
                   <Text style={styles.bottomAddCtaText}>Go to daily deals</Text>
                 </LinearGradient>

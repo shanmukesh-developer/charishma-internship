@@ -32,10 +32,10 @@ export default function ServerWakeBanner() {
       accessibilityLiveRegion="polite"
     >
       {shown && (
-        <View style={st.inner} accessibilityRole="alert" accessibilityLabel="ZCS is waking up. Your data will load in a moment.">
+        <View style={st.inner} accessibilityRole="alert" accessibilityLabel="ZENV is waking up. Your data will load in a moment.">
           <ActivityIndicator size="small" color="#C9A84C" />
           <View style={{ flex: 1 }}>
-            <Text style={st.title}>ZCS is waking up…</Text>
+            <Text style={st.title}>ZENV is waking up…</Text>
             <Text style={st.sub}>This can take a minute or two. We'll load everything as soon as it's ready.</Text>
           </View>
         </View>

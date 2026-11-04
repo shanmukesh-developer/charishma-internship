@@ -10,6 +10,7 @@ import { useCart } from '../context/CartContext';
 import { apiFetch } from '../utils/auth';
 import { isLocalVendorType } from '../utils/localVendor';
 import { isCustomizable } from './CustomizeDrawer';
+import { productOptions } from './ProductOptions';
 
 // Grocery search runs against the DB catalogue (GET /api/catalogue/items?type=grocery&q=…)
 const toGroceryResult = (it: any) => ({
@@ -23,6 +24,8 @@ const toGroceryResult = (it: any) => ({
   restaurantId: it.storeId || it.restaurantId,
   restaurantName: it.storeName || 'Kirana & Late-Night Mart',
   orderable: it.orderable !== false && it.isAvailable !== false,
+  // Weights / flavours (admin-set or automatic): Add opens the product to choose (components/ProductOptions).
+  ...(Array.isArray(it.options) && it.options.length ? { options: it.options } : {}),
 });
 
 const { width: SW } = Dimensions.get('window');
@@ -49,6 +52,27 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
   const requestIdRef = useRef(0);
 
   const inputRef = useRef<TextInput>(null);
+
+  // "Try searching" ideas from real names only (3 Nov 2026: the fixed Ghee / Atta / Biryani / Burger lists mostly led
+  // to "No results"): food takes them from the server's trending dishes (the empty search), groceries from the
+  // catalogue, read once when the overlay opens. No ideas, no row.
+  const shortName = (n: any) => String(n || '').replace(/\s*\([^)]*\)\s*/g, ' ').replace(/\s+/g, ' ').trim();
+  const uniqueNames = (list: any[]) => [...new Set(list.map((i) => shortName(i?.name)).filter((n) => n.length >= 3 && n.length <= 24))].slice(0, 6);
+  const [foodIdeas, setFoodIdeas] = useState<string[]>([]);
+  const [groceryIdeas, setGroceryIdeas] = useState<string[]>([]);
+  useEffect(() => {
+    if (results.isTrending && results.items.length) setFoodIdeas(uniqueNames(results.items));
+  }, [results]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!isOpen || searchMode !== 'grocery' || groceryIdeas.length) return;
+    let alive = true;
+    apiFetch(`${API_URL}/api/catalogue/items?type=grocery&limit=40`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => { if (alive && data) setGroceryIdeas(uniqueNames(Array.isArray(data?.items) ? data.items : [])); })
+      .catch(() => { /* no ideas: the row stays hidden */ });
+    return () => { alive = false; };
+  }, [isOpen, searchMode]); // eslint-disable-line react-hooks/exhaustive-deps
+  const ideas = searchMode === 'grocery' ? groceryIdeas : foodIdeas;
 
   // Debounced search fetch (stale responses are ignored; failures show a friendly message)
   useEffect(() => {
@@ -167,7 +191,7 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
     const stall = stallOf(item);
     const itemId = String(item?._id || item?.id || '');
     if (!stall || !itemId) return;
-    if (isCustomizable(item)) {
+    if (isCustomizable(item) || productOptions(item).length) {
       onClose();
       router.push(`/products/${itemId}` as any);
       return;
@@ -316,6 +340,7 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
                                 <TouchableOpacity
                                   style={s.stepperBtn}
                                   onPress={() => {
+                                    if (productOptions(item).length) { onClose(); router.push(`/products/${item.id}` as any); return; }
                                     addToCart({
                                       id: item.id,
                                       name: item.name,
@@ -336,6 +361,8 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
                                 style={[s.addBtn, !item.orderable && { opacity: 0.5 }]}
                                 disabled={!item.orderable}
                                 onPress={() => {
+                                  // Weights / flavours to choose: open the product page (a bare add was refused at checkout).
+                                  if (productOptions(item).length) { onClose(); router.push(`/products/${item.id}` as any); return; }
                                   addToCart({
                                     id: item.id,
                                     name: item.name,
@@ -348,7 +375,7 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
                                   });
                                 }}
                               >
-                                <Text style={s.addBtnText}>{item.orderable ? 'ADD +' : 'SOLD OUT'}</Text>
+                                <Text style={s.addBtnText}>{item.orderable ? (productOptions(item).length ? 'CHOOSE' : 'ADD +') : 'SOLD OUT'}</Text>
                               </TouchableOpacity>
                             )}
                           </View>
@@ -398,15 +425,12 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
             </View>
           )}
 
-          {/* Search suggestions when query is empty */}
-          {query.length <= 1 && (
+          {/* Search suggestions when query is empty: real names from today's menus / catalogue only */}
+          {query.length <= 1 && ideas.length > 0 && (
             <View style={s.section}>
               <Text style={s.sectionTitle}>TRY SEARCHING</Text>
               <View style={s.tagsRow}>
-                {(searchMode === 'grocery'
-                  ? ['Ghee', 'Atta', 'Lemon', 'Toor Dal', 'Rice', 'Spices']
-                  : ['Biryani', 'Burger', 'Pizza', 'Milkshake', 'Dosa', 'Noodles']
-                ).map((tag) => (
+                {ideas.map((tag) => (
                   <TouchableOpacity
                     key={tag}
                     style={[s.tagBtn, { backgroundColor: cardBg, borderColor: border }]}

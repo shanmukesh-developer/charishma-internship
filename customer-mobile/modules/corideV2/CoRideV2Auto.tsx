@@ -30,11 +30,11 @@ export default function CoRideV2Auto() {
 
   const body = () => {
     if (d.autoOn === false) {
-      return <StateCard title="ZCS Auto is opening soon" body="Shared autos on fixed campus routes, run by verified drivers. Book a seat, board with a PIN and pay the driver in cash." action="Find a co-ride instead" onAction={() => push({ name: 'find' })} />;
+      return <StateCard title="ZENV Auto is opening soon" body="Shared autos on fixed campus routes, run by verified drivers. Book a seat, board with a PIN and pay the driver in cash." action="Find a co-ride instead" onAction={() => push({ name: 'find' })} />;
     }
     if (d.autoOn === null && (d.autoError || d.connection !== 'online')) return <NetState connection={d.connection} error={d.autoError} onRetry={d.reloadAuto} what="the autos" />;
     if (d.autoLines === null) return <BoardSkeleton />;
-    if (!lines.length) return <StateCard title="No stands yet" body="ZCS Auto stands show up here once they are set up." action="Find a co-ride instead" onAction={() => push({ name: 'find' })} />;
+    if (!lines.length) return <StateCard title="No stands yet" body="ZENV Auto stands show up here once they are set up." action="Find a co-ride instead" onAction={() => push({ name: 'find' })} />;
     return (
       <>
         {d.autoError ? <StaleBanner text={`${d.autoError} Showing the last update.`} onRetry={d.reloadAuto} /> : null}
@@ -50,7 +50,7 @@ export default function CoRideV2Auto() {
 
   return (
     <View style={{ flex: 1 }}>
-      <ScreenHeader title="Shared auto" sub="ZCS Auto · union queue" onBack={back} />
+      <ScreenHeader title="Shared auto" sub="ZENV Auto · union queue" onBack={back} />
       <ScrollView contentContainerStyle={{ paddingHorizontal: GUTTER, paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
         <View style={st.intro}>
           <Image source={ART.auto} style={{ width: artW, height: artW / ART_RATIO.auto }} contentFit="contain" accessibilityElementsHidden />
@@ -64,12 +64,16 @@ export default function CoRideV2Auto() {
           </View>
         </View>
         {body()}
-        {d.autoOn ? (
+        {/* "My auto bookings" shows even while ZCS Auto is paused: students may still hold seats, PINs or refunds there
+            (the server keeps them viewable and cancellable). The booking links show only while it runs. */}
+        {d.autoOn !== null ? (
           <Card style={{ paddingHorizontal: 14, paddingVertical: 4, marginTop: 4 }}>
             {[
               { seg: 'bookings', icon: ITicket, t: 'My auto bookings', b: 'Tickets, boarding PINs and past trips' },
-              { seg: 'shared', icon: ICalendar, t: 'Scheduled autos and full auto', b: 'Book ahead, or the whole auto' },
-              { seg: 'pickups', icon: IMapPin, t: 'Pickup points and live queues', b: 'Every stand and the autos waiting there' },
+              ...(d.autoOn ? [
+                { seg: 'shared', icon: ICalendar, t: 'Scheduled autos and full auto', b: 'Book ahead, or the whole auto' },
+                { seg: 'pickups', icon: IMapPin, t: 'Pickup points and live queues', b: 'Every stand and the autos waiting there' },
+              ] : []),
             ].map((x, i) => (
               <Tap key={x.seg} onPress={() => router.push(`/coride/auto-more?seg=${x.seg}` as any)} label={x.t} style={[st.more, i > 0 && st.moreLine]}>
                 <x.icon size={18} color={CR.primary} strokeWidth={STROKE} />

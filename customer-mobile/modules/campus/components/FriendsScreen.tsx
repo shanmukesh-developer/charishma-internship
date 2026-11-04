@@ -51,7 +51,7 @@ export const AddFriendSheet: React.FC<{
     const fromLink = raw.match(/code=([A-Za-z0-9_-]+)/i);
     const clean = (fromLink ? fromLink[1] : raw).replace(/\s+/g, '').toUpperCase();
     if (clean.length < 4) {
-      setError('Enter the friend code shown on their ZCS profile.');
+      setError('Enter the friend code shown on their ZENV profile.');
       return;
     }
     if (myCode && clean === String(myCode).toUpperCase()) {
@@ -95,7 +95,7 @@ export const AddFriendSheet: React.FC<{
 
   return (
     <Sheet visible={visible} onClose={onClose} title="Add a friend" icon={<UserPlus size={20} color={CampusColors.accent} />}>
-      <Text style={T.body}>Ask your friend for the friend code on their ZCS profile (Campus › Me).</Text>
+      <Text style={T.body}>Ask your friend for the friend code on their ZENV profile (Campus › Me).</Text>
       {error && (
         <View style={[ui.errorBox, { marginTop: S.md }]}>
           <Text style={ui.errorText}>{error}</Text>
@@ -265,7 +265,7 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({ visible, onClose, 
   const shareCode = () => {
     if (!myCode) return;
     Share.share({
-      message: `Add me on ZCS Campus${myName ? ` (${myName})` : ''}! My friend code is ${myCode}. Open ZCS > Campus > Me > Friends > Add friend.`,
+      message: `Add me on ZENV Campus${myName ? ` (${myName})` : ''}! My friend code is ${myCode}. Open ZENV > Campus > Me > Friends > Add friend.`,
     }).catch(() => {});
   };
 

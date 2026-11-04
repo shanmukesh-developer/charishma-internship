@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { API_URL } from '../../constants/api';
 import { apiFetch } from '../../utils/auth';
-import { peekCache, readCache, writeCache } from '../../utils/swrCache';
+import { peekCache, readCache, writeCache, useCollegeEpoch, getCollegeEpoch } from '../../utils/swrCache';
 import { useLiveSync } from '../../utils/useLiveSync';
 import { formatINR } from '../../utils/format';
 import { takesSlotOrders } from '../../utils/storeOpenNow';
@@ -43,6 +43,8 @@ export interface ShelfItem {
   restaurantId: string;
   category: string;
   bookingOnly: boolean;
+  /** Admin-set (or automatic weight) choices from the server: components/ProductOptions. */
+  options?: any[];
   /** Only when the server sends a real rating with reviews behind it. */
   rating: number | null;
   ratingCount: number;
@@ -111,6 +113,7 @@ const toItem = (it: any): ShelfItem => {
     bookingOnly: !!it.bookingOnly,
     rating: Number.isFinite(rating) && rating > 0 && ratingCount > 0 ? rating : null,
     ratingCount,
+    ...(Array.isArray(it.options) && it.options.length ? { options: it.options } : {}),
   };
 };
 
@@ -150,10 +153,12 @@ export function useShelf(shelf: ShelfId) {
       if (cached?.data && Array.isArray(cached.data.items) && mounted.current) apply(cached.data);
     }
     if (mode === 'refresh') setRefreshing(true);
+    const requestEpoch = getCollegeEpoch();
     try {
       const res = await apiFetch(`${API_URL}/api/catalogue/items?type=${encodeURIComponent(shelf)}&includeUnavailable=true`);
       const data = await res.json().catch(() => null);
-      if (!mounted.current) return;
+      // Unmounted, or the student changed college while this was on its way (the other college's shelf).
+      if (!mounted.current || requestEpoch !== getCollegeEpoch()) return;
       if (!res.ok || !data || !Array.isArray(data.items)) {
         if (!hasData.current) {
           setStatus(res.status >= 502 && res.status <= 504 ? 'waking' : 'error');
@@ -172,6 +177,14 @@ export function useShelf(shelf: ShelfId) {
   }, [shelf, apply]);
 
   useEffect(() => { load('initial'); }, [load]);
+  // The student changed college: this shelf shows that college's stores (quietly, the current shelf stays meanwhile).
+  const collegeEpoch = useCollegeEpoch();
+  const epochAtMount = useRef(collegeEpoch);
+  useEffect(() => {
+    if (collegeEpoch === epochAtMount.current) return;
+    epochAtMount.current = collegeEpoch;
+    load('silent');
+  }, [collegeEpoch, load]);
   useLiveSync({ types: ['store', 'product'], onChange: () => { load('silent'); } });
 
   const retry = useCallback(() => { setStatus('loading'); load('initial'); }, [load]);
@@ -182,6 +195,8 @@ export function useShelf(shelf: ShelfId) {
 export function useMinPrices() {
   const key = 'servicesV2:minPrices';
   const [prices, setPrices] = useState<Record<string, number>>(() => peekCache<Record<string, number>>(key) || {});
+  // Prices are per college (only its stores count): asked again when the student changes college.
+  const collegeEpoch = useCollegeEpoch();
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -200,7 +215,7 @@ export function useMinPrices() {
       }
     })();
     return () => { alive = false; };
-  }, []);
+  }, [collegeEpoch]);
   return prices;
 }
 

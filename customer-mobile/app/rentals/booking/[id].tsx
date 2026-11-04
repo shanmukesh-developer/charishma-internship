@@ -200,8 +200,8 @@ export default function RentalBookingScreen() {
   };
 
   const sendDispute = async () => {
-    if (disputeNote.trim().length < 10) { Alert.alert('Explain why', 'Tell the ZCS team why you dispute the charges (at least 10 characters).'); return; }
-    const ok = await run('dispute', () => rentalsApi.respondCharges(b.id, { action: 'DISPUTE', note: disputeNote.trim(), photos: disputePics.map((x) => x.ref) }), 'Dispute sent. The ZCS team will review both sides and tell you the outcome.');
+    if (disputeNote.trim().length < 10) { Alert.alert('Explain why', 'Tell the ZENV team why you dispute the charges (at least 10 characters).'); return; }
+    const ok = await run('dispute', () => rentalsApi.respondCharges(b.id, { action: 'DISPUTE', note: disputeNote.trim(), photos: disputePics.map((x) => x.ref) }), 'Dispute sent. The ZENV team will review both sides and tell you the outcome.');
     if (ok) { setDisputeOpen(false); setDisputeNote(''); setDisputePics([]); }
   };
 
@@ -246,7 +246,7 @@ export default function RentalBookingScreen() {
     <Card style={required ? { borderColor: p.warn } : undefined}>
       <Text style={{ fontSize: 13, fontWeight: '900', color: p.text }}>{stage === 'PICKUP' ? 'Pickup' : 'Return'} condition{required ? ' (required)' : ' (optional)'}</Text>
       <Text style={{ fontSize: 12, color: p.sub, marginTop: 4, marginBottom: 8, lineHeight: 16 }}>
-        {required ? `Take ${MIN_PHOTOS}-${MAX_PHOTOS} clear photos (all sides + odometer) before the ${stage === 'PICKUP' ? 'pickup' : 'return'} PIN. Both of you and the ZCS team can see them.` : `Add your own ${MIN_PHOTOS}-${MAX_PHOTOS} photos so both sides have a record. Private to the two of you and the ZCS team.`}
+        {required ? `Take ${MIN_PHOTOS}-${MAX_PHOTOS} clear photos (all sides + odometer) before the ${stage === 'PICKUP' ? 'pickup' : 'return'} PIN. Both of you and the ZENV team can see them.` : `Add your own ${MIN_PHOTOS}-${MAX_PHOTOS} photos so both sides have a record. Private to the two of you and the ZENV team.`}
       </Text>
       {picGrid(`cond-${stage}`, condPics, setCondPics, MAX_PHOTOS)}
       <Field label={isOwner ? 'Odometer (km)' : 'Odometer (km, optional)'} value={odometer} onChangeText={(t) => setOdometer(t.replace(/\D/g, '').slice(0, 7))} keyboardType="number-pad" placeholder="e.g. 12500" />
@@ -308,7 +308,7 @@ export default function RentalBookingScreen() {
           {charges.status === 'PENDING' ? <Text style={{ fontSize: 12, color: p.muted, marginTop: 4 }}>{isOwner ? `The ${w.taker} can accept or dispute until ${fmtDateTime(charges.respondBy)}. If they do not answer, the charges count as accepted.` : `Answer by ${fmtDateTime(charges.respondBy)} (${until(charges.respondBy)} left). If you do not answer, the charges count as accepted.`}</Text> : null}
           {charges.disputeNote ? <Text style={{ fontSize: 12, color: p.text, marginTop: 6 }}>{w.Taker}'s dispute: “{charges.disputeNote}”</Text> : null}
           <Thumbs uris={charges.disputePhotos} />
-          {charges.resolution ? <Notice tone="info">ZCS team decision: {charges.resolution.outcome === 'UPHOLD' ? 'charges upheld' : charges.resolution.outcome === 'VOID' ? 'charges cancelled' : `reduced to ${inr(charges.resolution.amount)}`}{charges.resolution.reason ? `. ${charges.resolution.reason}` : ''}</Notice> : null}
+          {charges.resolution ? <Notice tone="info">ZENV team decision: {charges.resolution.outcome === 'UPHOLD' ? 'charges upheld' : charges.resolution.outcome === 'VOID' ? 'charges cancelled' : `reduced to ${inr(charges.resolution.amount)}`}{charges.resolution.reason ? `. ${charges.resolution.reason}` : ''}</Notice> : null}
           {b.canRespondToCharges ? (
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
               <Btn label="Dispute" kind="secondary" onPress={() => setDisputeOpen(true)} style={{ flex: 1 }} loading={busy === 'dispute'} />
@@ -378,7 +378,7 @@ export default function RentalBookingScreen() {
               <Row label={`Final ${w.price}`} value={inr(b.finalAmount ?? b.rentAmount)} strong />
               <Text style={{ fontSize: 12, color: p.muted }}>The deposit of {inr(b.depositAmount)} goes back to the {w.taker}.</Text>
             </>
-          ) : <Text style={{ fontSize: 12, color: p.muted, marginTop: 4 }}>ZCS does not collect this money. The deposit is returned in cash when the vehicle comes back.</Text>}
+          ) : <Text style={{ fontSize: 12, color: p.muted, marginTop: 4 }}>ZENV does not collect this money. The deposit is returned in cash when the vehicle comes back.</Text>}
         </Card>
 
         {chargesCard()}
@@ -401,7 +401,7 @@ export default function RentalBookingScreen() {
           </View>
           {isOwner && b.renterLicence ? (
             <Text style={{ fontSize: 12, color: b.renterLicence.status === 'VERIFIED' ? p.success : p.warn, marginTop: 10 }}>
-              Driving licence: {b.renterLicence.status === 'VERIFIED' ? `verified by ZCS (${b.renterLicence.classes.join(', ')})` : b.renterLicence.status === 'PENDING' ? 'being verified by ZCS, you can accept once verified' : b.renterLicence.status === 'REJECTED' ? 'not accepted by ZCS' : 'not added yet'}
+              Driving licence: {b.renterLicence.status === 'VERIFIED' ? `verified by ZENV (${b.renterLicence.classes.join(', ')})` : b.renterLicence.status === 'PENDING' ? 'being verified by ZENV, you can accept once verified' : b.renterLicence.status === 'REJECTED' ? 'not accepted by ZENV' : 'not added yet'}
             </Text>
           ) : null}
           {b.renterNote ? <Text style={{ fontSize: 12.5, color: p.text, marginTop: 10 }}>“{b.renterNote}”</Text> : null}
@@ -440,7 +440,7 @@ export default function RentalBookingScreen() {
                 <>
                   <Text style={{ fontSize: 12, fontWeight: '800', color: p.sub, marginBottom: 6 }}>Evidence photos (optional, private)</Text>
                   {picGrid('evidence', evidence, setEvidence, 4)}
-                  <Text style={{ fontSize: 12, color: p.muted, marginBottom: 10, lineHeight: 16 }}>Extra charges only count once the {w.taker} accepts them (or does not answer in time). They can dispute them, and the ZCS team then decides.</Text>
+                  <Text style={{ fontSize: 12, color: p.muted, marginBottom: 10, lineHeight: 16 }}>Extra charges only count once the {w.taker} accepts them (or does not answer in time). They can dispute them, and the ZENV team then decides.</Text>
                 </>
               ) : null}
               <Btn label="Complete trip" kind="success" loading={busy === 'complete'} onPress={completeTrip} />
@@ -482,7 +482,7 @@ export default function RentalBookingScreen() {
         <KeyboardAvoidingView style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <View style={{ backgroundColor: p.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 18, paddingBottom: 30 }}>
             <Text style={{ fontSize: 16, fontWeight: '900', color: p.text, marginBottom: 6 }}>Dispute {inr(charges?.claimed)} of extra charges</Text>
-            <Text style={{ fontSize: 12, color: p.sub, marginBottom: 10, lineHeight: 16 }}>The ZCS team sees both sides, the pickup / return photos and your evidence, then upholds, reduces or cancels the charges. Until then they do not count.</Text>
+            <Text style={{ fontSize: 12, color: p.sub, marginBottom: 10, lineHeight: 16 }}>The ZENV team sees both sides, the pickup / return photos and your evidence, then upholds, reduces or cancels the charges. Until then they do not count.</Text>
             <Field label="Why do you dispute them? (required)" value={disputeNote} onChangeText={(t) => setDisputeNote(t.slice(0, 1000))} placeholder="e.g. The scratch is visible in the pickup photos" multiline />
             <Text style={{ fontSize: 12, fontWeight: '800', color: p.sub, marginBottom: 6 }}>Photos (optional, private)</Text>
             {picGrid('dispute', disputePics, setDisputePics, 4)}

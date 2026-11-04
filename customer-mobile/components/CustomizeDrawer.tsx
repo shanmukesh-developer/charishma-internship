@@ -566,6 +566,22 @@ export function isCustomizable(item: { name?: string; tags?: string[]; category?
   return !!(specs && typeof specs === 'object' && specs.customizable === true);
 }
 
+const KNOWN_KEYS = new Set(['weight', 'size', 'flavor', 'crust', 'slices', 'eggPreference', 'clothesType', 'clothesCount', 'rentalDetails',
+  'rentalDriverContact', 'spiceLevel', 'sugarLevel', 'temperature', 'toppings', 'cakeMessage', 'specialInstructions', 'addons']);
+
+/** The customer's picks on an order line ("1 kg • Mango"), from the stored customizations (an object, or JSON
+ * text from older orders); '' when there are none. */
+export function orderPicksText(c: unknown): string {
+  let obj = c;
+  if (typeof obj === 'string') {
+    const t = obj.trim();
+    if (!t) return '';
+    try { obj = JSON.parse(t); } catch { return t.slice(0, 120); }
+  }
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return '';
+  try { return summarizeCustomizations(obj as Customizations); } catch { return ''; }
+}
+
 export function summarizeCustomizations(c?: Customizations): string {
   if (!c) return '';
   const parts: string[] = [];
@@ -582,9 +598,15 @@ export function summarizeCustomizations(c?: Customizations): string {
   if (c.spiceLevel) parts.push(c.spiceLevel);
   if (c.sugarLevel) parts.push(c.sugarLevel);
   if (c.temperature) parts.push(c.temperature);
-  if (c.toppings && c.toppings.length > 0) parts.push(c.toppings.join(', '));
+  if (Array.isArray(c.toppings) && c.toppings.length > 0) parts.push(c.toppings.join(', '));
   if (c.cakeMessage) parts.push(`"${c.cakeMessage}"`);
   if (c.specialInstructions) parts.push(`Note: ${c.specialInstructions}`);
+  // Admin-set choice groups (weights, flavours, types: components/ProductOptions), in the order stored.
+  for (const [key, v] of Object.entries(c as Record<string, unknown>)) {
+    if (KNOWN_KEYS.has(key)) continue;
+    if (typeof v === 'string' && v.trim()) parts.push(v);
+    else if (Array.isArray(v) && v.length && v.every((x) => typeof x === 'string')) parts.push((v as string[]).join(', '));
+  }
   return parts.join(' • ');
 }
 

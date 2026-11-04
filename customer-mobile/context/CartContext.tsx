@@ -9,6 +9,7 @@ import { useLiveSync, affectsAny } from '../utils/useLiveSync';
 import { useAuth } from './AuthContext';
 import { isLocalVendorType, isLocalVendor } from '../utils/localVendor';
 import type { DeliverySlotsInfo } from '../utils/deliverySlots';
+import { useCollege } from '../utils/college';
 
 export interface Customizations {
   size?: string;
@@ -44,7 +45,7 @@ export const isBasketKind = (v: any): v is BasketKind => v === 'restaurant' || v
 export const MEGA_BASKET_VENDOR_ID = 'mega-basket-vendor';
 // Shops ordered through the Others section (booking-only services never reach the basket).
 const STORE_VENDOR_TYPES = ['GROCERY', 'GROCERIES', 'MART', 'KIRANA', 'TOYS', 'SEEDS', 'ELECTRONICS', 'HOME_ESSENTIALS',
-  'STATIONERY', 'STATIONARY', 'PHARMACY', 'MATTRESS', 'MATTRESSES'];
+  'STATIONERY', 'STATIONARY', 'PHARMACY', 'MATTRESS', 'MATTRESSES', 'BAKERY'];
 
 /** The basket a store's items go to, from its vendorType. */
 export const basketKindFromVendorType = (vendorType: any): BasketKind => {
@@ -495,7 +496,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed)) {
             const normalized = parsed
-              .filter((item: any) => item && item.id)
+              // Shopping-list lines ("custom-...") from builds before the feature was removed (28 Oct 2026): the
+              // server refuses them (410), so they would sit in the basket forever and block checkout.
+              .filter((item: any) => item && item.id && !String(item.id).startsWith('custom-'))
               .map((item: any) => ({
                 ...item,
                 cartKey: item.cartKey || item.id,
@@ -829,7 +832,7 @@ export const toOrderLine = (i: CartItem) => ({
   ...(i.customizations && Object.keys(i.customizations).length > 0 ? { customizations: i.customizations } : {}),
 });
 
-export const friendlyNetworkMessage = "We couldn't reach ZCS. Check your internet and try again.";
+export const friendlyNetworkMessage = "We couldn't reach ZENV. Check your internet and try again.";
 
 /**
  * Live bill for one basket (default: the active one) from POST /api/orders/quote. Custom Mega Basket requests are not part of it.
@@ -845,6 +848,9 @@ export function useBasketQuote(couponCode: string | null | undefined, enabled: b
     [orderLines]
   );
 
+  // The student's college (utils/college): the bill is checked for it (paused / not open / a store of another
+  // college) and asked again when it changes, so the bill and the order always agree.
+  const college = useCollege();
   const [quote, setQuote] = useState<OrderQuote | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<QuoteError | null>(null);
@@ -888,7 +894,7 @@ export function useBasketQuote(couponCode: string | null | undefined, enabled: b
     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
     // A silent (live-sync) re-quote only keeps the old bill on screen when the basket and coupon are
     // unchanged; if they changed in the same render, the old bill no longer matches and must not be placeable.
-    const requestSig = `${kind}|${signature}|${couponCode || ''}`;
+    const requestSig = `${kind}|${signature}|${couponCode || ''}|${college || ''}`;
     const silent = silentRef.current && lastQuoteSigRef.current === requestSig;
     silentRef.current = false;
     lastQuoteSigRef.current = requestSig;
@@ -902,7 +908,7 @@ export function useBasketQuote(couponCode: string | null | undefined, enabled: b
       try {
         const res = await apiFetch('/api/orders/quote', {
           method: 'POST',
-          body: JSON.stringify({ items: orderLines.map(toOrderLine), ...(couponCode ? { couponCode } : {}) }),
+          body: JSON.stringify({ items: orderLines.map(toOrderLine), ...(couponCode ? { couponCode } : {}), ...(college ? { campus: college } : {}) }),
           ...(controller ? { signal: controller.signal } : {}),
         });
         const data = await res.json().catch(() => null);
@@ -937,7 +943,7 @@ export function useBasketQuote(couponCode: string | null | undefined, enabled: b
       try { controller?.abort(); } catch {}
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signature, couponCode, enabled, nonce, active, kind]);
+  }, [signature, couponCode, enabled, nonce, active, kind, college]);
 
   // Only this basket's result counts; until it arrives the caller sees "loading" (a skeleton), not the
   // last basket's bill.
@@ -1020,7 +1026,8 @@ export const DELIVERY_INSTRUCTIONS: { id: string; label: string; note: string }[
   { id: 'no_cutlery', label: '🌱 No Plastic Cutlery', note: 'No plastic cutlery' },
   { id: 'call_arrival', label: '📞 Call Upon Arrival', note: 'Call on arrival' },
   { id: 'guard_desk', label: '🛡️ Leave at Hostel Guard', note: 'Leave at the hostel guard desk' },
-  { id: 'quiet_knock', label: '🚪 Knock Gently', note: 'Knock gently' },
+  // 'Knock gently' (quiet_knock) removed: orders are handed over at the hostel gate, never at a room door
+  // (owner, 31 Oct 2026). A saved quiet_knock choice is simply not sent any more (checkout keeps known ids only).
 ];
 
 /** A fresh Idempotency-Key for one checkout attempt (RFC 4122 v4 layout). */

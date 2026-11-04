@@ -19,7 +19,7 @@ export interface CampusProfileResponse {
 }
 
 export const CAMPUS_NO_SESSION_ERROR =
-  'You are not signed in. Log in to your ZCS account to use Campus.';
+  'You are not signed in. Log in to your ZENV account to use Campus.';
 
 /** JSON + Bearer headers for the signed-in user (throws CAMPUS_NO_SESSION_ERROR when signed out). */
 export const getAuthHeaders = async () => {

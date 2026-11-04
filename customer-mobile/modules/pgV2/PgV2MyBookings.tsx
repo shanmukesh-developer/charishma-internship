@@ -4,9 +4,9 @@
  * status pill, View Details and Cancel (PUT /api/pg/bookings/:id/cancel, after an inline confirm).
  * The stay end date is not stored yet, so only the check-in date shows.
  */
-import React, { useMemo, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, useWindowDimensions } from 'react-native';
-import { useRouter } from 'expo-router';
+import React, { useCallback, useMemo, useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, useWindowDimensions, RefreshControl } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { PG2, GUTTER, W } from './pgV2Theme';
 import { Header, Photo, Pill, Segmented, OutlineButton, EmptyState, Loading, k } from './PgV2Kit';
 import { IClock, ICheck, IX, ICalendar, IInbox, STROKE } from './PgV2Icons';
@@ -14,15 +14,19 @@ import { buildingPhoto } from './pgV2Photos';
 import { useMyBookings, cancelBookingRequest, roomTypeName, dayText } from './pgV2Data';
 import { useNav } from './pgV2Nav';
 import { useAuth } from '../../context/AuthContext';
+import { useUserLiveEvent } from '../../utils/useUserLiveEvent';
 import type { MyPgBooking } from '../../modules/pg/pgApi';
 
 const todayYmd = () => new Date(Date.now() + 330 * 60 * 1000).toISOString().slice(0, 10);
 const isUpcoming = (b: MyPgBooking) => b.status === 'Pending' || (b.status === 'Confirmed' && String(b.checkInDate).slice(0, 10) >= todayYmd());
 
+// Every server status with its own words and tone (a declined request used to look exactly like Pending).
 const STATUS = {
-  Pending: { ink: PG2.amber, soft: PG2.amberSoft, icon: IClock },
-  Confirmed: { ink: PG2.green, soft: PG2.greenSoft, icon: ICheck },
-  Cancelled: { ink: PG2.red, soft: PG2.redSoft, icon: IX },
+  Pending: { ink: PG2.amber, soft: PG2.amberSoft, icon: IClock, label: 'Pending' },
+  Confirmed: { ink: PG2.green, soft: PG2.greenSoft, icon: ICheck, label: 'Confirmed' },
+  Cancelled: { ink: PG2.red, soft: PG2.redSoft, icon: IX, label: 'Cancelled' },
+  Rejected: { ink: PG2.red, soft: PG2.redSoft, icon: IX, label: 'Declined by the PG' },
+  MovedOut: { ink: PG2.muted, soft: PG2.lineSoft, icon: ICheck, label: 'Stay ended' },
 } as const;
 
 function BookingCard({ b, onView, onCancelled }: { b: MyPgBooking; onView: () => void; onCancelled: () => void }) {
@@ -51,9 +55,12 @@ function BookingCard({ b, onView, onCancelled }: { b: MyPgBooking; onView: () =>
             <ICalendar size={13} color={PG2.muted} strokeWidth={STROKE} />
             <Text style={st.date}>Check-in {dayText(b.checkInDate)}</Text>
           </View>
-          <Pill icon={tone.icon} text={b.status} ink={tone.ink} soft={tone.soft} style={{ marginTop: 9, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 }} />
+          <Pill icon={tone.icon} text={tone.label} ink={tone.ink} soft={tone.soft} style={{ marginTop: 9, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 }} />
         </View>
       </View>
+      {(b.status === 'Rejected' || b.status === 'MovedOut') && b.decisionReason ? (
+        <Text style={[k.small, { color: PG2.muted, marginTop: 10 }]}>{b.status === 'Rejected' ? 'Reason' : 'Note'} from the PG: {b.decisionReason}</Text>
+      ) : null}
       {error ? <Text style={[k.small, { color: PG2.red, marginTop: 10 }]}>{error}</Text> : null}
       {confirming ? (
         <View style={st.confirm}>
@@ -77,6 +84,10 @@ export default function PgV2MyBookings() {
   const { user } = useAuth() as any;
   const { items, state, reload } = useMyBookings(!!user);
   const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming');
+  // A PG decision made while this screen sat in the background shows when the student comes back to it.
+  useFocusEffect(useCallback(() => { void reload(); }, [reload]));
+  // ...and one made while it is open shows at once (server: pg:changed to this student's sockets).
+  useUserLiveEvent('pg:changed', () => { void reload(); }, !!user);
   const shown = useMemo(() => items.filter((b) => (tab === 'upcoming' ? isUpcoming(b) : !isUpcoming(b))), [items, tab]);
 
   return (
@@ -89,7 +100,8 @@ export default function PgV2MyBookings() {
           <View style={{ paddingHorizontal: GUTTER, paddingTop: 4 }}>
             <Segmented variant="underline" value={tab} onChange={setTab} options={[{ key: 'upcoming', label: 'Upcoming' }, { key: 'past', label: 'Past' }]} />
           </View>
-          <ScrollView contentContainerStyle={{ padding: GUTTER, gap: 14, paddingBottom: 40 }}>
+          <ScrollView contentContainerStyle={{ padding: GUTTER, gap: 14, paddingBottom: 40 }}
+            refreshControl={<RefreshControl refreshing={state === 'loading' && items.length > 0} onRefresh={reload} tintColor={PG2.primary} colors={[PG2.primary]} />}>
             {state === 'loading' && !items.length ? <Loading /> : null}
             {state === 'error' ? <EmptyState icon={IInbox} title="Couldn't load your bookings" body="Check your internet and try again." action="Try again" onAction={reload} /> : null}
             {state === 'ready' && !shown.length ? (

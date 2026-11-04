@@ -10,6 +10,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const KEY = 'zcs.campusBooking.carts.v1';
 const MAX_QTY = 10;
+/** Stationery / print stalls sell per page: up to 200 on one line (same cap as the server). */
+export const MAX_QTY_STATIONERY = 200;
 const MAX_LINES = 20;
 /** Carts untouched for a day are dropped (menus and prices move on). */
 const STALE_MS = 24 * 3600 * 1000;
@@ -51,11 +53,11 @@ export const cbCart = {
   lines: (stallId: string): CbCartLine[] => (store[stallId] ? store[stallId].lines : []),
   qty: (stallId: string, menuItemId: string) => (store[stallId]?.lines.find((l) => l.menuItemId === menuItemId)?.quantity || 0),
   /** +1 / -1 (or any delta) for one item. Returns false when a limit stopped it. */
-  change: (stallId: string, item: Omit<CbCartLine, 'quantity'>, delta: number): boolean => {
+  change: (stallId: string, item: Omit<CbCartLine, 'quantity'>, delta: number, max: number = MAX_QTY): boolean => {
     const lines = [...cbCart.lines(stallId)];
     const i = lines.findIndex((l) => l.menuItemId === item.menuItemId);
     const cur = i >= 0 ? lines[i].quantity : 0;
-    const q = Math.max(0, Math.min(MAX_QTY, cur + delta));
+    const q = Math.max(0, Math.min(max, cur + delta));
     if (q === cur) return false;
     if (i < 0 && lines.length >= MAX_LINES) return false;
     if (q === 0) lines.splice(i, 1);
@@ -63,6 +65,12 @@ export const cbCart = {
     else lines.push({ ...item, quantity: q });
     write(stallId, lines);
     return true;
+  },
+  /** A typed count (stationery pages): sets the line to `qty` (1..max). */
+  setQty: (stallId: string, item: Omit<CbCartLine, 'quantity'>, qty: number, max: number = MAX_QTY): boolean => {
+    const cur = cbCart.qty(stallId, item.menuItemId);
+    const q = Math.max(1, Math.min(max, Math.round(qty)));
+    return q === cur ? false : cbCart.change(stallId, item, q - cur, max);
   },
   /** Fresh names / prices from the menu; items no longer on it are removed. Returns the removed names. */
   refresh: (stallId: string, menu: { id: string; name: string; price: number; isVeg: boolean; isAvailable: boolean; category?: string | null }[]): string[] => {
@@ -79,6 +87,8 @@ export const cbCart = {
     return removed;
   },
   remove: (stallId: string, menuItemId: string) => write(stallId, cbCart.lines(stallId).filter((l) => l.menuItemId !== menuItemId)),
+  /** Every stall cart (logout: the next account on a shared phone starts empty). */
+  clearAll: () => { store = {}; AsyncStorage.removeItem(KEY).catch(() => {}); emit(); },
   clear: (stallId: string) => write(stallId, []),
   /** The stall cart changed most recently (for the "View cart" bar on the stall list), or null. */
   latest: (): { stallId: string; lines: CbCartLine[] } | null => {

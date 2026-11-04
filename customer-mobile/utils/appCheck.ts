@@ -21,7 +21,8 @@ const RETRY_AFTER_MS = 5 * 60 * 1000;
 // Same list as backend/utils/appCheck.js PROTECTED (customer app calls only). Paths without query / trailing slash.
 const SEG = '[^/]+';
 const PROTECTED: RegExp[] = [
-  /^\/api\/users\/(send-otp|login|register|verify-otp|google-login|google-complete|reset-password)$/,
+  // send-email-otp too: the email backup when an SMS code does not arrive (the server protects both in 'otp').
+  /^\/api\/users\/(send-otp|send-email-otp|login|register|verify-otp|google-login|google-complete|reset-password)$/,
   /^\/api\/orders$/,
   /^\/api\/mega-basket$/,
   new RegExp(`^/api/mega-basket/${SEG}/pay$`),

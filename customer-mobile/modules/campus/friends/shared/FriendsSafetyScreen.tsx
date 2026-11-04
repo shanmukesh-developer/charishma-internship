@@ -250,7 +250,7 @@ export const FriendsSafetyScreen: React.FC<{
                   <ToggleRow
                     last
                     label="Post anonymously by default"
-                    hint="You can still switch per post. ZCS keeps the real author for safety."
+                    hint="You can still switch per post. ZENV keeps the real author for safety."
                     value={settings.defaultAnonymous}
                     onChange={(v) => save({ defaultAnonymous: v })}
                   />

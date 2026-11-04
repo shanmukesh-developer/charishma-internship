@@ -14,15 +14,17 @@ import { CachedImage as Image } from '../../components/SafeImage';
 import ShimmerLoader from '../../components/ShimmerLoader';
 import { PressScale, BounceOnChange, FadeInUp, SlowLoadHint } from '../../modules/others/motion';
 import { useCart, isCustomRequest } from '../../context/CartContext';
+import { productOptions, useAskOptions } from '../../components/ProductOptions';
 import { apiFetch, readJson } from '../../utils/auth';
 import { API_URL } from '../../constants/api';
-import { readCache, writeCache } from '../../utils/swrCache';
+import { fetchCatalogueType } from '../../utils/catalogueFetch';
+import { readCache, writeCache, useCollegeEpoch, getCollegeEpoch } from '../../utils/swrCache';
 import { useConnectionState } from '../../utils/offlineStatus';
 import { useTopInset } from '../../utils/useTopInset';
 import { takesSlotOrders } from '../../utils/storeOpenNow';
 import { FOOD } from './foodV2Theme';
-import { FOOD_IMG, StorefrontArt, ShoppingBasketArt, WaveArt, LoadingDots } from './FoodV2Kit';
-import { IonName, Item, SHOP_TYPES, CATALOGUE_CACHE_KEY, FALLBACK_IMG, MEGA_BASKET_VENDOR, WISHLIST_KEY, toItem, toList, groupIN, fmt, sentence, offLabel, fmtShortClock, squash, Shelf, SHELVES, shelfItems, SEARCH, SEARCH_HINTS, TILES, Hero, HEROES, LIST_TITLES, AISLES, aisleOf, SHORT_CHIP, chipLabel, FRESH_CATS, GROUP_ORDER, groupOf, BRANDS, TOY_TILES, HEALTH_TILES, ESSENTIAL_AISLES, HERO_BG, LHERO_BG, POPULAR_REQUESTS, Route, DemoState, Saved } from './FoodV2Data';
+import { FOOD_IMG, StorefrontArt, WaveArt, LoadingDots } from './FoodV2Kit';
+import { IonName, Item, SHOP_TYPES, CATALOGUE_CACHE_KEY, FALLBACK_IMG, MEGA_BASKET_VENDOR, WISHLIST_KEY, toItem, toList, etaText, groupIN, fmt, sentence, offLabel, fmtShortClock, squash, Shelf, SHELVES, shelfItems, SEARCH, SEARCH_HINTS, TILES, Hero, HEROES, LIST_TITLES, AISLES, aisleOf, SHORT_CHIP, chipLabel, FRESH_CATS, GROUP_ORDER, groupOf, BRANDS, TOY_TILES, HEALTH_TILES, ESSENTIAL_AISLES, HERO_BG, LHERO_BG, Route, DemoState, Saved } from './FoodV2Data';
 
 const GREEN_GLOW = Platform.select<any>({
   web: { boxShadow: '0px 2px 8px rgba(7,132,63,0.28)' },
@@ -31,7 +33,11 @@ const GREEN_GLOW = Platform.select<any>({
 
 /** Row actions with a fixed identity (they call the latest closures), so memoized rows never re-render for them. */
 /** A store's hours from the catalogue (takesSlotOrders: closed now, but orders go to its next delivery slot). */
-type StoreHours = { isOpen: boolean; opensAt: string | null; takesSlotOrders: boolean; nextSlotLabel: string | null };
+type StoreHours = {
+  isOpen: boolean; opensAt: string | null; takesSlotOrders: boolean; nextSlotLabel: string | null;
+  // The shop itself, for the category -> shops screen (FoodV2Shops).
+  name?: string; imageUrl?: string | null; logoUrl?: string | null; rating?: number | null; vendorType?: string | null; deliveryTime?: string | null;
+};
 export type FoodV2RowActions = {addProduct: (p: Item) => void; decProduct: (id: string) => void; toggleSaved: (p: Item) => void; openProduct: (p: Item | string) => void };
 
 export type FoodV2Ctx = ReturnType<typeof useFoodV2State>;
@@ -57,6 +63,7 @@ export function useFoodV2State({ forceDark, sections, onSection, openSearch, onS
   const cart = baskets.store;
   const addToCart: typeof addAnyBasket = (item) => addAnyBasket({ ...item, basket: 'store' });
   const clearCart = () => clearBasket('store');
+  const askOptions = useAskOptions();
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
 
@@ -116,24 +123,29 @@ export function useFoodV2State({ forceDark, sections, onSection, openSearch, onS
   }, []);
   const fetchCatalogue = useCallback(async () => {
     setStatus(prev => (prev === 'ready' ? prev : 'loading'));
+    const requestEpoch = getCollegeEpoch();
     try {
       // Store hours from every response are applied in ONE update with the items. Each response used to
       // set them on arrival: four extra full re-renders of the store, each rebuilding the catalogue.
       const hours: Record<string, StoreHours> = {};
       const settled = await Promise.allSettled(SHOP_TYPES.map(async t => {
-        const res = await apiFetch(`${API_URL}/api/catalogue/items?type=${encodeURIComponent(t)}&limit=200`);
-        if (!res.ok) throw new Error(`catalogue ${res.status}`);
-        const data = await readJson(res);
-        (Array.isArray(data?.stores) ? data.stores : []).forEach((st: any) => {
+        // Every page of the type (utils/catalogueFetch): past 200 products the rest used to be cut off.
+        const data = await fetchCatalogueType(t);
+        data.stores.forEach((st: any) => {
           const sid = String(st?.id || st?._id || '');
-          if (sid) hours[sid] = { isOpen: st.isOpen !== false, opensAt: typeof st.opensAt === 'string' ? st.opensAt : null, takesSlotOrders: takesSlotOrders(st), nextSlotLabel: typeof st.nextSlotLabel === 'string' ? st.nextSlotLabel : null };
+          if (sid) hours[sid] = {
+            isOpen: st.isOpen !== false, opensAt: typeof st.opensAt === 'string' ? st.opensAt : null, takesSlotOrders: takesSlotOrders(st), nextSlotLabel: typeof st.nextSlotLabel === 'string' ? st.nextSlotLabel : null,
+            name: typeof st.name === 'string' ? st.name : undefined, imageUrl: st.imageUrl || null, logoUrl: st.logoUrl || null,
+            rating: Number(st.rating) > 0 ? Number(st.rating) : null, vendorType: st.vendorType || null, deliveryTime: etaText(st.deliveryTime),
+          };
         });
-        return Array.isArray(data?.items) ? data.items : [];
+        return data.items;
       }));
       if (mounted.current && Object.keys(hours).length) setStoreHours(prev => ({ ...prev, ...hours }));
       const ok = settled.filter((r): r is PromiseFulfilledResult<any[]> => r.status === 'fulfilled');
       if (!ok.length) throw new Error('catalogue unavailable');
-      if (!mounted.current) return;
+      // Unmounted, or the student changed college meanwhile (the other college's stores).
+      if (!mounted.current || requestEpoch !== getCollegeEpoch()) return;
       fromNet.current = true;
       const raw = ok.map(r => r.value).flat();
       setCatalogue(toList(raw));
@@ -146,6 +158,14 @@ export function useFoodV2State({ forceDark, sections, onSection, openSearch, onS
     }
   }, []);
   useEffect(() => { fetchCatalogue(); }, [fetchCatalogue]);
+  // The student changed college (checkout): the shops and products of that college replace these.
+  const collegeEpoch = useCollegeEpoch();
+  const epochAtMount = useRef(collegeEpoch);
+  useEffect(() => {
+    if (collegeEpoch === epochAtMount.current) return;
+    epochAtMount.current = collegeEpoch;
+    fetchCatalogue();
+  }, [collegeEpoch, fetchCatalogue]);
 
   // ── Saved items (same device list as the app) ──
   const [saved, setSaved] = useState<Saved[]>([]);
@@ -189,23 +209,27 @@ export function useFoodV2State({ forceDark, sections, onSection, openSearch, onS
         : 'This item is out of stock right now. Please check back soon.');
       return;
     }
-    const doAdd = () => {
-      if (addToCart({ id: p.id, name: p.name, price: p.price, image: p.image || FALLBACK_IMG, restaurantId: p.restaurantId, restaurantName: p.storeName || 'Campus store' })) {
+    const doAdd = async () => {
+      // Admin-set choices (weights with their own prices, flavours, types): asked in the options sheet first.
+      const groups = productOptions(p);
+      let extra: { price?: number; basePrice?: number; customizations?: any } = {};
+      if (groups.length) {
+        const r = await askOptions({ name: p.name, price: p.price, image: p.image || null, groups, accent: FOOD.primary });
+        if (!r) return;
+        extra = { price: r.unitPrice, basePrice: p.price, customizations: r.customizations };
+      }
+      if (addToCart({ id: p.id, name: p.name, price: p.price, image: p.image || FALLBACK_IMG, restaurantId: p.restaurantId, restaurantName: p.storeName || 'Campus store', vendorType: p.vendorType || undefined, ...extra })) {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
         setToast({ stamp: Date.now(), label: p.name });
       }
     };
-    if (cart.some(i => isCustomRequest(i))) {
-      Alert.alert('Start a new basket?', 'Your basket has a shopping request, which is ordered separately. Clear it and add this item?', [
-        { text: 'Keep basket', style: 'cancel' },
-        { text: 'Clear & add', style: 'destructive', onPress: () => { clearCart(); doAdd(); } },
-      ]);
-      return;
-    }
+    // (Shopping-list lines are gone: the basket drops them on load, so nothing can block an add here.)
     doAdd();
   };
   const decProduct = (id: string) => {
-    const line = cart.find(i => i.id === id);
+    // A product with several choice lines (500 g, 1 kg...): the one added last loses one.
+    const lines = cart.filter(i => i.id === id);
+    const line = lines[lines.length - 1];
     if (line) updateQuantity(line.cartKey, line.quantity - 1);
   };
   const storeIds = useMemo(() => new Set(catalogue.map(i => i.restaurantId)), [catalogue]);
@@ -215,45 +239,6 @@ export function useFoodV2State({ forceDark, sections, onSection, openSearch, onS
   /** Header basket badge: items in all three baskets, the same number as the Basket tab badge. */
   const cartCount = totalItems;
 
-  // ── Shopping list (Mega Basket, POST at checkout: same as the app). Several lines; price optional. ──
-  type ReqLine = { key: string; name: string; qty: string; price: string };
-  const newLine = (): ReqLine => ({ key: `l${Date.now()}${Math.random().toString(36).slice(2, 6)}`, name: '', qty: '1', price: '' });
-  const [reqLines, setReqLines] = useState<ReqLine[]>(() => [newLine()]);
-  const addReqLine = () => setReqLines(ls => (ls.length >= 15 ? ls : [...ls, newLine()]));
-  const updateReqLine = (key: string, patch: Partial<ReqLine>) => setReqLines(ls => ls.map(l => (l.key === key ? { ...l, ...patch } : l)));
-  const removeReqLine = (key: string) => setReqLines(ls => (ls.length <= 1 ? [newLine()] : ls.filter(l => l.key !== key)));
-  const setFirstReqName = (name: string) => setReqLines(ls => {
-    const empty = ls.find(l => !l.name.trim());
-    if (empty) return ls.map(l => (l.key === empty.key ? { ...l, name } : l));
-    return ls.length >= 15 ? ls : [...ls, { ...newLine(), name }];
-  });
-  const addRequest = () => {
-    const filled = reqLines.filter(l => l.name.trim());
-    if (!filled.length) { Alert.alert('What should we buy?', 'Please type at least one item (and brand, if you have one in mind).'); return; }
-    const bad = filled.find(l => l.price.trim() && !(Number(l.price) > 0 && Number(l.price) <= 10000));
-    if (bad) { Alert.alert('Check the price', `The price for "${bad.name.trim()}" should be between ₹1 and ₹10,000, or leave it empty.`); return; }
-    const doAdd = () => {
-      const stamp = Date.now();
-      filled.forEach((l, i) => {
-        const price = l.price.trim() ? Math.round(Number(l.price) * 100) / 100 : 0;
-        const qty = Math.min(20, Math.max(1, parseInt(l.qty, 10) || 1));
-        addToCart({ id: `custom-${stamp}-${i}`, name: `[Custom Request] ${l.name.trim()}`, price, quantity: qty, image: '', restaurantId: MEGA_BASKET_VENDOR, restaurantName: 'Shopping list' } as any);
-      });
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      Alert.alert(filled.length === 1 ? 'Request added' : 'List added', `${filled.length === 1 ? `"${filled[0].name.trim()}" is` : `${filled.length} items are`} in your basket. A shopper buys ${filled.length === 1 ? 'it' : 'them'} for you, and you approve the final bill before paying.`);
-      setReqLines([newLine()]);
-      pop();
-    };
-    if (cart.some(i => !isCustomRequest(i))) {
-      Alert.alert('Start a new basket?', 'Shopping requests are ordered separately from store and restaurant items. Clear your basket and add this list?', [
-        { text: 'Keep basket', style: 'cancel' },
-        { text: 'Clear & add', style: 'destructive', onPress: () => { clearCart(); doAdd(); } },
-      ]);
-      return;
-    }
-    doAdd();
-  };
-
   // ── Listing / search state ──
   const [query, setQuery] = useState('');
   const [chip, setChip] = useState('All');
@@ -261,6 +246,19 @@ export function useFoodV2State({ forceDark, sections, onSection, openSearch, onS
   const [aisle, setAisle] = useState('all');
   const [savedChip, setSavedChip] = useState('All');
   const openListing = (shelf: string, q = '') => { setQuery(q); setChip('All'); setChipsOpen(false); setAisle('all'); push({ name: 'listing', shelf }); };
+  /** Category tile -> the shops that sell it (owner, 28 Oct 2026: category -> shop -> that shop's menu). */
+  const openShops = (shelf: string) => push({ name: 'shops', shelf });
+  /** Shops with products on `shelf` (plus shops of the shelf's own store types), open ones first. */
+  const shopsFor = (shelf: string) => {
+    const counts = new Map<string, number>();
+    shelfItems(shelf, catalogue).forEach(p => { if (p.restaurantId) counts.set(p.restaurantId, (counts.get(p.restaurantId) || 0) + 1); });
+    const types = SHELVES[shelf]?.vendorTypes || [];
+    Object.entries(storeHours).forEach(([sid, st]) => { if (st.vendorType && types.includes(st.vendorType) && !counts.has(sid)) counts.set(sid, 0); });
+    return [...counts.entries()]
+      .map(([id, n]) => ({ id, n, ...(storeHours[id] || { isOpen: true, opensAt: null, takesSlotOrders: false, nextSlotLabel: null }) }))
+      .filter(x => !!x.name)
+      .sort((a, b) => Number(b.isOpen || b.takesSlotOrders) - Number(a.isOpen || a.takesSlotOrders) || b.n - a.n || String(a.name).localeCompare(String(b.name)));
+  };
   // Another Others section's header search ("Search the campus store") lands here on the search screen.
   useEffect(() => {
     if (!openSearch) return;
@@ -295,7 +293,8 @@ export function useFoodV2State({ forceDark, sections, onSection, openSearch, onS
   const hasShelf = (name: string) => status !== 'ready' || shelfItems(name, catalogue).length > 0;
   const dealShelf = useMemo(() => shelfItems('Deals', catalogue), [catalogue]);
   const topDeal = dealShelf[0] || null;
-  const fromPrice = (items: Item[]) => (items.length ? `From ${fmt(Math.min(...items.map(i => i.price)))}` : null);
+  // Just the price (owner, 29 Oct 2026: "remove 'From' and keep only the rupees"): the lowest in the shelf.
+  const fromPrice = (items: Item[]) => (items.length ? fmt(Math.min(...items.map(i => i.price))) : null);
   const upTo = (items: Item[]) => {
     const max = items.reduce((mx, i) => Math.max(mx, i.discountPercent || 0), 0);
     return max >= 10 ? `Up to ${max}% off` : null;
@@ -317,5 +316,5 @@ export function useFoodV2State({ forceDark, sections, onSection, openSearch, onS
   const savedChips = ['All', ...GROUP_ORDER.filter(g => savedCounts[g]), ...(savedCounts.Other ? ['Other'] : [])];
 
 
-  return { sections, onSection, toast, setToast, router, isDark, m, topPad, winW, pageW, conn, cart, addToCart, updateQuantity, clearCart, mounted, c, shadow, greenGlow, stack, setStack, route, push, pop, homeKey, setHomeKey, reset, demo, setDemo, savedSheet, setSavedSheet, savedSample, setSavedSample, catalogue, setCatalogue, status, setStatus, storeHours, setStoreHours, fromNet, fetchCatalogue, saved, setSaved, loadSaved, savedIds, persistSaved, toggleSaved, qtyOf, closedLabel, addProduct, decProduct, storeIds, shopLines, shopCount, shopTotal, cartCount, reqLines, addReqLine, updateReqLine, removeReqLine, setFirstReqName, addRequest, query, setQuery, chip, setChip, chipsOpen, setChipsOpen, aisle, setAisle, savedChip, setSavedChip, openListing, openProduct, inStock, closedShare, allClosed, someClosed, earliestOpen, hasShelf, dealShelf, topDeal, fromPrice, upTo, failKind, forcedFail, isLoading, isFailed, isEmpty, sampleSaved, savedResolved, savedGroup, savedCounts, savedChips, clean, forceDark, rowActions, sampleOpen, setSampleOpen };
+  return { sections, onSection, toast, setToast, router, isDark, m, topPad, winW, pageW, conn, cart, addToCart, updateQuantity, clearCart, mounted, c, shadow, greenGlow, stack, setStack, route, push, pop, homeKey, setHomeKey, reset, demo, setDemo, savedSheet, setSavedSheet, savedSample, setSavedSample, catalogue, setCatalogue, status, setStatus, storeHours, setStoreHours, fromNet, fetchCatalogue, saved, setSaved, loadSaved, savedIds, persistSaved, toggleSaved, qtyOf, closedLabel, addProduct, decProduct, storeIds, shopLines, shopCount, shopTotal, cartCount, query, setQuery, chip, setChip, chipsOpen, setChipsOpen, aisle, setAisle, savedChip, setSavedChip, openListing, openShops, shopsFor, openProduct, inStock, closedShare, allClosed, someClosed, earliestOpen, hasShelf, dealShelf, topDeal, fromPrice, upTo, failKind, forcedFail, isLoading, isFailed, isEmpty, sampleSaved, savedResolved, savedGroup, savedCounts, savedChips, clean, forceDark, rowActions, sampleOpen, setSampleOpen };
 }

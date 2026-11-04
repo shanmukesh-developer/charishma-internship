@@ -80,7 +80,7 @@ export function PopularRoutes() {
           return (
             <Tap key={r.id} onPress={() => push({ name: 'find', to: String(r.destination) })} label={`${r.destination}${fare ? `, ${fare} a seat` : ''}`} style={st.route}>
               <Text style={st.routeName} numberOfLines={1}>{r.destination}</Text>
-              <Text style={st.routeMeta} numberOfLines={1}>{[fare ? `${fare} seat` : null, seats ? `${seats} seats now` : null].filter(Boolean).join(' · ') || 'ZCS Auto route'}</Text>
+              <Text style={st.routeMeta} numberOfLines={1}>{[fare ? `${fare} seat` : null, seats ? `${seats} seats now` : null].filter(Boolean).join(' · ') || 'ZENV Auto route'}</Text>
             </Tap>
           );
         })}
@@ -100,9 +100,9 @@ export function AutoMatch({ to }: { to: string }) {
   const seats = lines.reduce((n, l) => n + lineSeats(l), 0);
   const fares = lines.map((l) => l.onCharge?.seatFare || l.seatFare || 0).filter(Boolean);
   return (
-    <Tap onPress={() => push({ name: 'auto', key: lines[0].key })} label={`ZCS Auto to ${to}`} style={st.autoMatch}>
+    <Tap onPress={() => push({ name: 'auto', key: lines[0].key })} label={`ZENV Auto to ${to}`} style={st.autoMatch}>
       <View style={{ flex: 1 }}>
-        <Text style={st.autoTitle}>ZCS Auto to {lines[0].destination || to}</Text>
+        <Text style={st.autoTitle}>ZENV Auto to {lines[0].destination || to}</Text>
         <Text style={st.miniMeta}>{seats ? `${seatsText(seats)} on the board now` : 'No auto on charge right now'}{fares.length ? ` · ${fareText(Math.min(...fares), Math.max(...fares))} per seat` : ''}</Text>
       </View>
       <IChevronRight size={18} color={CR.mintInk} strokeWidth={STROKE} />
@@ -155,7 +155,7 @@ export function Savings() {
       <ICoins size={20} color={CR.green} strokeWidth={STROKE} />
       <View style={{ flex: 1 }}>
         <Text style={st.autoTitle}>You saved {inr(saved.total)} this month</Text>
-        <Text style={st.miniMeta}>{saved.rides} shared ride{saved.rides === 1 ? '' : 's'}, compared with a full ZCS Auto on the same route</Text>
+        <Text style={st.miniMeta}>{saved.rides} shared ride{saved.rides === 1 ? '' : 's'}, compared with a full ZENV Auto on the same route</Text>
       </View>
     </View>
   );

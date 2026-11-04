@@ -47,6 +47,9 @@ function VehicleRow({ b }: { b: Booking }) {
   );
 }
 
+/** PG request statuses (backend utils/pgBookings.js) in the student's words. */
+const PG_STATUS_TEXT: Record<string, string> = { Pending: 'Waiting for the housing team', Confirmed: 'Confirmed', Cancelled: 'Cancelled', Rejected: 'Declined by the PG', MovedOut: 'Stay ended' };
+
 export default function RentalsV2Mine() {
   const nav = useNav();
   const router = useRouter();
@@ -111,8 +114,9 @@ export default function RentalsV2Mine() {
                         <Text style={m.title} numberOfLines={1}>{bk.hostel?.name || 'PG stay'}</Text>
                         <Text style={m.sub} numberOfLines={1}>{bk.room ? `${roomTypeName(bk.room.sharingType)} · ${inr(bk.room.pricePerBed)}/month` : 'Room request'}</Text>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 }}>
-                          <View style={[m.badge, { backgroundColor: bk.status === 'Confirmed' ? DAY.greenSoft : bk.status === 'Cancelled' ? DAY.lineSoft : DAY.amberSoft }]}>
-                            <Text style={[m.badgeText, { color: bk.status === 'Confirmed' ? DAY.green : bk.status === 'Cancelled' ? DAY.muted : DAY.amber }]}>{bk.status === 'Pending' ? 'Waiting for the housing team' : bk.status}</Text>
+                          {/* Declined / ended stays used to show the raw "Rejected" / "MovedOut" in the Pending colours. */}
+                          <View style={[m.badge, { backgroundColor: bk.status === 'Confirmed' ? DAY.greenSoft : bk.status === 'Pending' ? DAY.amberSoft : DAY.lineSoft }]}>
+                            <Text style={[m.badgeText, { color: bk.status === 'Confirmed' ? DAY.green : bk.status === 'Pending' ? DAY.amber : DAY.muted }]}>{PG_STATUS_TEXT[bk.status] || bk.status}</Text>
                           </View>
                           <Text style={m.sub}>Move in {dayText(bk.checkInDate)}</Text>
                         </View>

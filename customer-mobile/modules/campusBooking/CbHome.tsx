@@ -44,6 +44,8 @@ export default function CbHome() {
   const insets = useSafeAreaInsets();
   const [data, setData] = useState<HomeData | null>(homeMem);
   const [error, setError] = useState<string | null>(null);
+  // Signed out: the server answers 401, so this is a sign-in step, not a failed load (no Try again).
+  const [needsSignIn, setNeedsSignIn] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [chip, setChip] = useState<CbCategoryKey | 'all'>('all');
   const [search, setSearch] = useState('');
@@ -57,7 +59,9 @@ export default function CbHome() {
       homeMem = d;
       setData(d);
       setError(null);
+      setNeedsSignIn(false);
     } catch (e: any) {
+      setNeedsSignIn(e?.code === 'AUTH');
       setError(e?.message || 'Could not load the stalls.');
     } finally {
       setRefreshing(false);
@@ -158,7 +162,8 @@ export default function CbHome() {
         </ScrollView>
 
         {!data && !error ? <EmptyCard loading title="Loading campus stalls" /> : null}
-        {!data && error ? <EmptyCard icon="cloud-offline-outline" title="Couldn't load the stalls" sub={error} actionLabel="Try again" onAction={() => load()} /> : null}
+        {!data && error && needsSignIn ? <EmptyCard icon="lock-closed-outline" title="Sign in to book from campus stalls" sub="Pre-order from campus stalls, pay the stall by UPI and collect with a pickup code." actionLabel="Sign in" onAction={() => router.push('/login' as any)} /> : null}
+        {!data && error && !needsSignIn ? <EmptyCard icon="cloud-offline-outline" title="Couldn't load the stalls" sub={error} actionLabel="Try again" onAction={() => load()} /> : null}
         {data && !allStalls.length && !allSamples.length ? (
           <EmptyCard title="No stalls take bookings yet" sub="Campus stalls appear here as soon as they start taking In-Campus Bookings." />
         ) : null}
@@ -186,7 +191,7 @@ export default function CbHome() {
           </StaggeredSection>
         ))}
 
-        {allStalls.length > 0 ? <Text style={[st.disclaimer, { color: p.txtSec }]}>You pay the stall directly by UPI. ZCS does not take or hold the money.</Text> : null}
+        {allStalls.length > 0 ? <Text style={[st.disclaimer, { color: p.txtSec }]}>You pay the stall directly by UPI. ZENV does not take or hold the money.</Text> : null}
       </ScrollView>
 
       {latest && latestTotals && latestTotals.count > 0 ? (

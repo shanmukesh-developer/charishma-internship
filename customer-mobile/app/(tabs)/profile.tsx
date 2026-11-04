@@ -45,6 +45,7 @@ import DeleteAccountModal from '../../components/DeleteAccountModal';
 import ProfileSettingsSection from '../../components/ProfileSettingsSection';
 import AboutZcsModal from '../../components/AboutZcsModal';
 import { cleanRoom, cleanBlock, formatHostel, useCampusHostelBlocks, HOSTEL_BLOCK_MAX, ROOM_NUMBER_MAX } from '../../utils/hostel';
+import { useCollege } from '../../utils/college';
 import { openLegal, LEGAL_LABELS, LegalPage } from '../../utils/legal';
 import { formatINR, formatCount, plural } from '../../utils/format';
 import { getSoundsEnabled, setSoundsEnabled, onSoundSettingChange } from '../../utils/sounds';
@@ -158,6 +159,10 @@ export default function ProfileScreen() {
   const [editRoom, setEditRoom] = useState('');
   // Hostel blocks from the campus directory (only loaded while the editor is open)
   const hostelCampuses = useCampusHostelBlocks(isEditing);
+  // Only the student's own college's hostels (3 Nov 2026: every college's list was merged into one row, so an SRM AP
+  // student saw VIT's blocks too). No college picked yet: no chips, the block is typed.
+  const myCollege = useCollege();
+  const myHostelCampuses = myCollege ? hostelCampuses.filter((c) => c.code.toLowerCase() === myCollege) : [];
   const [editProfileImage, setEditProfileImage] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
@@ -331,7 +336,7 @@ export default function ProfileScreen() {
         finalStatus = status;
       }
       if (finalStatus !== 'granted') {
-        if (!silent) Alert.alert('Notifications are off', 'Turn on notifications for ZCS in your phone settings to get order updates.');
+        if (!silent) Alert.alert('Notifications are off', 'Turn on notifications for ZENV in your phone settings to get order updates.');
         return;
       }
 
@@ -410,7 +415,8 @@ export default function ProfileScreen() {
     }
     suggestTimeout.current = setTimeout(async () => {
       try {
-        const res = await fetch(
+        // Signed in (apiFetch adds the session): the server serves address search to signed-in students only.
+        const res = await apiFetch(
           `${API_URL}/api/system/nominatim-proxy?type=search&format=json&q=${encodeURIComponent(query)}&countrycodes=in&addressdetails=1&limit=5`
         );
         const results = res.ok ? await res.json() : [];
@@ -607,7 +613,7 @@ export default function ProfileScreen() {
       Alert.alert('That’s you!', 'Enter a friend’s number to send a gift.');
       return;
     }
-    Alert.alert('Send this gift?', `₹${amt} from your ZCS Wallet to +91 ${phone}.`, [
+    Alert.alert('Send this gift?', `₹${amt} from your ZENV Wallet to +91 ${phone}.`, [
       { text: 'Cancel', style: 'cancel' },
       { text: `Send ₹${amt}`, onPress: () => sendGift(amt, phone) },
     ]);
@@ -624,7 +630,12 @@ export default function ProfileScreen() {
       <View style={[s.container, { paddingTop: topPad, backgroundColor: bg }]}>
         <AmbientBackground />
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
-          <View style={{ alignItems: 'center', paddingHorizontal: 20, paddingTop: 64, paddingBottom: 36 }}>
+          {/* Back, as when signed in: Profile has no tab of its own, it opens from the avatar on Home (3 Nov 2026) */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 12 }}>
+            <TabBackButton />
+            <Text style={{ fontSize: 20, fontWeight: '700', color: txt }}>Profile</Text>
+          </View>
+          <View style={{ alignItems: 'center', paddingHorizontal: 20, paddingTop: 28, paddingBottom: 36 }}>
             <Ionicons name="lock-closed-outline" size={48} color={txtSec} style={{ marginBottom: 16 }} />
             <Text style={{ fontSize: 18, fontWeight: '700', color: txt, letterSpacing: 0.2, textAlign: 'center', marginBottom: 8 }}>
               Sign in to see your profile
@@ -721,7 +732,7 @@ export default function ProfileScreen() {
 
               <View style={s.headerBadges}>
                 <View style={[s.zenvyBadge, { backgroundColor: goldColor }]}>
-                  <Text style={s.zenvyBadgeText}>ZCS</Text>
+                  <Text style={s.zenvyBadgeText}>ZENV</Text>
                   <View style={s.zenvyDots}>
                     <View style={s.zenvyDot} />
                     <View style={s.zenvyDot} />
@@ -735,9 +746,9 @@ export default function ProfileScreen() {
             </View>
 
             {/* Name & tier */}
-            <Text style={[s.name, { color: txt }]}>{user?.name || 'ZCS member'}</Text>
+            <Text style={[s.name, { color: txt }]}>{user?.name || 'ZENV member'}</Text>
             <Text style={[s.tierText, { color: goldColor }]}>
-              {user?.isElite ? 'Elite member' : 'ZCS member'}
+              {user?.isElite ? 'Elite member' : 'ZENV member'}
               {user?.createdAt && !Number.isNaN(new Date(user.createdAt).getTime()) ? ` · since ${new Date(user.createdAt).getFullYear()}` : ''}
             </Text>
 
@@ -799,7 +810,7 @@ export default function ProfileScreen() {
                   <Text style={[s.telemetryVal, { color: txt }]}>{completedOrders}</Text>
                 </View>
                 <View style={[s.telemetryItem, s.telemetryBorder]}>
-                  <Text style={s.telemetryLabel}>ZCS Points</Text>
+                  <Text style={s.telemetryLabel}>ZENV Points</Text>
                   <Text style={[s.telemetryVal, { color: goldColor }]}>{formatCount(user?.zenPoints)}</Text>
                 </View>
                 <TouchableOpacity
@@ -1006,8 +1017,8 @@ export default function ProfileScreen() {
 
             <View style={s.achievementsFooter}>
               <View style={s.footerLeft}>
-                <Text style={[s.footerLabel, { color: txtSec }]}>ZCS Points</Text>
-                <Text style={[s.footerVal, { color: goldColor }]}>{formatCount(user?.zenPoints)} ZCS Points</Text>
+                <Text style={[s.footerLabel, { color: txtSec }]}>ZENV Points</Text>
+                <Text style={[s.footerVal, { color: goldColor }]}>{formatCount(user?.zenPoints)} ZENV Points</Text>
               </View>
               <View style={s.verticalDivider} />
               <View style={s.footerRight}>
@@ -1075,9 +1086,9 @@ export default function ProfileScreen() {
                   <Ionicons name="link-outline" size={22} color={goldColor} />
                 </View>
                 <View style={s.buddyLinkHeaderText}>
-                  <Text style={[s.buddyLinkTitle, { color: isDark ? '#FFF' : '#111' }]}>Invite friends to ZCS</Text>
+                  <Text style={[s.buddyLinkTitle, { color: isDark ? '#FFF' : '#111' }]}>Invite friends to ZENV</Text>
                   <Text style={[s.buddyLinkSubtitle, { color: txtSec }]}>
-                    When a friend signs up with your code, you both get <Text style={{ color: goldColor, fontWeight: '700' }}>50 ZCS Points</Text>
+                    When a friend signs up with your code, you both get <Text style={{ color: goldColor, fontWeight: '700' }}>50 ZENV Points</Text>
                   </Text>
                 </View>
               </View>
@@ -1103,8 +1114,8 @@ export default function ProfileScreen() {
                   const name = user?.name?.split(' ')[0] || 'Your friend';
                   try {
                     await Share.share({
-                      title: 'Join me on ZCS',
-                      message: `${name} invited you to ZCS: campus food and essentials delivered to your hostel. Sign up with code ${referralCode} and you both get 50 ZCS Points.`,
+                      title: 'Join me on ZENV',
+                      message: `${name} invited you to ZENV: campus food and essentials delivered to your hostel. Sign up with code ${referralCode} and you both get 50 ZENV Points.`,
                     });
                   } catch (e) {
                     // share sheet dismissed
@@ -1272,7 +1283,7 @@ export default function ProfileScreen() {
 
             <TouchableOpacity style={[s.supportBtn, { backgroundColor: cardBg, borderColor: border }, lift]} onPress={() => setShowAbout(true)}>
               <Ionicons name="information-circle-outline" size={20} color={goldColor} />
-              <Text style={[s.supportBtnTitle, { color: txt }]}>About ZCS</Text>
+              <Text style={[s.supportBtnTitle, { color: txt }]}>About ZENV</Text>
               <Text style={[s.supportBtnDesc, { color: txtSec }]}>Version & info</Text>
             </TouchableOpacity>
           </View>
@@ -1354,7 +1365,8 @@ export default function ProfileScreen() {
                 )}
               </TouchableOpacity>
 
-              {!isDataUriImage ? (
+              {/* Only without a photo: it showed the stored photo's server address (3 Nov 2026). */}
+              {!isDataUriImage && !editProfileImage ? (
                 <>
                   <Text style={[s.inputLabel, { color: txtSec }]}>Or paste an image link</Text>
                   <TextInput
@@ -1458,9 +1470,9 @@ export default function ProfileScreen() {
 
               {/* Hostel block (campus directory chips + free text) and room number */}
               <Text style={[s.inputLabel, { color: txtSec }]}>Hostel block</Text>
-              {hostelCampuses.length > 0 && (
+              {myHostelCampuses.length > 0 && (
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-                  {hostelCampuses.flatMap((c) => c.blocks.map((b) => ({ key: `${c.code}:${b}`, block: b }))).filter((x, i, arr) => arr.findIndex((y) => y.block === x.block) === i).slice(0, 32).map(({ key, block }) => {
+                  {myHostelCampuses.flatMap((c) => c.blocks.map((b) => ({ key: `${c.code}:${b}`, block: b }))).filter((x, i, arr) => arr.findIndex((y) => y.block === x.block) === i).slice(0, 32).map(({ key, block }) => {
                     const on = editHostelBlock.toLowerCase() === block.toLowerCase();
                     return (
                       <TouchableOpacity
@@ -1479,7 +1491,7 @@ export default function ProfileScreen() {
               <TextInput
                 value={editHostelBlock}
                 onChangeText={(t) => setEditHostelBlock(t.slice(0, HOSTEL_BLOCK_MAX))}
-                placeholder={hostelCampuses.length ? 'Or type your block' : 'e.g. Ganga Block'}
+                placeholder={myHostelCampuses.length ? 'Or type your block' : 'Your hostel or block'}
                 placeholderTextColor={txtSec}
                 maxLength={HOSTEL_BLOCK_MAX}
                 style={[s.modalInput, { color: txt, backgroundColor: inputBg, borderColor: border }]}
@@ -1498,7 +1510,8 @@ export default function ProfileScreen() {
 
               {/* Delivery Address Auto-complete */}
               <Text style={[s.inputLabel, { color: txtSec }]}>Other delivery address (optional)</Text>
-              <View style={{ zIndex: 99 }}>
+              {/* Full width like the other fields (the bare wrapper shrank it to its text and centred it). */}
+              <View style={{ zIndex: 99, alignSelf: 'stretch' }}>
                 <TextInput
                   value={editAddress}
                   onChangeText={(text) => {

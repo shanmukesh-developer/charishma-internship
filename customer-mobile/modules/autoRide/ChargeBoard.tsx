@@ -87,7 +87,7 @@ export default function ChargeBoard({ onUnavailable }: { onUnavailable?: () => v
   }), []);
 
   if (error && error.code === 'FEATURE_OFF') {
-    return <StateView kind="empty" icon="🛺" title="ZCS Auto is not open yet" message={error.message} />;
+    return <StateView kind="empty" icon="🛺" title="ZENV Auto is not open yet" message={error.message} />;
   }
   if (lines === null && !error) return <StateView kind="loading" message="Looking for autos on charge…" />;
   if (error && !lines) {
@@ -101,7 +101,7 @@ export default function ChargeBoard({ onUnavailable }: { onUnavailable?: () => v
       </Text>
       {error ? <Notice tone="warn">{error.message} Showing the last update.</Notice> : null}
       {(lines || []).length === 0 ? (
-        <StateView kind="empty" icon="🛺" title="No stands yet" message="ZCS Auto stands will show up here once they are set up." />
+        <StateView kind="empty" icon="🛺" title="No stands yet" message="ZENV Auto stands will show up here once they are set up." />
       ) : (
         (lines || []).map((l, i) => (
           <FadeInUp key={l.key} index={i}>

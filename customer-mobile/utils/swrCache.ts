@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiFetch } from './auth';
+import { onCollegeChange } from './college';
 
 /**
  * Stale-while-revalidate cache for READ-ONLY listing endpoints (restaurants, store detail,
@@ -88,6 +89,40 @@ export function writeCache(key: string, data: any): void {
   })();
 }
 
+/** Forget every cached answer (memory and storage). */
+export async function clearAllCaches(): Promise<void> {
+  mem.clear();
+  try {
+    const keys = await loadIndex();
+    if (keys.length) await AsyncStorage.multiRemove(keys.map((k) => PREFIX + k));
+    index = [];
+    await AsyncStorage.setItem(INDEX_KEY, '[]');
+  } catch {
+    // storage unavailable: memory is already clear
+  }
+}
+
+// The student changed college: every cached list belongs to the other college. Forget them, then let open lists
+// fetch again (useSWRJson listens through collegeEpoch).
+let collegeEpoch = 0;
+const epochListeners = new Set<(n: number) => void>();
+onCollegeChange(() => {
+  collegeEpoch += 1;
+  clearAllCaches().finally(() => epochListeners.forEach((cb) => { try { cb(collegeEpoch); } catch { /* ignore */ } }));
+});
+/** Bumped on every college change: a response to a request started before the change is dropped. */
+export const getCollegeEpoch = (): number => collegeEpoch;
+
+/** Re-renders when the student changes college (Home and other screens reload their lists). */
+export function useCollegeEpoch(): number {
+  const [n, setN] = useState(collegeEpoch);
+  useEffect(() => {
+    epochListeners.add(setN);
+    return () => { epochListeners.delete(setN); };
+  }, []);
+  return n;
+}
+
 export interface SWRResult<T> {
   data: T | undefined;
   /** True only while there is nothing to show yet (no cache and no response). */
@@ -124,15 +159,18 @@ export function useSWRJson<T = any>(url: string | null, opts: SWROptions<T> & { 
   optsRef.current = opts;
   const keyRef = useRef(key);
   keyRef.current = key;
+  const epoch = useCollegeEpoch();
 
   const refresh = useCallback(async ({ silent = true }: { silent?: boolean } = {}) => {
     if (!url) return;
     const requestKey = key;
+    const requestEpoch = collegeEpoch;
     if (!silent) setLoading(true);
     try {
       const res = await apiFetch(url);
       const json = await res.json().catch(() => null);
-      if (keyRef.current !== requestKey) return;
+      // Changed screen, or the student changed college while this was on its way (the other college's list).
+      if (keyRef.current !== requestKey || requestEpoch !== collegeEpoch) return;
       const { validate, select } = optsRef.current;
       if (res.ok && json != null && (!validate || validate(json))) {
         const value = select ? select(json) : (json as T);
@@ -176,6 +214,15 @@ export function useSWRJson<T = any>(url: string | null, opts: SWROptions<T> & { 
     })();
     return () => { cancelled = true; };
   }, [key, enabled, refresh]);
+
+  // The student changed college: ask again quietly, keeping what is on screen until the answer arrives (clearing it
+  // made every screen flash empty, including settings that do not depend on the college).
+  const epochAtMount = useRef(epoch);
+  useEffect(() => {
+    if (!enabled || epoch === epochAtMount.current) return;
+    epochAtMount.current = epoch;
+    refresh({ silent: true });
+  }, [epoch, enabled, refresh]);
 
   return { data, loading, error, status, refresh };
 }

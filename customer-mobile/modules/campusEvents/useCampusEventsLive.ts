@@ -18,19 +18,22 @@ export function useCampusEventsLive(onChange: (e: CampusEventLiveEvent) => void,
     try { socket = connectSocket(); } catch { return; }
     let timer: ReturnType<typeof setTimeout> | null = null;
     let last: CampusEventLiveEvent = {};
-    const fire = (e: CampusEventLiveEvent) => {
-      last = e || {};
+    let lastRank = -1;
+    // One call per window with its most important event: reconnect (2) over the student's own update (1) over a
+    // public change (0); keeping only the latest let a public change hide the student's own update (31 Oct 2026).
+    const fire = (e: CampusEventLiveEvent, rank: number) => {
+      if (rank >= lastRank) { last = e || {}; lastRank = rank; }
       if (timer) return;
-      timer = setTimeout(() => { timer = null; try { ref.current(last); } catch { /* screen gone */ } }, 350);
+      timer = setTimeout(() => { timer = null; const ev = last; lastRank = -1; try { ref.current(ev); } catch { /* screen gone */ } }, 350);
     };
-    const onMine = (e: any) => fire(e && typeof e === 'object' ? e : {});
-    const onData = (e: any) => { if (e && e.type === 'campus_event') fire({ kind: 'event', id: e.id || null }); };
+    const onMine = (e: any) => fire(e && typeof e === 'object' ? e : {}, 1);
+    const onData = (e: any) => { if (e && e.type === 'campus_event') fire({ kind: 'event', id: e.id || null }, 0); };
     let connectedOnce = socket.connected;
     // Catch up after a reconnect at most once per 15 s: a flapping connection must not turn into a request storm.
     let lastReconnectFire = 0;
     const onConnect = () => {
       const now = Date.now();
-      if (connectedOnce && now - lastReconnectFire >= 15000) { lastReconnectFire = now; fire({ kind: 'reconnect' }); }
+      if (connectedOnce && now - lastReconnectFire >= 15000) { lastReconnectFire = now; fire({ kind: 'reconnect' }, 2); }
       connectedOnce = true;
     };
     socket.on('campus_event:changed', onMine);

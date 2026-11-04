@@ -41,7 +41,6 @@ export interface PromoSlide {
     | 'gold'
     | 'biryani'
     | 'kfc'
-    | 'megabasket'
     | 'afterdark'
     | 'campus'
     | 'ride'
@@ -380,7 +379,7 @@ export default function HighClassPromoCarousel({
         tagline: '🍛 MESS: DAL. AGAIN.',
         title1: "Mess said 'dal'.",
         title2: "Stomach said 'no'.",
-        description: 'Order from campus kitchens. Pay cash at the door or ZCS Wallet.',
+        description: 'Order from campus kitchens. Pay cash on delivery or with ZENV Wallet.',
         buttonText: 'Feed me →',
         accentColor: '#F97316',
         // index.tsx: 'free-cash' → scrollToGrid() (the restaurant grid on Home)
@@ -420,17 +419,6 @@ export default function HighClassPromoCarousel({
         redirectAction: () => router.push('/friends' as any),
       },
       {
-        id: 'mega-basket',
-        type: 'megabasket',
-        tagline: '📝 MONTH-END LIST',
-        title1: 'Your list.',
-        title2: 'Their legs.',
-        description: 'A rider shops your list, sends the real bill. You approve, then pay.',
-        buttonText: 'Start a list →',
-        accentColor: '#F59E0B',
-        redirectAction: () => router.push('/mega-basket' as any),
-      },
-      {
         id: 'stays',
         type: 'stays',
         tagline: '🏠 3 AM. STILL SNORING',
@@ -450,7 +438,8 @@ export default function HighClassPromoCarousel({
         description: "Snacks, noodles, drinks & essentials. Order while the store's open.",
         buttonText: 'Raid kirana →',
         accentColor: '#EAB308',
-        redirectAction: () => router.push('/category/groceries' as any),
+        // The Groceries tab (shops, weights, real catalogue); the old /category page skipped weight choices.
+        redirectAction: () => router.push({ pathname: '/(tabs)/others', params: { tab: 'food' } } as any),
       },
       {
         id: 'rewards',
@@ -458,7 +447,7 @@ export default function HighClassPromoCarousel({
         tagline: '🎡 BROKE BY THE 25TH?',
         title1: '2 orders delivered',
         title2: '= 1 spin. Simple.',
-        description: 'Spin for ZCS Points or free delivery. The server picks the prize.',
+        description: 'Spin for ZENV Points or free delivery. The server picks the prize.',
         buttonText: 'See rewards →',
         accentColor: '#F43F5E',
         redirectAction: () => router.push('/rewards' as any),
@@ -473,7 +462,7 @@ export default function HighClassPromoCarousel({
         const id = String(r._id || r.id);
         const rating = Number(r.rating);
         const dt = storeEtaMins(r) || 0;
-        const promo = typeof r.promoOffer === 'string' && r.promoOffer.trim() ? r.promoOffer.trim() : 'On ZCS now.';
+        const promo = typeof r.promoOffer === 'string' && r.promoOffer.trim() ? r.promoOffer.trim() : 'On ZENV now.';
         return {
           id: `feat-${id}`,
           type: 'featured_restaurant' as const,
@@ -686,7 +675,7 @@ export default function HighClassPromoCarousel({
       accessibilityRole={n > 1 ? 'adjustable' : undefined}
       accessibilityLabel={
         n > 1
-          ? `ZCS highlights, slide ${realActive + 1} of ${n}: ${slides[realActive]?.title1 ?? ''} ${slides[realActive]?.title2 ?? ''}. ${(slides[realActive]?.buttonText ?? '').replace('→', '').trim()}`
+          ? `ZENV highlights, slide ${realActive + 1} of ${n}: ${slides[realActive]?.title1 ?? ''} ${slides[realActive]?.title2 ?? ''}. ${(slides[realActive]?.buttonText ?? '').replace('→', '').trim()}`
           : undefined
       }
       accessibilityHint={n > 1 ? 'Swipe up or down to change slide. Double tap to open.' : undefined}

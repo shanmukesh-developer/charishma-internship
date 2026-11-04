@@ -52,11 +52,11 @@ export function Hero({ prizes, spinsLeft, signedIn, onWheel }: { prizes: Prize[]
           <View style={{ flex: 1, minWidth: 0, paddingRight: 4 }}>
             <View style={s.eyebrow}>
               <View><ICrown size={13} color={DV.gold} strokeWidth={1.8} /></View>
-              <Text style={s.eyebrowText}>ZCS REWARDS</Text>
+              <Text style={s.eyebrowText}>ZENV REWARDS</Text>
             </View>
             <Text style={[s.h1, { fontSize: h1, lineHeight: h1 + 5 }]} accessibilityRole="header">Spin and win</Text>
             <Text style={[s.body, { fontSize: compact ? 12.3 : 13 }]}>
-              Earn a spin for every {ORDERS_PER_SPIN} delivered orders. Win ZCS Points or a free-delivery coupon.
+              Earn a spin for every {ORDERS_PER_SPIN} delivered orders. Win ZENV Points or a free-delivery coupon.
             </Text>
             <Press onPress={onWheel} label={ready ? 'Spin the wheel' : 'See the wheel'} style={[s.pill, shadow(2, '#120A3A')]} scaleTo={0.95}>
               <View style={s.pillWheel}><WheelDisk prizes={prizes} size={18} labels={false} /></View>

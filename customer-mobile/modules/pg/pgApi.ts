@@ -50,7 +50,10 @@ export interface PgListItem {
   hasAC?: boolean; foodIncluded?: boolean; highlights?: string[]; reviewSummary?: ReviewSummary; createdAt?: string | null;
 }
 export interface MyPgBooking {
-  id: string; status: 'Pending' | 'Confirmed' | 'Cancelled'; checkInDate: string; hostelId?: string;
+  /** Server statuses (backend utils/pgBookings.js): Rejected = declined by the PG, MovedOut = the stay ended. */
+  id: string; status: 'Pending' | 'Confirmed' | 'Cancelled' | 'Rejected' | 'MovedOut'; checkInDate: string; hostelId?: string;
+  /** The PG's reason when it declined (or ended) the booking. */
+  decisionReason?: string | null;
   hostel?: { id: string; name: string } | null;
   room?: { id: string; roomNumber: string; sharingType: number; pricePerBed: number } | null;
 }

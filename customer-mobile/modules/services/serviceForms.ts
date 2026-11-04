@@ -178,20 +178,20 @@ const otherOption = (label: string, placeholder: string): ChoiceOption => ({
 });
 
 const REPAIR_HOW = 'The technician calls you, checks the device and confirms the price before any work.';
-const REPAIR_SLOT = { label: 'Preferred visit time', helper: 'The technician comes to your room in this slot to check or collect the device.' };
+const REPAIR_SLOT = { label: 'Preferred visit time', helper: 'The technician meets you at your hostel gate in this slot to check or collect the device.' };
 const REPAIR_NOTES = { label: 'Anything else (optional)', placeholder: 'e.g. Charger is also faulty, call after 5 PM' };
 const REPAIR_NOTICE = 'Back up your files before you hand over a device, if you can. Do not write your password or PIN in this form.';
 const deviceServiceType = (device: string) => (device === 'Phone' ? 'PHONE_REPAIR' : device === 'Laptop' ? 'LAPTOP_REPAIR' : 'GENERAL');
 
 const TAILOR_HOW = 'The tailor calls you, confirms the price, then collects the clothes. Pay in cash on delivery.';
-const TAILOR_SLOT = { label: 'Pickup time', helper: 'The tailor collects the clothes from your room in this slot.' };
+const TAILOR_SLOT = { label: 'Pickup time', helper: 'The tailor collects the clothes at your hostel gate in this slot.' };
 const TAILOR_NOTES = { label: 'Anything else (optional)', placeholder: 'e.g. Keep the original buttons' };
 
 const LAUNDRY_HOW = 'The partner calls you, collects the clothes and confirms the final price at pickup.';
-const LAUNDRY_SLOT = { label: 'Pickup time', helper: 'The partner collects from your room in this slot.' };
+const LAUNDRY_SLOT = { label: 'Pickup time', helper: 'The partner collects them at your hostel gate in this slot.' };
 
-const PRINT_HOW = 'The print shop calls you, confirms the price, prints and delivers to your room. Pay on delivery.';
-const PRINT_SLOT = { label: 'Delivery time', helper: 'The print shop delivers to your room in this slot. If you chose a pen drive, they collect it first.' };
+const PRINT_HOW = 'The print shop calls you, confirms the price, prints and delivers to your hostel gate. Pay on delivery.';
+const PRINT_SLOT = { label: 'Delivery time', helper: 'The print shop delivers to your hostel gate in this slot. If you chose a pen drive, they collect it first.' };
 const PRINT_NOTES = { label: 'Print instructions (optional)', placeholder: 'e.g. Print pages 1 to 20 only, staple each set' };
 
 const rupees = (n: number | null) => (n == null ? null : formatRupees(n));

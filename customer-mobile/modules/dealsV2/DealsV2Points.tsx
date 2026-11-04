@@ -22,22 +22,22 @@ export default function DealsV2Points() {
   const nav = useNav();
   const [refreshing, setRefreshing] = useState(false);
   const pts = d.prizes.map((p) => Number(String(p.label).match(/(\d+)\s*ZEN/i)?.[1] || 0)).filter((n) => n > 0);
-  const range = pts.length ? `${Math.min(...pts)} to ${Math.max(...pts)} ZCS Points a spin` : 'ZCS Points or free delivery';
+  const range = pts.length ? `${Math.min(...pts)} to ${Math.max(...pts)} ZENV Points a spin` : 'ZENV Points or free delivery';
   const e = d.elig;
   const done = e ? e.completedOrders % ORDERS_PER_SPIN : 0;
   const ways = [
     { key: 'spin', title: 'Spin the wheel', sub: `${range}, or a free-delivery coupon`, art: <PrizeWheel prizes={d.prizes} size={40} labels={false} />, go: () => nav.push({ name: 'spin' }) },
-    { key: 'rate', title: 'Rate a delivered order', sub: '+10 ZCS Points for each order you rate', art: <IconPlate size={40}><IStar size={19} color="#FFFFFF" strokeWidth={1.7} /></IconPlate>, go: () => nav.go('/(tabs)/orders') },
-    { key: 'refer', title: 'Invite a friend', sub: '+50 ZCS Points for you and 50 for your friend', art: <IconPlate size={40}><IUserPlus size={19} color="#FFFFFF" strokeWidth={1.7} /></IconPlate>, go: () => nav.push({ name: 'refer' }) },
+    { key: 'rate', title: 'Rate a delivered order', sub: '+10 ZENV Points for each order you rate', art: <IconPlate size={40}><IStar size={19} color="#FFFFFF" strokeWidth={1.7} /></IconPlate>, go: () => nav.go('/(tabs)/orders') },
+    { key: 'refer', title: 'Invite a friend', sub: '+50 ZENV Points for you and 50 for your friend', art: <IconPlate size={40}><IUserPlus size={19} color="#FFFFFF" strokeWidth={1.7} /></IconPlate>, go: () => nav.push({ name: 'refer' }) },
   ];
   return (
     <View style={{ flex: 1 }}>
-      <PageHeader title="ZCS Points" sub="Your reward points" />
+      <PageHeader title="ZENV Points" sub="Your reward points" />
       <ScrollView
         contentContainerStyle={{ padding: 16, paddingBottom: 60 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await d.reload(); setRefreshing(false); }} tintColor={DV.violet} colors={[DV.violet]} />}
       >
-        {!d.signedIn ? <StateBlock kind="signin" body="Your ZCS Points are saved to your account." action="Sign in" onAction={() => nav.go('/login')} style={{ marginHorizontal: 0 }} /> : (
+        {!d.signedIn ? <StateBlock kind="signin" body="Your ZENV Points are saved to your account." action="Sign in" onAction={() => nav.go('/login')} style={{ marginHorizontal: 0 }} /> : (
           <>
             <View style={[s.balance, shadow(3, '#B57A0E')]}>
               <LinearGradient colors={['#FFF4D2', '#FFE19A', '#F6C453']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
@@ -45,7 +45,7 @@ export default function DealsV2Points() {
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={s.balLabel}>Your balance</Text>
                 <Text style={s.balValue} numberOfLines={1} adjustsFontSizeToFit>{d.zenPoints.toLocaleString('en-IN')}</Text>
-                <Text style={s.balSub}>ZCS Points</Text>
+                <Text style={s.balSub}>ZENV Points</Text>
               </View>
               <Coin size={88} />
             </View>
@@ -81,7 +81,7 @@ export default function DealsV2Points() {
             </Press>
           ))}
         </View>
-        <Text style={s.foot}>ZCS Points are promotional rewards with no cash value. They are added to your balance as soon as you earn them.</Text>
+        <Text style={s.foot}>ZENV Points are promotional rewards with no cash value. They are added to your balance as soon as you earn them.</Text>
       </ScrollView>
     </View>
   );

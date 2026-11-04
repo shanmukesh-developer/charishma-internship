@@ -5,6 +5,8 @@ import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { COLORS, SHADOWS } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
+import { productOptions } from './ProductOptions';
+import { isCustomizable } from './CustomizeDrawer';
 import { useCartActions } from '../context/CartContext';
 import { useDietary } from '../context/DietaryContext';
 import DopaminePressable, { CardPressable, ActionPressable } from './DopaminePressable';
@@ -22,6 +24,43 @@ interface NexusExplorerProps {
 
 // Owner: tapping a Popular dishes category shows only its top 4 dishes.
 const TOP_N = 4;
+
+/** Food stores only: laundry, pharmacy, rentals and services never show dishes. */
+export const isExplorerFoodStore = (r: any): boolean => {
+  const name = (r?.name || '').toLowerCase();
+  const vt = (r?.vendorType || '').toUpperCase();
+  if (name.includes('laundry') || name.includes('pharmacy') || name.includes('rental') || name.includes('fleet') || name.includes('clean')) return false;
+  if (vt === 'LAUNDRY' || vt === 'PHARMACY' || vt === 'RENTAL' || vt === 'SERVICES') return false;
+  return true;
+};
+
+/** Whether a dish belongs to a Popular dishes category (the explorer's list and Home's cuisine row share this rule). */
+export const dishMatchesCuisine = (item: any, category: string): boolean => {
+  const catKey = String(category || '').toLowerCase();
+  const itemCat = (item?.category || '').toLowerCase();
+  const itemName = (item?.cleanName || String(item?.name || '').replace(/\s*\([^)]*\)\s*$/, '').trim()).toLowerCase();
+  const itemTags = (Array.isArray(item?.tags) ? item.tags : []).map((t: any) => String(t || '').toLowerCase());
+
+  // Strict category matching
+  if (catKey === 'biryani') return itemCat.includes('biryani') || itemName.includes('biryani') || itemTags.includes('biryani');
+  if (catKey === 'pizza') return itemCat.includes('pizza') || itemName.includes('pizza') || itemTags.includes('pizza');
+  if (catKey === 'burgers') return itemCat.includes('burger') || itemName.includes('burger') || itemTags.includes('burgers');
+  if (catKey === 'south indian') return itemCat.includes('south') || itemName.includes('dosa') || itemName.includes('idli') || itemName.includes('vada') || itemTags.includes('south-indian');
+  if (catKey === 'drinks') return itemCat.includes('drink') || itemCat.includes('juice') || itemName.includes('cooler') || itemName.includes('brew') || itemName.includes('mojito') || itemName.includes('shake');
+  if (catKey === 'chinese') return itemCat.includes('chinese') || itemName.includes('noodles') || itemName.includes('rice') || itemName.includes('momos') || itemName.includes('manchurian');
+  const matchAny = (kws: string[]) => kws.some(k => itemCat.includes(k) || itemName.includes(k) || itemTags.includes(k));
+  if (catKey === 'momos & rolls') return matchAny(['momo', 'roll', 'frankie', 'wrap']);
+  if (catKey === 'shakes') return matchAny(['shake', 'milkshake', 'smoothie', 'frappe']);
+  if (catKey === 'bakery') return matchAny(['bakery', 'cake', 'pastry', 'bread', 'puff', 'cookie', 'muffin', 'brownie']);
+  if (catKey === 'gym fuel') return matchAny(['protein', 'oats', 'salad', 'sprout', 'healthy', 'egg white', 'gym']);
+
+  return itemCat.includes(catKey) || itemName.includes(catKey);
+};
+
+/** At least one available dish of this category in these stores (Home shows only such categories). */
+export const cuisineHasDishes = (restaurants: any[], category: string): boolean =>
+  (restaurants || []).filter(isExplorerFoodStore).some((r: any) =>
+    (Array.isArray(r?.menu) ? r.menu : []).some((item: any) => item && item.isAvailable !== false && (item._id || item.id) && dishMatchesCuisine(item, category)));
 
 export default function NexusExplorer({ restaurants, activeCategory, onSelectItem }: NexusExplorerProps) {
   const router = useRouter();
@@ -76,6 +115,12 @@ export default function NexusExplorer({ restaurants, activeCategory, onSelectIte
       Alert.alert('Kitchen closed', `${item.restaurantName || 'This kitchen'} isn't taking orders right now. Please check back later.`);
       return;
     }
+    // Choices to make (admin-set weights / half-full / flavours): the product page asks for them; a bare add
+    // was refused at checkout ("please choose a Portion").
+    if (productOptions(item).length || isCustomizable(item)) {
+      router.push(`/products/${itemId}` as any);
+      return;
+    }
     try {
       const added = await addToCart({
         id: itemId,
@@ -104,13 +149,7 @@ export default function NexusExplorer({ restaurants, activeCategory, onSelectIte
     const catKey = (activeCategory || 'biryani').toLowerCase();
     
     // 1. Filter out non-food establishments (laundry, pharmacy, rentals)
-    const foodRestaurants = (restaurants || []).filter(r => {
-      const name = (r.name || '').toLowerCase();
-      const vt = (r.vendorType || '').toUpperCase();
-      if (name.includes('laundry') || name.includes('pharmacy') || name.includes('rental') || name.includes('fleet') || name.includes('clean')) return false;
-      if (vt === 'LAUNDRY' || vt === 'PHARMACY' || vt === 'RENTAL' || vt === 'SERVICES') return false;
-      return true;
-    });
+    const foodRestaurants = (restaurants || []).filter(isExplorerFoodStore);
 
     // 2. Collect matching dishes
     const collectedFromRestaurants = foodRestaurants.flatMap(res => 
@@ -138,26 +177,7 @@ export default function NexusExplorer({ restaurants, activeCategory, onSelectIte
           storeOpen: res.isOpen !== false || takesSlotOrders(res),
         };
       })
-    ).filter(item => {
-      const itemCat = (item.category || '').toLowerCase();
-      const itemName = (item.cleanName || item.name || '').toLowerCase();
-      const itemTags = (Array.isArray(item.tags) ? item.tags : []).map((t: any) => String(t || '').toLowerCase());
-
-      // Strict category matching
-      if (catKey === 'biryani') return itemCat.includes('biryani') || itemName.includes('biryani') || itemTags.includes('biryani');
-      if (catKey === 'pizza') return itemCat.includes('pizza') || itemName.includes('pizza') || itemTags.includes('pizza');
-      if (catKey === 'burgers') return itemCat.includes('burger') || itemName.includes('burger') || itemTags.includes('burgers');
-      if (catKey === 'south indian') return itemCat.includes('south') || itemName.includes('dosa') || itemName.includes('idli') || itemName.includes('vada') || itemTags.includes('south-indian');
-      if (catKey === 'drinks') return itemCat.includes('drink') || itemCat.includes('juice') || itemName.includes('cooler') || itemName.includes('brew') || itemName.includes('mojito') || itemName.includes('shake');
-      if (catKey === 'chinese') return itemCat.includes('chinese') || itemName.includes('noodles') || itemName.includes('rice') || itemName.includes('momos') || itemName.includes('manchurian');
-      const matchAny = (kws: string[]) => kws.some(k => itemCat.includes(k) || itemName.includes(k) || itemTags.includes(k));
-      if (catKey === 'momos & rolls') return matchAny(['momo', 'roll', 'frankie', 'wrap']);
-      if (catKey === 'shakes') return matchAny(['shake', 'milkshake', 'smoothie', 'frappe']);
-      if (catKey === 'bakery') return matchAny(['bakery', 'cake', 'pastry', 'bread', 'puff', 'cookie', 'muffin', 'brownie']);
-      if (catKey === 'gym fuel') return matchAny(['protein', 'oats', 'salad', 'sprout', 'healthy', 'egg white', 'gym']);
-
-      return itemCat.includes(catKey) || itemName.includes(catKey);
-    });
+    ).filter(item => dishMatchesCuisine(item, catKey));
 
     // Only real dishes from real restaurants — an empty result shows the empty state
     const itemsSource = collectedFromRestaurants;

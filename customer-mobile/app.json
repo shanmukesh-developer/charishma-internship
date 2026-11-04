@@ -5,20 +5,20 @@
         "hostelbites-backend-jwmt.onrender.com"
       ]
     },
-    "name": "ZCS",
+    "name": "ZENV",
     "slug": "zenvy-customer",
-    "version": "1.0.23",
+    "version": "1.0.59",
     "runtimeVersion": {
       "policy": "appVersion"
     },
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/zenv-icon-2026-11-04.png",
     "userInterfaceStyle": "light",
     "scheme": "zenvy",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/zenv-splash-blank-white-2026-11-04.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0A0A0B"
+      "backgroundColor": "#FFFFFF"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -28,19 +28,21 @@
       "bundleIdentifier": "com.srm.hostelbites",
       "buildNumber": "7",
       "infoPlist": {
-        "NSCameraUsageDescription": "ZCS uses the camera for campus video calls and ID verification.",
-        "NSMicrophoneUsageDescription": "ZCS uses the microphone for campus voice and video calls.",
-        "NSPhotoLibraryUsageDescription": "Allow ZCS to access your photos to attach pictures to orders, lost & found posts and chats."
+        "NSCameraUsageDescription": "ZENV uses the camera for campus video calls and ID verification.",
+        "NSMicrophoneUsageDescription": "ZENV uses the microphone for campus voice and video calls.",
+        "NSPhotoLibraryUsageDescription": "Allow ZENV to access your photos to attach pictures to orders, lost & found posts and chats."
       }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0A0A0B"
+        "foregroundImage": "./assets/zenv-adaptive-foreground-2026-11-04.png",
+        "backgroundColor": "#FAE04B",
+        "backgroundImage": "./assets/zenv-adaptive-backdrop-2026-11-04.png",
+        "monochromeImage": "./assets/zenv-adaptive-monochrome-2026-11-04.png"
       },
       "package": "com.srm.hostelbites",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 24,
+      "versionCode": 60,
       "compileSdkVersion": 36,
       "targetSdkVersion": 36,
       "minSdkVersion": 24,
@@ -76,9 +78,9 @@
       "allowBackup": false
     },
     "web": {
-      "name": "ZCS",
-      "shortName": "ZCS",
-      "favicon": "./assets/favicon.png",
+      "name": "ZENV",
+      "shortName": "ZENV",
+      "favicon": "./assets/zenv-favicon-2026-11-04.png",
       "bundler": "metro"
     },
     "plugins": [
@@ -96,16 +98,16 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow ZCS to access your photos to attach pictures to orders, lost & found posts and chats.",
-          "cameraPermission": "Allow ZCS to use the camera to take photos and for campus video calls.",
-          "microphonePermission": "Allow ZCS to use the microphone for campus voice calls and Spaces."
+          "photosPermission": "Allow ZENV to access your photos to attach pictures to orders, lost & found posts and chats.",
+          "cameraPermission": "Allow ZENV to use the camera to take photos and for campus video calls.",
+          "microphonePermission": "Allow ZENV to use the microphone for campus voice calls and Spaces."
         }
       ],
       [
         "expo-notifications",
         {
-          "icon": "./assets/notification-icon.png",
-          "color": "#C9A84C"
+          "icon": "./assets/zenv-notification-icon-2026-11-04.png",
+          "color": "#EF4F5F"
         }
       ],
       [
@@ -126,7 +128,9 @@
         {
           "enableBackgroundPlayback": false
         }
-      ]
+      ],
+      "expo-asset",
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true

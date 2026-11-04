@@ -1,52 +1,31 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Platform, ScrollView, Animated, Dimensions, ActivityIndicator, Modal, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Platform, ScrollView, Dimensions, ActivityIndicator, Alert, Keyboard } from 'react-native';
 import { KeyboardAvoidingView } from '../components/KeyboardAvoidingView';
-import { WebView } from 'react-native-webview';
-import { GoogleSignin, isCancelledResponse, isErrorWithCode, statusCodes } from '@react-native-google-signin/google-signin';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useIsFocused } from 'expo-router';
-import { COLORS, SHADOWS } from '../constants/theme';
-import { useTheme } from '../context/ThemeContext';
-import { ENDPOINTS, API_URL } from '../constants/api';
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS } from '../constants/theme';
+import { ENDPOINTS } from '../constants/api';
 import { useAuth } from '../context/AuthContext';
-import { StaggeredSection, BounceIn } from '../components/AnimatedSection';
-import { setToken, postAuth, normalizePhone, isValidIndianMobile, AuthResponse, NETWORK_ERROR_MESSAGE } from '../utils/auth';
-import { usePhoneOtp, PhoneProof, isSmsSendFailure } from '../utils/phoneOtp';
-import DopaminePressable, { ActionPressable } from '../components/DopaminePressable';
+import { setToken, postAuth, normalizePhone, isValidIndianMobile, NETWORK_ERROR_MESSAGE } from '../utils/auth';
+import { usePhoneOtp, PhoneProof, isSmsSendFailure, EMAIL_SIGNUP_CODES } from '../utils/phoneOtp';
 import ServerWakeupOverlay from '../components/ServerWakeupOverlay';
-import CampusServicesMapModal from '../components/CampusServicesMapModal';
 import TermsConsent from '../components/TermsConsent';
-import { consentFields } from '../utils/legal';
+import ZenvBadge from '../components/ZenvBadge';
+import { consentFields, openLegal } from '../utils/legal';
+import { useTheme } from '../context/ThemeContext';
 
-const { width: SW, height: SH } = Dimensions.get('window');
-
-const GOOGLE_WEB_CLIENT_ID = '785490473159-8u6m41d2u27icc02719pbdluouukru3t.apps.googleusercontent.com';
-
-if (Platform.OS !== 'web') {
-  try {
-    GoogleSignin.configure({
-      webClientId: GOOGLE_WEB_CLIENT_ID,
-      offlineAccess: true,
-    });
-  } catch (e) {
-    console.warn('[GOOGLE_SIGNIN] configure failed', e);
-  }
-}
-
-// Zenvy brand visuals for the background slideshow
-const IMAGES = [
-  'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=2000&q=90',
-  'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=2000&q=90',
-  'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=2000&q=90',
-  'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=2000&q=90',
-  'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=2000&q=90',
-];
-
-/** A Google sign-in that still needs a verified mobile number (POST /google-complete). */
 interface GooglePending {
   googleToken: string;
   name: string;
   email: string;
+}
+
+interface AuthResponse {
+  ok: boolean;
+  code?: string;
+  message?: string;
+  status?: number;
+  data?: any;
 }
 
 export default function LoginScreen() {
@@ -70,8 +49,7 @@ export default function LoginScreen() {
     };
   }, []);
 
-  // Once signed in, return to the screen that sent the user here (basket, checkout...),
-  // or to Home when login was the first screen. This is the only place that navigates away.
+  // Once signed in, return to previous screen
   const isFocused = useIsFocused();
   const navigatedRef = useRef(false);
   useEffect(() => {
@@ -83,6 +61,7 @@ export default function LoginScreen() {
 
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
@@ -93,31 +72,30 @@ export default function LoginScreen() {
 
   const [loginMethod, setLoginMethod] = useState<'password' | 'otp'>('password');
   const [otp, setOtp] = useState('');
+  const [focusedField, setFocusedField] = useState<'phone' | 'password' | 'otp' | null>(null);
 
   // Google sign-in waiting for a verified phone number
   const [googlePending, setGooglePending] = useState<GooglePending | null>(null);
   const [googleTermsAccepted, setGoogleTermsAccepted] = useState(false);
   const [googleName, setGoogleName] = useState('');
 
-  // WebView fallback (only when the native Google SDK genuinely fails)
-  const [authModalVisible, setAuthModalVisible] = useState(false);
-  const [showServicesMap, setShowServicesMap] = useState(false);
-
-  // Refs so the background auto-verification callback always sees the latest handlers
   const autoVerifyRef = useRef<(phone10: string, proof: PhoneProof) => void>(() => {});
   const phoneOtp = usePhoneOtp('auth', {
     onAutoVerified: (p, proof) => autoVerifyRef.current(p, proof),
   });
 
-  // The SMS code could not be sent while finishing a Google sign-in: offer the code by email (Google address).
   const [smsFailed, setSmsFailed] = useState(false);
 
   const playSuccess = () => {
     try { require('../utils/sounds').playSound('success'); } catch {}
   };
 
+  const isPhoneValid = normalizePhone(phone).length === 10;
+  const otpSent = !!phoneOtp.sentTo;
+  const busy = loading || phoneOtp.sending;
+
   const runGuarded = async (fn: () => Promise<void>) => {
-    if (busyRef.current) return; // double-tap protection
+    if (busyRef.current) return;
     busyRef.current = true;
     setLoading(true);
     setError('');
@@ -142,15 +120,12 @@ export default function LoginScreen() {
     playSuccess();
   };
 
-  /** Handles every login-type response: session, new number (go create the account), or error. */
   const handleAuthResult = async (r: AuthResponse, phone10: string) => {
     if (r.ok && r.data?.token) {
       await startSession(r.data);
       return;
     }
     if (r.ok && r.data?.isNewUser && r.data?.registrationToken) {
-      // Verified number without an account: only the name is left to ask (no second OTP).
-      // (Register shows its own "number verified" header; no stale banner here if the user comes back.)
       setInfo('');
       setOtp('');
       phoneOtp.reset();
@@ -165,19 +140,23 @@ export default function LoginScreen() {
       setOtp('');
     }
     phoneOtp.allowAutoRetry();
-    setError(r.message);
+    setError(r.message || 'Authentication failed. Please try again.');
   };
 
   // ── Password login ──────────────────────────────────────────────────────────
   const handleLogin = () => {
     const digits = normalizePhone(phone);
-    if (!digits || !password) { setError('Please enter your mobile number and password.'); return; }
+    if (!digits) { setError('Please enter your 10-digit mobile number.'); return; }
     if (!isValidIndianMobile(digits)) { setError('Please enter a valid 10-digit mobile number.'); return; }
+    if (!password) { setError('Please enter your password.'); return; }
     Keyboard.dismiss();
     setInfo('');
     runGuarded(async () => {
       const r = await postAuth(ENDPOINTS.login, { phone: digits, password });
       await handleAuthResult(r, digits);
+      if (!r.ok && !r.code && (r.status === 401 || r.status === 429)) {
+        setError(`${r.message} Signed up with a code or Google? Use the One-time code tab.`);
+      }
     });
   };
 
@@ -202,7 +181,6 @@ export default function LoginScreen() {
     });
   };
 
-  // Email backup for a first Google sign-in (the code goes to the Google address)
   const handleSendEmailCode = () => {
     const digits = normalizePhone(phone);
     if (!googlePending || !googlePending.email || !isValidIndianMobile(digits)) return;
@@ -247,7 +225,6 @@ export default function LoginScreen() {
     });
   };
 
-  // Android Firebase fallback verified the number by itself: finish without a typed code
   autoVerifyRef.current = (phone10, proof) => {
     runGuarded(async () => {
       if (googlePending) await completeGoogle(phone10, proof);
@@ -262,7 +239,6 @@ export default function LoginScreen() {
     setInfo('');
   };
 
-  // ── Google ──────────────────────────────────────────────────────────────────
   const handleGoogleToken = async (googleToken: string) => {
     const r = await postAuth(ENDPOINTS.googleLogin, { firebaseToken: googleToken });
     if (r.ok && r.data?.token) {
@@ -270,7 +246,6 @@ export default function LoginScreen() {
       return;
     }
     if (r.ok && r.data?.needsPhone) {
-      // First Google sign-in: verify a mobile number once (riders call it), then finish
       setGooglePending({ googleToken, name: r.data.name || '', email: r.data.email || '' });
       setGoogleName(r.data.name || '');
       setLoginMethod('otp');
@@ -285,7 +260,6 @@ export default function LoginScreen() {
 
   const completeGoogle = async (phone10: string, proof: PhoneProof) => {
     if (!googlePending) return;
-    // C4: finishing Google sign-in may create the account, so the Terms box is required here.
     if (!googleTermsAccepted) {
       setError('Please tick the box to agree to the Terms of Service and Privacy Policy.');
       phoneOtp.allowAutoRetry();
@@ -305,7 +279,6 @@ export default function LoginScreen() {
     }
     if (r.code === 'SERVER_BUSY') setShowWakeup(true);
     if (r.status === 401 && !r.code) {
-      // The Google token expired while the user was verifying: start Google again
       setGooglePending(null);
       phoneOtp.reset();
     }
@@ -319,586 +292,522 @@ export default function LoginScreen() {
     changeNumber();
   };
 
-  const handleGoogleLogin = () => {
-    if (busyRef.current) return;
-    setError('');
-    setInfo('');
-    runGuarded(async () => {
-      let idToken: string | null | undefined;
-      try {
-        await GoogleSignin.hasPlayServices();
-        const response = await GoogleSignin.signIn();
-        if (isCancelledResponse(response)) return; // user backed out: stay on the login form
-        idToken = response.data?.idToken;
-        if (!idToken) throw new Error('No ID token');
-      } catch (err: any) {
-        if (isErrorWithCode(err) && (err.code === statusCodes.SIGN_IN_CANCELLED || err.code === statusCodes.IN_PROGRESS)) {
-          return;
-        }
-        // The native Google SDK genuinely failed (Play Services missing, config error...): secure web fallback
-        console.warn('[GOOGLE_NATIVE_FALLBACK]', err?.code || err?.message);
-        setAuthModalVisible(true);
-        return;
-      }
-      await handleGoogleToken(idToken);
-    });
-  };
-
-  const handleAuthMessage = (event: any) => {
-    let data: any;
-    try {
-      data = JSON.parse(event.nativeEvent.data);
-    } catch {
-      return;
-    }
-    if (data?.type === 'GOOGLE_SUCCESS' && data.token) {
-      setAuthModalVisible(false);
-      runGuarded(() => handleGoogleToken(data.token));
-    } else if (data?.type === 'OTP_SUCCESS' && data.token) {
-      setAuthModalVisible(false);
-      const digits = normalizePhone(data.phone || phone);
-      runGuarded(async () => {
-        const r = await postAuth(ENDPOINTS.login, { phone: digits, firebaseToken: data.token });
-        await handleAuthResult(r, digits);
-      });
-    } else if (data?.type === 'AUTH_ERROR') {
-      setAuthModalVisible(false);
-      setError('Sign-in could not be completed. Please try the one-time code or your password.');
-    }
-  };
-
-  // Background Slideshow Animation State
-  const [imgIndex, setImgIndex] = useState(0);
-  const fadeAnim = useRef(new Animated.Value(1)).current;
-
-  // 3D Parallax Hover/Drag Coordinates (web)
-  const pan = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
-
-  // Bottom Card Entrance
-  const slideUp = useRef(new Animated.Value(280)).current;
-
-  useEffect(() => {
-    let swapTimer: ReturnType<typeof setTimeout> | null = null;
-    const interval = setInterval(() => {
-      Animated.sequence([
-        Animated.timing(fadeAnim, { toValue: 0.15, duration: 900, useNativeDriver: true }),
-        Animated.timing(fadeAnim, { toValue: 1, duration: 900, useNativeDriver: true }),
-      ]).start();
-      swapTimer = setTimeout(() => {
-        setImgIndex((prev) => (prev + 1) % IMAGES.length);
-      }, 900);
-    }, 5000);
-
-    Animated.spring(slideUp, {
-      toValue: 0,
-      useNativeDriver: true,
-      friction: 8,
-      tension: 30,
-    }).start();
-
-    return () => {
-      clearInterval(interval);
-      if (swapTimer) clearTimeout(swapTimer);
-    };
-  }, []);
-
-  const inputStyle = [
-    s.input,
-    {
-      backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FAFC',
-      borderColor: isDark ? COLORS.borderDark : '#CBD5E1',
-      color: isDark ? '#FFF' : '#0F172A',
-    },
-  ];
-  const labelColor = { color: isDark ? COLORS.textSecondary : '#475569' };
-  const otpSent = !!phoneOtp.sentTo;
-  const busy = loading || phoneOtp.sending;
-
-  const renderOtpSection = () => (
-    !otpSent ? (
-      <>
-        <Text style={[s.label, labelColor]}>Phone number</Text>
-        <TextInput
-          style={[inputStyle, { fontSize: 15, fontWeight: '700' }]}
-          value={phone}
-          onChangeText={(t) => { setPhone(t); if (error) setError(''); }}
-          placeholder="10-digit mobile number"
-          placeholderTextColor={isDark ? COLORS.textMuted : '#617088'}
-          keyboardType="phone-pad"
-          textContentType="telephoneNumber"
-          autoComplete="tel"
-          autoCapitalize="none"
-          returnKeyType="done"
-          onSubmitEditing={handleSendOtp}
-          editable={!busy}
-        />
-
-        <ActionPressable style={[s.realtimeOtpBtn, busy && { opacity: 0.7 }]} onPress={handleSendOtp} disabled={busy} sound="click">
-          {busy ? (
-            <ActivityIndicator color="#000" size="small" />
-          ) : (
-            <Text style={s.realtimeOtpBtnText}>Send code</Text>
-          )}
-        </ActionPressable>
-        {smsFailed && !!googlePending?.email && (
-          <TouchableOpacity onPress={handleSendEmailCode} disabled={busy} style={{ marginTop: 14, alignSelf: 'center' }} accessibilityRole="button">
-            <Text style={[s.linkText, { color: COLORS.gold, fontWeight: '800' }]}>Send the code by email instead</Text>
-          </TouchableOpacity>
-        )}
-      </>
-    ) : (
-      <>
-        <Text style={[s.label, labelColor]}>
-          {phoneOtp.mode === 'email' ? `Enter the 6-digit code sent to ${phoneOtp.emailSentTo || 'your email'}` : `Enter the 6-digit code sent to +91 ${phoneOtp.sentTo}`}
-        </Text>
-        <TextInput
-          style={[inputStyle, { letterSpacing: 8, textAlign: 'center', fontSize: 20, fontWeight: '900' }]}
-          value={otp}
-          onChangeText={(t) => { setOtp(t.replace(/\D/g, '')); if (error) setError(''); }}
-          placeholder="••••••"
-          placeholderTextColor={isDark ? COLORS.textMuted : '#617088'}
-          keyboardType="number-pad"
-          textContentType="oneTimeCode"
-          autoComplete="sms-otp"
-          maxLength={6}
-          autoFocus
-          returnKeyType="done"
-          onSubmitEditing={handleVerifyOtp}
-          editable={!busy}
-        />
-        <ActionPressable style={[s.realtimeOtpBtn, busy && { opacity: 0.7 }]} onPress={handleVerifyOtp} disabled={busy} sound="click">
-          {busy ? (
-            <ActivityIndicator color="#000" size="small" />
-          ) : (
-            <Text style={s.realtimeOtpBtnText}>{googlePending ? 'Verify and finish' : 'Verify code'}</Text>
-          )}
-        </ActionPressable>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 }}>
-          <TouchableOpacity onPress={changeNumber} disabled={busy} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Text style={[s.linkText, { color: COLORS.textSecondary }]}>← Change number</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => { const p = phoneOtp.sentTo; if (p) { setPhone(p); runGuarded(async () => { const r = phoneOtp.mode === 'email' && googlePending?.email ? await phoneOtp.sendEmail(p, googlePending.email) : await phoneOtp.send(p); if (r.ok) { setOtp(''); setInfo(r.message); } else setError(r.message); }); } }}
-            disabled={phoneOtp.countdown > 0 || busy}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Text style={[s.linkText, { color: (phoneOtp.countdown > 0 || busy) ? (isDark ? COLORS.textMuted : '#617088') : COLORS.gold, fontWeight: '800' }]}>
-              {phoneOtp.countdown > 0 ? `Resend in ${phoneOtp.countdown}s` : 'Resend code'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </>
-    )
-  );
-
   return (
-    <View
-      {...({
-        style: s.container,
-        onMouseMove: (e: any) => {
-          if (Platform.OS === 'web') {
-            const { clientX, clientY } = e;
-            const x = (clientX - SW / 2) / 32;
-            const y = (clientY - SH / 2) / 32;
-            Animated.spring(pan, {
-              toValue: { x, y },
-              useNativeDriver: true,
-              friction: 12,
-            }).start();
-          }
-        }
-      } as any)}
-    >
-      {/* Server wake-up banner (cold start / offline) */}
+    <View style={[s.container, { backgroundColor: isDark ? '#090D16' : '#F8FAFC' }]}>
+      {/* Server wake-up banner */}
       {showWakeup && (
         <ServerWakeupOverlay
           visible={showWakeup}
           onWakeupComplete={() => setShowWakeup(false)}
-          offlineText="Still can't reach ZCS. Check your internet and try again."
+          offlineText="Connecting to campus server..."
         />
       )}
 
-      <CampusServicesMapModal
-        visible={showServicesMap}
-        onClose={() => setShowServicesMap(false)}
-      />
-
-      {/* Background Slideshow with Parallax Shift */}
-      <View style={StyleSheet.absoluteFill}>
-        <Animated.Image
-          source={{ uri: IMAGES[imgIndex] }}
-          style={[
-            StyleSheet.absoluteFill,
-            {
-              opacity: fadeAnim,
-              transform: [
-                { translateX: pan.x },
-                { translateY: pan.y },
-                { scale: 1.15 }
-              ]
-            }
-          ]}
-          resizeMode="cover"
-        />
-        <LinearGradient
-          colors={['rgba(0,0,0,0.15)', 'rgba(10,8,6,0.4)', 'rgba(10,8,6,0.75)']}
-          locations={[0, 0.4, 0.85]}
-          style={StyleSheet.absoluteFill}
-        />
-      </View>
-
       <KeyboardAvoidingView
-        style={{ flex: 1, zIndex: 10 }}
+        style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
           contentContainerStyle={[
             s.scroll,
-            { paddingBottom: Math.max(120, keyboardHeight + 80) }
+            { paddingBottom: Math.max(80, keyboardHeight + 40) }
           ]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
           showsVerticalScrollIndicator={false}
         >
+          {/* Top Brand Header — Stable, never cut off. The ZENV badge (brand, 4 Nov 2026). */}
+          <View style={s.brandHeaderWrap} accessible accessibilityRole="header" accessibilityLabel="ZENV">
+            <ZenvBadge size={56} lift />
+            <Text style={[s.brandTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>ZENV</Text>
+          </View>
 
-          {/* Logo & Brand */}
-          <Animated.View style={[s.logoWrap, { transform: [{ translateX: Animated.multiply(pan.x, -0.3) }, { translateY: Animated.multiply(pan.y, -0.3) }] }]}>
-            <BounceIn delay={200}>
-              <View style={s.iconBadge}>
-                <Text style={s.logoIcon}>Z</Text>
-              </View>
-            </BounceIn>
-            <StaggeredSection delay={400} direction="down">
-              <Text style={s.brand}>ZCS</Text>
-              <Text style={s.tagline}>Campus food and more</Text>
-            </StaggeredSection>
-          </Animated.View>
-
-          {/* Login Form Sheet */}
-          <Animated.View style={[
+          {/* Clean Card Surface */}
+          <View style={[
             s.card,
             {
-              backgroundColor: isDark ? 'rgba(26,26,28,0.94)' : 'rgba(255,255,255,0.97)',
-              borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0,0,0,0.08)',
-              transform: [
-                { translateY: Animated.add(slideUp, Animated.multiply(pan.y, -0.4)) },
-                { translateX: Animated.multiply(pan.x, -0.4) }
-              ]
+              backgroundColor: isDark ? '#121722' : '#FFFFFF',
+              borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
             }
           ]}>
+            {googlePending ? (
+              <>
+                <Text style={[s.cardTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>
+                  Almost there{googlePending.name ? `, ${googlePending.name.split(' ')[0]}` : ''}
+                </Text>
+                <Text style={[s.cardSubtitle, { color: isDark ? '#94A3B8' : '#64748B' }]}>
+                  Verify your mobile number to complete your Google account.
+                </Text>
 
-            <StaggeredSection delay={100} direction="up">
-              {googlePending ? (
-                <>
-                  <Text style={[s.cardTitle, { color: isDark ? '#fff' : '#1A1A2E' }]}>
-                    Almost there{googlePending.name ? `, ${googlePending.name.split(' ')[0]}` : ''}
-                  </Text>
-                  <Text style={[s.cardSubtitle, { color: isDark ? COLORS.textSecondary : '#617088' }]}>
-                    Verify your mobile number once to finish signing in with Google{googlePending.email ? ` (${googlePending.email})` : ''}.
-                  </Text>
-
-                  {!googlePending.name ? (
-                    <>
-                      <Text style={[s.label, labelColor]}>Your name</Text>
-                      <TextInput
-                        style={inputStyle}
-                        value={googleName}
-                        onChangeText={setGoogleName}
-                        placeholder="Your full name"
-                        placeholderTextColor={isDark ? COLORS.textMuted : '#617088'}
-                        autoCapitalize="words"
-                        textContentType="name"
-                        editable={!busy}
-                      />
-                    </>
-                  ) : null}
-
-                  <TermsConsent isDark={isDark} checked={googleTermsAccepted} onToggle={() => { setGoogleTermsAccepted(v => !v); if (error) setError(''); }} disabled={busy} />
-
-                  {renderOtpSection()}
-
-                  {info && !error ? <Text style={s.info}>{info}</Text> : null}
-                  {error ? <Text style={s.error}>{error}</Text> : null}
-
-                  <TouchableOpacity onPress={cancelGoogle} disabled={busy} style={{ alignSelf: 'center', marginTop: 18, padding: 6 }}>
-                    <Text style={[s.linkText, { color: COLORS.textSecondary }]}>Cancel Google sign-in</Text>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <>
-                  <Text style={[s.cardTitle, { color: isDark ? '#fff' : '#1A1A2E' }]}>Welcome back</Text>
-                  <Text style={[s.cardSubtitle, { color: isDark ? COLORS.textSecondary : '#617088' }]}>Sign in to your campus account</Text>
-
-                  {/* Login Method Tabs */}
-                  <View style={s.tabRow}>
-                    <DopaminePressable
-                      style={[s.tabBtn, loginMethod === 'password' && s.tabBtnActive]}
-                      onPress={() => { setLoginMethod('password'); setError(''); setInfo(''); }}
-                      sound="click"
-                    >
-                      <Text style={[s.tabText, loginMethod === 'password' && s.tabTextActive]}>Password</Text>
-                    </DopaminePressable>
-                    <DopaminePressable
-                      style={[s.tabBtn, loginMethod === 'otp' && s.tabBtnActive]}
-                      onPress={() => { setLoginMethod('otp'); setError(''); setInfo(''); }}
-                      sound="click"
-                    >
-                      <Text style={[s.tabText, loginMethod === 'otp' && s.tabTextActive]}>One-time code</Text>
-                    </DopaminePressable>
+                <View style={{ marginTop: 8 }}>
+                  <Text style={[s.fieldLabel, { color: isDark ? '#E2E8F0' : '#334155' }]}>Mobile number</Text>
+                  <View style={[
+                    s.phoneInputWrapper,
+                    {
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
+                      borderColor: focusedField === 'phone' ? (isDark ? COLORS.gold : '#0F172A') : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0')
+                    }
+                  ]}>
+                    <View style={s.countryCodeBox}>
+                      <Ionicons name="call-outline" size={17} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginRight: 6 }} />
+                      <Text style={[s.countryCodeText, { color: isDark ? '#E2E8F0' : '#334155' }]}>+91</Text>
+                      <View style={[s.countryCodeDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : '#CBD5E1' }]} />
+                    </View>
+                    <TextInput
+                      style={[s.phoneInputText, { color: isDark ? '#FFFFFF' : '#0F172A' }]}
+                      value={phone}
+                      onChangeText={(t) => { setPhone(t.replace(/\D/g, '').slice(0, 10)); if (error) setError(''); }}
+                      placeholder="10-digit mobile number"
+                      placeholderTextColor={isDark ? '#71717A' : '#94A3B8'}
+                      keyboardType="phone-pad"
+                      maxLength={10}
+                      editable={!busy}
+                    />
                   </View>
+                </View>
 
-                  {loginMethod === 'password' ? (
-                    <>
-                      <Text style={[s.label, labelColor]}>Phone number</Text>
-                      <TextInput
-                        style={[s.input, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FAFC', borderColor: isDark ? COLORS.borderDark : '#E2E8F0', color: isDark ? '#fff' : '#1E293B' }]}
-                        value={phone}
-                        onChangeText={(t) => { setPhone(t); if (error) setError(''); }}
-                        placeholder="10-digit mobile number"
-                        placeholderTextColor={isDark ? COLORS.textMuted : '#617088'}
-                        keyboardType="phone-pad"
-                        textContentType="telephoneNumber"
-                        autoComplete="tel"
-                        autoCapitalize="none"
-                        returnKeyType="next"
-                        editable={!busy}
-                      />
+                <TermsConsent isDark={isDark} checked={googleTermsAccepted} onToggle={() => { setGoogleTermsAccepted(v => !v); if (error) setError(''); }} disabled={busy} />
 
-                      <Text style={[s.label, labelColor]}>Password</Text>
+                {info && !error ? <Text style={s.info}>{info}</Text> : null}
+                {error ? <Text style={s.error}>{error}</Text> : null}
+
+                <TouchableOpacity
+                  style={[s.primaryBtn, { backgroundColor: isDark ? COLORS.gold : '#0F172A' }, busy && { opacity: 0.7 }]}
+                  onPress={handleSendOtp}
+                  disabled={busy}
+                  activeOpacity={0.85}
+                >
+                  {busy ? <ActivityIndicator color={isDark ? '#000' : '#FFF'} size="small" /> : <Text style={[s.primaryBtnText, { color: isDark ? '#000' : '#FFF' }]}>Verify Phone</Text>}
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={cancelGoogle} disabled={busy} style={{ alignSelf: 'center', marginTop: 14, padding: 6 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: isDark ? '#A1A1AA' : '#64748B' }}>Cancel Google sign-in</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Text style={[s.cardTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>Welcome back</Text>
+                <Text style={[s.cardSubtitle, { color: isDark ? '#94A3B8' : '#64748B' }]}>Sign in to your campus account</Text>
+
+                {/* Segmented Method Switcher */}
+                <View style={[s.segmentedContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9', borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0' }]}>
+                  <TouchableOpacity
+                    style={[
+                      s.segmentedBtn,
+                      loginMethod === 'password' && [s.segmentedBtnActive, { backgroundColor: isDark ? '#1F2937' : '#FFFFFF' }]
+                    ]}
+                    onPress={() => { setLoginMethod('password'); setError(''); setInfo(''); }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[s.segmentedText, loginMethod === 'password' && [s.segmentedTextActive, { color: isDark ? '#FFFFFF' : '#0F172A' }]]}>
+                      Password
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      s.segmentedBtn,
+                      loginMethod === 'otp' && [s.segmentedBtnActive, { backgroundColor: isDark ? '#1F2937' : '#FFFFFF' }]
+                    ]}
+                    onPress={() => { setLoginMethod('otp'); setError(''); setInfo(''); }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[s.segmentedText, loginMethod === 'otp' && [s.segmentedTextActive, { color: isDark ? '#FFFFFF' : '#0F172A' }]]}>
+                      One-time code
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Unified Mobile Number Input (Used by BOTH Password & OTP) */}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+                  <Text style={[s.fieldLabel, { color: isDark ? '#E2E8F0' : '#334155' }]}>Mobile number</Text>
+                  {phone.length > 0 && (
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: isPhoneValid ? '#10B981' : '#EF4444' }}>
+                      {isPhoneValid ? '✓ 10 digits' : `${phone.length}/10 digits`}
+                    </Text>
+                  )}
+                </View>
+                <View style={[
+                  s.phoneInputWrapper,
+                  {
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
+                    borderColor: focusedField === 'phone' ? (isDark ? COLORS.gold : '#0F172A') : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0')
+                  }
+                ]}>
+                  <View style={s.countryCodeBox}>
+                    <Ionicons name="call-outline" size={17} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginRight: 6 }} />
+                    <Text style={[s.countryCodeText, { color: isDark ? '#E2E8F0' : '#334155' }]}>+91</Text>
+                    <View style={[s.countryCodeDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : '#CBD5E1' }]} />
+                  </View>
+                  <TextInput
+                    style={[s.phoneInputText, { color: isDark ? '#FFFFFF' : '#0F172A' }]}
+                    value={phone}
+                    onChangeText={(t) => { setPhone(t.replace(/\D/g, '').slice(0, 10)); if (error) setError(''); }}
+                    placeholder="10-digit mobile number"
+                    placeholderTextColor={isDark ? '#71717A' : '#94A3B8'}
+                    keyboardType="phone-pad"
+                    textContentType="telephoneNumber"
+                    autoComplete="tel"
+                    autoCapitalize="none"
+                    maxLength={10}
+                    onFocus={() => setFocusedField('phone')}
+                    onBlur={() => setFocusedField(null)}
+                    editable={!busy && !otpSent}
+                  />
+                  {isPhoneValid ? (
+                    <View style={{ paddingRight: 12 }}>
+                      <Ionicons name="checkmark-circle" size={19} color="#10B981" />
+                    </View>
+                  ) : phone.length > 0 ? (
+                    <TouchableOpacity onPress={() => setPhone('')} style={{ paddingRight: 12 }}>
+                      <Ionicons name="close-circle" size={18} color={isDark ? '#71717A' : '#94A3B8'} />
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+
+                {/* Method Branch: Password */}
+                {loginMethod === 'password' && (
+                  <View style={{ marginTop: 14 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      <Text style={[s.fieldLabel, { color: isDark ? '#E2E8F0' : '#334155', marginBottom: 0 }]}>Password</Text>
+                      <TouchableOpacity onPress={() => router.push('/forgot-password' as any)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                        <Text style={[s.forgotLink, { color: isDark ? COLORS.gold : '#2563EB' }]}>Forgot password?</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <View style={[
+                      s.phoneInputWrapper,
+                      {
+                        backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
+                        borderColor: focusedField === 'password' ? (isDark ? COLORS.gold : '#0F172A') : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0'),
+                      }
+                    ]}>
+                      <Ionicons name="lock-closed-outline" size={18} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginLeft: 14, marginRight: 8 }} />
                       <TextInput
-                        style={[s.input, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FAFC', borderColor: isDark ? COLORS.borderDark : '#E2E8F0', color: isDark ? '#fff' : '#1E293B' }]}
+                        style={[s.phoneInputText, { paddingHorizontal: 0, color: isDark ? '#FFFFFF' : '#0F172A' }]}
                         value={password}
                         onChangeText={(t) => { setPassword(t); if (error) setError(''); }}
-                        placeholder="Enter password"
-                        placeholderTextColor={isDark ? COLORS.textMuted : '#617088'}
-                        secureTextEntry
+                        placeholder="Enter your password"
+                        placeholderTextColor={isDark ? '#71717A' : '#94A3B8'}
+                        secureTextEntry={!showPassword}
                         textContentType="password"
                         autoComplete="password"
                         returnKeyType="go"
                         onSubmitEditing={handleLogin}
+                        onFocus={() => setFocusedField('password')}
+                        onBlur={() => setFocusedField(null)}
                         editable={!busy}
                       />
-                    </>
-                  ) : (
-                    <>
-                      <Text style={[s.label, { textAlign: 'center', marginTop: 12, fontSize: 12, color: COLORS.textSecondary }]}>
-                        We'll text you a 6-digit code. New here? We'll set up your account.
-                      </Text>
-                      {renderOtpSection()}
-                    </>
-                  )}
-
-                  {info && !error ? <Text style={s.info}>{info}</Text> : null}
-                  {error ? <Text style={s.error}>{error}</Text> : null}
-
-                  {loginMethod === 'password' && (
-                    <>
-                      <TouchableOpacity style={s.forgotBtn} onPress={() => router.push('/forgot-password' as any)}>
-                        <Text style={s.forgotText}>Forgot password?</Text>
-                      </TouchableOpacity>
-
-                      <ActionPressable style={[s.loginBtn, busy && { opacity: 0.7 }]} onPress={handleLogin} disabled={busy} sound="click">
-                        {busy ? (
-                          <ActivityIndicator color="#000" size="small" />
-                        ) : (
-                          <Text style={s.loginBtnText}>Sign in</Text>
-                        )}
-                      </ActionPressable>
-                    </>
-                  )}
-
-                  {Platform.OS !== 'web' && (
-                    <>
-                      <View style={s.orRow}>
-                        <View style={[s.line, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }]} />
-                        <Text style={[s.orText, { color: isDark ? COLORS.textMuted : '#617088' }]}>or</Text>
-                        <View style={[s.line, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }]} />
-                      </View>
-
-                      <DopaminePressable
-                        style={[s.googleBtn, busy && { opacity: 0.7 }]}
-                        onPress={handleGoogleLogin}
-                        disabled={busy}
-                        sound="click"
+                      <TouchableOpacity
+                        onPress={() => setShowPassword(!showPassword)}
+                        style={{ paddingHorizontal: 14, paddingVertical: 12 }}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        activeOpacity={0.7}
+                        accessibilityRole="button"
+                        accessibilityLabel="Toggle password visibility"
                       >
-                        <Text style={s.googleIconG}>G</Text>
-                        <Text style={s.googleText}>Continue with Google</Text>
-                      </DopaminePressable>
-                    </>
-                  )}
+                        <Ionicons
+                          name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                          size={20}
+                          color={isDark ? '#A1A1AA' : '#64748B'}
+                        />
+                      </TouchableOpacity>
+                    </View>
 
-                  <TermsConsent isDark={isDark} />
+                    {info && !error ? <Text style={s.info}>{info}</Text> : null}
+                    {error ? <Text style={s.error}>{error}</Text> : null}
 
-                  <DopaminePressable onPress={() => router.push('/register' as any)} style={s.switchLink} sound="click">
-                    <Text style={s.switchText}>Don't have an account? <Text style={{ color: COLORS.gold, fontWeight: '800' }}>Sign up</Text></Text>
-                  </DopaminePressable>
-
-                  <TouchableOpacity
-                    style={{
-                      marginTop: 14,
-                      paddingVertical: 10,
-                      paddingHorizontal: 14,
-                      borderRadius: 14,
-                      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
-                      borderWidth: 1,
-                      borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0',
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 8
-                    }}
-                    onPress={() => setShowServicesMap(true)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={{ fontSize: 13 }}>🗺️</Text>
-                    <Text style={{ fontSize: 12, fontWeight: '800', color: isDark ? '#FFF' : '#334155' }}>
-                      New here? <Text style={{ color: '#3B82F6', fontWeight: '900' }}>See what ZCS does ➔</Text>
-                    </Text>
-                  </TouchableOpacity>
-                </>
-              )}
-            </StaggeredSection>
-          </Animated.View>
-
-        </ScrollView>
-      </KeyboardAvoidingView>
-
-      {/* Secure web sign-in fallback (native only, when the Google SDK is unavailable) */}
-      {Platform.OS !== 'web' && (
-        <Modal
-          visible={authModalVisible}
-          animationType="slide"
-          transparent={false}
-          onRequestClose={() => setAuthModalVisible(false)}
-        >
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={{ flex: 1, backgroundColor: '#0A0A0B' }}
-          >
-            <View style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              paddingHorizontal: 20,
-              paddingTop: Platform.OS === 'ios' ? 50 : 20,
-              paddingBottom: 15,
-              borderBottomWidth: 1,
-              borderBottomColor: 'rgba(255,255,255,0.08)'
-            }}>
-              <Text style={{ fontSize: 15, fontWeight: '800', color: COLORS.gold }}>Sign in with Google</Text>
-              <TouchableOpacity
-                onPress={() => setAuthModalVisible(false)}
-                style={{
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 8,
-                  backgroundColor: 'rgba(255,255,255,0.08)'
-                }}
-              >
-                <Text style={{ fontSize: 12, fontWeight: '800', color: '#fff' }}>Close</Text>
-              </TouchableOpacity>
-            </View>
-
-            {authModalVisible && (
-              <WebView
-                source={{ uri: `${API_URL}/auth-helper?phone=${encodeURIComponent('+91' + normalizePhone(phone))}` }}
-                onMessage={handleAuthMessage}
-                style={{ flex: 1, backgroundColor: '#0A0A0B' }}
-                javaScriptEnabled={true}
-                domStorageEnabled={true}
-                userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1"
-                startInLoadingState={true}
-                onError={() => { setAuthModalVisible(false); setError(NETWORK_ERROR_MESSAGE); }}
-                renderLoading={() => (
-                  <View style={[StyleSheet.absoluteFill, { backgroundColor: '#0A0A0B', alignItems: 'center', justifyContent: 'center' }]}>
-                    <ActivityIndicator size="large" color={COLORS.gold} />
+                    <TouchableOpacity
+                      style={[s.primaryBtn, { backgroundColor: isDark ? COLORS.gold : '#0F172A' }, busy && { opacity: 0.7 }]}
+                      onPress={handleLogin}
+                      disabled={busy}
+                      activeOpacity={0.85}
+                    >
+                      {busy ? (
+                        <ActivityIndicator color={isDark ? '#000000' : '#FFFFFF'} size="small" />
+                      ) : (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                          <Text style={[s.primaryBtnText, { color: isDark ? '#000000' : '#FFFFFF' }]}>Sign In</Text>
+                          <Ionicons name="arrow-forward" size={17} color={isDark ? '#000000' : '#FFFFFF'} />
+                        </View>
+                      )}
+                    </TouchableOpacity>
                   </View>
                 )}
-              />
+
+                {/* Method Branch: One-Time Code (OTP) */}
+                {loginMethod === 'otp' && (
+                  <View style={{ marginTop: 14 }}>
+                    {!otpSent ? (
+                      <>
+                        <Text style={{ fontSize: 13, color: isDark ? '#94A3B8' : '#64748B', lineHeight: 18, marginBottom: 8 }}>
+                          We will text a 6-digit verification code to your phone number.
+                        </Text>
+
+                        {info && !error ? <Text style={s.info}>{info}</Text> : null}
+                        {error ? <Text style={s.error}>{error}</Text> : null}
+
+                        <TouchableOpacity
+                          style={[s.primaryBtn, { backgroundColor: isDark ? COLORS.gold : '#0F172A' }, busy && { opacity: 0.7 }]}
+                          onPress={handleSendOtp}
+                          disabled={busy}
+                          activeOpacity={0.85}
+                        >
+                          {busy ? (
+                            <ActivityIndicator color={isDark ? '#000000' : '#FFFFFF'} size="small" />
+                          ) : (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                              <Text style={[s.primaryBtnText, { color: isDark ? '#000000' : '#FFFFFF' }]}>Send verification code</Text>
+                              <Ionicons name="arrow-forward" size={17} color={isDark ? '#000000' : '#FFFFFF'} />
+                            </View>
+                          )}
+                        </TouchableOpacity>
+
+                        {smsFailed && (
+                          <TouchableOpacity onPress={handleSendEmailCode} disabled={busy} style={{ marginTop: 14, alignSelf: 'center' }} accessibilityRole="button">
+                            <Text style={{ fontSize: 13, fontWeight: '800', color: isDark ? COLORS.gold : '#2563EB' }}>Send code by email instead</Text>
+                          </TouchableOpacity>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <Text style={[s.fieldLabel, { color: isDark ? '#E2E8F0' : '#334155' }]}>
+                          {phoneOtp.mode === 'email' ? `Code sent to ${phoneOtp.emailSentTo || 'your email'}` : `Enter 6-digit code sent to +91 ${phoneOtp.sentTo}`}
+                        </Text>
+                        <View style={[
+                          s.phoneInputWrapper,
+                          {
+                            backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
+                            borderColor: focusedField === 'otp' ? (isDark ? COLORS.gold : '#0F172A') : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0')
+                          }
+                        ]}>
+                          <TextInput
+                            style={[
+                              s.phoneInputText,
+                              {
+                                letterSpacing: 8,
+                                textAlign: 'center',
+                                fontSize: 20,
+                                fontWeight: '900',
+                                color: isDark ? '#FFFFFF' : '#0F172A'
+                              }
+                            ]}
+                            value={otp}
+                            onChangeText={(t) => { setOtp(t.replace(/\D/g, '').slice(0, 6)); if (error) setError(''); }}
+                            placeholder="••••••"
+                            placeholderTextColor={isDark ? '#71717A' : '#94A3B8'}
+                            keyboardType="number-pad"
+                            textContentType="oneTimeCode"
+                            autoComplete="sms-otp"
+                            maxLength={6}
+                            autoFocus
+                            returnKeyType="done"
+                            onSubmitEditing={handleVerifyOtp}
+                            onFocus={() => setFocusedField('otp')}
+                            onBlur={() => setFocusedField(null)}
+                            editable={!busy}
+                          />
+                        </View>
+
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
+                          <TouchableOpacity onPress={changeNumber} disabled={busy} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                            <Text style={{ fontSize: 12, fontWeight: '800', color: isDark ? '#D4AF7A' : '#2563EB' }}>← Change number</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            onPress={handleSendOtp}
+                            disabled={phoneOtp.countdown > 0 || busy}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          >
+                            <Text style={{ fontSize: 12, fontWeight: '800', color: (phoneOtp.countdown > 0 || busy) ? (isDark ? '#71717A' : '#9CA3AF') : (isDark ? COLORS.gold : '#2563EB') }}>
+                              {phoneOtp.countdown > 0 ? `Resend in ${phoneOtp.countdown}s` : 'Resend code'}
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+
+                        {info && !error ? <Text style={s.info}>{info}</Text> : null}
+                        {error ? <Text style={s.error}>{error}</Text> : null}
+
+                        <TouchableOpacity
+                          style={[s.primaryBtn, { backgroundColor: isDark ? COLORS.gold : '#0F172A' }, busy && { opacity: 0.7 }]}
+                          onPress={handleVerifyOtp}
+                          disabled={busy}
+                          activeOpacity={0.85}
+                        >
+                          {busy ? (
+                            <ActivityIndicator color={isDark ? '#000000' : '#FFFFFF'} size="small" />
+                          ) : (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                              <Text style={[s.primaryBtnText, { color: isDark ? '#000000' : '#FFFFFF' }]}>Verify & Sign In</Text>
+                              <Ionicons name="checkmark-circle" size={18} color={isDark ? '#000000' : '#FFFFFF'} />
+                            </View>
+                          )}
+                        </TouchableOpacity>
+                      </>
+                    )}
+                  </View>
+                )}
+
+                {/* Footer disclaimer and sign up link */}
+                <Text style={{ textAlign: 'center', fontSize: 12, color: isDark ? '#71717A' : '#94A3B8', marginTop: 18, lineHeight: 18 }}>
+                  By continuing you agree to the{' '}
+                  <Text style={{ color: isDark ? COLORS.gold : '#2563EB', fontWeight: '700' }} onPress={() => openLegal('terms')} accessibilityRole="link">Terms of Service</Text> and{' '}
+                  <Text style={{ color: isDark ? COLORS.gold : '#2563EB', fontWeight: '700' }} onPress={() => openLegal('privacy')} accessibilityRole="link">Privacy Policy</Text>.
+                </Text>
+
+                <TouchableOpacity onPress={() => router.push('/register' as any)} style={s.switchLink} activeOpacity={0.8}>
+                  <Text style={[s.switchText, { color: isDark ? '#94A3B8' : '#64748B' }]}>
+                    Don't have an account? <Text style={{ color: isDark ? COLORS.gold : '#2563EB', fontWeight: '800' }}>Sign up</Text>
+                  </Text>
+                </TouchableOpacity>
+              </>
             )}
-          </KeyboardAvoidingView>
-        </Modal>
-      )}
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bgDark },
-  scroll: { 
-    flexGrow: 1, 
+  container: {
+    flex: 1,
+  },
+  scroll: {
+    flexGrow: 1,
     width: '100%',
-    maxWidth: 520,
+    maxWidth: 460,
     alignSelf: 'center',
-    paddingTop: Platform.OS === 'web' ? 20 : 10,
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'web' ? 36 : 24,
   },
-  
-  logoWrap: { 
-    alignItems: 'center', 
-    marginBottom: 20, 
-    marginTop: Platform.OS === 'web' ? 30 : 45, 
-    paddingHorizontal: 24, 
-    zIndex: 5 
+
+  brandHeaderWrap: {
+    alignItems: 'center',
+    marginBottom: 24,
   },
-  iconBadge: { width: 72, height: 72, borderRadius: 36, backgroundColor: 'rgba(212, 175, 122, 0.1)', borderWidth: 1.5, borderColor: COLORS.goldBorder, alignItems: 'center', justifyContent: 'center', ...SHADOWS.goldGlow },
-  logoIcon: { fontSize: 40, fontWeight: '300', fontStyle: 'italic', color: COLORS.gold, marginTop: Platform.OS === 'ios' ? 4 : 0 },
-  brand: { fontSize: 36, fontWeight: '900', color: COLORS.gold, letterSpacing: 8, marginTop: 12, textShadowColor: COLORS.borderGold, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 8 },
-  tagline: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary, marginTop: 4 },
-  
+  brandTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    letterSpacing: 3,
+    // Web and iOS add the spacing after the last letter too: the same space in front keeps the word centred.
+    paddingLeft: Platform.OS === 'android' ? 0 : 3,
+    marginTop: 10,
+  },
+
   card: {
-    backgroundColor: 'rgba(26,26,28,0.94)',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    borderBottomLeftRadius: Platform.OS === 'web' ? 32 : 0,
-    borderBottomRightRadius: Platform.OS === 'web' ? 32 : 0,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    paddingHorizontal: 24,
-    paddingTop: 18,
-    paddingBottom: Platform.OS === 'ios' ? 44 : 36,
+    borderRadius: 24,
+    borderWidth: 1,
+    paddingHorizontal: 22,
+    paddingTop: 24,
+    paddingBottom: 28,
     width: '100%',
-    maxWidth: 520,
-    alignSelf: 'center',
-    marginBottom: Platform.OS === 'web' ? 24 : 0,
-    ...SHADOWS.card,
-    zIndex: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 6,
   },
-  cardTitle: { fontSize: 20, fontWeight: '900', color: '#fff', letterSpacing: 0.5 },
-  cardSubtitle: { fontSize: 12, color: COLORS.textSecondary, fontWeight: '600', marginTop: 4, marginBottom: 12, letterSpacing: 0.5 },
-  
-  label: { fontSize: 13, fontWeight: '700', marginBottom: 6, marginTop: 12 },
-  input: { borderWidth: 1, borderRadius: 14, padding: 14, fontSize: 15, fontWeight: '700' },
+  cardTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  cardSubtitle: {
+    fontSize: 13,
+    fontWeight: '500',
+    marginTop: 4,
+    marginBottom: 16,
+  },
+
+  fieldLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+
+  segmentedContainer: {
+    flexDirection: 'row',
+    borderRadius: 12,
+    padding: 3,
+    marginBottom: 12,
+    borderWidth: 1,
+  },
+  segmentedBtn: {
+    flex: 1,
+    paddingVertical: 9,
+    alignItems: 'center',
+    borderRadius: 9,
+  },
+  segmentedBtnActive: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  segmentedText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  segmentedTextActive: {
+    fontWeight: '800',
+  },
+
+  phoneInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  countryCodeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 12,
+    paddingRight: 6,
+  },
+  countryCodeText: {
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  countryCodeDivider: {
+    width: 1,
+    height: 20,
+    marginLeft: 8,
+  },
+  phoneInputText: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    fontSize: 15,
+    fontWeight: '600',
+  },
+
+  forgotLink: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+
+  primaryBtn: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  primaryBtnText: {
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+
   error: { color: '#EF4444', fontSize: 12, fontWeight: '600', marginTop: 8 },
-  forgotBtn: { alignSelf: 'flex-end', marginTop: 10, padding: 2 },
-  forgotText: { fontSize: 13, fontWeight: '700', color: COLORS.gold },
-  
-  loginBtn: { backgroundColor: COLORS.gold, paddingVertical: 16, borderRadius: 14, alignItems: 'center', marginTop: 16, ...SHADOWS.goldGlow },
-  loginBtnText: { fontSize: 15, fontWeight: '800', color: '#000' },
-  
-  orRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 18, gap: 10 },
-  line: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.08)' },
-  orText: { fontSize: 12, fontWeight: '700', color: COLORS.textMuted },
-  
-  googleBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: '#fff', paddingVertical: 14, borderRadius: 14 },
-  googleIconG: { fontSize: 16, fontWeight: '900', color: '#333' },
-  googleText: { fontSize: 12, fontWeight: '700', color: '#111' },
-  
-  switchLink: { alignItems: 'center', marginTop: 20 },
-  switchText: { fontSize: 12, color: COLORS.textSecondary },
-
-  tabRow: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 4, marginVertical: 14, borderWidth: 1, borderColor: COLORS.borderDark },
-  tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
-  tabBtnActive: { backgroundColor: 'rgba(201,168,76,0.15)', borderWidth: 1, borderColor: 'rgba(201,168,76,0.3)' },
-  tabText: { fontSize: 13, fontWeight: '700', color: COLORS.textMuted },
-  tabTextActive: { color: COLORS.gold },
-
-  otpInputRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
-  sendOtpBtn: { backgroundColor: 'rgba(201,168,76,0.12)', borderWidth: 1, borderColor: 'rgba(201,168,76,0.4)', borderRadius: 14, paddingHorizontal: 16, height: 50, alignItems: 'center', justifyContent: 'center' },
-  sendOtpText: { fontSize: 13, fontWeight: '800', color: COLORS.gold },
-
-  realtimeOtpBtn: { backgroundColor: COLORS.gold, paddingVertical: 16, borderRadius: 14, alignItems: 'center', marginTop: 12, ...SHADOWS.goldGlow },
-  realtimeOtpBtnText: { fontSize: 14, fontWeight: '800', color: '#000' },
   info: { color: '#10B981', fontSize: 12, fontWeight: '700', marginTop: 8 },
-  linkText: { fontSize: 12, fontWeight: '700' },
+
+  switchLink: { alignItems: 'center', marginTop: 18, paddingVertical: 4 },
+  switchText: { fontSize: 13, fontWeight: '500' },
 });

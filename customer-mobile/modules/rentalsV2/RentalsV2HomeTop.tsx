@@ -13,7 +13,8 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { useTopInset } from '../../utils/useTopInset';
 import { useUnreadDot } from '../foodV2/FoodV2HomeTop';
-import { HERO_DUSK, ZCS_EMBLEM } from './rentalsV2Art';
+import { HERO_DUSK } from './rentalsV2Art';
+import ZenvBadge from '../../components/ZenvBadge';
 import { NIGHT, W } from './rentalsV2Theme';
 import { Press, usePageW } from './RentalsV2Kit';
 import { IArrowRight, IBell, IChevronDown, IPin, ISearch } from './RentalsV2Icons';
@@ -41,9 +42,9 @@ export function HomeTop({ sections, active = 'rentals' }: { sections?: { key: st
 
       {/* Brand row */}
       <View style={s.brandRow}>
-        <View style={s.emblemRing}><Image source={ZCS_EMBLEM} style={{ width: '100%', height: '100%', borderRadius: 17 }} contentFit="cover" accessibilityLabel="ZCS" /></View>
+        <ZenvBadge size={36} />
         <View style={{ flex: 1, marginLeft: 9 }}>
-          <Text style={s.brand}>ZCS</Text>
+          <Text style={s.brand}>ZENV</Text>
           <Text style={s.tagline} numberOfLines={1}>Rentals</Text>
         </View>
         <Press onPress={() => router.push('/notifications' as any)} label={unread ? 'Notifications, unread' : 'Notifications'} style={s.bell}>
@@ -95,8 +96,7 @@ export function HomeTop({ sections, active = 'rentals' }: { sections?: { key: st
 
 const s = StyleSheet.create({
   brandRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16 },
-  emblemRing: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: '#C9A24A', padding: 1, backgroundColor: '#1A1240' },
-  brand: { color: '#FFFFFF', fontSize: 21, fontWeight: W.title, letterSpacing: 0.4, lineHeight: 24 },
+  brand: { color: '#FFFFFF', fontSize: 21, fontWeight: W.title, letterSpacing: 1.2, lineHeight: 24 },
   tagline: { color: 'rgba(235,232,255,0.82)', fontSize: 10.5, marginTop: 1, letterSpacing: 0.2 },
   bell: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center', marginRight: 10 },
   bellDot: { position: 'absolute', top: 8, right: 9, width: 7, height: 7, borderRadius: 4, backgroundColor: NIGHT.bellDot, borderWidth: 1, borderColor: '#FFFFFF' },

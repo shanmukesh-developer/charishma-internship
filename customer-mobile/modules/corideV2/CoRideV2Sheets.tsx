@@ -4,7 +4,7 @@
  * (app/auto-ride/booking/[id]).
  */
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Linking } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { CR, R, W } from './coRideV2Theme';
 import { Sheet, PrimaryButton, OutlineButton, Avatar, Pill, Tap } from './CoRideV2Kit';
 import { ICheckCircle, IBadge, IInfo, IPhone, ISiren, STROKE } from './CoRideV2Icons';
@@ -14,6 +14,7 @@ import { RouteRail, whenOf, PriceBlock, poolTag } from './CoRideV2RideCard';
 import { useCoRide, KARMA_PER_RIDE, isOffer } from './coRideV2Data';
 import { useNav } from './coRideV2Nav';
 import { firstName } from '../../modules/coride/coRideFormat';
+import { dial } from '../../utils/dial';
 
 function Done({ title, body }: { title: string; body: string }) {
   return (
@@ -46,18 +47,18 @@ function RideSummary({ ride }: { ride: any }) {
  *  (POST /api/bikepool/posts/:id/sos; no location, expo-location is not installed). */
 function SosSheet({ rideId, onClose }: { rideId?: string; onClose: () => void }) {
   const [state, setState] = useState<{ busy: boolean; done: string | null; error: string | null }>({ busy: false, done: null, error: null });
-  const call = (n: string) => Linking.openURL(`tel:${n}`).catch(() => {});
+  const call = (n: string, label?: string) => dial(n, label);
   const alertZcs = async () => {
     if (!rideId || state.busy) return;
     setState({ busy: true, done: null, error: null });
     const r = await coRideApi.sos(rideId);
-    setState({ busy: false, done: r.ok ? (r.data.message || 'ZCS support has your SOS and will call you now.') : null, error: r.ok ? null : r.message });
+    setState({ busy: false, done: r.ok ? (r.data.message || 'ZENV support has your SOS and will call you now.') : null, error: r.ok ? null : r.message });
   };
   return (
     <Sheet visible onClose={onClose} title="Need help?">
       {rideId ? (
         <View style={{ marginBottom: 6 }}>
-          <PrimaryButton label={state.done ? 'SOS sent to ZCS' : 'Alert ZCS support about this ride'} icon={ISiren} onPress={alertZcs} busy={state.busy} disabled={!!state.done} style={{ backgroundColor: CR.red }} />
+          <PrimaryButton label={state.done ? 'SOS sent to ZENV' : 'Alert ZENV support about this ride'} icon={ISiren} onPress={alertZcs} busy={state.busy} disabled={!!state.done} style={{ backgroundColor: CR.red }} />
           {state.done ? <Text style={[st.note, { color: CR.green }]}>{state.done}</Text> : null}
           {state.error ? <Text style={[st.note, { color: CR.red }]}>{state.error}</Text> : null}
         </View>
@@ -65,9 +66,9 @@ function SosSheet({ rideId, onClose }: { rideId?: string; onClose: () => void })
       {[
         { n: '112', t: 'Call 112 · Emergency (police, ambulance, fire)', red: true },
         { n: '181', t: 'Women helpline', red: true },
-        { n: `+${ZENVY_SUPPORT_PHONE}`, t: 'ZCS support desk', red: false },
+        { n: `+${ZENVY_SUPPORT_PHONE}`, t: 'ZENV support desk', red: false },
       ].map((x) => (
-        <Tap key={x.n} onPress={() => call(x.n)} label={`Call ${x.t}, ${x.n}`} style={st.sosRow}>
+        <Tap key={x.n} onPress={() => call(x.n, x.t)} label={`Call ${x.t}, ${x.n}`} style={st.sosRow}>
           <View style={[st.sosIcon, { backgroundColor: x.red ? CR.redSoft : CR.tint }]}><IPhone size={18} color={x.red ? CR.red : CR.primary} strokeWidth={STROKE} /></View>
           <View style={{ flex: 1 }}>
             <Text style={st.name}>{x.t}</Text>
@@ -97,7 +98,7 @@ export default function CoRideV2Sheets() {
       <Sheet visible onClose={closeSheet} title={offer ? (ride.autoApprove ? 'Join this ride?' : 'Request a seat?') : 'Ride together?'}
         footer={<PrimaryButton label={ride.autoApprove ? 'Join ride' : 'Send request'} onPress={send} busy={d.busy === String(ride.id)} />}>
         <RideSummary ride={ride} />
-        <Text style={st.note}>One seat per request. {ride.autoApprove ? 'This host lets riders join straight away.' : 'The host approves who rides with them.'} You settle your fuel share with the host when you meet; ZCS takes no payment for pool rides.</Text>
+        <Text style={st.note}>One seat per request. {ride.autoApprove ? 'This host lets riders join straight away.' : 'The host approves who rides with them.'} You settle your fuel share with the host when you meet; ZENV takes no payment for pool rides.</Text>
       </Sheet>
     );
   }

@@ -6,6 +6,7 @@ import { useTheme } from '../context/ThemeContext';
 import { COLORS } from '../constants/theme';
 import { HELP_FAQ } from '../constants/helpFaq';
 import { useTopInset } from '../utils/useTopInset';
+import { useSWRJson } from '../utils/swrCache';
 
 /** Help & FAQ: short answers from constants/helpFaq.ts, then a way to reach support. */
 export default function HelpScreen() {
@@ -14,6 +15,11 @@ export default function HelpScreen() {
   const router = useRouter();
   const { isDark, colors } = useTheme();
   const [open, setOpen] = useState<string | null>(null);
+  // The Campus answers point at the Campus button on Home, which is hidden while the admins have Campus switched off
+  // (GET /api/config/sections campus.live; until its launch after Sankranti, 3 Nov 2026): hide them meanwhile.
+  const sectionsSWR = useSWRJson<{ sections?: Record<string, { live?: boolean }> }>('/api/config/sections', { freshMs: 60 * 1000 });
+  const campusOff = sectionsSWR.data?.sections?.campus?.live === false;
+  const faq = campusOff ? HELP_FAQ.filter((section) => section.title !== 'Campus') : HELP_FAQ;
 
   const bg = colors.bg;
   const cardBg = colors.card;
@@ -34,7 +40,7 @@ export default function HelpScreen() {
       </View>
 
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
-        {HELP_FAQ.map((section) => (
+        {faq.map((section) => (
           <View key={section.title} style={s.section}>
             <Text style={[s.sectionTitle, { color: txtSec }]} accessibilityRole="header">{section.title}</Text>
             <View style={[s.card, { backgroundColor: cardBg, borderColor: border }]}>

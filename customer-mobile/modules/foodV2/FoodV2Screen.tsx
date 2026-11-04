@@ -20,16 +20,16 @@ import { readCache } from '../../utils/swrCache';
 import { useConnectionState } from '../../utils/offlineStatus';
 import { useTopInset } from '../../utils/useTopInset';
 import { FOOD } from './foodV2Theme';
-import { FOOD_IMG, StorefrontArt, ShoppingBasketArt, WaveArt, LoadingDots } from './FoodV2Kit';
-import { IonName, Item, SHOP_TYPES, CATALOGUE_CACHE_KEY, FALLBACK_IMG, MEGA_BASKET_VENDOR, WISHLIST_KEY, toItem, toList, groupIN, fmt, sentence, offLabel, fmtShortClock, squash, Shelf, SHELVES, shelfItems, SEARCH, SEARCH_HINTS, TILES, Hero, HEROES, LIST_TITLES, AISLES, aisleOf, SHORT_CHIP, chipLabel, FRESH_CATS, GROUP_ORDER, groupOf, BRANDS, TOY_TILES, HEALTH_TILES, ESSENTIAL_AISLES, HERO_BG, LHERO_BG, POPULAR_REQUESTS, Route, DemoState, Saved } from './FoodV2Data';
+import { FOOD_IMG, StorefrontArt, WaveArt, LoadingDots } from './FoodV2Kit';
+import { IonName, Item, SHOP_TYPES, CATALOGUE_CACHE_KEY, FALLBACK_IMG, MEGA_BASKET_VENDOR, WISHLIST_KEY, toItem, toList, groupIN, fmt, sentence, offLabel, fmtShortClock, squash, Shelf, SHELVES, shelfItems, SEARCH, SEARCH_HINTS, TILES, Hero, HEROES, LIST_TITLES, AISLES, aisleOf, SHORT_CHIP, chipLabel, FRESH_CATS, GROUP_ORDER, groupOf, BRANDS, TOY_TILES, HEALTH_TILES, ESSENTIAL_AISLES, HERO_BG, LHERO_BG, Route, DemoState, Saved } from './FoodV2Data';
 import { s } from './FoodV2Styles';
 import { useFoodV2, useFoodV2State, FoodV2Provider } from './useFoodV2';
 import { useFoodV2Ui } from './FoodV2Ui';
 import FoodV2Home from './FoodV2Home';
+import FoodV2Shops from './FoodV2Shops';
 import FoodV2Listing from './FoodV2Listing';
 import FoodV2Search from './FoodV2Search';
 import FoodV2Saved from './FoodV2Saved';
-import FoodV2MegaBasket from './FoodV2MegaBasket';
 import FoodV2Categories from './FoodV2Categories';
 import { AddedToast } from './FoodV2Motion';
 import FoodV2SampleSheet from './FoodV2SampleSheet';
@@ -56,8 +56,8 @@ function FoodV2Body() {
         </View>
       )}
       {route.name === 'listing' && (route.shelf === SEARCH ? <FoodV2Search /> : <FoodV2Listing shelf={route.shelf} />)}
+      {route.name === 'shops' && <FoodV2Shops shelf={route.shelf} />}
       {route.name === 'saved' && <FoodV2Saved />}
-      {route.name === 'mega' && <FoodV2MegaBasket />}
       {route.name === 'categories' && <FoodV2Categories />}
       <FoodV2Saved sheet />
       <FoodV2SampleSheet />

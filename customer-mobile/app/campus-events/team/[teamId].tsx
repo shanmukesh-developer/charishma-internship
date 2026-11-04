@@ -123,7 +123,7 @@ export default function TeamScreen() {
 
   const shareLink = () => run('link', () => campusEventsApi.joinLink(t.id), async (r) => {
     try {
-      await Share.share({ message: `Join my team "${t.name}" for ${t.event?.title || 'a campus event'} on ZCS. Open this link on your phone (verified students only, expires ${fmtWhen(r.expiresAt)}):\n${r.url}` });
+      await Share.share({ message: `Join my team "${t.name}" for ${t.event?.title || 'a campus event'} on ZENV. Open this link on your phone (verified students only, expires ${fmtWhen(r.expiresAt)}):\n${r.url}` });
     } catch { /* share sheet dismissed */ }
   });
   const confirmRemove = (m: TeamMember) => Alert.alert(m.status === 'INVITED' ? 'Withdraw invitation?' : `Remove ${m.name}?`, m.status === 'INVITED' ? 'They will no longer be able to join with this invitation.' : 'They leave the team. This is recorded in the roster history.', [

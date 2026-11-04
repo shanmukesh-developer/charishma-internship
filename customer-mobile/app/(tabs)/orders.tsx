@@ -20,6 +20,9 @@ import { orderSlotLabel } from '../../utils/deliverySlots';
 import { Ionicons } from '@expo/vector-icons';
 import { plainDiscountLabel } from '../../utils/billLabel';
 import { useTopInset } from '../../utils/useTopInset';
+import { productOptions, optionsUnitPrice, cleanPicks, type OptionPicks } from '../../components/ProductOptions';
+import { orderPicksText } from '../../components/CustomizeDrawer';
+import CbOrdersSection from '../../modules/campusBooking/CbOrdersSection';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -90,7 +93,7 @@ const callerLine = (b: any): string => {
   const onMine = mine.length === 10 ? ` on ${mine.slice(0, 5)} ${mine.slice(5)}` : '';
   if (name && phone.length === 10) return `${name} (${phone.slice(0, 5)} ${phone.slice(5)}) will call you${onMine}.`;
   if (name) return `${name} will call you${onMine}.`;
-  return `The partner or the ZCS team will call you${onMine} to confirm the details.`;
+  return `The partner or the ZENV team will call you${onMine} to confirm the details.`;
 };
 
 /** One short reference for orders and bookings: the last 6 characters of the id. */
@@ -134,6 +137,7 @@ const SERVICE_STATUS_LABEL: Record<string, string> = {
   READY_FOR_DELIVERY: 'Ready for delivery',
   COMPLETED: 'Completed',
   CANCELLED: 'Cancelled',
+  RATED: 'Rated',
 };
 const serviceStatusLabel = (s?: string) => (s && SERVICE_STATUS_LABEL[s]) || (s ? s.replace(/_/g, ' ').toLowerCase() : 'Requested');
 const isServiceOpen = (s?: string) => s !== 'COMPLETED' && s !== 'CANCELLED';
@@ -142,6 +146,11 @@ const PICKED_UP_STATUSES = ['IN_PROGRESS', 'READY_FOR_DELIVERY'];
 const formatWhen = (iso?: string) => formatISTDateTime(iso);
 
 const amountCharged = (o: any) => Number(o.finalPrice ?? o.priceBreakdown?.finalPrice ?? o.totalPrice ?? 0) || 0;
+
+const STORE_GONE_TEXT = 'This store is no longer on ZENV.';
+/** The order's store was deleted: the server then clears restaurantId on its orders and the joined store comes back null. */
+const storeGoneFromOrder = (o: any) => !(o?.restaurantId || o?.restaurant?.id) || o?.restaurant === null;
+const storeIdOf = (o: any) => String(o?.restaurantId || o?.restaurant?.id || '');
 
 export default function OrdersScreen() {
   // Real status-bar inset, never less than the old fixed padding (utils/useTopInset)
@@ -184,6 +193,9 @@ export default function OrdersScreen() {
   const [bookingDetail, setBookingDetail] = useState<Record<string, any>>({});
   const [bookingBusyId, setBookingBusyId] = useState<string | null>(null);
   const [reorderingId, setReorderingId] = useState<string | null>(null);
+  // Stores a Reorder found gone (404: deleted, or switched off and hidden from customers). Their cards say so
+  // instead of offering a Reorder that can only fail again.
+  const [goneStores, setGoneStores] = useState<Set<string>>(() => new Set());
   // State updates are async: this ref stops a fast double tap from confirming a quote twice.
   const acceptingRef = useRef(false);
   const { segment, bookingId } = useLocalSearchParams<{ segment?: string | string[]; bookingId?: string | string[] }>();
@@ -214,16 +226,26 @@ export default function OrdersScreen() {
     const targetRestaurantId = order.restaurantId || order.restaurant?.id;
     const targetRestaurantName = order.restaurantName || order.restaurant?.name || 'this store';
     if (!targetRestaurantId) {
-      Alert.alert('Reorder unavailable', 'This store is no longer on ZCS.');
+      Alert.alert('Reorder unavailable', STORE_GONE_TEXT);
       return;
     }
 
     setReorderingId(orderKey);
     try {
-      // Re-read the live menu so the basket uses today's prices and availability.
-      const res = await apiFetch(ENDPOINTS.restaurantMenu(targetRestaurantId));
-      if (!res.ok) throw new Error(`menu ${res.status}`);
-      const menu = await res.json();
+      // Re-read the live store (the store page's own data: today's prices, availability and each product's
+      // choices, automatic weights included) so the basket shows what the bill will be.
+      const res = await apiFetch(`${ENDPOINTS.restaurants}/${encodeURIComponent(targetRestaurantId)}`);
+      if (res.status === 404) {
+        // Deleted, or switched off and hidden from customers: say so (not "check your connection") and drop the button.
+        if (mountedRef.current) {
+          setGoneStores((prev) => new Set(prev).add(String(targetRestaurantId)));
+          Alert.alert('Reorder unavailable', STORE_GONE_TEXT);
+        }
+        return;
+      }
+      if (!res.ok) throw new Error(`store ${res.status}`);
+      const store = await res.json();
+      const menu = Array.isArray(store?.menu) ? store.menu : [];
       const menuById = new Map<string, any>();
       (Array.isArray(menu) ? menu : []).forEach((m: any) => menuById.set(String(m.id || m._id), m));
 
@@ -252,14 +274,20 @@ export default function OrdersScreen() {
       // addToCart returns false and shows a single "Replace basket?" prompt for all these lines.
       let addedAny = false;
       available.forEach(({ item, live }) => {
-        // Customized lines carry their add-on cost (portion, toppings…) on top of today's base price;
-        // the server quote is still the bill.
-        const hasCustom = !!(item.customizations && typeof item.customizations === 'object' && Object.keys(item.customizations).length);
-        const addOn = hasCustom ? Math.max(0, Number(item.addOnPrice) || 0) : 0;
+        // A product with choices is priced from today's choices for the same picks (a 1 kg pack at the 1 kg price,
+        // not the default pack's); older customised lines carry their add-on cost on top of today's base price.
+        // The server quote is still the bill.
+        const picks = item.customizations && typeof item.customizations === 'object' && !Array.isArray(item.customizations) ? item.customizations as OptionPicks : null;
+        const groups = productOptions(live);
+        const base = Number(live.price) || 0;
+        const hasCustom = !!(picks && Object.keys(picks).length);
+        const unit = groups.length && hasCustom
+          ? optionsUnitPrice(base, groups, cleanPicks(groups, picks as OptionPicks))
+          : base + (hasCustom ? Math.max(0, Number(item.addOnPrice) || 0) : 0);
         const added = addToCart({
             id: String(live.id || live._id),
             name: live.name || item.name,
-            price: (Number(live.price) || 0) + addOn,
+            price: unit,
             basePrice: Number(live.price) || 0,
             image: live.imageUrl || item.image || '',
             restaurantId: targetRestaurantId,
@@ -318,6 +346,8 @@ export default function OrdersScreen() {
       if (mountedRef.current) setLoading(false);
     }
   }, []);
+  const fetchOrdersRef = useRef(fetchOrders);
+  fetchOrdersRef.current = fetchOrders;
 
   // Older orders: the page before the oldest one on screen. A server that ignores ?before= sends the
   // same newest page again; nothing new is added and the button goes away.
@@ -393,6 +423,11 @@ export default function OrdersScreen() {
       if (mountedRef.current) setBookingsLoading(false);
     }
   }, []);
+  // For the socket reconnect handler: reload service bookings too once they have been shown.
+  const fetchBookingsRef = useRef(fetchBookings);
+  fetchBookingsRef.current = fetchBookings;
+  const bookingsLoadedRef = useRef(bookingsLoaded);
+  bookingsLoadedRef.current = bookingsLoaded;
 
   const toggleBooking = async (id: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -402,9 +437,9 @@ export default function OrdersScreen() {
     try {
       const res = await apiFetch(ENDPOINTS.servicesDetail(id));
       const data = await res.json().catch(() => ({}));
-      if (res.ok && data?.booking && mountedRef.current) {
-        setBookingDetail(prev => ({ ...prev, [id]: data.booking }));
-      }
+      // Into the list row too: the card's status and its Accept quote button read the row, which may be stale
+      // (a quote sent while the phone slept never arrived live).
+      if (res.ok && data?.booking && mountedRef.current) applyBooking(id, data.booking);
     } catch {
       // The card already shows the list data; the timeline simply stays as it was.
     }
@@ -526,11 +561,17 @@ export default function OrdersScreen() {
             }
           : o
       )));
+      // Any cancel (store declined, no rider, support): reload quietly so its reason and refund show at once.
+      if (payload.status === 'Cancelled') fetchOrdersRef.current?.('silent');
     };
-    socket.on('connect', join);
+    // Reconnected (phone woke up, network came back): rejoin and reload, since changes made while the socket was
+    // down were never delivered (the list kept showing "Pending" until a manual pull-to-refresh).
+    // (Service bookings catch up in their own effect below, which runs even with no food order in progress.)
+    const onReconnect = () => { join(); fetchOrdersRef.current?.('silent'); };
+    socket.on('connect', onReconnect);
     socket.on('statusUpdated', onStatus);
     return () => {
-      socket.off('connect', join);
+      socket.off('connect', onReconnect);
       socket.off('statusUpdated', onStatus);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -570,8 +611,13 @@ export default function OrdersScreen() {
         })
         .catch(() => {});
     };
+    // Reconnected (the app closes its socket 30 s after going to the background): a quote or stage change sent
+    // meanwhile never arrived, so reload the list (31 Oct 2026: a laundry-only student saw no "Accept quote").
+    const onReconnect = () => { if (bookingsLoadedRef.current) fetchBookingsRef.current?.(); };
+    socket.on('connect', onReconnect);
     socket.on('serviceStatusUpdate', onServiceStatus);
     return () => {
+      socket.off('connect', onReconnect);
       socket.off('serviceStatusUpdate', onServiceStatus);
     };
   }, [user]);
@@ -678,7 +724,7 @@ export default function OrdersScreen() {
       const busy = bookingBusyId === bid;
       const color = b.status === 'COMPLETED' ? COLORS.emerald : b.status === 'CANCELLED' ? '#EF4444' : goldColor;
       return (
-        <StaggeredSection key={bid} delay={idx * 60} direction="up">
+        <StaggeredSection key={bid} delay={Math.min(idx % 10, 6) * 60} direction="up">
           <ScalePressable style={[st.card, { backgroundColor: cardBg, borderColor: border }, lift]} onPress={() => toggleBooking(bid)}>
             <View style={st.cardHeader}>
               <View style={{ flex: 1, marginRight: 8 }}>
@@ -741,7 +787,7 @@ export default function OrdersScreen() {
                   </View>
                 ))}
                 <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600', marginTop: 6 }}>
-                  {b.paymentMethod === 'Wallet' ? 'Pay from ZCS Wallet' : 'Pay in cash when the job is done'}
+                  {b.paymentMethod === 'Wallet' ? 'Pay from ZENV Wallet' : 'Pay in cash when the job is done'}
                 </Text>
                 {b.status === 'DIAGNOSED_QUOTED' && (
                   <ActionPressable style={{ borderRadius: 16, overflow: 'hidden', marginTop: 12 }} onPress={() => { if (!busy) acceptQuote(b); }} sound="click">
@@ -815,6 +861,11 @@ export default function OrdersScreen() {
           })}
         </View>
 
+        {/* In-Campus bookings (pickup at a campus stall): status, next step, the pickup code, and closed ones under Past. */}
+        {filter !== 'SERVICES' && (
+          <CbOrdersSection filter={filter as 'ALL' | 'ACTIVE' | 'PAST'} txt={txt} txtSec={txtSec} cardBg={isDark ? 'rgba(255,255,255,0.05)' : cardBg} border={border} accent={isDark ? goldColor : COLORS.red} lift={lift} />
+        )}
+
         {filter !== 'SERVICES' && orders.length > 0 && (
           <View style={[st.orderSearch, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : cardBg, borderColor: border }, lift]}>
             <Ionicons name="search-outline" size={16} color={txtSec} />
@@ -878,7 +929,7 @@ export default function OrdersScreen() {
             </FloatingPulse>
             <Text style={[st.emptyTitle, { color: txt }]}>No orders yet</Text>
             <Text style={[st.emptyDesc, { color: txtSec }]}>
-              Your food, grocery and shopping list orders will show up here.
+              Your food and grocery orders will show up here.
             </Text>
             <TouchableOpacity 
               style={[st.browseBtn, { backgroundColor: COLORS.red }]}
@@ -927,7 +978,7 @@ export default function OrdersScreen() {
           const orderItems: any[] = parseItems(o.items);
           const breakdown = parseBreakdown(o.priceBreakdown);
           const charged = amountCharged(o);
-          const restaurantName = o.restaurantName || o.restaurant?.name || (o.category === 'Mega Basket' ? 'Shopping list' : 'ZCS order');
+          const restaurantName = o.restaurantName || o.restaurant?.name || (o.category === 'Mega Basket' ? 'Shopping list' : 'ZENV order');
           const needsRating = o.status === 'Delivered' && o.rating == null;
           // Customer cancels carry no reason (or the default one); store / system cancels explain themselves.
           const cancelReason = o.status === 'Cancelled' && typeof o.cancellationReason === 'string'
@@ -944,10 +995,11 @@ export default function OrdersScreen() {
                 ...(Number(o.batchDiscount) > 0 ? [{ label: 'Shared delivery discount', amount: Number(o.batchDiscount) }] : []),
                 ...(Number(o.gateDiscount) > 0 ? [{ label: 'Member discount', amount: Number(o.gateDiscount) }] : []),
               ];
-          const paymentLabel = o.paymentMethod === 'Wallet' ? 'Paid from ZCS Wallet' : o.paymentMethod === 'COD' ? 'Cash on Delivery' : null;
+          const paymentLabel = o.paymentMethod === 'Wallet' ? 'Paid from ZENV Wallet' : o.paymentMethod === 'COD' ? 'Cash on Delivery' : null;
 
+          // Entry delay capped: cards that mount later (paging, "Load older", a filter) waited idx x 80 ms invisible.
           return (
-            <StaggeredSection key={o._id || o.id} delay={idx * 80} direction="up">
+            <StaggeredSection key={o._id || o.id} delay={Math.min(idx % 10, 6) * 60} direction="up">
               <ScalePressable 
                 style={[st.card, { backgroundColor: cardBg, borderColor: border }, lift]} 
                 onPress={() => toggleExpand(o._id || o.id)}
@@ -1040,9 +1092,13 @@ export default function OrdersScreen() {
                   {orderItems.map((item: any, i: number) => {
                     const qty = Number(item.quantity) || 1;
                     const line = Number(item.lineTotal ?? (Number(item.unitPrice ?? item.price ?? 0) * qty)) || 0;
+                    const picks = orderPicksText(item.customizations);
                     return (
                       <View key={i} style={st.itemRow}>
-                        <Text style={{ fontSize: 12, color: txt, fontWeight: '600', flex: 1, marginRight: 8 }} numberOfLines={2}>{qty} × {item.name}</Text>
+                        <View style={{ flex: 1, marginRight: 8 }}>
+                          <Text style={{ fontSize: 12, color: txt, fontWeight: '600' }} numberOfLines={2}>{qty} × {item.name}</Text>
+                          {picks ? <Text style={{ fontSize: 11, color: txtSec, marginTop: 1 }} numberOfLines={2}>{picks}</Text> : null}
+                        </View>
                         <Text style={{ fontSize: 12, color: txt, fontWeight: '600' }}>{formatINR(line)}</Text>
                       </View>
                     );
@@ -1101,6 +1157,8 @@ export default function OrdersScreen() {
                         <Text style={st.trackBtnText}>Track order</Text>
                       </LinearGradient>
                     </ActionPressable>
+                  ) : storeGoneFromOrder(o) || goneStores.has(storeIdOf(o)) ? (
+                    <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600', marginTop: 12, textAlign: 'center' }}>{STORE_GONE_TEXT}</Text>
                   ) : (
                     <ActionPressable style={{ borderRadius: 16, overflow: 'hidden', marginTop: 12 }} onPress={() => handleReorder(o)} sound="click">
                       <LinearGradient

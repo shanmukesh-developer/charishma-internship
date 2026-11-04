@@ -186,11 +186,20 @@ export default function NotificationsScreen() {
   };
 
   const markAllAsRead = async () => {
+    const before = notifications;
     const updated = notifications.map(n => ({ ...n, read: true }));
     setNotifications(updated);
     markLocalAllRead();
     if (signedIn) {
-      apiFetch('/api/notifications/read-all', { method: 'PUT' }).catch(() => {});
+      // Shown at once; when the server does not take it, the dots come back now and the user is told (3 Nov 2026:
+      // a failure was silent and the dots came back on the next refresh).
+      try {
+        const res = await apiFetch('/api/notifications/read-all', { method: 'PUT' });
+        if (!res.ok) throw new Error(String(res.status));
+      } catch {
+        setNotifications(before);
+        Alert.alert("Couldn't mark them as read", 'Check your connection and try again.');
+      }
     } else {
       saveLocal(updated);
     }
@@ -261,8 +270,9 @@ export default function NotificationsScreen() {
       router.push(`/tracking/${safeId(n.orderId)}` as any);
     } else if (n.type === 'SUPPORT_TICKET') {
       router.push('/support' as any);
-    } else if (n.type === 'SERVICE_QUOTE') {
-      // Quote / final price on a service booking: open it in Orders > Services
+    } else if (n.type === 'SERVICE_QUOTE' || n.type === 'SERVICE_STATUS') {
+      // Quote / final price / status update on a service booking: open it in Orders > Services (status rows carry
+      // only a bookingId, so they used to fall through to a bare alert)
       const bid = safeId(n.data?.bookingId);
       router.push({ pathname: '/(tabs)/orders', params: bid ? { segment: 'services', bookingId: bid } : { segment: 'services' } } as any);
     } else if (n.type === 'ORDER_STATUS' || n.type === 'ORDER_UPDATE') {
@@ -284,8 +294,9 @@ export default function NotificationsScreen() {
     } else if (campusHrefForNotification(n.type, n.data)) {
       // Friend requests, chats, verification results, birthdays and The Wall open the right Campus screen
       router.push(campusHrefForNotification(n.type, n.data) as any);
-    } else if ((n.type === 'PG_BOOKING_STATUS' || n.type === 'PG_BOOKING') && safeId(n.data?.pgId)) {
-      router.push(`/pg/${safeId(n.data?.pgId)}` as any);
+    } else if (n.type === 'PG_BOOKING_STATUS' || n.type === 'PG_BOOKING') {
+      // A PG decision on the student's booking: their bookings (the server sends bookingId / hostelId, never pgId).
+      router.push('/pg/bookings' as any);
     } else if (n.type === 'BADGE') {
       router.push('/rewards' as any);
     } else if (n.type === 'PROMO' || n.type === 'SURGE' || n.type === 'abandoned_cart' || n.type === 'streak_nudge') {
@@ -329,6 +340,7 @@ export default function NotificationsScreen() {
       case 'GATE_ARRIVAL': return 'notifications-outline';
       case 'SUPPORT_TICKET': return 'help-buoy-outline';
       case 'SERVICE_QUOTE': return 'pricetag-outline';
+      case 'SERVICE_STATUS': return 'construct-outline';
       case 'PG_BOOKING_STATUS': case 'PG_BOOKING': return 'home-outline';
       case 'BADGE': case 'WALL_WINNER_REWARD': return 'trophy-outline';
       case 'SPIN_EARNED': return 'sync-outline';

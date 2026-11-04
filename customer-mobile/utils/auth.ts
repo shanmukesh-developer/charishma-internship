@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import { collegeReady, withCollege } from './college';
 
 // ── Token Management (Encrypted via SecureStore) ──────────────────────────────
 // SecureStore uses Android Keystore / iOS Keychain for hardware-backed encryption.
@@ -101,6 +102,9 @@ const readStoredToken = (): Promise<string | null> => {
   }
   return tokenRead;
 };
+
+/** true when the last token read hit a keystore error (not "no token"): callers must not treat it as signed out. */
+export const tokenReadFailed = (): boolean => nativeReadFailed;
 
 export const getToken = async (): Promise<string | null> => {
   let token: string | null;
@@ -204,6 +208,8 @@ export const apiFetch = async (
 ): Promise<Response> => {
   const { idempotent, noWakeRetry, ...init } = options;
   const method = String(init.method || 'GET').toUpperCase();
+  // Store / product lists carry the student's college (utils/college): the server shows only that college's stores.
+  if (method === 'GET') url = withCollege(url, await collegeReady());
   const retryable = !noWakeRetry && (method === 'GET' || method === 'HEAD' || idempotent === true);
   if (method === 'GET' && !init.signal && !init.body) {
     const token = await getToken();
@@ -317,8 +323,8 @@ export const readJson = async (res: Response): Promise<any | null> => {
   }
 };
 
-export const SERVER_BUSY_MESSAGE = 'ZCS is waking up. Please try again in a few seconds.';
-export const NETWORK_ERROR_MESSAGE = "Can't reach ZCS right now. Check your internet and try again.";
+export const SERVER_BUSY_MESSAGE = 'ZENV is waking up. Please try again in a few seconds.';
+export const NETWORK_ERROR_MESSAGE = "Can't reach ZENV right now. Check your internet and try again.";
 
 /** Error thrown by postAuth when the request never reached the server (offline / timeout). */
 export class NetworkError extends Error {
@@ -389,15 +395,15 @@ export const mapFirebasePhoneAuthError = (code?: string, rawMsg?: string): strin
       return 'This code has expired. Tap Resend OTP.';
     case 'auth/too-many-requests':
     case 'auth/quota-exceeded':
-      return 'Too many attempts. Please try again later or use password login.';
+      return 'Too many attempts. Please try again later, or sign in with Google or your password.';
     case 'auth/network-request-failed':
       return 'No internet connection.';
   }
-  if (msg.includes('TOO_MANY_ATTEMPTS')) return 'Too many attempts. Please try again later or use password login.';
-  if (code || msg.includes('17028')) return 'We could not verify your number right now. Please use password login or try again later.';
+  if (msg.includes('TOO_MANY_ATTEMPTS')) return 'Too many attempts. Please try again later, or sign in with Google or your password.';
+  if (code || msg.includes('17028')) return 'We could not verify your number right now. Please try again in a minute, or sign in with Google or your password.';
   if (/JSON|Unexpected character|SyntaxError/i.test(msg)) return SERVER_BUSY_MESSAGE;
   // Never show raw SDK text (it is technical and sometimes not even English)
-  return 'We could not verify your number right now. Please use password login or try again later.';
+  return 'We could not verify your number right now. Please try again in a minute, or sign in with Google or your password.';
 };
 
 // ── Logout ────────────────────────────────────────────────────────────────────

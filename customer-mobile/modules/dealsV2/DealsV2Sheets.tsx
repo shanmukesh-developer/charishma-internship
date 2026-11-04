@@ -24,12 +24,17 @@ import { ORDERS_PER_SPIN, couponTitle, useDeals, type Coupon } from './dealsV2Da
 import { useNav } from './dealsV2Nav';
 
 export function useApplyCoupon() {
-  const { totalItems } = useCart() as any;
+  const { totalItems, basketCounts, lastAddedBasket } = useCart() as any;
   const nav = useNav();
   return useCallback((c: Coupon) => {
-    if ((Number(totalItems) || 0) > 0) nav.go(`/checkout?coupon=${encodeURIComponent(c.code)}`);
-    else nav.openSheet({ kind: 'apply', coupon: c });
-  }, [totalItems, nav]);
+    if ((Number(totalItems) || 0) > 0) {
+      // Name the basket that has items (the one added to last, else the first non-empty): checkout opens the
+      // active basket otherwise, which is Restaurants on every launch, and said "Your basket is empty".
+      const counts = (basketCounts || {}) as Record<string, number>;
+      const kind = lastAddedBasket && counts[lastAddedBasket] > 0 ? lastAddedBasket : Object.keys(counts).find((k) => counts[k] > 0);
+      nav.go(`/checkout?coupon=${encodeURIComponent(c.code)}${kind ? `&basket=${kind}` : ''}`);
+    } else nav.openSheet({ kind: 'apply', coupon: c });
+  }, [totalItems, basketCounts, lastAddedBasket, nav]);
 }
 
 function ApplyBody({ coupon, onShop }: { coupon: Coupon; onShop: () => void }) {

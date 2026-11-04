@@ -29,7 +29,7 @@ const MORE: { key: string; label: string }[] = [
 ];
 
 export default function FoodV2Categories() {
-  const { isDark, topPad, pageW, c, shadow, pop, catalogue, shopCount, openListing } = useFoodV2();
+  const { isDark, topPad, pageW, c, shadow, pop, catalogue, shopCount, openListing, openShops } = useFoodV2();
   const sc = useFoodScale();
   const cols = sc.tileCols;
   // the white inset sits 8 px in from each side (s.inset)
@@ -58,7 +58,7 @@ export default function FoodV2Categories() {
               const art = TILE_ART[t.key];
               const w = widthFor(row.length);
               return (
-                <PressScale key={t.key} onPress={() => openListing(t.key)} scaleTo={0.97} style={{ width: w }} accessibilityRole={BUTTON_ROLE} accessibilityLabel={t.label}>
+                <PressScale key={t.key} onPress={() => openShops(t.key)} scaleTo={0.97} style={{ width: w }} accessibilityRole={BUTTON_ROLE} accessibilityLabel={t.label}>
                   <View style={[st.tile, { backgroundColor: c.card }, shadow]}>
                     <View style={[st.plate, { backgroundColor: art ? art.tint[isDark ? 1 : 0] : c.tile }]}>
                       {art ? <Image source={art.art} style={st.cut} contentFit="contain" accessibilityElementsHidden /> : <Image source={{ uri: t.img }} style={StyleSheet.absoluteFill} contentFit="cover" />}

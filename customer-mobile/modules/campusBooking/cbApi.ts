@@ -72,6 +72,8 @@ export interface CbBooking {
   timeline: CbStep[];
   proof: { hasImage: boolean; imageUrl: string | null; ref: string | null; submittedAt: string | null; attempts: number; attemptsLeft: number };
   rejection: { code: string | null; reason: string | null; at: string | null } | null;
+  /** Stationery / print stalls: the PDFs to print (url: a signed link, detail views only). */
+  documents?: { id: string; name: string; size: number; url: string | null }[];
   cancellation: { by: string | null; code: string | null; reason: string | null; at: string | null } | null;
   paymentVerified: boolean;
   note: string | null;
@@ -139,8 +141,8 @@ export const cbApi = {
   },
   stall: (id: string) => call<{ stall: CbStall; menu: CbMenuItem[] }>(`/stalls/${encodeURIComponent(id)}`),
   /** Same key for every retry of one "Proceed to pay" tap: a retry returns the booking made the first time. */
-  book: (stallId: string, items: { menuItemId: string; quantity: number }[], key: string, note?: string) =>
-    post<{ booking: CbBooking }>('/bookings', { stallId, items, ...(note ? { note } : {}) }, { 'Idempotency-Key': key }, true),
+  book: (stallId: string, items: { menuItemId: string; quantity: number }[], key: string, note?: string, documents?: { id: string; name: string }[]) =>
+    post<{ booking: CbBooking }>('/bookings', { stallId, items, ...(note ? { note } : {}), ...(documents && documents.length ? { documents } : {}) }, { 'Idempotency-Key': key }, true),
   mine: (scope?: 'active') => call<{ bookings: CbBooking[]; hasMore: boolean }>(`/bookings${scope ? `?scope=${scope}` : ''}`),
   booking: (id: string) => call<{ booking: CbBooking }>(`/bookings/${encodeURIComponent(id)}`),
   submitProof: (id: string, proof: { imageUrl?: string | null; upiRef?: string | null }) =>
