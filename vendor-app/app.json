@@ -5,7 +5,7 @@
     },
     "name": "ZenWe Vendor",
     "slug": "zenvy-vendor",
-    "version": "1.0.8",
+    "version": "1.0.9",
     "orientation": "portrait",
     "icon": "./assets/zenwe-vendor-icon-2026-11-04.png",
     "userInterfaceStyle": "light",
@@ -21,7 +21,7 @@
         "monochromeImage": "./assets/zenwe-vendor-adaptive-monochrome-2026-11-04.png"
       },
       "package": "com.srm.zenvyvendor",
-      "versionCode": 9,
+      "versionCode": 10,
       "allowBackup": false,
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW",

@@ -6,7 +6,7 @@
     "name": "ZenWe Campus Stall",
     "slug": "zcs-campus-stall",
     "scheme": "zcsstall",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "orientation": "portrait",
     "icon": "./assets/zenwe-stall-icon-2026-11-04.png",
     "userInterfaceStyle": "light",
@@ -21,7 +21,7 @@
     },
     "android": {
       "package": "com.srm.zcscampusstall",
-      "versionCode": 7,
+      "versionCode": 8,
       "allowBackup": false,
       "adaptiveIcon": {
         "backgroundColor": "#FAE04B",

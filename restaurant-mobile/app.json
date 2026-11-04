@@ -5,7 +5,7 @@
     },
     "name": "ZenWe Restaurant",
     "slug": "restaurant-mobile",
-    "version": "1.0.7",
+    "version": "1.0.8",
     "orientation": "portrait",
     "icon": "./assets/zenwe-restaurant-icon-2026-11-04.png",
     "userInterfaceStyle": "light",
@@ -21,7 +21,7 @@
         "monochromeImage": "./assets/zenwe-restaurant-adaptive-monochrome-2026-11-04.png"
       },
       "package": "com.zenvy.restaurant",
-      "versionCode": 8,
+      "versionCode": 9,
       "allowBackup": false,
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW",
