@@ -23,6 +23,7 @@ import { SeatStepper } from './CoRideV2AutoParts';
 import SeatMap, { askRiderGender, FRONT_SEAT_NOTE } from '../../modules/autoRide/SeatMap';
 import { useCoRide } from './coRideV2Data';
 import { inr, errorCopy, autoRideApi, newIdempotencyKey, type ChargeAuto, type ChargeLine, type SeatState, type SeatViewer, type RiderGender } from '../../modules/autoRide/autoRideApi';
+import { themedSheet } from '../../utils/themeNow';
 
 const MOVED_ON = ['AUTO_JUST_FILLED', 'AUTO_OFF_CHARGE', 'WAITING_IN_LINE', 'TRIP_FULL', 'BOOKING_CLOSED'];
 const FRONT_ONLY = ['NO_SUITABLE_SEAT', 'FRONT_SEAT_MALE_ONLY'];
@@ -308,7 +309,7 @@ export function LineCard({ line }: { line: ChargeLine }) {
   );
 }
 
-const st = StyleSheet.create({
+const st = themedSheet(() => ({
   row: { flexDirection: 'row', alignItems: 'center' },
   card: { padding: 14, marginBottom: 12 },
   fare: { fontSize: 20, fontWeight: W.title, color: CR.ink },
@@ -329,4 +330,4 @@ const st = StyleSheet.create({
   waitHead: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14 },
   frontNote: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: CR.page, borderRadius: 10, padding: 10 },
   frontText: { flex: 1, fontSize: 13, color: CR.ink, lineHeight: 18 },
-});
+}));

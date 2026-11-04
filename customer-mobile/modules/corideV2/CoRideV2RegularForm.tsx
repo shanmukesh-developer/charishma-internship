@@ -12,6 +12,7 @@ import { WomenOnlyOption } from './CoRideV2Gender';
 import { coRideApi, type Template } from './coRideV2Api';
 import { clock12 } from './coRideV2Regular';
 import { maxSeatsFor, FROM_PICKS, TO_PICKS } from './coRideV2Data';
+import { themedSheet } from '../../utils/themeNow';
 
 export type RegDraft = {
   name: string; origin: string; destination: string; days: number[]; time: string; vehicle: 'Bike' | 'Car'; seats: number;
@@ -98,15 +99,15 @@ export default function RegularForm({ id, value, onClose, onSaved }: { id?: stri
   );
 }
 
-const st = StyleSheet.create({
+const st = themedSheet(() => ({
   row: { flexDirection: 'row', alignItems: 'center' },
   label: { fontSize: 13.5, fontWeight: W.label, color: CR.ink, marginTop: 16, marginBottom: 8 },
   input: { backgroundColor: CR.field, borderRadius: R.md, paddingHorizontal: 12, minHeight: 46, fontSize: 14.5, color: CR.ink, outlineStyle: 'none' } as any,
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: CR.field, borderRadius: 999, padding: 3 },
-  stepBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
+  stepBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: CR.card },
   stepVal: { fontSize: 16, fontWeight: W.title, color: CR.ink, minWidth: 16, textAlign: 'center' },
   switchTitle: { fontSize: 14, color: CR.ink, fontWeight: W.label },
   meta: { fontSize: 12.5, color: CR.muted, marginTop: 2, lineHeight: 17 },
   error: { fontSize: 13, color: CR.red, marginBottom: 8 },
-});
+}));

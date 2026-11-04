@@ -17,6 +17,7 @@ import { StateBlock } from './DealsV2States';
 import { ICheck, ICopy, IShare, IUserPlus, IUsers } from './DealsV2Icons';
 import { useDeals } from './dealsV2Data';
 import { useNav } from './dealsV2Nav';
+import { themedSheet } from '../../utils/themeNow';
 
 export default function DealsV2Refer() {
   const d = useDeals();
@@ -90,15 +91,15 @@ export default function DealsV2Refer() {
   );
 }
 
-const s = StyleSheet.create({
+const s = themedSheet(() => ({
   hero: { padding: 22, borderRadius: 26, overflow: 'hidden', alignItems: 'center' },
   heroTitle: { color: '#FFFFFF', fontSize: 22, fontWeight: W.display, marginTop: 14 },
   heroSub: { color: 'rgba(242,238,255,0.9)', fontSize: 13.5, marginTop: 6, textAlign: 'center', lineHeight: 19 },
-  code: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16, height: 62, paddingHorizontal: 16, borderRadius: 18, borderWidth: 1.4, borderStyle: 'dashed', borderColor: DV.violetLine, backgroundColor: '#FFFFFF' },
+  code: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16, height: 62, paddingHorizontal: 16, borderRadius: 18, borderWidth: 1.4, borderStyle: 'dashed', borderColor: DV.violetLine, backgroundColor: DV.card },
   codeLabel: { fontSize: 11.5, color: DV.sub },
   codeText: { fontSize: 19, fontWeight: W.title, color: DV.ink, letterSpacing: 1 },
   copy: { fontSize: 13.5, fontWeight: W.label, color: DV.violet },
-  count: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 14, padding: 12, borderRadius: 18, backgroundColor: '#FFFFFF', borderWidth: StyleSheet.hairlineWidth, borderColor: DV.line },
+  count: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 14, padding: 12, borderRadius: 18, backgroundColor: DV.card, borderWidth: StyleSheet.hairlineWidth, borderColor: DV.line },
   plate: { width: 38, height: 38, borderRadius: 12, backgroundColor: DV.violet, alignItems: 'center', justifyContent: 'center' },
   countText: { flex: 1, fontSize: 13.5, color: DV.ink },
   h2: { fontSize: 17, fontWeight: W.title, color: DV.ink, marginTop: 24, marginBottom: 4 },
@@ -106,4 +107,4 @@ const s = StyleSheet.create({
   num: { width: 24, height: 24, borderRadius: 12, backgroundColor: DV.violetSoft, alignItems: 'center', justifyContent: 'center' },
   numText: { fontSize: 12, color: DV.violetDeep, fontWeight: W.title },
   stepText: { flex: 1, fontSize: 13.5, color: DV.ink, lineHeight: 19 },
-});
+}));

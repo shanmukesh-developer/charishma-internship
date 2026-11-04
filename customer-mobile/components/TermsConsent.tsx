@@ -4,6 +4,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { COLORS } from '../constants/theme';
 import { openLegal } from '../utils/legal';
+import SymbolIcon from './SymbolIcon';
 
 interface Props {
   isDark?: boolean;
@@ -35,7 +36,7 @@ export default function TermsConsent({ isDark, checked, onToggle, disabled }: Pr
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         style={[s.box, { borderColor: checked ? COLORS.gold : muted, backgroundColor: checked ? COLORS.gold : 'transparent' }]}
       >
-        {checked ? <Text style={s.tick}>✓</Text> : null}
+        {checked ? <SymbolIcon name="checkmark" style={s.tick} /> : null}
       </TouchableOpacity>
       <View style={{ flex: 1 }}>{text}</View>
     </View>

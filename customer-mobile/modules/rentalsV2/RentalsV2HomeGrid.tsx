@@ -10,6 +10,7 @@ import { IArrowRight } from './RentalsV2Icons';
 import { PopularCard } from './RentalsV2Rows';
 import { popularItems, useRentalsV2 } from './rentalsV2Data';
 import { useNav } from './rentalsV2Nav';
+import { themedSheet } from '../../utils/themeNow';
 
 export function PopularWeek() {
   const nav = useNav();
@@ -37,7 +38,7 @@ export function PopularWeek() {
   );
 }
 
-export const g = StyleSheet.create({
+export const g = themedSheet(() => ({
   glow: { position: 'absolute', opacity: 0.6 },
   pin: { position: 'absolute', right: 10, top: 10 },
   title: { color: '#FFFFFF', fontSize: 16.5, fontWeight: W.title, lineHeight: 20, letterSpacing: -0.2, textShadowColor: 'rgba(30,20,80,0.22)', textShadowRadius: 6 },
@@ -53,4 +54,4 @@ export const g = StyleSheet.create({
   monoText: { fontWeight: W.title, letterSpacing: 0.2 },
   campusName: { color: '#FFFFFF', fontSize: 10.5, fontWeight: W.label },
   campusKm: { color: NIGHT.sub, fontSize: 10.5, marginTop: 2 },
-});
+}));

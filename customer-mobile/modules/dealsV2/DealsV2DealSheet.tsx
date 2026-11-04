@@ -19,6 +19,7 @@ import { IClock, ICopy, ICheck, ILock, ITicketPercent } from './DealsV2Icons';
 import { Notice } from './DealsV2States';
 import { dealMinOrder, refreshRewards, refreshVault, useDeals } from './dealsV2Data';
 import { dealInfo } from './DealsV2Deals';
+import { themedSheet } from '../../utils/themeNow';
 
 export function DealSheetBody({ item, onClose }: { item: any; onClose: () => void }) {
   const d = useDeals();
@@ -72,7 +73,7 @@ export function DealSheetBody({ item, onClose }: { item: any; onClose: () => voi
       <View style={s.art}>
         {i.img ? <Image source={i.img} style={StyleSheet.absoluteFill} contentFit="cover" /> : (
           <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
-            <LinearGradient colors={['#F1ECFF', '#DCCEFF']} style={StyleSheet.absoluteFill} />
+            <LinearGradient colors={DV.lavender} style={StyleSheet.absoluteFill} />
             <IconPlate size={72}><ITicketPercent size={32} color="#FFFFFF" strokeWidth={1.5} /></IconPlate>
           </View>
         )}
@@ -120,7 +121,7 @@ export function DealSheetBody({ item, onClose }: { item: any; onClose: () => voi
   );
 }
 
-const s = StyleSheet.create({
+const s = themedSheet(() => ({
   art: { height: 170, borderRadius: 20, overflow: 'hidden', backgroundColor: DV.violetSoft },
   tag: { position: 'absolute', left: 12, top: 12, paddingHorizontal: 10, height: 26, borderRadius: 13, overflow: 'hidden', justifyContent: 'center' },
   tagText: { color: '#FFFFFF', fontSize: 12.5, fontWeight: W.title },
@@ -137,4 +138,4 @@ const s = StyleSheet.create({
   codeText: { flex: 1, fontSize: 16, fontWeight: W.title, color: DV.ink, letterSpacing: 0.5 },
   locked: { flexDirection: 'row', gap: 8, height: 54, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: DV.violetSoft, borderWidth: 1, borderColor: DV.violetLine },
   lockedText: { fontSize: 14, color: DV.violetDeep, fontWeight: W.label },
-});
+}));

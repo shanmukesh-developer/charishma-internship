@@ -1,12 +1,14 @@
 /**
  * Co-Ride v2 tokens (owner reference, 24 Oct 2026). Colours sampled from the reference with PIL:
  * a blue primary (#1D4ED8 to #2563EB), light blue tints, white cards, a mint tint for Shared auto,
- * navy ink. Light theme only (the app default); dark mode comes after the owner's OK.
+ * navy ink. Light and dark (owner, 4 Nov 2026: dark mode had left this section white); CR answers with the palette
+ * for the app's current theme (utils/themeNow), the light values unchanged.
  * Weights stay light: titles 600, labels 500, body 400 (never bold, never ALL CAPS).
  */
 import { Platform, type ViewStyle } from 'react-native';
+import { themedTokens } from '../../utils/themeNow';
 
-export const CR = {
+const CR_LIGHT = {
   primary: '#1D5FE8',
   primaryDeep: '#1D4ED8',
   primarySoft: '#2563EB',
@@ -36,7 +38,44 @@ export const CR = {
   redSoft: '#FCECEB',
   star: '#F5B83A',
   whatsapp: '#1FA855',
-} as const;
+};
+
+type CrPalette = typeof CR_LIGHT;
+
+/** Dark: the same roles on the app's dark page, cards one step up, the blue accent lifted for contrast. */
+const CR_DARK: CrPalette = {
+  primary: '#3B7BF6',
+  primaryDeep: '#2F6BEB',
+  primarySoft: '#4A86F7',
+  primaryLight: '#6A9DF8',
+  ink: '#EEF2FF',
+  ink2: '#C3CBE0',
+  muted: '#8B95AE',
+  faint: '#5F6880',
+  line: '#232A3A',
+  lineSoft: '#1B2130',
+  page: '#0A0C12',
+  heroTop: '#13213E',
+  heroBottom: '#0D1424',
+  card: '#151925',
+  field: '#1C2130',
+  tint: '#15264A',
+  tint2: '#1C3160',
+  tintInk: '#8DB3FF',
+  mint: '#10281F',
+  mintLine: '#1E4434',
+  mintInk: '#5FD3A1',
+  green: '#4CC48A',
+  greenSoft: '#12301F',
+  amber: '#F0A945',
+  amberSoft: '#33240E',
+  red: '#F07A72',
+  redSoft: '#3A1717',
+  star: '#F5B83A',
+  whatsapp: '#25C364',
+};
+
+export const CR: CrPalette = themedTokens(CR_LIGHT, CR_DARK);
 
 export const R = { sm: 10, md: 14, lg: 16, xl: 20, pill: 999 } as const;
 export const GUTTER = 16;

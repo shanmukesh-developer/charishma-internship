@@ -11,6 +11,7 @@ import { buildingPhoto } from './pgV2Photos';
 import { usePgV2, gKey, kmText, rentFromText, inBudget, BUDGETS } from './pgV2Data';
 import { useNav } from './pgV2Nav';
 import type { PgListItem } from '../../modules/pg/pgApi';
+import { themedSheet } from '../../utils/themeNow';
 
 type Filter = 'All' | GenderKey;
 const FILTERS: Filter[] = ['All', 'Boys', 'Girls', 'Co-ed'];
@@ -112,11 +113,11 @@ export default function PgV2List() {
   );
 }
 
-const st = StyleSheet.create({
+const st = themedSheet(() => ({
   locRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: GUTTER, minHeight: 48 },
   loc: { flex: 1, fontSize: 14, color: PG2.ink2, fontWeight: W.label },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  searchBox: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, height: 46, borderRadius: R.md, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: PG2.line, paddingLeft: 12 },
+  searchBox: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, height: 46, borderRadius: R.md, backgroundColor: PG2.card, borderWidth: 1, borderColor: PG2.line, paddingLeft: 12 },
   searchInput: { flex: 1, height: 44, fontSize: 14, color: PG2.ink, outlineStyle: 'none' } as any,
   chips: { paddingHorizontal: GUTTER, gap: 10, paddingVertical: 10 },
   card: { flexDirection: 'row', padding: 12, gap: 14, alignItems: 'flex-start' },
@@ -126,7 +127,7 @@ const st = StyleSheet.create({
   rentFrom: { fontSize: 12.5, fontWeight: W.body, color: PG2.muted },
   rentUnit: { fontSize: 12.5, fontWeight: W.body, color: PG2.ink2 },
   km: { fontSize: 12, color: PG2.muted },
-  budgetChip: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 14, borderRadius: R.pill, borderWidth: 1.25, borderColor: PG2.primary, backgroundColor: '#FFFFFF' },
+  budgetChip: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 14, borderRadius: R.pill, borderWidth: 1.25, borderColor: PG2.primary, backgroundColor: PG2.card },
   budgetChipText: { fontSize: 13, fontWeight: W.label, color: PG2.primary },
   heart: { position: 'absolute', top: 4, right: 4, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-});
+}));

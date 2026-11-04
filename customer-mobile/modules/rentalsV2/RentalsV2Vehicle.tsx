@@ -15,6 +15,7 @@ import { DetailSheet, FeatureRow, Gallery, InfoRow, OwnerCard, Safeguards, Secti
 import { IPin, IClock, IStar } from './RentalsV2Icons';
 import { fromListing, inr, isSampleId, useRentalsV2, type RItem } from './rentalsV2Data';
 import { useNav, type Duration } from './rentalsV2Nav';
+import { themedSheet } from '../../utils/themeNow';
 
 const DUR: { key: Duration; label: string }[] = [{ key: 'day', label: 'Daily' }, { key: 'week', label: 'Weekly' }, { key: 'month', label: 'Monthly' }];
 
@@ -150,7 +151,7 @@ export default function RentalsV2Vehicle() {
   );
 }
 
-const v = StyleSheet.create({
+const v = themedSheet(() => ({
   name: { fontSize: 21, fontWeight: W.title, color: DAY.ink, letterSpacing: -0.3 },
   muted: { fontSize: 12, color: DAY.muted },
   price: { fontSize: 21, fontWeight: W.title, color: DAY.accent },
@@ -158,7 +159,7 @@ const v = StyleSheet.create({
   mode: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
   modeText: { fontSize: 11, fontWeight: W.label },
   about: { fontSize: 13.5, color: DAY.ink2, lineHeight: 20 },
-  review: { padding: 12, borderRadius: 14, backgroundColor: '#FFFFFF', gap: 6 },
+  review: { padding: 12, borderRadius: 14, backgroundColor: DAY.card, gap: 6 },
   reviewHead: { fontSize: 12.5, color: DAY.ink, fontWeight: W.label },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 18, paddingTop: 12, backgroundColor: 'rgba(255,255,255,0.97)', borderTopLeftRadius: 22, borderTopRightRadius: 22 },
-});
+}));

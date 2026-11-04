@@ -12,6 +12,7 @@ import { RouteRail } from './CoRideV2RideCard';
 import { offeredSeats, timeOfRide, clock12 } from './coRideV2Regular';
 import type { Ride } from './coRideV2Data';
 import { inr } from '../../modules/coride/coRideFormat';
+import { themedSheet } from '../../utils/themeNow';
 
 /** Next departure at the same IST clock time: today if still 10+ min ahead, else tomorrow. */
 export function nextAtSameTime(ride: Ride): { date: Date; today: boolean; hhmm: string } {
@@ -68,10 +69,10 @@ export function OrDivider({ text }: { text: string }) {
   );
 }
 
-const st = StyleSheet.create({
+const st = themedSheet(() => ({
   row: { flexDirection: 'row', alignItems: 'center' },
   card: { backgroundColor: CR.card, borderRadius: R.lg, padding: 14, marginTop: 12, borderWidth: 1, borderColor: CR.tint2, ...shadow(1) },
   kicker: { fontSize: 12.5, color: CR.muted, fontWeight: W.label },
   line: { flex: 1, height: StyleSheet.hairlineWidth * 2, backgroundColor: CR.line },
   or: { fontSize: 12.5, color: CR.muted },
-});
+}));

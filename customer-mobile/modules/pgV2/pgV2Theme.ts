@@ -1,11 +1,13 @@
 /**
  * PG v2 tokens (owner reference board, 24 Oct 2026). Colours sampled from the board with PIL:
  * indigo / violet primary, lavender tints, white cards with soft shadows, 16–20 radius, light weights.
- * Light theme only for now (the app's default); dark mode comes after the owner's OK.
+ * Light and dark (owner, 4 Nov 2026: dark mode had left this section white). PG2 answers with the palette for the
+ * app's current theme (utils/themeNow); the light values are unchanged from the board.
  */
 import { Platform, type ViewStyle } from 'react-native';
+import { themedTokens } from '../../utils/themeNow';
 
-export const PG2 = {
+const PG2_LIGHT = {
   primary: '#5538EE',
   primaryDeep: '#4A2FD9',
   primaryPress: '#4328CC',
@@ -28,6 +30,7 @@ export const PG2 = {
   greenSoft: '#E4F6EC',
   verified: '#2F86E6',
   star: '#F5B83A',
+  starOff: '#D9D6EA',
   amber: '#D98A1F',
   amberSoft: '#FFF3E0',
   red: '#E0475F',
@@ -50,7 +53,58 @@ export const PG2 = {
     { soft: '#FDEDEE', ink: '#E05A5A' },
     { soft: '#FDEDEE', ink: '#E05A5A' },
   ],
-} as const;
+};
+
+type Pg2Palette = typeof PG2_LIGHT;
+
+/** Dark: the same roles on the app's dark page (#0A0A0B), cards one step up, the violet accent lifted for contrast. */
+const PG2_DARK: Pg2Palette = {
+  primary: '#6D55F5',
+  primaryDeep: '#5B43EA',
+  primaryPress: '#4E37D6',
+  heroTop: '#4B4CD6',
+  heroMid: '#5A40D0',
+  heroBottom: '#4434C2',
+  ink: '#EEEDFB',
+  ink2: '#C9C7E4',
+  muted: '#9497B3',
+  faint: '#6E7190',
+  line: '#2A2840',
+  lineSoft: '#211F33',
+  page: '#0B0B12',
+  card: '#17161F',
+  lavender: '#231F3D',
+  lavender2: '#2C2650',
+  lavenderInk: '#B6A9FF',
+  price: '#45C483',
+  green: '#4CC48A',
+  greenSoft: '#13291D',
+  verified: '#62A8F2',
+  star: '#F5B83A',
+  starOff: '#4A4766',
+  amber: '#F0A945',
+  amberSoft: '#33240F',
+  red: '#F06A80',
+  redSoft: '#3A1820',
+  redLine: '#5C2533',
+  boys: { ink: '#6FB2F2', soft: '#14263A', icon: '#6FB2F2' },
+  girls: { ink: '#F27BA7', soft: '#3A1828', icon: '#F27BA7' },
+  coed: { ink: '#AA97F7', soft: '#241E44', icon: '#AA97F7' },
+  meal: [
+    { soft: '#13291D', ink: '#4CC48A' },
+    { soft: '#33270F', ink: '#F0B54A' },
+    { soft: '#231F3D', ink: '#4CC48A' },
+    { soft: '#2E1B33', ink: '#B28BFA' },
+  ],
+  menuIcon: [
+    { soft: '#14263A', ink: '#6FB2F2' },
+    { soft: '#14263A', ink: '#6FB2F2' },
+    { soft: '#3A1820', ink: '#F07A7A' },
+    { soft: '#3A1820', ink: '#F07A7A' },
+  ],
+};
+
+export const PG2: Pg2Palette = themedTokens(PG2_LIGHT, PG2_DARK);
 
 export const R = { sm: 10, md: 14, lg: 16, xl: 20, pill: 999 } as const;
 export const GUTTER = 16;

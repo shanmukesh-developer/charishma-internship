@@ -16,6 +16,7 @@ import {
   rentalsApi, type Booking, type ConditionRecord, BOOKING_STATUS_META, CHARGES_STATUS_LABEL, inr, fmtDateTime, fmtHours, RentalsError, wordsOf, bookingStatusLabel, tripsLabel, ratingLabel,
 } from '../../../modules/rentals/rentalsApi';
 import { VEHICLE_FALLBACK, RHeader, usePalette, Card, SectionTitle, Badge, Btn, Row, Notice, StateView, Field, useRentalLive } from '../../../modules/rentals/ui';
+import SymbolIcon from '../../../components/SymbolIcon';
 
 const until = (iso: string | null | undefined) => {
   if (!iso) return '';
@@ -236,7 +237,7 @@ export default function RentalBookingScreen() {
       {list.length < max ? (
         <TouchableOpacity onPress={() => addPic(key, list, setter, max)} accessibilityRole="button" accessibilityLabel="Add photo"
           style={{ width: 70, height: 70, borderRadius: 12, borderWidth: 1.5, borderStyle: 'dashed', borderColor: p.accent, alignItems: 'center', justifyContent: 'center' }}>
-          {uploading === key ? <ActivityIndicator color={p.accent} /> : <Text style={{ color: p.accent, fontSize: 22 }}>＋</Text>}
+          {uploading === key ? <ActivityIndicator color={p.accent} /> : <SymbolIcon name="add" style={{ color: p.accent, fontSize: 22 }} />}
         </TouchableOpacity>
       ) : null}
     </View>

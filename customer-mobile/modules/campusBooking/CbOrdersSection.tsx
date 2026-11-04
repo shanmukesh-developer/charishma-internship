@@ -12,6 +12,7 @@ import { useAuth } from '../../context/AuthContext';
 import { cbApi, isOpenStatus, type CbBooking } from './cbApi';
 import { inr } from './cbTheme';
 import { StatusTag, useCbLive } from './cbKit';
+import SymbolIcon from '../../components/SymbolIcon';
 
 /** What the student does or waits for next, in one line. */
 const nextStep = (b: CbBooking): string => {
@@ -71,7 +72,7 @@ export default function CbOrdersSection({ filter, txt, txtSec, cardBg, border, a
       <View style={st.head}>
         <Text style={[st.title, { color: txt }]}>In-Campus bookings</Text>
         <TouchableOpacity onPress={() => router.push('/campus-booking/bookings' as any)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="link" accessibilityLabel="All your In-Campus bookings">
-          <Text style={[st.link, { color: accent }]}>All bookings ›</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}><Text style={[st.link, { color: accent }]}>All bookings</Text><SymbolIcon name="chevron-forward" style={[st.link, { color: accent }]} scale={1} /></View>
         </TouchableOpacity>
       </View>
       {list.map((b) => {

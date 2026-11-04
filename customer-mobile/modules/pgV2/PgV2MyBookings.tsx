@@ -16,6 +16,7 @@ import { useNav } from './pgV2Nav';
 import { useAuth } from '../../context/AuthContext';
 import { useUserLiveEvent } from '../../utils/useUserLiveEvent';
 import type { MyPgBooking } from '../../modules/pg/pgApi';
+import { themedSheet } from '../../utils/themeNow';
 
 const todayYmd = () => new Date(Date.now() + 330 * 60 * 1000).toISOString().slice(0, 10);
 const isUpcoming = (b: MyPgBooking) => b.status === 'Pending' || (b.status === 'Confirmed' && String(b.checkInDate).slice(0, 10) >= todayYmd());
@@ -118,11 +119,11 @@ export default function PgV2MyBookings() {
   );
 }
 
-const st = StyleSheet.create({
+const st = themedSheet(() => ({
   card: { padding: 14 },
   name: { fontSize: 15, fontWeight: W.title, color: PG2.ink },
   date: { fontSize: 12.5, color: PG2.muted },
   actions: { flexDirection: 'row', gap: 12, marginTop: 14 },
   confirm: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14 },
   smallBtn: { height: 40, paddingHorizontal: 12 },
-});
+}));

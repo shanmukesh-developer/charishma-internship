@@ -41,6 +41,8 @@ import { isNewStore } from '../../utils/storeBadge';
 import { getLocalFavorites, toggleFavoriteStore, isFavoriteIn } from '../../utils/favorites';
 import { useTopInset } from '../../utils/useTopInset';
 import { goHome } from '../../utils/goHome';
+import StatusBarScrim from '../../components/StatusBarScrim';
+import SymbolIcon from '../../components/SymbolIcon';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // Booking-only service stores (backend utils/vendorTypes.js) and the shelf that books them.
@@ -119,7 +121,7 @@ const MenuAddControl = React.memo(function MenuAddControl({ itemId, soldOut, cus
           accessibilityRole="button"
           accessibilityLabel={`Remove one. ${plainLine.quantity} in basket`}
         >
-          <Text style={st.stepperActionText}>−</Text>
+          <SymbolIcon name="remove" style={st.stepperActionText} />
         </TouchableOpacity>
         <Text style={st.stepperCountText}>{plainLine.quantity}</Text>
         <TouchableOpacity
@@ -130,7 +132,7 @@ const MenuAddControl = React.memo(function MenuAddControl({ itemId, soldOut, cus
           accessibilityRole="button"
           accessibilityLabel={`Add one more. ${plainLine.quantity} in basket`}
         >
-          <Text style={[st.stepperActionText, plainLine.quantity >= MAX_ITEM_QTY && { opacity: 0.4 }]}>+</Text>
+          <SymbolIcon name="add" style={[st.stepperActionText, plainLine.quantity >= MAX_ITEM_QTY && { opacity: 0.4 }]} />
         </TouchableOpacity>
       </View>
     ) : (
@@ -183,7 +185,7 @@ const RestaurantFloatingCart = React.memo(function RestaurantFloatingCart({ tint
             </View>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Text style={[st.proceedText, { color: '#fff' }]}>View basket ›</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}><Text style={[st.proceedText, { color: '#fff' }]}>View basket</Text><SymbolIcon name="chevron-forward" style={[st.proceedText, { color: '#fff' }]} scale={1} /></View>
           </View>
         </View>
       </DopaminePressable>
@@ -222,15 +224,19 @@ export default function RestaurantDetail() {
   const [menuLimit, setMenuLimit] = useState(MENU_PAGE);
   useEffect(() => { setMenuLimit(MENU_PAGE); }, [activeCategory, menuSearch, shopFilter, id]);
   const growingMenu = useRef(false);
+  // Past the hero photo, the menu scrolls under the clock: show the status-bar strip then (components/StatusBarScrim).
+  const [pastHero, setPastHero] = useState(false);
   const onMenuScroll = useCallback((e: any) => {
     const ne = e?.nativeEvent || {};
+    const past = (ne.contentOffset?.y || 0) > 200 - topPad;
+    setPastHero((was) => (was === past ? was : past));
     const nearEnd = (ne.contentOffset?.y || 0) + (ne.layoutMeasurement?.height || 0) > (ne.contentSize?.height || 0) - 900;
     if (nearEnd && !growingMenu.current) {
       growingMenu.current = true;
       setMenuLimit((n) => n + MENU_PAGE);
       setTimeout(() => { growingMenu.current = false; }, 250);
     }
-  }, []);
+  }, [topPad]);
   const [isFavorite, setIsFavorite] = useState(false);
   const [addedId, setAddedId] = useState<string | null>(null);
   const [customizingItem, setCustomizingItem] = useState<any>(null);
@@ -381,7 +387,7 @@ export default function RestaurantDetail() {
           accessibilityLabel="Back"
           onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)' as any))}
         >
-          <Text style={{ fontSize: 18, color: isDark ? '#FFF' : '#000' }}>←</Text>
+          <Ionicons name="arrow-back" size={20} color={isDark ? '#FFF' : '#000'} />
         </TouchableOpacity>
         <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 40, paddingHorizontal: 20, borderRadius: 24, backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#FFFFFF', borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#E5E7EB', ...SHADOWS.card }}>
           <Ionicons name={notFound ? 'storefront-outline' : 'cloud-offline-outline'} size={48} color={isDark ? 'rgba(255,255,255,0.6)' : COLORS.textSecondary} style={{ marginBottom: 16 }} />
@@ -579,7 +585,7 @@ export default function RestaurantDetail() {
               router.replace('/(tabs)' as any);
             }
           }}>
-            <Text style={{ color: '#fff', fontSize: 18, fontWeight: '900' }}>‹</Text>
+            <Ionicons name="chevron-back" size={22} color="#fff" />
           </ActionPressable>
 
           {/* Favorite Heart Button */}
@@ -917,6 +923,7 @@ export default function RestaurantDetail() {
           isVegetarian={isVegItem(customizingItem)}
         />
       )}
+      {pastHero ? <StatusBarScrim color={brand ? (brand.primaryColor || '#1A0000') : isDark ? COLORS.bgDark : COLORS.bgLight} /> : null}
     </View>
   );
 }

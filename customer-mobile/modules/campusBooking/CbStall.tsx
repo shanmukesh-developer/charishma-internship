@@ -23,6 +23,7 @@ import { AddControl, DopaminePressable, EmptyCard, NoticeBar, StaggeredSection, 
 import { isSampleId, sampleStallById, type CbSampleMenuItem } from './campusBookingDemo';
 import CbSampleSheet, { CbSampleTag, type CbSampleNote } from './CbSampleSheet';
 import { BUTTON_ROLE } from '../../utils/pressRole';
+import SymbolIcon from '../../components/SymbolIcon';
 
 const memo = new Map<string, { stall: Stall; menu: CbMenuItem[] }>();
 const NON_FOOD_CATEGORY = /stationery|xerox|print|toiletr|laundry|household|electronic/i;
@@ -83,7 +84,7 @@ export default function CbStall({ id }: { id: string }) {
       <View style={{ flex: 1, backgroundColor: p.page }}>
         <View style={[st.hero, { backgroundColor: p.isDark ? '#1A1A1F' : '#FDE8EA' }]}>
           <TouchableOpacity style={[st.backBtn, { top: topPad }]} onPress={back} accessibilityRole="button" accessibilityLabel="Back">
-            <Text style={{ color: '#fff', fontSize: 18, fontWeight: '900' }}>‹</Text>
+            <Ionicons name="chevron-back" size={22} color="#fff" />
           </TouchableOpacity>
         </View>
         <View style={{ padding: 16 }}>
@@ -121,7 +122,7 @@ export default function CbStall({ id }: { id: string }) {
           )}
           <View style={st.heroGrad} />
           <TouchableOpacity style={[st.backBtn, { top: topPad }]} onPress={back} accessibilityRole="button" accessibilityLabel="Back">
-            <Text style={{ color: '#fff', fontSize: 18, fontWeight: '900' }}>‹</Text>
+            <Ionicons name="chevron-back" size={22} color="#fff" />
           </TouchableOpacity>
           {sample ? null : (
             <TouchableOpacity style={[st.sideBtn, { top: topPad }]} onPress={() => router.push('/campus-booking/bookings' as any)} accessibilityRole="button" accessibilityLabel="Your bookings">
@@ -310,7 +311,7 @@ export default function CbStall({ id }: { id: string }) {
               <View style={st.badgeContainer}><Text style={st.badgeText}>{cart.count}</Text></View>
               <Text style={st.floatingCartText}>Item total {inr(cart.total)}</Text>
             </View>
-            <Text style={st.proceedText}>View cart ›</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}><Text style={st.proceedText}>View cart</Text><SymbolIcon name="chevron-forward" style={st.proceedText} scale={1} /></View>
           </DopaminePressable>
         </View>
       ) : null}

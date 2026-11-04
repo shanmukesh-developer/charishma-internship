@@ -9,6 +9,7 @@ import { CR, R, W, shadow } from './coRideV2Theme';
 import { PrimaryButton, OutlineButton } from './CoRideV2Kit';
 import { IWifiOff, IHourglass, ICloudOff, IRefresh, ICarSide, IUsers, STROKE } from './CoRideV2Icons';
 import type { ConnectionState } from '../../utils/offlineStatus';
+import { themedSheet } from '../../utils/themeNow';
 
 function Pulse({ style }: { style: StyleProp<ViewStyle> }) {
   const v = useRef(new Animated.Value(0.55)).current;
@@ -103,7 +104,7 @@ export function StaleBanner({ text, onRetry }: { text: string; onRetry: () => vo
   );
 }
 
-const st = StyleSheet.create({
+const st = themedSheet(() => ({
   skCard: { flexDirection: 'row', backgroundColor: CR.card, borderRadius: R.lg, padding: 14, marginBottom: 12, ...shadow(1) },
   card: { backgroundColor: CR.card, borderRadius: R.xl, paddingVertical: 26, paddingHorizontal: 22, alignItems: 'center', ...shadow(1) },
   artTile: { width: 64, height: 64, borderRadius: 20, backgroundColor: CR.tint, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
@@ -112,4 +113,4 @@ const st = StyleSheet.create({
   body: { marginTop: 6, fontSize: 13.5, color: CR.muted, textAlign: 'center', lineHeight: 20 },
   banner: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: CR.amberSoft, borderRadius: 12, paddingVertical: 8, paddingLeft: 12, paddingRight: 8, marginBottom: 12 },
   bannerText: { flex: 1, fontSize: 12.5, color: CR.amber },
-});
+}));

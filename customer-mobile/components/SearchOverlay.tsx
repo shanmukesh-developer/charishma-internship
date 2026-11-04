@@ -11,6 +11,7 @@ import { apiFetch } from '../utils/auth';
 import { isLocalVendorType } from '../utils/localVendor';
 import { isCustomizable } from './CustomizeDrawer';
 import { productOptions } from './ProductOptions';
+import SymbolIcon from './SymbolIcon';
 
 // Grocery search runs against the DB catalogue (GET /api/catalogue/items?type=grocery&q=…)
 const toGroceryResult = (it: any) => ({
@@ -219,7 +220,7 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
         {/* Header */}
         <View style={s.header}>
           <TouchableOpacity onPress={onClose} style={[s.closeBtn, { borderColor: border, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F1F5F9' }]}>
-            <Text style={[s.closeText, { color: txtColor }]}>✕</Text>
+            <SymbolIcon name="close" style={[s.closeText, { color: txtColor }]} />
           </TouchableOpacity>
           <View style={[s.inputWrap, { borderColor: searchMode === 'grocery' ? '#22C55E' : (isDark ? COLORS.gold : '#D97706'), backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC' }]}>
             <TextInput
@@ -353,7 +354,7 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
                                     });
                                   }}
                                 >
-                                  <Text style={s.stepperBtnText}>+</Text>
+                                  <SymbolIcon name="add" style={s.stepperBtnText} />
                                 </TouchableOpacity>
                               </View>
                             ) : (

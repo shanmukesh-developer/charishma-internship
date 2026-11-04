@@ -17,6 +17,7 @@ import { LineCard } from './CoRideV2AutoBoard';
 import { ART, ART_RATIO, AUTO_MAX_W } from './coRideV2Art';
 import { useCoRide } from './coRideV2Data';
 import { useNav } from './coRideV2Nav';
+import { themedSheet } from '../../utils/themeNow';
 
 export default function CoRideV2Auto() {
   const d = useCoRide();
@@ -88,7 +89,7 @@ export default function CoRideV2Auto() {
   );
 }
 
-const st = StyleSheet.create({
+const st = themedSheet(() => ({
   row: { flexDirection: 'row', alignItems: 'center' },
   intro: { flexDirection: 'row', alignItems: 'center', backgroundColor: CR.mint, borderRadius: R.lg, padding: 12, marginBottom: 14, borderWidth: 1, borderColor: CR.mintLine },
   introTitle: { fontSize: 15, fontWeight: W.title, color: CR.ink },
@@ -99,4 +100,4 @@ const st = StyleSheet.create({
   noneTitle: { fontSize: 14, fontWeight: W.label, color: CR.ink },
   more: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 60, paddingVertical: 8 },
   moreLine: { borderTopWidth: StyleSheet.hairlineWidth * 2, borderTopColor: CR.lineSoft },
-});
+}));

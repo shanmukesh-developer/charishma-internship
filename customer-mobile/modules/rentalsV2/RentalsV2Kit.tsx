@@ -18,6 +18,7 @@ import { DAY, NIGHT, RADIUS, W, shadow } from './rentalsV2Theme';
 import { IArrowLeft, IHeart, IPin, IStar, IWifiOff, ICloudOff, IClock, ISearch, IChevronDown } from './RentalsV2Icons';
 import { useNav } from './rentalsV2Nav';
 import { useRentalsV2 } from './rentalsV2Data';
+import { themedSheet } from '../../utils/themeNow';
 
 export { FadeInUp };
 
@@ -174,7 +175,7 @@ export function StateBlock({ kind, title, body, action, onAction, style }: { kin
   const b = body || (kind === 'offline' ? 'Check your internet and try again.' : kind === 'error' ? 'The server is busy. Please try again in a moment.' : '');
   return (
     <FadeInUp style={[st.state, shadow(1), style]}>
-      <LinearGradient colors={['#F3EFFF', '#E7E0FF']} style={st.statePlate}><Icon size={26} color={DAY.accent} strokeWidth={1.5} /></LinearGradient>
+      <LinearGradient colors={DAY.plateGrad} style={st.statePlate}><Icon size={26} color={DAY.accent} strokeWidth={1.5} /></LinearGradient>
       <Text style={st.stateTitle}>{t}</Text>
       {b ? <Text style={st.stateBody}>{b}</Text> : null}
       {action && onAction ? (
@@ -200,15 +201,15 @@ export function GroundShadow({ width, height = 16, style, color = '#140A3C', opa
   );
 }
 
-export const st = StyleSheet.create({
+export const st = themedSheet(() => ({
   head: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 10, backgroundColor: DAY.page },
-  headBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', ...shadow(1) },
+  headBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: DAY.card, alignItems: 'center', justifyContent: 'center', ...shadow(1) },
   headTitle: { fontSize: 18, fontWeight: W.title, color: DAY.ink, letterSpacing: -0.2 },
   headSub: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
   headSubText: { fontSize: 12.5, color: DAY.muted, flexShrink: 1 },
   sample: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, backgroundColor: DAY.sampleSoft, borderWidth: StyleSheet.hairlineWidth, borderColor: '#EED9A4', alignSelf: 'flex-start' },
   sampleText: { fontSize: 10.5, color: DAY.sample, fontWeight: W.label },
-  chip: { height: 36, paddingHorizontal: 16, borderRadius: RADIUS.pill, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: DAY.line, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  chip: { height: 36, paddingHorizontal: 16, borderRadius: RADIUS.pill, backgroundColor: DAY.card, borderWidth: 1, borderColor: DAY.line, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   chipOn: { borderColor: 'transparent' },
   chipText: { fontSize: 13, color: DAY.ink2, fontWeight: W.label },
   seg: { flexDirection: 'row', backgroundColor: DAY.accentSoft, borderRadius: RADIUS.md, padding: 4, gap: 4 },
@@ -220,15 +221,15 @@ export const st = StyleSheet.create({
   ctaSub: { color: 'rgba(255,255,255,0.8)', fontSize: 11.5, marginTop: 1 },
   spec: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 7, backgroundColor: DAY.lineSoft },
   specText: { fontSize: 11.5, color: DAY.ink2 },
-  search: { height: 50, borderRadius: 16, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 6, gap: 8 },
+  search: { height: 50, borderRadius: 16, backgroundColor: DAY.card, flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 6, gap: 8 },
   searchText: { fontSize: 14, color: DAY.muted, flex: 1 },
-  skel: { flexDirection: 'row', gap: 12, padding: 12, borderRadius: 18, backgroundColor: '#FFFFFF', alignItems: 'center' },
-  state: { marginHorizontal: 16, padding: 22, borderRadius: 22, backgroundColor: '#FFFFFF', alignItems: 'center' },
+  skel: { flexDirection: 'row', gap: 12, padding: 12, borderRadius: 18, backgroundColor: DAY.card, alignItems: 'center' },
+  state: { marginHorizontal: 16, padding: 22, borderRadius: 22, backgroundColor: DAY.card, alignItems: 'center' },
   statePlate: { width: 60, height: 60, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   stateTitle: { fontSize: 16, fontWeight: W.title, color: DAY.ink, textAlign: 'center' },
   stateBody: { fontSize: 13, color: DAY.muted, textAlign: 'center', marginTop: 6, lineHeight: 19 },
   stateBtn: { marginTop: 14, paddingHorizontal: 18, height: 40, borderRadius: 12, backgroundColor: DAY.accentSoft, alignItems: 'center', justifyContent: 'center' },
   stateBtnText: { fontSize: 13.5, color: DAY.accent, fontWeight: W.label },
-});
+}));
 
 export const isWeb = Platform.OS === 'web';

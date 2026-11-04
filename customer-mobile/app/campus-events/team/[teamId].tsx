@@ -160,7 +160,7 @@ export default function TeamScreen() {
                 <Text style={{ fontSize: 17, fontWeight: '900', color: p.text, letterSpacing: 1.5, marginTop: 2 }}>{reg.code}</Text>
               </View>
               <RegStatusPill status={reg.status} />
-              <Text style={{ color: p.accent, fontSize: 18 }}>›</Text>
+              <Ionicons name="chevron-forward" size={18} color={p.accent} />
             </Card>
           </TouchableOpacity>
         ) : null}

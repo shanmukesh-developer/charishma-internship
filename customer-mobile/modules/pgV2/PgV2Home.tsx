@@ -23,6 +23,7 @@ import { useNav, type BudgetKey } from './pgV2Nav';
 import { useHeroSlider, HeroSlides, HeroDots } from './PgV2HeroSlider';
 import type { PgListItem } from '../../modules/pg/pgApi';
 import { BUTTON_ROLE } from '../../utils/pressRole';
+import { themedSheet } from '../../utils/themeNow';
 
 /** One violet shared by the header's bottom edge and the hero: no seam where they meet. */
 export const HERO_BASE = '#6352D8';
@@ -82,7 +83,7 @@ export function PgV2HomeBody() {
   const { index, fades } = useHeroSlider(slides.length, held);
   const art = artBox(width);
   return (
-    <View style={{ backgroundColor: '#FFFFFF', paddingBottom: 32 }}>
+    <View style={{ backgroundColor: PG2.card, paddingBottom: 32 }}>
       <Hero width={width} index={index} onHold={setHeld} />
       {/* Building cut-outs above the hero and the card's top edge (the card's top-right is empty). */}
       <HeroSlides slides={slides} fades={fades} style={{ position: 'absolute', zIndex: 3, right: -10, top: HERO_H + 14 - art.h, width: art.w, height: art.h }} />
@@ -141,23 +142,23 @@ export function PgV2HomeBody() {
   );
 }
 
-const st = StyleSheet.create({
+const st = themedSheet(() => ({
   h1Light: { color: '#FFFFFF', fontSize: 24, fontWeight: W.body, letterSpacing: -0.3 },
   h1: { color: '#FFFFFF', fontSize: 28, lineHeight: 34, fontWeight: W.title, letterSpacing: -0.4 },
   tagline: { color: 'rgba(255,255,255,0.9)', fontSize: 12.5, lineHeight: 17, fontWeight: W.label, marginTop: 8 },
-  sheet: { marginTop: -22, marginHorizontal: GUTTER, backgroundColor: '#FFFFFF', borderRadius: R.xl, padding: GUTTER, zIndex: 1 },
+  sheet: { marginTop: -22, marginHorizontal: GUTTER, backgroundColor: PG2.card, borderRadius: R.xl, padding: GUTTER, zIndex: 1 },
   filterLabel: { fontSize: 13.5, fontWeight: W.label, color: PG2.ink, marginBottom: 10 },
   tiles: { flexDirection: 'row', gap: 10 },
-  tile: { height: 76, borderRadius: 14, borderWidth: 1, borderColor: '#E6E3F5', backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
-  tileOn: { borderColor: PG2.primary, backgroundColor: '#F4F1FE' },
+  tile: { height: 76, borderRadius: 14, borderWidth: 1, borderColor: PG2.line, backgroundColor: PG2.card, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
+  tileOn: { borderColor: PG2.primary, backgroundColor: PG2.lavender },
   tileText: { marginTop: 6, fontSize: 14, fontWeight: W.label, color: PG2.ink },
   tileCount: { marginTop: 1, fontSize: 12, color: PG2.muted },
-  budget: { height: 38, paddingHorizontal: 14, borderRadius: R.pill, borderWidth: 1, borderColor: '#E6E3F5', backgroundColor: '#FFFFFF', justifyContent: 'center' },
-  budgetOn: { borderColor: PG2.primary, backgroundColor: '#F4F1FE' },
+  budget: { height: 38, paddingHorizontal: 14, borderRadius: R.pill, borderWidth: 1, borderColor: PG2.line, backgroundColor: PG2.card, justifyContent: 'center' },
+  budgetOn: { borderColor: PG2.primary, backgroundColor: PG2.lavender },
   budgetText: { fontSize: 13, color: PG2.ink2 },
-  bookings: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: GUTTER, marginTop: 16, paddingVertical: 14, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1, borderColor: '#E6E3F5', backgroundColor: '#FFFFFF' },
+  bookings: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: GUTTER, marginTop: 16, paddingVertical: 14, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1, borderColor: PG2.line, backgroundColor: PG2.card },
   bookingsTitle: { fontSize: 14, fontWeight: W.label, color: PG2.ink, marginBottom: 2 },
   cardName: { marginTop: 9, fontSize: 13.5, lineHeight: 18, minHeight: 36, fontWeight: W.label, color: PG2.ink },
   cardPlace: { marginTop: 2, fontSize: 12, color: PG2.muted },
   cardRent: { marginTop: 4, fontSize: 12, color: PG2.ink2, fontWeight: W.label },
-});
+}));

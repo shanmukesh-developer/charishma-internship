@@ -11,6 +11,7 @@ import { DV, W, hexA, shadow } from './dealsV2Theme';
 import { Press } from './DealsV2Kit';
 import { ICloudOff, IInfo, ITicketPercent, IUser, IWifiOff } from './DealsV2Icons';
 import { IconPlate } from './DealsV2Decor';
+import { themedSheet } from '../../utils/themeNow';
 
 export type StateKind = 'loading' | 'empty' | 'offline' | 'error' | 'signin';
 
@@ -38,7 +39,7 @@ export function StateBlock({ kind, title, body, action, onAction, icon, style }:
   const b = body || (kind === 'offline' ? 'Check your internet and try again.' : kind === 'error' ? 'The server is busy. Please try again in a moment.' : '');
   return (
     <FadeInUp style={[s.state, shadow(2), style]}>
-      <LinearGradient colors={['#FFFFFF', '#F7F3FF']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={[DV.card, DV.page]} style={StyleSheet.absoluteFill} />
       <IconPlate size={60} radius={20} style={{ marginBottom: 14 }}>{icon || <Icon size={26} color="#FFFFFF" strokeWidth={1.6} />}</IconPlate>
       <Text style={s.title}>{t}</Text>
       {b ? <Text style={s.body}>{b}</Text> : null}
@@ -59,7 +60,7 @@ export function Notice({ children, tone = 'info', icon, style }: { children: Rea
   );
 }
 
-const s = StyleSheet.create({
+const s = themedSheet(() => ({
   skel: { flexDirection: 'row', gap: 12, paddingHorizontal: 14, borderRadius: 20, backgroundColor: DV.card, alignItems: 'center', borderWidth: StyleSheet.hairlineWidth, borderColor: DV.line },
   state: { marginHorizontal: 16, paddingVertical: 26, paddingHorizontal: 22, borderRadius: 24, alignItems: 'center', overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: DV.line },
   plate: { width: 60, height: 60, borderRadius: 20, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginBottom: 14 },
@@ -69,4 +70,4 @@ const s = StyleSheet.create({
   btnText: { fontSize: 13.5, color: DV.violetDeep, fontWeight: W.label },
   notice: { flexDirection: 'row', gap: 10, padding: 12, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, marginBottom: 12 },
   noticeText: { flex: 1, fontSize: 12.5, color: DV.ink, lineHeight: 18 },
-});
+}));

@@ -21,6 +21,7 @@ import { useApplyCoupon } from './DealsV2Sheets';
 import { useDeals } from './dealsV2Data';
 import { sampleDeals } from './dealsV2Demo';
 import { useNav } from './dealsV2Nav';
+import { themedSheet } from '../../utils/themeNow';
 
 export function DealsV2HomeBody({ sections }: { sections?: { key: string; label: string }[] }) {
   const d = useDeals();
@@ -98,7 +99,7 @@ export function DealsV2HomeBody({ sections }: { sections?: { key: string; label:
       {/* Invite friends (real referral code) */}
       {d.signedIn && d.referralCode ? (
         <Press onPress={() => nav.push({ name: 'refer' })} label="Invite friends, earn ZENV Points" style={[s.refer, shadow(2)]}>
-          <LinearGradient colors={['#FFFFFF', '#F1ECFF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+          <LinearGradient colors={[DV.card, DV.violetSoft]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
           <IconPlate size={46}><IUserPlus size={21} color="#FFFFFF" strokeWidth={1.6} /></IconPlate>
           <View style={{ flex: 1, minWidth: 0, marginLeft: 10 }}>
             <Text style={s.referTitle}>Invite friends, earn ZENV Points</Text>
@@ -111,9 +112,9 @@ export function DealsV2HomeBody({ sections }: { sections?: { key: string; label:
   );
 }
 
-const s = StyleSheet.create({
+const s = themedSheet(() => ({
   link: { color: DV.violet, fontWeight: W.title },
   refer: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginTop: 24, padding: 14, borderRadius: 22, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: DV.line },
   referTitle: { fontSize: 15, fontWeight: W.title, color: DV.ink },
   referSub: { fontSize: 12.5, color: DV.sub, marginTop: 2, lineHeight: 17 },
-});
+}));

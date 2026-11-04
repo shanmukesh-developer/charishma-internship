@@ -4,6 +4,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { CR, W } from './coRideV2Theme';
 import { Tap } from './CoRideV2Kit';
 import { IMinus, IPlus, STROKE } from './CoRideV2Icons';
+import { themedSheet } from '../../utils/themeNow';
 
 export function SeatStepper({ value, max, onChange }: { value: number; max: number; onChange: (n: number) => void }) {
   return (
@@ -15,8 +16,8 @@ export function SeatStepper({ value, max, onChange }: { value: number; max: numb
   );
 }
 
-const st = StyleSheet.create({
+const st = themedSheet(() => ({
   stepper: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: CR.field, borderRadius: 999, padding: 3 },
-  stepBtn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
+  stepBtn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: CR.card },
   stepVal: { fontSize: 17, fontWeight: W.title, color: CR.ink, minWidth: 18, textAlign: 'center' },
-});
+}));

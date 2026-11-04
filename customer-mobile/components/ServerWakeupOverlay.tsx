@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import { COLORS } from '../constants/theme';
+import SymbolIcon from './SymbolIcon';
 
 interface ServerWakeupOverlayProps {
   visible: boolean;
@@ -157,7 +158,7 @@ export default function ServerWakeupOverlay({ visible, onWakeupComplete, onRetry
               }, 300);
             }}
           >
-            <Text style={styles.dismissText}>✕</Text>
+            <SymbolIcon name="close" style={styles.dismissText} />
           </TouchableOpacity>
         )}
         {status === 'connecting' && (

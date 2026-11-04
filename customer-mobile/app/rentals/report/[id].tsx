@@ -6,6 +6,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { pickAndUploadImage, alertUploadError } from '../../../utils/imageUpload';
 import { rentalsApi, REPORT_CATEGORIES } from '../../../modules/rentals/rentalsApi';
 import { RHeader, usePalette, Btn, Field, Chips, Notice } from '../../../modules/rentals/ui';
+import SymbolIcon from '../../../components/SymbolIcon';
 
 export default function ReportRental() {
   const params = useLocalSearchParams<{ id: string | string[] }>();
@@ -64,7 +65,7 @@ export default function ReportRental() {
           ))}
           {photos.length < 4 ? (
             <TouchableOpacity onPress={addPhoto} accessibilityRole="button" accessibilityLabel="Add photo" style={{ width: 80, height: 80, borderRadius: 12, borderWidth: 1.5, borderStyle: 'dashed', borderColor: p.accent, alignItems: 'center', justifyContent: 'center' }}>
-              {uploading ? <ActivityIndicator color={p.accent} /> : <Text style={{ color: p.accent, fontSize: 22 }}>＋</Text>}
+              {uploading ? <ActivityIndicator color={p.accent} /> : <SymbolIcon name="add" style={{ color: p.accent, fontSize: 22 }} />}
             </TouchableOpacity>
           ) : null}
         </View>

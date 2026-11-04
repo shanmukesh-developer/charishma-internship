@@ -12,6 +12,7 @@ import { IArrowLeft, IBadgeCheck, IStar, IBuilding, STROKE } from './PgV2Icons';
 import type { V2Photo } from './pgV2Photos';
 import { ratingText, type ReviewSummary } from '../../modules/pg/pgApi';
 import { pressRole } from '../../utils/pressRole';
+import { themedSheet } from '../../utils/themeNow';
 
 /** Pressable with a quiet pressed state and a 44 px minimum target. */
 export function Tap({ children, onPress, style, label, disabled, role = 'button', selected }: {
@@ -69,7 +70,7 @@ export function Chip({ label, on, onPress, icon: Icon, tone, outline }: {
   label: string; on: boolean; onPress: () => void; icon?: LucideIcon; tone?: { ink: string; soft: string; icon: string }; outline?: boolean;
 }) {
   const ink = on ? (outline ? PG2.primary : '#FFFFFF') : tone ? tone.ink : PG2.ink2;
-  const bg = on ? (outline ? '#FFFFFF' : PG2.primary) : tone ? tone.soft : '#FFFFFF';
+  const bg = on ? (outline ? PG2.card : PG2.primary) : tone ? tone.soft : PG2.card;
   return (
     <Tap onPress={onPress} label={label} role="tab" selected={on}
       style={[k.chip, { backgroundColor: bg, borderColor: on ? PG2.primary : tone ? 'transparent' : PG2.line }, outline && on && { borderWidth: 1.25 }]}>
@@ -203,13 +204,13 @@ export function Loading() {
   return <View style={{ paddingVertical: 60, alignItems: 'center' }}><ActivityIndicator color={PG2.primary} /></View>;
 }
 
-export const k = StyleSheet.create({
+export const k = themedSheet(() => ({
   row: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: GUTTER - 4, minHeight: 56, gap: 6, backgroundColor: PG2.page },
   headerBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { flex: 1, fontSize: 17, fontWeight: W.title, color: PG2.ink, letterSpacing: -0.2, paddingLeft: 4 },
   headerRight: { flexDirection: 'row', alignItems: 'center' },
-  floatBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.94)', alignItems: 'center', justifyContent: 'center' },
+  floatBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: PG2.card, alignItems: 'center', justifyContent: 'center' },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 16, borderRadius: R.pill, borderWidth: 1 },
   chipText: { fontSize: 13.5, fontWeight: W.label },
   pill: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
@@ -221,7 +222,7 @@ export const k = StyleSheet.create({
   primary: { height: 54, borderRadius: R.lg, backgroundColor: PG2.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 20 },
   primaryText: { color: '#FFFFFF', fontSize: 15.5, fontWeight: W.label, letterSpacing: 0.1 },
   primaryTrail: { position: 'absolute', right: 20 },
-  outline: { height: 50, borderRadius: R.lg, borderWidth: 1.25, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  outline: { height: 50, borderRadius: R.lg, borderWidth: 1.25, backgroundColor: PG2.card, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   outlineText: { fontSize: 15, fontWeight: W.label },
   seg: { flexDirection: 'row', backgroundColor: PG2.lavender, borderRadius: R.md, padding: 4, gap: 4 },
   segItem: { flex: 1, height: 40, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
@@ -233,10 +234,10 @@ export const k = StyleSheet.create({
   sectionTitle: { fontSize: 16.5, fontWeight: W.title, color: PG2.ink, letterSpacing: -0.2 },
   sectionAction: { fontSize: 13.5, fontWeight: W.label, color: PG2.primary },
   empty: { alignItems: 'center', paddingVertical: 40, paddingHorizontal: 28 },
-  emptyIcon: { width: 56, height: 56, borderRadius: 28, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E6E3F5', backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
+  emptyIcon: { width: 56, height: 56, borderRadius: 28, borderWidth: StyleSheet.hairlineWidth, borderColor: PG2.line, backgroundColor: PG2.card, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
   emptyTitle: { fontSize: 16, fontWeight: W.title, color: PG2.ink, textAlign: 'center' },
   emptyBody: { marginTop: 6, fontSize: 13.5, color: PG2.muted, textAlign: 'center', lineHeight: 20 },
   card: { backgroundColor: PG2.card, borderRadius: R.lg, ...shadow(1) },
   body: { fontSize: 13.5, color: PG2.ink2, lineHeight: 20 },
   small: { fontSize: 12, color: PG2.muted },
-});
+}));

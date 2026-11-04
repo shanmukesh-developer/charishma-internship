@@ -23,6 +23,7 @@ import { useTopInset } from '../../utils/useTopInset';
 import { productOptions, optionsUnitPrice, cleanPicks, type OptionPicks } from '../../components/ProductOptions';
 import { orderPicksText } from '../../components/CustomizeDrawer';
 import CbOrdersSection from '../../modules/campusBooking/CbOrdersSection';
+import SymbolIcon from '../../components/SymbolIcon';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -763,7 +764,7 @@ export default function OrdersScreen() {
               accessibilityRole="button"
               accessibilityLabel={`Track booking ${shortRef(bid)}`}
             >
-              <Text style={{ fontSize: 13, fontWeight: '700', color: isDark ? goldColor : COLORS.red }}>Track booking ›</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}><Text style={{ fontSize: 13, fontWeight: '700', color: isDark ? goldColor : COLORS.red }}>Track booking</Text><SymbolIcon name="chevron-forward" style={{ fontSize: 13, fontWeight: '700', color: isDark ? goldColor : COLORS.red }} scale={1} /></View>
             </TouchableOpacity>
 
             {isExpanded && (
@@ -808,7 +809,7 @@ export default function OrdersScreen() {
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity style={{ marginTop: 10, alignSelf: 'flex-start' }} onPress={() => router.push({ pathname: '/support', params: { bookingId: bid } } as any)}>
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: isDark ? goldColor : COLORS.red }}>Need help with this booking? ›</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}><Text style={{ fontSize: 12, fontWeight: '600', color: isDark ? goldColor : COLORS.red }}>Need help with this booking?</Text><SymbolIcon name="chevron-forward" style={{ fontSize: 12, fontWeight: '600', color: isDark ? goldColor : COLORS.red }} scale={1} /></View>
                 </TouchableOpacity>
               </View>
             )}
@@ -1048,7 +1049,7 @@ export default function OrdersScreen() {
                   <Text style={{ fontSize: 12, fontWeight: '700', color: isDark ? goldColor : COLORS.red, letterSpacing: 0.2 }}>
                     {statusLabel(o.status)} · Track order
                   </Text>
-                  <Text style={{ fontSize: 13, fontWeight: '700', color: isDark ? goldColor : COLORS.red }}>›</Text>
+                  <Ionicons name="chevron-forward" size={14} color={isDark ? goldColor : COLORS.red} />
                 </TouchableOpacity>
               )}
 
@@ -1071,7 +1072,7 @@ export default function OrdersScreen() {
                   }}
                 >
                   <Text style={{ fontSize: 12, fontWeight: '700', color: goldColor, letterSpacing: 0.2 }}>Rate this order</Text>
-                  <Text style={{ fontSize: 13, fontWeight: '700', color: goldColor }}>›</Text>
+                  <Ionicons name="chevron-forward" size={14} color={goldColor} />
                 </TouchableOpacity>
               )}
 
@@ -1136,14 +1137,14 @@ export default function OrdersScreen() {
                     style={{ marginTop: 10, alignSelf: 'flex-start' }}
                     onPress={() => router.push({ pathname: '/support', params: { orderId: String(o._id || o.id) } } as any)}
                   >
-                    <Text style={{ fontSize: 12, fontWeight: '600', color: isDark ? goldColor : COLORS.red }}>Need help with this order? ›</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}><Text style={{ fontSize: 12, fontWeight: '600', color: isDark ? goldColor : COLORS.red }}>Need help with this order?</Text><SymbolIcon name="chevron-forward" style={{ fontSize: 12, fontWeight: '600', color: isDark ? goldColor : COLORS.red }} scale={1} /></View>
                   </TouchableOpacity>
                   {needsRating && (
                     <TouchableOpacity
                       style={{ marginTop: 8, alignSelf: 'flex-start' }}
                       onPress={() => router.push(`/tracking/${o._id || o.id}` as any)}
                     >
-                      <Text style={{ fontSize: 12, fontWeight: '600', color: goldColor }}>Rate this order ›</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}><Text style={{ fontSize: 12, fontWeight: '600', color: goldColor }}>Rate this order</Text><SymbolIcon name="chevron-forward" style={{ fontSize: 12, fontWeight: '600', color: goldColor }} scale={1} /></View>
                     </TouchableOpacity>
                   )}
                   {o.status !== 'Delivered' && o.status !== 'Cancelled' ? (

@@ -15,6 +15,7 @@ import { DetailSheet, FeatureRow, Gallery, InfoRow, OwnerCard, Safeguards, Secti
 import { IBadge, IBuilding, IPin } from './RentalsV2Icons';
 import { inr, kmText, useRentalsV2 } from './rentalsV2Data';
 import { useNav } from './rentalsV2Nav';
+import { themedSheet } from '../../utils/themeNow';
 
 export default function RentalsV2Place() {
   const nav = useNav();
@@ -94,7 +95,7 @@ export default function RentalsV2Place() {
   );
 }
 
-const p = StyleSheet.create({
+const p = themedSheet(() => ({
   name: { fontSize: 21, fontWeight: W.title, color: DAY.ink, letterSpacing: -0.3 },
   place: { fontSize: 13, color: DAY.muted, marginTop: 3 },
   verified: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, height: 26, borderRadius: 13, backgroundColor: '#EAF3FE' },
@@ -104,4 +105,4 @@ const p = StyleSheet.create({
   km: { fontSize: 13, color: DAY.ink2 },
   about: { fontSize: 13.5, color: DAY.ink2, lineHeight: 20 },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 18, paddingTop: 12, backgroundColor: 'rgba(255,255,255,0.97)', borderTopLeftRadius: 22, borderTopRightRadius: 22 },
-});
+}));

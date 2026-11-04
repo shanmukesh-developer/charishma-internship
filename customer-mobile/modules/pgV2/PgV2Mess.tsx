@@ -12,6 +12,7 @@ import { SLATE } from './PgV2Amenities';
 import { usePgDetail } from './pgV2Data';
 import { useNav, usePgIdFor } from './pgV2Nav';
 import { DAY_KEYS, DAY_SHORT, DAY_LONG, FOOD_TAG_LABEL, fmtRange, istNow, mealsForDay, type DayKey, type FoodTag, type MealSlot, type MessTimetable } from '../../modules/pg/pgApi';
+import { themedSheet } from '../../utils/themeNow';
 
 const TAG_COLOR: Record<'veg' | 'nonveg' | 'egg', string> = { veg: '#15803D', nonveg: '#9A3412', egg: '#B45309' };
 
@@ -122,9 +123,9 @@ export default function PgV2Mess() {
   );
 }
 
-const st = StyleSheet.create({
-  card: { backgroundColor: '#FFFFFF', borderRadius: R.md, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E6E3F5', paddingHorizontal: 14 },
-  hair: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#ECEAF5' },
+const st = themedSheet(() => ({
+  card: { backgroundColor: PG2.card, borderRadius: R.md, borderWidth: StyleSheet.hairlineWidth, borderColor: PG2.line, paddingHorizontal: 14 },
+  hair: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: PG2.line },
   timeRow: { flexDirection: 'row', alignItems: 'center', gap: 14, height: 50 },
   meal: { flex: 1, fontSize: 14, fontWeight: W.label, color: PG2.ink },
   time: { fontSize: 13.5, color: PG2.ink2 },
@@ -134,7 +135,7 @@ const st = StyleSheet.create({
   menuText: { fontSize: 13, color: PG2.ink2, lineHeight: 18 },
   markBox: { width: 12, height: 12, borderWidth: 1.25, borderRadius: 2, alignItems: 'center', justifyContent: 'center' },
   markDot: { width: 5, height: 5, borderRadius: 3 },
-  day: { width: 52, height: 52, borderRadius: R.md, borderWidth: 1, borderColor: PG2.line, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  day: { width: 52, height: 52, borderRadius: R.md, borderWidth: 1, borderColor: PG2.line, backgroundColor: PG2.card, alignItems: 'center', justifyContent: 'center' },
   dayText: { fontSize: 13.5, fontWeight: W.label, color: PG2.ink2 },
   todayDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: PG2.primary, marginTop: 4 },
-});
+}));

@@ -132,7 +132,7 @@ const CAMPUS_SERVICES_MAP: ServicePillar[] = [
     keyFeatures: [
       'Every 2 delivered orders earn a spin',
       'Daily deals give a coupon valid until midnight',
-      '200+ ZENV Points unlock free delivery'
+      'Free delivery at 200 ZENV Points'
     ],
     image: 'https://images.unsplash.com/photo-1596451190630-186aff535bf2?w=600&q=80',
     accentColor: '#EC4899',

@@ -6,8 +6,9 @@
  * and press feedback.
  */
 import { Platform, type ViewStyle } from 'react-native';
+import { themedTokens, type Palette } from '../../utils/themeNow';
 
-export const TV = {
+const TV_LIGHT = {
   /** Header (top -> bottom). */
   header: ['#0F1446', '#171D5E', '#222A7C'] as const,
   /** Hero cards: navy at the text side, fading over the photo. */
@@ -40,6 +41,40 @@ export const TV = {
   onDarkSub: 'rgba(226,229,255,0.82)',
   onDarkFaint: 'rgba(214,218,255,0.62)',
 };
+
+/** Dark (owner, 4 Nov 2026: dark mode left this section white). Header, hero and buttons keep their colours;
+ * the page, rows and text move to the app's dark surfaces. */
+const TV_DARK: Palette<typeof TV_LIGHT> = {
+  header: ['#0F1446', '#171D5E', '#222A7C'],
+  heroInk: '#10154A',
+  page: '#0A0B12',
+  card: '#151726',
+  ink: '#ECEEFF',
+  ink2: '#C6C9E6',
+  sub: '#9A9EBE',
+  faint: '#6B6F8E',
+  line: 'rgba(200,205,255,0.10)',
+  lineSoft: 'rgba(200,205,255,0.06)',
+  accent: '#7B6DF7',
+  accentDeep: '#6A5BEF',
+  accentSoft: '#221E4A',
+  accentLine: 'rgba(123,109,247,0.35)',
+  go: ['#6C5EF6', '#5B4CF0', '#4A3BDB'],
+  plate: '#1C1F3A',
+  plateInk: '#AEB5FF',
+  green: '#3FC48F',
+  greenSoft: '#11291F',
+  amber: '#E6A447',
+  amberSoft: '#33250F',
+  red: '#F06A85',
+  redSoft: '#3A1722',
+  bellDot: '#FF5A7A',
+  onDark: '#FFFFFF',
+  onDarkSub: 'rgba(226,229,255,0.82)',
+  onDarkFaint: 'rgba(214,218,255,0.62)',
+};
+
+export const TV: Palette<typeof TV_LIGHT> = themedTokens<Palette<typeof TV_LIGHT>>(TV_LIGHT, TV_DARK);
 
 export const RADIUS = { sm: 10, md: 14, lg: 18, xl: 22, pill: 999 } as const;
 export const W = { display: '700', title: '600', label: '500', body: '400' } as const;

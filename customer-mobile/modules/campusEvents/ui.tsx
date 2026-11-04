@@ -76,7 +76,7 @@ export function EHeader({ title, subtitle, right, onBack }: { title: string; sub
         onPress={onBack || (() => (router.canGoBack() ? router.back() : router.replace(CE_HOME as any)))}
         style={[st.backBtn, { backgroundColor: p.card2 }]}
       >
-        <Text style={{ fontSize: 22, color: p.text, marginTop: -2 }}>‹</Text>
+        <Ionicons name="chevron-back" size={22} color={p.text} />
       </TouchableOpacity>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={[st.hTitle, { color: p.text }]} numberOfLines={1} accessibilityRole="header">{title}</Text>

@@ -16,6 +16,7 @@ import { StateCard, RideSkeleton } from './CoRideV2States';
 import { useCoRide, shareOf, isOffer, isWomenOnly, isSameGenderOnly, maskVehicle } from './coRideV2Data';
 import { useNav } from './coRideV2Nav';
 import { firstName, inr, vehicleLabel, vibeLabel, genderLabel } from '../../modules/coride/coRideFormat';
+import { themedSheet } from '../../utils/themeNow';
 
 function Stop({ label, place, note, last, kind }: { label: string; place: string; note?: string; last?: boolean; kind: 'from' | 'via' | 'to' }) {
   return (
@@ -167,7 +168,7 @@ export default function CoRideV2RideDetail() {
   );
 }
 
-const st = StyleSheet.create({
+const st = themedSheet(() => ({
   row: { flexDirection: 'row', alignItems: 'center' },
   block: { padding: 16, marginBottom: 12 },
   blockTitle: { fontSize: 15, fontWeight: W.title, color: CR.ink, marginBottom: 10 },
@@ -177,7 +178,7 @@ const st = StyleSheet.create({
   hr: { height: StyleSheet.hairlineWidth * 2, backgroundColor: CR.lineSoft, marginVertical: 14 },
   stop: { flexDirection: 'row' },
   stopRail: { width: 18, alignItems: 'center', paddingTop: 4, marginRight: 10 },
-  dotFrom: { width: 10, height: 10, borderRadius: 5, borderWidth: 2, borderColor: CR.primary, backgroundColor: '#FFFFFF' },
+  dotFrom: { width: 10, height: 10, borderRadius: 5, borderWidth: 2, borderColor: CR.primary, backgroundColor: CR.card },
   dotVia: { width: 8, height: 8, borderRadius: 4, backgroundColor: CR.faint },
   dotTo: { width: 10, height: 10, borderRadius: 5, backgroundColor: CR.primary },
   stopLine: { width: 1.4, flex: 1, backgroundColor: CR.tint2, marginTop: 4 },
@@ -190,4 +191,4 @@ const st = StyleSheet.create({
   price: { fontSize: 22, fontWeight: W.title, color: CR.ink, letterSpacing: -0.3 },
   bar: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: CR.card, paddingHorizontal: GUTTER, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth * 2, borderTopColor: CR.line, ...shadow(2) },
   barPrice: { fontSize: 20, fontWeight: W.title, color: CR.ink },
-});
+}));

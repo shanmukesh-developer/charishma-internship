@@ -38,6 +38,7 @@ import { fromPrice, productDetails, productOptions, useAskOptions } from '../../
 import FormattedDescription, { isStructured } from '../../components/FormattedDescription';
 import { takesSlotOrders } from '../../utils/storeOpenNow';
 import { goHome } from '../../utils/goHome';
+import SymbolIcon from '../../components/SymbolIcon';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -454,7 +455,7 @@ export default function ProductDetailScreen() {
           onPress={goBack}
           accessibilityLabel="Go back"
         >
-          <Text style={{ fontSize: 18, color: isDark ? '#FFF' : '#000' }}>←</Text>
+          <Ionicons name="arrow-back" size={20} color={isDark ? '#FFF' : '#000'} />
         </TouchableOpacity>
         <Ionicons name={isError ? 'cloud-offline-outline' : 'cube-outline'} size={44} color={colors.textSecondary} style={{ marginBottom: 16 }} />
         <Text style={{ fontSize: 18, fontWeight: '900', color: colors.text, letterSpacing: 0.2, textAlign: 'center', marginBottom: 8 }}>
@@ -636,7 +637,7 @@ export default function ProductDetailScreen() {
           {/* Floating Top Nav Actions */}
           <View style={styles.galleryTopNav}>
             <TouchableOpacity style={styles.iconCircleBtn} onPress={goBack} accessibilityLabel="Go back">
-              <Text style={styles.iconCircleText}>‹</Text>
+              <Ionicons name="chevron-back" size={22} color={COLORS.ink} />
             </TouchableOpacity>
 
             <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -906,7 +907,7 @@ export default function ProductDetailScreen() {
                                 updateQuantity(relId, relQty + 1);
                               }}
                             >
-                              <Text style={styles.pairingMiniStepText}>+</Text>
+                              <SymbolIcon name="add" style={styles.pairingMiniStepText} />
                             </TouchableOpacity>
                           </View>
                         )}
@@ -1071,7 +1072,7 @@ export default function ProductDetailScreen() {
               >
                 <LinearGradient colors={['#10B981', '#059669']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.bottomCtaGradient}>
                   <Text style={styles.bottomAddCtaText}>{customizable ? 'Customise and add' : 'Add to basket'}</Text>
-                  <Text style={styles.bottomAddPlusText}>+</Text>
+                  <SymbolIcon name="add" style={styles.bottomAddPlusText} />
                 </LinearGradient>
               </TouchableOpacity>
             ) : (directOrder || isStall) && product.restaurantId ? (
@@ -1131,7 +1132,7 @@ export default function ProductDetailScreen() {
                   updateQuantity(product.id, qty + 1);
                 }}
               >
-                <Text style={styles.activeStepperBtnText}>+</Text>
+                <SymbolIcon name="add" style={styles.activeStepperBtnText} />
               </TouchableOpacity>
             </View>
 
@@ -1148,7 +1149,7 @@ export default function ProductDetailScreen() {
                   <Text style={styles.bottomCartTotalLabel}>{plural(qty, 'item')}</Text>
                   <Text style={styles.bottomCartTotalVal}>{formatINR(qty * (Number(product.price) || 0))}</Text>
                 </View>
-                <Text style={styles.bottomViewCartText}>View basket ›</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}><Text style={styles.bottomViewCartText}>View basket</Text><SymbolIcon name="chevron-forward" style={styles.bottomViewCartText} scale={1} /></View>
               </LinearGradient>
             </TouchableOpacity>
           </>

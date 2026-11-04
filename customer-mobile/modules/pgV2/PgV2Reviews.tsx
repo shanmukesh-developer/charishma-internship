@@ -16,6 +16,7 @@ import { PG2, R, GUTTER, W } from './pgV2Theme';
 import { Tap, PrimaryButton, OutlineButton } from './PgV2Kit';
 import { demoReviews, demoSummary, type DemoReview } from './pgV2Demo';
 import { monthYear, plural, ratingText, type PgDetail, type PgReview, type PgReviewPage, type PgReviewEligibility } from '../pg/pgApi';
+import { themedSheet } from '../../utils/themeNow';
 
 const PAGE = 5;
 const REPORT_REASONS: { value: 'spam' | 'offensive' | 'fake'; label: string; hint: string }[] = [
@@ -28,7 +29,7 @@ const RATING_WORD = ['', 'Poor', 'Below average', 'Average', 'Good', 'Excellent'
 export function Stars({ value, size = 13 }: { value: number; size?: number }) {
   return (
     <View style={{ flexDirection: 'row', gap: 2 }} accessibilityLabel={`${ratingText(value)} out of 5`}>
-      {[1, 2, 3, 4, 5].map((n) => <IStar key={n} size={size} color={n <= Math.round(value) ? PG2.star : '#D9D6EA'} fill={n <= Math.round(value) ? PG2.star : 'transparent'} strokeWidth={1.4} />)}
+      {[1, 2, 3, 4, 5].map((n) => <IStar key={n} size={size} color={n <= Math.round(value) ? PG2.star : PG2.starOff} fill={n <= Math.round(value) ? PG2.star : 'transparent'} strokeWidth={1.4} />)}
     </View>
   );
 }
@@ -86,7 +87,7 @@ function WriteReview({ pgId, onClose, onDone }: { pgId: string; onClose: () => v
       <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
         {[1, 2, 3, 4, 5].map((n) => (
           <Tap key={n} onPress={() => setRating(n)} label={`${n} star${n > 1 ? 's' : ''}`} selected={rating === n} style={{ padding: 4 }}>
-            <IStar size={28} color={n <= rating ? PG2.star : '#D9D6EA'} fill={n <= rating ? PG2.star : 'transparent'} strokeWidth={1.4} />
+            <IStar size={28} color={n <= rating ? PG2.star : PG2.starOff} fill={n <= rating ? PG2.star : 'transparent'} strokeWidth={1.4} />
           </Tap>
         ))}
         <Text style={[st.small, { marginLeft: 6 }]}>{RATING_WORD[rating]}</Text>
@@ -196,23 +197,23 @@ export function ReviewsBlock({ pg }: { pg: PgDetail }) {
   );
 }
 
-const st = StyleSheet.create({
-  summary: { flexDirection: 'row', gap: 18, alignItems: 'center', paddingBottom: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E6E3F5' },
+const st = themedSheet(() => ({
+  summary: { flexDirection: 'row', gap: 18, alignItems: 'center', paddingBottom: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: PG2.line },
   avg: { fontSize: 30, fontWeight: W.title, color: PG2.ink, marginBottom: 2 },
   distRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  track: { flex: 1, height: 5, borderRadius: 3, backgroundColor: '#EEECF7', overflow: 'hidden' },
+  track: { flex: 1, height: 5, borderRadius: 3, backgroundColor: PG2.lineSoft, overflow: 'hidden' },
   fill: { height: 5, borderRadius: 3, backgroundColor: PG2.primary },
-  row: { paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E6E3F5' },
+  row: { paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: PG2.line },
   rowHead: { flexDirection: 'row', justifyContent: 'space-between' },
   name: { fontSize: 14, fontWeight: W.label, color: PG2.ink },
   text: { marginTop: 8, fontSize: 13.5, color: PG2.ink2, lineHeight: 20 },
   small: { fontSize: 12, color: PG2.muted },
-  sampleTag: { fontSize: 11, color: PG2.muted, borderWidth: StyleSheet.hairlineWidth, borderColor: '#D9D6EA', borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
+  sampleTag: { fontSize: 11, color: PG2.muted, borderWidth: StyleSheet.hairlineWidth, borderColor: PG2.line, borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
   reportBtn: { alignSelf: 'flex-end', minHeight: 32, justifyContent: 'center' },
   scrim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,16,60,0.35)' },
-  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: '#FFFFFF', borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: GUTTER + 4 },
+  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: PG2.card, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: GUTTER + 4 },
   sheetTitle: { fontSize: 17, fontWeight: W.title, color: PG2.ink, marginBottom: 12 },
-  input: { marginTop: 12, minHeight: 110, borderRadius: R.md, borderWidth: 1, borderColor: '#E6E3F5', padding: 12, fontSize: 14, color: PG2.ink, textAlignVertical: 'top' },
+  input: { marginTop: 12, minHeight: 110, borderRadius: R.md, borderWidth: 1, borderColor: PG2.line, padding: 12, fontSize: 14, color: PG2.ink, textAlignVertical: 'top' },
   reason: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 60, paddingVertical: 10 },
-  hair: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#ECEAF5' },
-});
+  hair: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: PG2.line },
+}));

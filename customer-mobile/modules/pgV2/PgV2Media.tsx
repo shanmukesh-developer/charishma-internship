@@ -14,6 +14,7 @@ import { PG2, R, GUTTER, W } from './pgV2Theme';
 import { Tap, Photo } from './PgV2Kit';
 import type { V2Photo } from './pgV2Photos';
 import type { PgVideo } from '../pg/pgApi';
+import { themedSheet } from '../../utils/themeNow';
 
 export function PhotoViewer({ photos, index, onClose }: { photos: V2Photo[]; index: number; onClose: () => void }) {
   const { width, height } = useWindowDimensions();
@@ -106,7 +107,7 @@ export function ToursRow({ videos }: { videos: PgVideo[] }) {
   );
 }
 
-const st = StyleSheet.create({
+const st = themedSheet(() => ({
   viewer: { flex: 1, backgroundColor: '#0B0A14' },
   viewerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: GUTTER, zIndex: 2 },
   viewerCount: { color: 'rgba(255,255,255,0.85)', fontSize: 13.5, fontWeight: W.label, flex: 1 },
@@ -118,4 +119,4 @@ const st = StyleSheet.create({
   tourTitle: { marginTop: 8, fontSize: 13.5, fontWeight: W.label, color: PG2.ink },
   openYt: { alignSelf: 'center', marginTop: 18, minHeight: 44, justifyContent: 'center', paddingHorizontal: 16 },
   openYtText: { color: '#FFFFFF', fontSize: 14, fontWeight: W.label },
-});
+}));

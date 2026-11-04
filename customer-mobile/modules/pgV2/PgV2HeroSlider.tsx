@@ -7,6 +7,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Animated, Easing, AccessibilityInfo, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
 import type { V2Photo } from './pgV2Photos';
+import { themedSheet } from '../../utils/themeNow';
 
 const HOLD_MS = 2600;
 const FADE_MS = 900;
@@ -59,8 +60,8 @@ export function HeroDots({ count, index }: { count: number; index: number }) {
   );
 }
 
-const st = StyleSheet.create({
+const st = themedSheet(() => ({
   dots: { flexDirection: 'row', gap: 6, marginTop: 14 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.4)' },
   dotOn: { width: 18, backgroundColor: '#FFFFFF' },
-});
+}));

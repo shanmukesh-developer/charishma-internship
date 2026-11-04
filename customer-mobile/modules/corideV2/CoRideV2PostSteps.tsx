@@ -11,6 +11,7 @@ import { Chip, Tap, Segmented } from './CoRideV2Kit';
 import { IMapPin, ISwap, IBike, ICarSide, IMinus, IPlus, IAlert, IKey, IUser, STROKE } from './CoRideV2Icons';
 import { FROM_PICKS, TO_PICKS, maxSeatsFor } from './coRideV2Data';
 import { inr } from '../../modules/coride/coRideFormat';
+import { themedSheet } from '../../utils/themeNow';
 
 export type Draft = {
   role: 'rider' | 'passenger'; from: string; to: string; day: number; slot: string | null;
@@ -192,7 +193,7 @@ export function StepPrefs({ dr, set }: { dr: Draft; set: (p: Partial<Draft>) => 
   );
 }
 
-export const st = StyleSheet.create({
+export const st = themedSheet(() => ({
   labelRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 18, marginBottom: 8 },
   label: { fontSize: 14, fontWeight: W.label, color: CR.ink },
   hint: { fontSize: 12.5, color: CR.muted, flexShrink: 1, textAlign: 'right', marginLeft: 8 },
@@ -219,4 +220,4 @@ export const st = StyleSheet.create({
   stepVal: { fontSize: 20, fontWeight: W.title, color: CR.ink, minWidth: 24, textAlign: 'center' },
   readout: { backgroundColor: CR.tint, borderRadius: R.lg, padding: 16, marginTop: 4 },
   readoutBig: { fontSize: 26, fontWeight: W.title, color: CR.primaryDeep, letterSpacing: -0.4 },
-});
+}));

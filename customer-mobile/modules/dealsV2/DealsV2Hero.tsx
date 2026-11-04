@@ -14,6 +14,7 @@ import { Podium } from './DealsV2Decor';
 import { PrizeWheel, WheelDisk } from './DealsV2Wheel';
 import { IArrowRight, ICrown } from './DealsV2Icons';
 import { ORDERS_PER_SPIN, type Prize } from './dealsV2Data';
+import { themedSheet } from '../../utils/themeNow';
 
 /** The still wheel on its podium (hero). */
 export function WheelStage({ prizes, width, labels }: { prizes: Prize[]; width: number; labels?: boolean }) {
@@ -76,7 +77,7 @@ export function Hero({ prizes, spinsLeft, signedIn, onWheel }: { prizes: Prize[]
   );
 }
 
-const s = StyleSheet.create({
+const s = themedSheet(() => ({
   wrap: { marginHorizontal: 16, marginTop: 16, borderRadius: 26 },
   card: { borderRadius: 26, overflow: 'hidden', paddingLeft: 18, paddingRight: 12, paddingTop: 18, paddingBottom: 18, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.24)' },
   row: { flexDirection: 'row', alignItems: 'center' },
@@ -84,9 +85,9 @@ const s = StyleSheet.create({
   eyebrowText: { color: '#FFFFFF', fontSize: 10.5, fontWeight: W.title, letterSpacing: 1.4 },
   h1: { color: '#FFFFFF', fontWeight: W.display, letterSpacing: -0.3, marginTop: 12 },
   body: { color: 'rgba(240,236,255,0.9)', lineHeight: 18, marginTop: 6 },
-  pill: { flexDirection: 'row', alignItems: 'center', gap: 7, alignSelf: 'flex-start', height: 40, paddingLeft: 8, paddingRight: 14, borderRadius: 20, backgroundColor: '#FFFFFF', marginTop: 14 },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 7, alignSelf: 'flex-start', height: 40, paddingLeft: 8, paddingRight: 14, borderRadius: 20, backgroundColor: DV.card, marginTop: 14 },
   pillWheel: { width: 24, height: 24, borderRadius: 12, backgroundColor: DV.violetSoft, alignItems: 'center', justifyContent: 'center' },
   pillText: { color: DV.violetDeep, fontSize: 13.5, fontWeight: W.title },
-  badge: { position: 'absolute', top: -2, left: 0, paddingHorizontal: 8, height: 22, borderRadius: 11, backgroundColor: '#FFFFFF', justifyContent: 'center' },
+  badge: { position: 'absolute', top: -2, left: 0, paddingHorizontal: 8, height: 22, borderRadius: 11, backgroundColor: DV.card, justifyContent: 'center' },
   badgeText: { color: DV.violetDeep, fontSize: 11, fontWeight: W.title },
-});
+}));

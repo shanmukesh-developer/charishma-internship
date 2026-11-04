@@ -18,6 +18,7 @@ import { lastOffer, offeredSeats, timeOfRide, clock12 } from './coRideV2Regular'
 import { useCoRide, maxSeatsFor, isOffer } from './coRideV2Data';
 import { useNav } from './coRideV2Nav';
 import { inr, sameDestination, vibeLabel } from '../../modules/coride/coRideFormat';
+import { themedSheet } from '../../utils/themeNow';
 
 const STEPS = ['Route', 'Date and time', 'Vehicle and seats', 'Price per seat', 'Preferences', 'Review'];
 const median = (xs: number[]) => { const s = [...xs].sort((a, b) => a - b); return s.length ? s[Math.floor(s.length / 2)] : 0; };
@@ -153,7 +154,7 @@ export default function CoRideV2Post() {
   );
 }
 
-const st = StyleSheet.create({
+const st = themedSheet(() => ({
   progress: { flexDirection: 'row', gap: 4, paddingHorizontal: GUTTER, paddingBottom: 6, backgroundColor: CR.page },
   seg: { flex: 1, height: 3, borderRadius: 2, backgroundColor: CR.line },
   segOn: { backgroundColor: CR.primary },
@@ -165,4 +166,4 @@ const st = StyleSheet.create({
   editText: { fontSize: 13.5, color: CR.primary, fontWeight: W.label },
   barRow: { flexDirection: 'row', gap: 10 },
   bar: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: CR.card, paddingHorizontal: GUTTER, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth * 2, borderTopColor: CR.line },
-});
+}));

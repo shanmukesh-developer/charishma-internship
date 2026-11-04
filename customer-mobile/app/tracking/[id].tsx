@@ -38,6 +38,7 @@ import { useServiceability } from '../../context/CartContext';
 import { orderSlotLabel, istClockLabel as formatSlotClock } from '../../utils/deliverySlots';
 import { useTopInset } from '../../utils/useTopInset';
 import { goHome } from '../../utils/goHome';
+import SymbolIcon from '../../components/SymbolIcon';
 
 
 /**
@@ -672,7 +673,7 @@ export default function TrackingScreen() {
     return (
       <View style={[s.container, { backgroundColor: bg, justifyContent: 'center', alignItems: 'center', padding: 24 }]}>
         <View style={s.cancelledCircle}>
-          <Text style={{ fontSize: 32, color: COLORS.red }}>✕</Text>
+          <SymbolIcon name="close" style={{ fontSize: 32, color: COLORS.red }} />
         </View>
         <Text style={[s.cancelledTitle, { color: txt }]}>Order cancelled</Text>
         {!!reasonText && !cancelMessage && (
@@ -715,7 +716,7 @@ export default function TrackingScreen() {
           accessibilityRole="button"
           accessibilityLabel="Back"
         >
-          <Text style={{ color: txt, fontSize: 18, fontWeight: 'bold' }}>‹</Text>
+          <Ionicons name="chevron-back" size={20} color={txt} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={[s.headerTitle, { color: txt }]}>Order tracking</Text>
@@ -751,7 +752,7 @@ export default function TrackingScreen() {
               </TouchableOpacity>
             )}
             <TouchableOpacity onPress={() => setGateNotification(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel="Dismiss">
-              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>✕</Text>
+              <SymbolIcon name="close" style={{ color: '#fff', fontSize: 14, fontWeight: '700' }} />
             </TouchableOpacity>
           </View>
         )}
@@ -1076,7 +1077,7 @@ export default function TrackingScreen() {
                 <Text style={[s.rateCtaTitle, { color: txt }]}>How was your order?</Text>
                 <Text style={[s.rateCtaSub, { color: txtSec }]}>Rate it and earn 10 points</Text>
               </View>
-              <Text style={{ fontSize: 16, color: COLORS.gold, fontWeight: '700' }}>›</Text>
+              <Ionicons name="chevron-forward" size={16} color={COLORS.gold} />
             </TouchableOpacity>
           </StaggeredSection>
         )}
@@ -1204,7 +1205,7 @@ export default function TrackingScreen() {
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 4 }}>
                 <Text style={[s.ratingModalTitle, { color: txt, marginBottom: 0 }]}>Rate your order</Text>
                 <TouchableOpacity onPress={() => setShowRatingModal(false)} style={{ padding: 4 }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel="Close">
-                  <Text style={{ fontSize: 18, color: txtSec, fontWeight: '600' }}>✕</Text>
+                  <SymbolIcon name="close" style={{ fontSize: 18, color: txtSec, fontWeight: '600' }} />
                 </TouchableOpacity>
               </View>
               <Text style={[s.ratingModalDesc, { color: txtSec }]}>

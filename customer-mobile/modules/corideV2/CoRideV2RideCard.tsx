@@ -12,6 +12,7 @@ import { Tap, Avatar, Pill, SeatDots, PrimaryButton } from './CoRideV2Kit';
 import { IChevronRight, IBike, ICarSide, IUsers, IShield, STROKE } from './CoRideV2Icons';
 import { fmtRideWhen, fmtClock12, inr, firstName, vehicleLabel } from '../../modules/coride/coRideFormat';
 import { shareOf, isWomenOnly, isSameGenderOnly, isOffer, maskVehicle, type Ride } from './coRideV2Data';
+import { themedSheet } from '../../utils/themeNow';
 
 export const whenOf = (ride: Ride) => {
   const d = new Date(ride?.departureTime);
@@ -134,17 +135,17 @@ export function ResultRideCard({ ride, status, busy, onOpen, onRequest, onOpenMi
   );
 }
 
-const st = StyleSheet.create({
+const st = themedSheet(() => ({
   row: { flexDirection: 'row', alignItems: 'center' },
   card: { backgroundColor: CR.card, borderRadius: R.lg, marginBottom: 12, ...shadow(1) },
   nearby: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingLeft: 12, paddingRight: 6 },
   nearLeft: { width: 98, paddingRight: 6 },
-  openSeat: { width: 28, height: 28, borderRadius: 14, marginLeft: -6, borderWidth: 1.4, borderStyle: 'dashed', borderColor: CR.faint, backgroundColor: '#FFFFFF' },
+  openSeat: { width: 28, height: 28, borderRadius: 14, marginLeft: -6, borderWidth: 1.4, borderStyle: 'dashed', borderColor: CR.faint, backgroundColor: CR.card },
   vDivider: { width: StyleSheet.hairlineWidth * 2, alignSelf: 'stretch', backgroundColor: CR.lineSoft },
   nearRight: { alignItems: 'flex-end', paddingLeft: 8, paddingRight: 2, width: 90 },
   rail: { flexDirection: 'row' },
   railCol: { width: 14, alignItems: 'center', paddingTop: 5, marginRight: 8 },
-  dotFrom: { width: 8, height: 8, borderRadius: 4, borderWidth: 1.6, borderColor: CR.primary, backgroundColor: '#FFFFFF' },
+  dotFrom: { width: 8, height: 8, borderRadius: 4, borderWidth: 1.6, borderColor: CR.primary, backgroundColor: CR.card },
   railLine: { width: 1.2, flex: 1, backgroundColor: CR.tint2, marginVertical: 3 },
   dotTo: { width: 8, height: 8, borderRadius: 4, backgroundColor: CR.primary, marginBottom: 6 },
   place: { fontSize: 13.5, color: CR.ink, fontWeight: W.label },
@@ -158,4 +159,4 @@ const st = StyleSheet.create({
   hr: { height: StyleSheet.hairlineWidth * 2, backgroundColor: CR.lineSoft, marginVertical: 12 },
   statusRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 40 },
   link: { fontSize: 13.5, color: CR.primary, fontWeight: W.label },
-});
+}));

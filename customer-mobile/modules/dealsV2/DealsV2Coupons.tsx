@@ -20,6 +20,7 @@ import { ICheck, ICopy, IInfo, ITicketPercent, ITruck } from './DealsV2Icons';
 import { useApplyCoupon } from './DealsV2Sheets';
 import { couponMin, couponTitle, useCouponHistory, useDeals } from './dealsV2Data';
 import { useNav } from './dealsV2Nav';
+import { themedSheet } from '../../utils/themeNow';
 
 type Tab = 'active' | 'used' | 'expired';
 
@@ -155,25 +156,25 @@ export function CouponDetail({ code }: { code: string }) {
   );
 }
 
-const s = StyleSheet.create({
+const s = themedSheet(() => ({
   foot: { fontSize: 12, color: DV.faint, textAlign: 'center', marginTop: 6 },
   tabs: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 14 },
-  tab: { flex: 1, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: DV.line },
+  tab: { flex: 1, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: DV.card, borderWidth: 1, borderColor: DV.line },
   tabOn: { backgroundColor: DV.violet, borderColor: DV.violet },
   tabText: { fontSize: 13.5, fontWeight: W.label, color: DV.sub },
   tabTextOn: { color: '#FFFFFF' },
   hero: { flexDirection: 'row', alignItems: 'center', padding: 20, borderRadius: 24, overflow: 'hidden', minHeight: 120 },
   heroTitle: { color: '#FFFFFF', fontSize: 24, fontWeight: W.display, letterSpacing: -0.3 },
   heroSub: { color: 'rgba(242,238,255,0.9)', fontSize: 13, marginTop: 4 },
-  code: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14, height: 62, paddingHorizontal: 16, borderRadius: 18, borderWidth: 1.4, borderStyle: 'dashed', borderColor: DV.violetLine, backgroundColor: '#FFFFFF' },
+  code: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14, height: 62, paddingHorizontal: 16, borderRadius: 18, borderWidth: 1.4, borderStyle: 'dashed', borderColor: DV.violetLine, backgroundColor: DV.card },
   codeLabel: { fontSize: 11.5, color: DV.sub },
   codeText: { fontSize: 18, fontWeight: W.title, color: DV.ink, letterSpacing: 0.8 },
   copy: { fontSize: 13.5, fontWeight: W.label, color: DV.violet },
-  terms: { marginTop: 14, padding: 16, borderRadius: 20, backgroundColor: '#FFFFFF', borderWidth: StyleSheet.hairlineWidth, borderColor: DV.line },
+  terms: { marginTop: 14, padding: 16, borderRadius: 20, backgroundColor: DV.card, borderWidth: StyleSheet.hairlineWidth, borderColor: DV.line },
   termsTitle: { fontSize: 15.5, fontWeight: W.title, color: DV.ink, marginBottom: 4 },
   term: { flexDirection: 'row', gap: 10, marginTop: 8, alignItems: 'flex-start' },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: DV.violet, marginTop: 7 },
   termText: { flex: 1, fontSize: 13.5, color: DV.ink, lineHeight: 19 },
   note: { flexDirection: 'row', gap: 8, marginTop: 14, paddingHorizontal: 4 },
   noteText: { flex: 1, fontSize: 12.5, color: DV.sub, lineHeight: 18 },
-});
+}));

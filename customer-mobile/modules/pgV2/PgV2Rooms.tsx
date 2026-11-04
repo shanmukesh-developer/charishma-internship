@@ -14,6 +14,7 @@ import { usePgV2, usePgDetail, usePgDetails, gKey, roomTypeName, sharingFilterKe
 import { useNav } from './pgV2Nav';
 import { rentText } from './pgV2Data';
 import type { PgDetail, PgRoomType } from '../../modules/pg/pgApi';
+import { themedSheet } from '../../utils/themeNow';
 
 type TypeFilter = 'all' | 'single' | 'double' | 'triple' | 'dorm';
 const TYPE_LABEL: Record<TypeFilter, string> = { all: 'All Types', single: 'Single', double: 'Double', triple: 'Triple', dorm: 'Dormitory' };
@@ -103,7 +104,7 @@ export default function PgV2Rooms() {
   );
 }
 
-const st = StyleSheet.create({
+const st = themedSheet(() => ({
   card: { flexDirection: 'row', gap: 14, padding: 12, alignItems: 'flex-start' },
   title: { fontSize: 15, fontWeight: W.title, color: PG2.ink },
   rent: { marginTop: 5, fontSize: 15, fontWeight: W.title, color: PG2.ink2 },
@@ -112,4 +113,4 @@ const st = StyleSheet.create({
   pg: { marginTop: 3, fontSize: 12, color: PG2.lavenderInk },
   full: { position: 'absolute', right: 12, bottom: 14 },
   scope: { paddingHorizontal: GUTTER, fontSize: 13.5, color: PG2.muted, marginTop: -4 },
-});
+}));

@@ -5,8 +5,9 @@
  * 500, body 400). No ALL CAPS except the one small "ZCS REWARDS" eyebrow the reference shows. Nothing loops.
  */
 import { Platform, type ViewStyle } from 'react-native';
+import { themedTokens, type Palette } from '../../utils/themeNow';
 
-export const DV = {
+const DV_LIGHT = {
   /** Header (top -> bottom). */
   header: ['#1C0E5A', '#2A1670', '#36208E'] as const,
   page: '#F5F3FF',
@@ -50,6 +51,49 @@ export const DV = {
   nightInk: '#FFFFFF',
   nightSub: 'rgba(232,226,255,0.78)',
 };
+
+/** Dark (owner, 4 Nov 2026: dark mode left this section white). Header, hero, gold and buttons keep their colours;
+ * the page, cards, tints and text move to dark surfaces. */
+const DV_DARK: Palette<typeof DV_LIGHT> = {
+  header: ['#1C0E5A', '#2A1670', '#36208E'],
+  page: '#0B0918',
+  pageDeep: '#120E26',
+  card: '#17132B',
+  line: 'rgba(190,170,255,0.12)',
+  lineSoft: 'rgba(190,170,255,0.07)',
+  ink: '#EFEBFF',
+  sub: '#B1AAD3',
+  faint: '#7F79A3',
+  violet: '#8D63F7',
+  violetDeep: '#7B52F0',
+  violetSoft: '#241A4A',
+  violetLine: 'rgba(141,99,247,0.35)',
+  hero: ['#7B4DF2', '#5A2FD6', '#3A1A9E'],
+  gold: '#F6C453',
+  goldDeep: '#D99A1E',
+  goldPill: ['#FFE08A', '#F6C453', '#E8A92A'],
+  goldInk: '#4A2A00',
+  cream: ['#2C2312', '#3A2C12'],
+  creamLine: 'rgba(246,196,83,0.30)',
+  creamInk: '#F6C453',
+  lavender: ['#1E1840', '#271E55'],
+  lavenderLine: 'rgba(141,99,247,0.30)',
+  go: ['#8D63F7', '#6D3FE6', '#5528CF'],
+  green: '#3FCB94',
+  greenSoft: '#10291E',
+  amber: '#E6A447',
+  amberSoft: '#33250F',
+  red: '#F06A85',
+  redSoft: '#3A1722',
+  sample: '#E8C46A',
+  sampleSoft: '#30260F',
+  bellDot: '#FF5A7A',
+  night: ['#2A1677', '#1B0F52', '#120A3A'],
+  nightInk: '#FFFFFF',
+  nightSub: 'rgba(232,226,255,0.78)',
+};
+
+export const DV: Palette<typeof DV_LIGHT> = themedTokens<Palette<typeof DV_LIGHT>>(DV_LIGHT, DV_DARK);
 
 export const RADIUS = { sm: 10, md: 14, lg: 18, xl: 22, pill: 999 } as const;
 export const W = { display: '700', title: '600', label: '500', body: '400' } as const;

@@ -17,6 +17,7 @@ import { usePgDetail, roomTypeName, bedsText, bathText } from './pgV2Data';
 import { useNav, usePgIdFor } from './pgV2Nav';
 import { rentText } from './pgV2Data';
 import type { PgDetail, PgRoomType } from '../../modules/pg/pgApi';
+import { themedSheet } from '../../utils/themeNow';
 
 const titleOf = (t: PgRoomType) => {
   const n = roomTypeName(t.sharingType);
@@ -105,18 +106,18 @@ export default function PgV2RoomDetail() {
   );
 }
 
-const st = StyleSheet.create({
-  page: { flex: 1, backgroundColor: '#FFFFFF' },
+const st = themedSheet(() => ({
+  page: { flex: 1, backgroundColor: PG2.card },
   float: { position: 'absolute', left: GUTTER, right: GUTTER, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  floatTitle: { backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: 999, paddingHorizontal: 14, height: 34, justifyContent: 'center' },
+  floatTitle: { backgroundColor: PG2.card, borderRadius: 999, paddingHorizontal: 14, height: 34, justifyContent: 'center' },
   floatTitleText: { fontSize: 14.5, fontWeight: W.title, color: PG2.ink },
   tag: { position: 'absolute', left: GUTTER, bottom: 36, backgroundColor: 'rgba(241,239,254,0.92)', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5 },
   tagText: { fontSize: 12, fontWeight: W.label, color: PG2.lavenderInk },
-  sheet: { marginTop: -22, borderTopLeftRadius: 22, borderTopRightRadius: 22, backgroundColor: '#FFFFFF', paddingHorizontal: GUTTER, paddingTop: 20 },
+  sheet: { marginTop: -22, borderTopLeftRadius: 22, borderTopRightRadius: 22, backgroundColor: PG2.card, paddingHorizontal: GUTTER, paddingTop: 20 },
   title: { fontSize: 19, fontWeight: W.title, color: PG2.ink, letterSpacing: -0.2 },
   rent: { marginTop: 6, fontSize: 17, fontWeight: W.title, color: PG2.ink },
   unit: { fontSize: 14, fontWeight: W.body, color: PG2.ink2 },
   facts: { fontSize: 13, color: PG2.muted },
   thumb: { borderRadius: 12, borderWidth: 2, borderColor: 'transparent', overflow: 'hidden' },
-  bar: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: GUTTER, paddingTop: 12, backgroundColor: 'rgba(255,255,255,0.97)', ...shadow(2) },
-});
+  bar: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: GUTTER, paddingTop: 12, backgroundColor: PG2.card, ...shadow(2) },
+}));

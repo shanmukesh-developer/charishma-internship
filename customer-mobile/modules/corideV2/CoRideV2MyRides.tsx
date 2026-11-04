@@ -16,6 +16,7 @@ import { RideSkeleton, StateCard, NetState } from './CoRideV2States';
 import { useCoRide, type Ride } from './coRideV2Data';
 import { useNav } from './coRideV2Nav';
 import { myRideInfo, firstName } from '../../modules/coride/coRideFormat';
+import { themedSheet } from '../../utils/themeNow';
 
 const toneOf = (t: string): Tone => (t === 'success' ? 'green' : t === 'warning' ? 'amber' : 'neutral');
 const openWhatsApp = (phone: any) => {
@@ -156,7 +157,7 @@ export default function CoRideV2MyRides() {
   );
 }
 
-const st = StyleSheet.create({
+const st = themedSheet(() => ({
   row: { flexDirection: 'row', alignItems: 'center' },
   card: { backgroundColor: CR.card, borderRadius: R.lg, padding: 14, marginBottom: 12, ...shadow(1) },
   when: { fontSize: 15, fontWeight: W.title, color: CR.ink },
@@ -169,4 +170,4 @@ const st = StyleSheet.create({
   tabs: { flexDirection: 'row', gap: 8, marginTop: 14, marginBottom: 12 },
   regRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: CR.tint, borderRadius: R.md, paddingHorizontal: 14, minHeight: 48, marginBottom: 12 },
   regText: { flex: 1, fontSize: 14, color: CR.primaryDeep, fontWeight: W.label },
-});
+}));

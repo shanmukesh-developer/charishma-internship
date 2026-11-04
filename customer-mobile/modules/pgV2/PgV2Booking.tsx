@@ -19,6 +19,7 @@ import { ZENVY_SUPPORT_WHATSAPP } from '../../constants/api';
 import PgV2SentSheet from './PgV2SentSheet';
 import { rentText } from './pgV2Data';
 import { inr, type PgRoomType } from '../../modules/pg/pgApi';
+import { themedSheet } from '../../utils/themeNow';
 
 const istYmd = (offsetDays: number) => new Date(Date.now() + 330 * 60 * 1000 + offsetDays * 86400000).toISOString().slice(0, 10);
 const fmtPart = (ymd: string, o: Intl.DateTimeFormatOptions) => new Date(`${ymd}T00:00:00Z`).toLocaleDateString('en-IN', { ...o, timeZone: 'UTC' });
@@ -159,15 +160,15 @@ export default function PgV2Booking() {
   );
 }
 
-const st = StyleSheet.create({
+const st = themedSheet(() => ({
   page: { flex: 1, backgroundColor: PG2.page },
-  banner: { flexDirection: 'row', alignItems: 'center', gap: 14, marginHorizontal: GUTTER, marginTop: 6, marginBottom: 18, padding: 16, borderRadius: 14, backgroundColor: '#FFFFFF', borderWidth: StyleSheet.hairlineWidth, borderColor: '#E6E3F5' },
+  banner: { flexDirection: 'row', alignItems: 'center', gap: 14, marginHorizontal: GUTTER, marginTop: 6, marginBottom: 18, padding: 16, borderRadius: 14, backgroundColor: PG2.card, borderWidth: StyleSheet.hairlineWidth, borderColor: PG2.line },
   bannerTitle: { fontSize: 15, lineHeight: 22, fontWeight: W.label, color: PG2.ink },
   bannerSub: { marginTop: 4, fontSize: 12.5, color: PG2.muted },
   field: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
   fieldIcon: { width: 24, alignItems: 'center', marginTop: 2 },
   fieldLabel: { fontSize: 14, fontWeight: W.label, color: PG2.ink, marginBottom: 8 },
-  select: { height: 50, borderRadius: R.md, borderWidth: 1, borderColor: PG2.line, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, gap: 8 },
+  select: { height: 50, borderRadius: R.md, borderWidth: 1, borderColor: PG2.line, backgroundColor: PG2.card, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, gap: 8 },
   selectText: { flex: 1, fontSize: 14, color: PG2.ink },
   summary: { padding: 16, gap: 10, marginLeft: 36 },
   sumRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -175,8 +176,8 @@ const st = StyleSheet.create({
   error: { flexDirection: 'row', gap: 8, alignItems: 'center', backgroundColor: PG2.redSoft, borderRadius: R.md, padding: 12, marginLeft: 36 },
   bar: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: GUTTER, paddingTop: 12, backgroundColor: 'rgba(250,250,254,0.97)', ...shadow(2) },
   scrim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,16,60,0.35)' },
-  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: '#FFFFFF', borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingTop: 18, paddingHorizontal: 12 },
+  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: PG2.card, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingTop: 18, paddingHorizontal: 12 },
   sheetTitle: { fontSize: 16, fontWeight: W.title, color: PG2.ink, paddingHorizontal: 8, marginBottom: 8 },
   option: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 52, paddingHorizontal: 12, borderRadius: R.md },
   optionText: { fontSize: 14.5, color: PG2.ink, fontWeight: W.label },
-});
+}));

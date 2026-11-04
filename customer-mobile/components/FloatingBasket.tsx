@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SHADOWS } from '../constants/theme';
 import { useCartState, useCartTotalItems, type BasketKind } from '../context/CartContext';
 import BasketFabIcon from './BasketFabIcon';
@@ -46,7 +47,7 @@ export const FloatingBasketBar = React.memo(function FloatingBasketBar({ isDark,
         </View>
         <View style={[s.floatingCartCta, { backgroundColor: isDark ? COLORS.gold : COLORS.red }]}>
           <Text style={[s.floatingCartCtaText, { color: isDark ? '#000' : '#FFF' }]}>View basket</Text>
-          <Text style={{ fontSize: 14, color: isDark ? '#000' : '#FFF', fontWeight: '700' }}>›</Text>
+          <Ionicons name="chevron-forward" size={15} color={isDark ? '#000' : '#FFF'} />
         </View>
       </TouchableOpacity>
     </View>

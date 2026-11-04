@@ -19,6 +19,7 @@ import { RideSkeleton, StateCard, NetState } from './CoRideV2States';
 import { useCoRide, KARMA_PER_RIDE, isOffer } from './coRideV2Data';
 import { useNav } from './coRideV2Nav';
 import { inr, fmtClock12 } from '../../modules/coride/coRideFormat';
+import { themedSheet } from '../../utils/themeNow';
 
 type Tab = 'lift' | 'give' | 'mine';
 const range = (r: { min: number; max: number } | null) => (r ? (r.min === r.max ? inr(r.min) : `${inr(r.min)}–${inr(r.max)}`) : null);
@@ -30,7 +31,7 @@ function ServiceCard({ title, body, art, ratio, price, badge, tone, onPress, wid
   const artW = width - 24;
   return (
     <Tap onPress={onPress} label={`${title}. ${body}${price ? `. ${price}` : ''}`} style={[st.service, { width, borderColor: blue ? '#CFE0FB' : CR.mintLine }]}>
-      <LinearGradient colors={blue ? ['#FFFFFF', '#EEF4FE'] : ['#FFFFFF', '#E9F7F1']} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
+      <LinearGradient colors={blue ? [CR.card, CR.tint] : [CR.card, CR.mint]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
       {badge ? <View style={st.badge}><Text style={st.badgeText}>{badge}</Text></View> : null}
       <View style={{ height: Math.min(84, artW / Math.max(1.3, ratio) + 6), justifyContent: 'flex-end', alignItems: 'center', marginTop: 8 }}>
         {art ? <Image source={art} style={{ width: Math.min(artW, 84 * ratio), height: Math.min(84, artW / ratio) }} contentFit="contain" accessibilityElementsHidden /> : <PoolIcons />}
@@ -62,15 +63,15 @@ function PoolIcons() {
 function QuickCard({ solid, title, body, icon: Icon, badge: Badge, onPress, width, status }: { solid: boolean; title: string; body: string; icon: any; badge?: any; onPress: () => void; width: number; status?: { text: string; done: boolean } | null }) {
   return (
     <Tap onPress={onPress} label={`${title} ${body}`} style={[st.quick, { width }]}>
-      <LinearGradient colors={solid ? ['#2F7BF5', '#1D4ED8'] : ['#EEF4FE', '#DCE8FD']} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-      <View style={[st.quickIcon, { backgroundColor: solid ? 'rgba(255,255,255,0.16)' : '#FFFFFF', borderColor: solid ? 'rgba(255,255,255,0.28)' : CR.tint2 }]}>
+      <LinearGradient colors={solid ? ['#2F7BF5', '#1D4ED8'] : [CR.tint, CR.tint2]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
+      <View style={[st.quickIcon, { backgroundColor: solid ? 'rgba(255,255,255,0.16)' : CR.card, borderColor: solid ? 'rgba(255,255,255,0.28)' : CR.tint2 }]}>
         <Icon size={24} color={solid ? '#FFFFFF' : CR.primary} strokeWidth={STROKE} />
         {Badge ? <View style={[st.quickBadge, { backgroundColor: solid ? CR.primaryDeep : CR.primary }]}><Badge size={12} color="#FFFFFF" strokeWidth={1.8} /></View> : null}
       </View>
       <Text style={[st.quickTitle, { color: solid ? '#FFFFFF' : CR.primaryDeep }]} numberOfLines={1}>{title}</Text>
       <Text style={[st.quickBody, { color: solid ? 'rgba(255,255,255,0.88)' : CR.ink2 }]} numberOfLines={2}>{body}</Text>
       {status ? <View style={[st.row, { gap: 4, marginTop: 6 }]}>{status.done ? <ICheckCircle size={13} color={CR.green} strokeWidth={1.8} /> : null}<Text style={[st.quickStatus, { color: status.done ? CR.green : CR.primary }]} numberOfLines={1}>{status.text}</Text></View> : null}
-      <View style={[st.quickArrow, { backgroundColor: '#FFFFFF' }]}><IArrowRight size={17} color={CR.primary} strokeWidth={1.8} /></View>
+      <View style={[st.quickArrow, { backgroundColor: CR.card }]}><IArrowRight size={17} color={CR.primary} strokeWidth={1.8} /></View>
     </Tap>
   );
 }
@@ -186,7 +187,7 @@ export function CoRideV2HomeBody() {
   );
 }
 
-const st = StyleSheet.create({
+const st = themedSheet(() => ({
   topBg: { position: 'absolute', left: 0, right: 0, top: 0, height: 360 },
   pad: { paddingHorizontal: GUTTER },
   services: { flexDirection: 'row', gap: 12, marginTop: 14 },
@@ -202,13 +203,13 @@ const st = StyleSheet.create({
   quickRow: { flexDirection: 'row', gap: 12 },
   quick: { borderRadius: R.lg, minHeight: 132, padding: 14, paddingRight: 48, overflow: 'hidden' },
   quickIcon: { width: 46, height: 46, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  quickBadge: { position: 'absolute', right: -5, bottom: -5, width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#FFFFFF' },
+  quickBadge: { position: 'absolute', right: -5, bottom: -5, width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: CR.card },
   quickTitle: { fontSize: 15, fontWeight: W.title, letterSpacing: -0.2 },
   quickBody: { marginTop: 3, fontSize: 12, lineHeight: 16.5 },
   quickStatus: { fontSize: 12, fontWeight: W.label },
   row: { flexDirection: 'row', alignItems: 'center' },
   poolIcons: { width: 120, height: 72, alignItems: 'center', justifyContent: 'center' },
-  poolDisc: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: CR.tint2, alignItems: 'center', justifyContent: 'center' },
+  poolDisc: { backgroundColor: CR.card, borderWidth: 1, borderColor: CR.tint2, alignItems: 'center', justifyContent: 'center' },
   poolSmall: { position: 'absolute', bottom: 0, width: 34, height: 34, borderRadius: 17 },
   quickArrow: { position: 'absolute', right: 12, bottom: 12, width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   karma: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14, backgroundColor: CR.card, borderRadius: R.md, paddingHorizontal: 14, minHeight: 50, borderWidth: StyleSheet.hairlineWidth * 2, borderColor: CR.line },
@@ -219,4 +220,4 @@ const st = StyleSheet.create({
   mineLine: { flexDirection: 'row', alignItems: 'center', minHeight: 60, borderBottomWidth: StyleSheet.hairlineWidth * 2, borderBottomColor: CR.lineSoft },
   mineTitle: { fontSize: 14.5, color: CR.ink, fontWeight: W.label },
   mineSub: { fontSize: 12.5, color: CR.muted, marginTop: 2 },
-});
+}));

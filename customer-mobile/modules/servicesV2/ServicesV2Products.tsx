@@ -18,6 +18,7 @@ import { IClock, ISearch, IBag } from './ServicesV2Icons';
 import { SHELF_HERO } from './servicesV2Art';
 import { SHELF_META, chipsFor, matchesQuery, storeTakesOrders, useShelf, type ProductShelf } from './servicesV2Data';
 import { useStoreBasket } from './useStoreBasket';
+import { themedSheet } from '../../utils/themeNow';
 
 export default function ServicesV2Products({ shelf }: { shelf: ProductShelf }) {
   const router = useRouter();
@@ -113,8 +114,8 @@ export default function ServicesV2Products({ shelf }: { shelf: ProductShelf }) {
   );
 }
 
-const p = StyleSheet.create({
+const p = themedSheet(() => ({
   closed: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginTop: 12, paddingHorizontal: 12, paddingVertical: 10, borderRadius: RADIUS.md, backgroundColor: TV.amberSoft },
   closedText: { flex: 1, fontSize: 13, lineHeight: 18, color: TV.ink2, fontWeight: W.body },
   count: { fontSize: 12.5, color: TV.sub, paddingHorizontal: 18, marginTop: 14, marginBottom: 8 },
-});
+}));

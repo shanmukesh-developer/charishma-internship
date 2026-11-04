@@ -16,6 +16,7 @@ import { ItemRow } from './RentalsV2Rows';
 import { CAMPUSES, fromPrice, searchItems, useRentalsV2 } from './rentalsV2Data';
 import { useNav } from './rentalsV2Nav';
 import { useTopInset } from '../../utils/useTopInset';
+import { themedSheet } from '../../utils/themeNow';
 
 const SUB: Record<Category, string> = {
   bike: 'Scooters and motorcycles', car: 'Hatchbacks, sedans and SUVs', room: 'Single and shared rooms', flat: '1BHK, 2BHK and houses',
@@ -120,7 +121,7 @@ export default function RentalsV2Explore() {
             <View style={[x.why, shadow(1)]}>
               {WHY.map((w) => (
                 <View key={w.label} style={x.whyItem} accessibilityLabel={`${w.label}. ${w.note}`}>
-                  <LinearGradient colors={['#F3EFFF', '#E6DEFF']} style={x.whyIcon}><w.Icon size={20} color={DAY.accent} strokeWidth={1.6} /></LinearGradient>
+                  <LinearGradient colors={DAY.plateGrad} style={x.whyIcon}><w.Icon size={20} color={DAY.accent} strokeWidth={1.6} /></LinearGradient>
                   <Text style={x.whyLabel} numberOfLines={2}>{w.label}</Text>
                   <Text style={x.whyNote} numberOfLines={2}>{w.note}</Text>
                 </View>
@@ -133,16 +134,16 @@ export default function RentalsV2Explore() {
   );
 }
 
-const x = StyleSheet.create({
+const x = themedSheet(() => ({
   head: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16 },
-  back: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', ...shadow(1) },
+  back: { width: 40, height: 40, borderRadius: 20, backgroundColor: DAY.card, alignItems: 'center', justifyContent: 'center', ...shadow(1) },
   hey: { fontSize: 13, color: DAY.muted, marginTop: 2 },
   h1: { fontSize: 21, color: DAY.ink, fontWeight: W.title, letterSpacing: -0.3 },
-  search: { marginHorizontal: 16, marginTop: 18, height: 52, borderRadius: 16, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 8, gap: 10 },
+  search: { marginHorizontal: 16, marginTop: 18, height: 52, borderRadius: 16, backgroundColor: DAY.card, flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 8, gap: 10 },
   input: { flex: 1, fontSize: 14.5, color: DAY.ink, height: '100%', outlineStyle: 'none' } as any,
   clear: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: DAY.lineSoft },
   count: { fontSize: 13, color: DAY.muted, paddingHorizontal: 18 },
-  recent: { paddingHorizontal: 12, height: 32, borderRadius: 16, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: DAY.line, justifyContent: 'center' },
+  recent: { paddingHorizontal: 12, height: 32, borderRadius: 16, backgroundColor: DAY.card, borderWidth: 1, borderColor: DAY.line, justifyContent: 'center' },
   recentText: { fontSize: 12.5, color: DAY.ink2 },
   card: { marginHorizontal: 16, borderRadius: 22, flexDirection: 'row', alignItems: 'center', overflow: 'hidden' },
   blob: { position: 'absolute', opacity: 0.55 },
@@ -151,12 +152,12 @@ const x = StyleSheet.create({
   fromRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 },
   from: { fontSize: 13.5, fontWeight: W.title },
   go: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  note: { marginHorizontal: 16, flexDirection: 'row', gap: 8, alignItems: 'center', padding: 12, borderRadius: 14, backgroundColor: '#FFFFFF' },
+  note: { marginHorizontal: 16, flexDirection: 'row', gap: 8, alignItems: 'center', padding: 12, borderRadius: 14, backgroundColor: DAY.card },
   noteText: { flex: 1, fontSize: 12.5, color: DAY.ink2, lineHeight: 17 },
   whyTitle: { fontSize: 16, fontWeight: W.title, color: DAY.ink, marginTop: 24, marginBottom: 12, paddingHorizontal: 18 },
-  why: { marginHorizontal: 16, padding: 14, borderRadius: 20, backgroundColor: '#FFFFFF', flexDirection: 'row', gap: 6 },
+  why: { marginHorizontal: 16, padding: 14, borderRadius: 20, backgroundColor: DAY.card, flexDirection: 'row', gap: 6 },
   whyItem: { flex: 1, alignItems: 'center' },
   whyIcon: { width: 46, height: 46, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   whyLabel: { fontSize: 12, color: DAY.ink, fontWeight: W.label, textAlign: 'center' },
   whyNote: { fontSize: 10.5, color: DAY.muted, textAlign: 'center', marginTop: 2 },
-});
+}));

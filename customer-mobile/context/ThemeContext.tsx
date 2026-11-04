@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, getThemeColors, DARK_THEME, LIGHT_THEME } from '../constants/theme';
+import { setThemeNow } from '../utils/themeNow';
 
 type Theme = 'dark' | 'light';
 
@@ -62,6 +63,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const isDark = theme === 'dark';
+  // Sections whose colours live outside React (PG stays, Co-Ride: utils/themeNow) read the theme from here.
+  setThemeNow(isDark);
   const value = useMemo<ThemeContextType>(
     () => ({ theme, toggleTheme, isDark, activeColors: COLORS, colors: getThemeColors(isDark), isThemeReady }),
     [theme, toggleTheme, isDark, isThemeReady],

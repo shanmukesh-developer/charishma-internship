@@ -16,6 +16,7 @@ import { FadeInUp, Press } from './RentalsV2Kit';
 import { IArrowRight, IChevronRight, IIdCard, IKey, IReceipt } from './RentalsV2Icons';
 import { reloadAll, useRentalsV2 } from './rentalsV2Data';
 import { useNav } from './rentalsV2Nav';
+import { themedSheet } from '../../utils/themeNow';
 
 function YourRentals() {
   const nav = useNav();
@@ -91,7 +92,7 @@ export function RentalsV2HomeBody({ sections }: { sections?: { key: string; labe
   );
 }
 
-const h = StyleSheet.create({
+const h = themedSheet(() => ({
   tile: { height: 74, borderRadius: 14, backgroundColor: NIGHT.chip, borderWidth: 1, borderColor: NIGHT.chipLine, alignItems: 'center', justifyContent: 'center', gap: 7, paddingHorizontal: 6 },
   tileIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(167,139,250,0.18)', alignItems: 'center', justifyContent: 'center' },
   tileText: { color: '#FFFFFF', fontSize: 11.5, fontWeight: W.label },
@@ -102,4 +103,4 @@ const h = StyleSheet.create({
   listTitle: { color: '#FFFFFF', fontSize: 15, fontWeight: W.title },
   listSub: { color: 'rgba(255,255,255,0.85)', fontSize: 11.5, marginTop: 2, lineHeight: 15 },
   listGo: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
-});
+}));

@@ -7,7 +7,7 @@
     },
     "name": "ZENV",
     "slug": "zenvy-customer",
-    "version": "1.0.59",
+    "version": "1.0.60",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -42,7 +42,7 @@
       },
       "package": "com.srm.hostelbites",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 60,
+      "versionCode": 61,
       "compileSdkVersion": 36,
       "targetSdkVersion": 36,
       "minSdkVersion": 24,

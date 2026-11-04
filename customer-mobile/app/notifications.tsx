@@ -20,6 +20,7 @@ import { safeId } from '../utils/ids';
 import { Ionicons } from '@expo/vector-icons';
 import { formatISTDate } from '../utils/format';
 import { useTopInset } from '../utils/useTopInset';
+import SymbolIcon from '../components/SymbolIcon';
 
 interface NotificationItem {
   id: string;
@@ -408,7 +409,7 @@ export default function NotificationsScreen() {
             }
           }}
         >
-          <Text style={{ fontSize: 16, color: txt }}>←</Text>
+          <Ionicons name="arrow-back" size={20} color={txt} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={[s.subText, { color: goldColor }]}>
@@ -509,7 +510,7 @@ export default function NotificationsScreen() {
                         accessibilityRole="button"
                         accessibilityLabel="Delete notification"
                       >
-                        <Text style={{ color: '#EF4444', fontSize: 13, fontWeight: '700' }}>✕</Text>
+                        <SymbolIcon name="close" style={{ color: '#EF4444', fontSize: 13, fontWeight: '700' }} />
                       </TouchableOpacity>
                     </View>
                   </DopaminePressable>

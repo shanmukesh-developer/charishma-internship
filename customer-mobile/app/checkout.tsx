@@ -52,6 +52,7 @@ import { useTopInset } from '../utils/useTopInset';
 import { syncPlaces, addPlace, removePlace, placeText, placeFromText, PLACE_LABELS, type SavedPlace } from '../utils/savedAddresses';
 import { setCollege, clearCollege } from '../utils/college';
 import { goHome } from '../utils/goHome';
+import SymbolIcon from '../components/SymbolIcon';
 
 const PLACE_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
   Hostel: 'home-outline', Library: 'library-outline', Lab: 'flask-outline', Friend: 'people-outline', Other: 'location-outline',
@@ -915,7 +916,7 @@ export default function CheckoutScreen() {
   const header = (
     <View style={[s.header, { paddingTop: topPad, backgroundColor: bg, borderBottomColor: border }]}>
       <TouchableOpacity onPress={goBack} style={[s.backBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} accessibilityRole="button" accessibilityLabel="Back">
-        <Text style={{ color: txt, fontSize: 18 }}>‹</Text>
+        <Ionicons name="chevron-back" size={20} color={txt} />
       </TouchableOpacity>
       <View style={{ flexShrink: 1 }}>
         <Text style={[s.title, { color: goldColor }]}>{BASKET_ORDER_TITLES[basketKind]}</Text>
@@ -1118,7 +1119,7 @@ export default function CheckoutScreen() {
               style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: -4, marginBottom: 10, alignSelf: 'flex-start', paddingVertical: 4 }}
             >
               <View style={{ width: 18, height: 18, borderRadius: 5, borderWidth: 1.5, borderColor: hostelSaved ? COLORS.emerald : border, backgroundColor: hostelSaved ? COLORS.emerald : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
-                {savingHostel ? <ActivityIndicator size="small" color={txt} /> : hostelSaved ? <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>✓</Text> : null}
+                {savingHostel ? <ActivityIndicator size="small" color={txt} /> : hostelSaved ? <SymbolIcon name="checkmark" style={{ color: '#fff', fontSize: 12, fontWeight: '700' }} /> : null}
               </View>
               <Text style={{ fontSize: 12, fontWeight: '700', color: hostelSaved ? COLORS.emerald : txtSec }}>
                 {hostelSaved ? 'Saved as my hostel & room' : 'Save as my hostel & room'}
@@ -1293,7 +1294,7 @@ export default function CheckoutScreen() {
                 <TouchableOpacity style={[s.emptyCoupons, { backgroundColor: cardBg }]} onPress={() => router.push('/rewards' as any)} activeOpacity={0.85}>
                   <Ionicons name="gift-outline" size={20} color={COLORS.textSecondary} style={{ marginBottom: 4 }} />
                   <Text style={s.emptyCouponsText}>No coupons yet</Text>
-                  <Text style={s.emptyCouponsSub}>Spin the wheel in Rewards to win one ›</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}><Text style={s.emptyCouponsSub}>Spin the wheel in Rewards to win one</Text><SymbolIcon name="chevron-forward" style={s.emptyCouponsSub} scale={1} /></View>
                 </TouchableOpacity>
               )}
             </View>

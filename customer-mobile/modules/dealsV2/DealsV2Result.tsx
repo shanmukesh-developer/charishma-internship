@@ -14,6 +14,7 @@ import { Coin, IconPlate } from './DealsV2Decor';
 import { ICheck, ICopy, ITruck } from './DealsV2Icons';
 import { stripEmoji } from './dealsV2Data';
 import type { SpinResult } from './dealsV2Nav';
+import { themedSheet } from '../../utils/themeNow';
 
 export function ResultBody({ result, spinsLeft, onAgain, onDone, onCoupons }: { result: SpinResult; spinsLeft: number; onAgain: () => void; onDone: () => void; onCoupons: () => void }) {
   const [copied, setCopied] = useState(false);
@@ -59,10 +60,10 @@ export function ResultBody({ result, spinsLeft, onAgain, onDone, onCoupons }: { 
 
 /** Soft gold wash behind the prize (ZenPoints colour), static. */
 export function ResultWash() {
-  return <LinearGradient colors={['#FFF6DD', '#FFFFFF', '#F7F4FF']} locations={[0, 0.5, 1]} style={StyleSheet.absoluteFill} pointerEvents="none" />;
+  return <LinearGradient colors={[DV.cream[0], DV.card, DV.page]} locations={[0, 0.5, 1]} style={StyleSheet.absoluteFill} pointerEvents="none" />;
 }
 
-const s = StyleSheet.create({
+const s = themedSheet(() => ({
   art: { width: 120, height: 110, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
   sub: { fontSize: 14, color: DV.sub, marginTop: 4 },
   title: { fontSize: 24, fontWeight: W.display, color: DV.ink, marginTop: 2, letterSpacing: -0.3, textAlign: 'center' },
@@ -74,4 +75,4 @@ const s = StyleSheet.create({
   valid: { fontSize: 12.5, color: DV.sub, marginTop: 8 },
   link: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: 12 },
   linkText: { color: DV.violet, fontSize: 14, fontWeight: W.label },
-});
+}));

@@ -15,6 +15,7 @@ import { IChevronRight } from './ServicesV2Icons';
 import { SHELF_META, detailPath, matchesQuery, shelfPath, storeTakesOrders, useShelf, type ProductShelf, type ServiceShelf } from './servicesV2Data';
 import { useServicesV2Booking } from './useServicesV2Booking';
 import { useStoreBasket } from './useStoreBasket';
+import { themedSheet } from '../../utils/themeNow';
 
 
 type Shelf = ReturnType<typeof useShelf>;
@@ -129,9 +130,9 @@ export default function ServicesV2Search() {
   );
 }
 
-const s = StyleSheet.create({
+const s = themedSheet(() => ({
   hint: { fontSize: 13, color: TV.sub, marginBottom: 10 },
   suggest: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   sChip: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 36, paddingHorizontal: 14, borderRadius: 18, backgroundColor: TV.card, borderWidth: 1, borderColor: TV.line },
   sChipText: { fontSize: 13, color: TV.ink2, fontWeight: W.label },
-});
+}));

@@ -14,6 +14,7 @@ import { RideSkeleton, StateCard, NetState, StaleBanner } from './CoRideV2States
 import { useCoRide, isOffer, isWomenOnly, shareOf, type Ride } from './coRideV2Data';
 import { useNav, type When } from './coRideV2Nav';
 import { AutoMatch } from './CoRideV2HomeExtras';
+import { themedSheet } from '../../utils/themeNow';
 
 const IST = 330 * 60000;
 const istDay = (ms: number) => Math.floor((ms + IST) / 86400000);
@@ -127,7 +128,7 @@ export default function CoRideV2Find() {
   );
 }
 
-const st = StyleSheet.create({
+const st = themedSheet(() => ({
   sticky: { backgroundColor: CR.page, paddingHorizontal: GUTTER, paddingTop: 4, paddingBottom: 10 },
   summary: { flexDirection: 'row', backgroundColor: CR.card, borderRadius: R.lg, padding: 10, paddingLeft: 12 },
   sumRail: { width: 14, alignItems: 'center', paddingVertical: 14, marginRight: 8 },
@@ -141,4 +142,4 @@ const st = StyleSheet.create({
   listHead: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
   sort: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 46, paddingHorizontal: 12, borderRadius: R.md, backgroundColor: CR.card, borderWidth: StyleSheet.hairlineWidth * 2, borderColor: CR.line },
   sortText: { fontSize: 13.5, color: CR.ink2, fontWeight: W.label },
-});
+}));

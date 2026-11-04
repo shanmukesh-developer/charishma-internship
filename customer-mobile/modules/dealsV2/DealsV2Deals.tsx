@@ -15,6 +15,7 @@ import { IClock, IFlame, ILock, ITicketPercent } from './DealsV2Icons';
 import { dealTag } from './dealsV2Data';
 import { isSampleDeal, type SampleDeal } from './dealsV2Demo';
 import { useNav } from './dealsV2Nav';
+import { themedSheet } from '../../utils/themeNow';
 
 export type AnyDeal = SampleDeal | any;
 
@@ -34,7 +35,7 @@ function Art({ img, tag, height, radius }: { img: any; tag: string | null; heigh
     <View style={{ height, borderTopLeftRadius: radius, borderTopRightRadius: radius, overflow: 'hidden', backgroundColor: DV.violetSoft }}>
       {img ? <Image source={img} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} /> : (
         <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
-          <LinearGradient colors={['#F1ECFF', '#DCCEFF']} style={StyleSheet.absoluteFill} />
+          <LinearGradient colors={DV.lavender} style={StyleSheet.absoluteFill} />
           <IconPlate size={Math.round(height * 0.42)}><ITicketPercent size={Math.round(height * 0.2)} color="#FFFFFF" strokeWidth={1.5} /></IconPlate>
         </View>
       )}
@@ -100,8 +101,8 @@ export function DealRow({ deal, myStreak, signedIn }: { deal: AnyDeal; myStreak:
   );
 }
 
-const s = StyleSheet.create({
-  card: { borderRadius: 20, backgroundColor: '#FFFFFF', borderWidth: StyleSheet.hairlineWidth, borderColor: DV.line },
+const s = themedSheet(() => ({
+  card: { borderRadius: 20, backgroundColor: DV.card, borderWidth: StyleSheet.hairlineWidth, borderColor: DV.line },
   tag: { position: 'absolute', left: 9, top: 9, paddingHorizontal: 9, height: 24, borderRadius: 12, overflow: 'hidden', justifyContent: 'center' },
   tagText: { color: '#FFFFFF', fontSize: 11.5, fontWeight: W.title },
   name: { fontSize: 14, fontWeight: W.label, color: DV.ink, lineHeight: 19 },
@@ -110,7 +111,7 @@ const s = StyleSheet.create({
   btn: { flexDirection: 'row', gap: 5, marginTop: 10, height: 34, borderRadius: 17, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   btnLocked: { backgroundColor: DV.violetSoft, borderWidth: StyleSheet.hairlineWidth, borderColor: DV.violetLine },
   btnText: { color: '#FFFFFF', fontSize: 13, fontWeight: W.title },
-  row: { flexDirection: 'row', gap: 12, padding: 10, borderRadius: 20, backgroundColor: '#FFFFFF', borderWidth: StyleSheet.hairlineWidth, borderColor: DV.line },
+  row: { flexDirection: 'row', gap: 12, padding: 10, borderRadius: 20, backgroundColor: DV.card, borderWidth: StyleSheet.hairlineWidth, borderColor: DV.line },
   rowArt: { width: 96, height: 96, borderRadius: 16, overflow: 'hidden' },
   rowTag: { fontSize: 13, fontWeight: W.title, color: DV.violet },
-});
+}));

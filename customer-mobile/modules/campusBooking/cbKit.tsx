@@ -17,6 +17,7 @@ import { useTopInset } from '../../utils/useTopInset';
 import { connectSocket } from '../../utils/socket';
 import { COLORS, SHADOWS, surfaceLift, useCbTheme } from './cbTheme';
 import type { CbStatus } from './cbApi';
+import SymbolIcon from '../../components/SymbolIcon';
 
 export { default as DopaminePressable } from '../../components/DopaminePressable';
 export { StaggeredSection } from '../../components/AnimatedSection';
@@ -39,7 +40,7 @@ export function CbHeader({ title, sub, right, onBack }: { title: string; sub?: s
   return (
     <View style={[k.header, { paddingTop: topPad, backgroundColor: p.isDark ? '#000' : '#FFF', borderBottomColor: p.border }]}>
       <TouchableOpacity onPress={onBack || back} style={[k.backBtn, { backgroundColor: p.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} accessibilityRole="button" accessibilityLabel="Back">
-        <Text style={{ color: p.txt, fontSize: 18, fontWeight: 'bold' }}>‹</Text>
+        <Ionicons name="chevron-back" size={20} color={p.txt} />
       </TouchableOpacity>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={[k.headerTitle, { color: p.txt }]} numberOfLines={1} accessibilityRole="header">{title}</Text>
@@ -66,11 +67,11 @@ export function AddControl({ qty, onAdd, onRemove, soldOut, closed, max = 10 }: 
     return (
       <View style={[k.stepper, { backgroundColor: tint, borderColor: tint }]}>
         <TouchableOpacity style={k.stepBtn} onPress={onRemove} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={`Remove one. ${qty} in cart`}>
-          <Text style={k.stepText}>−</Text>
+          <SymbolIcon name="remove" style={k.stepText} />
         </TouchableOpacity>
         <Text style={k.stepCount}>{qty}</Text>
         <TouchableOpacity style={k.stepBtn} onPress={onAdd} disabled={qty >= max} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={`Add one more. ${qty} in cart`}>
-          <Text style={[k.stepText, qty >= max && { opacity: 0.4 }]}>+</Text>
+          <SymbolIcon name="add" style={[k.stepText, qty >= max && { opacity: 0.4 }]} />
         </TouchableOpacity>
       </View>
     );

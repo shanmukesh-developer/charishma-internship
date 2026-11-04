@@ -19,6 +19,7 @@ import { TYPE, hhmm12, inr, surfaceLift, timeIST, useCbTheme } from './cbTheme';
 import { AddControl, CbHeader, DopaminePressable, EmptyCard, NoticeBar, StaggeredSection, StatusTag, VegBox, useCbLive } from './cbKit';
 import { isSampleStall, sampleItemArt, sampleStallsFor } from './campusBookingDemo';
 import CbSampleSheet, { CbSampleTag, type CbSampleNote } from './CbSampleSheet';
+import SymbolIcon from '../../components/SymbolIcon';
 
 let homeMem: HomeData | null = null;
 
@@ -211,7 +212,7 @@ export default function CbHome() {
                 {latestStall ? <Text style={st.cartSub} numberOfLines={1}>{latestStall.name}</Text> : null}
               </View>
             </View>
-            <Text style={st.cartText}>View cart ›</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}><Text style={st.cartText}>View cart</Text><SymbolIcon name="chevron-forward" style={st.cartText} scale={1} /></View>
           </DopaminePressable>
         </View>
       ) : null}

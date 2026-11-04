@@ -11,6 +11,7 @@ import { CR, R, GUTTER, W, shadow, toneColors, type Tone } from './coRideV2Theme
 import { IArrowLeft, IArrowRight, IX, STROKE, ICON } from './CoRideV2Icons';
 import { initialOf } from '../../modules/coride/coRideFormat';
 import { pressRole } from '../../utils/pressRole';
+import { themedSheet } from '../../utils/themeNow';
 
 export function Tap({ children, onPress, style, label, disabled, role = 'button', selected, hitSlop }: {
   children: React.ReactNode; onPress?: () => void; style?: StyleProp<ViewStyle>; label?: string; disabled?: boolean;
@@ -189,7 +190,7 @@ export function Sheet({ visible, onClose, title, children, footer }: { visible: 
   );
 }
 
-export const k = StyleSheet.create({
+export const k = themedSheet(() => ({
   row: { flexDirection: 'row', alignItems: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: GUTTER - 6, paddingBottom: 6, minHeight: 56, backgroundColor: CR.page },
   headerBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
@@ -215,11 +216,11 @@ export const k = StyleSheet.create({
   segText: { fontSize: 14, fontWeight: W.label },
   segDivider: { width: StyleSheet.hairlineWidth * 2, height: 20, backgroundColor: CR.line },
   avatar: { backgroundColor: CR.tint, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  avatarRing: { borderWidth: 2, borderColor: '#FFFFFF' },
+  avatarRing: { borderWidth: 2, borderColor: CR.card },
   avatarText: { color: CR.tintInk, fontWeight: W.label },
   card: { backgroundColor: CR.card, borderRadius: R.lg, ...shadow(1) },
   iconBtn: { alignItems: 'center', justifyContent: 'center' },
-  dot: { position: 'absolute', top: 9, right: 10, width: 7, height: 7, borderRadius: 4, backgroundColor: '#E5484D', borderWidth: 1.5, borderColor: '#FFFFFF' },
+  dot: { position: 'absolute', top: 9, right: 10, width: 7, height: 7, borderRadius: 4, backgroundColor: '#E5484D', borderWidth: 1.5, borderColor: CR.card },
   overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(11,26,74,0.38)' },
   sheet: { backgroundColor: CR.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 8, maxHeight: '92%' },
   grabber: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: CR.line, marginBottom: 6 },
@@ -228,4 +229,4 @@ export const k = StyleSheet.create({
   sheetClose: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   body: { fontSize: 13.5, color: CR.ink2, lineHeight: 20 },
   small2: { fontSize: 12, color: CR.muted },
-});
+}));

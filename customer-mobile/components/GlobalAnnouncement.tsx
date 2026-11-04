@@ -22,6 +22,7 @@ try {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePathname, useRouter } from 'expo-router';
 import { safeId } from '../utils/ids';
+import SymbolIcon from './SymbolIcon';
 
 const { width } = Dimensions.get('window');
 
@@ -482,7 +483,7 @@ export default function GlobalAnnouncement() {
             <Text style={s.message} numberOfLines={2}>{announcement.message}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={hideAnnouncement} style={s.closeBtn}>
-            <Text style={s.closeText}>✕</Text>
+            <SymbolIcon name="close" style={s.closeText} />
           </TouchableOpacity>
         </View>
       </BlurView>

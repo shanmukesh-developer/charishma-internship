@@ -12,6 +12,7 @@ import { CR, R, GUTTER, W, shadow } from './coRideV2Theme';
 import { Tap, PrimaryButton } from './CoRideV2Kit';
 import { IMapPin, IX, ISwap, ISearch, STROKE } from './CoRideV2Icons';
 import { ART, ART_RATIO } from './coRideV2Art';
+import { themedSheet } from '../../utils/themeNow';
 
 export function Hero() {
   const { width } = useWindowDimensions();
@@ -91,7 +92,7 @@ export function RouteCard({ from, to, setFrom, setTo, places, onSearch }: {
   );
 }
 
-const st = StyleSheet.create({
+const st = themedSheet(() => ({
   row: { flexDirection: 'row', alignItems: 'center' },
   hero: { flexDirection: 'row', paddingHorizontal: GUTTER, overflow: 'visible' },
   heroText: { flex: 1, paddingTop: 14, zIndex: 2 },
@@ -107,4 +108,4 @@ const st = StyleSheet.create({
   picks: { gap: 8, paddingTop: 12, paddingRight: 4 },
   pick: { height: 34, paddingHorizontal: 12, borderRadius: R.pill, backgroundColor: CR.tint, justifyContent: 'center' },
   pickText: { fontSize: 13, color: CR.tintInk, fontWeight: W.label },
-});
+}));

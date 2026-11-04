@@ -26,6 +26,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Clipboard from '@react-native-clipboard/clipboard';
 import SafeImage from '../../components/SafeImage';
 import ShimmerLoader from '../../components/ShimmerLoader';
+import StatusBarScrim from '../../components/StatusBarScrim';
+import { TV } from '../../modules/servicesV2/servicesV2Theme';
+import { DV } from '../../modules/dealsV2/dealsV2Theme';
 import { PgV2OthersSection } from '../../modules/pgV2/PgV2Route';
 import { reloadPgV2List } from '../../modules/pgV2/pgV2Data';
 import { PG_HEADER as PG_V2_HEADER, PG_HINTS as PG_V2_HINTS } from '../../modules/pgV2/PgV2Home';
@@ -286,7 +289,7 @@ const SECTION_HEADER: Record<string, HeaderColors> = {
   neutral: { top: '#1B2433', bottom: '#263247', pillOnBg: '#F1F3F6', pillOnInk: '#1E293B' },
 };
 // Sections that draw a page of a fixed colour in every theme give the bottom bar that page's colour (the rest follow
-// the theme): Rentals and Campus events are night pages, Tech & repairs and Deals light ones.
+// the theme): Rentals and Campus events are night pages; Tech & repairs and Deals are light pages in the light theme.
 const PAGE_BAR_TONE: Record<string, TabBarTone | undefined> = {
   rentals: { bg: '#141438', dark: true },
   events: { bg: '#13123A', dark: true },
@@ -678,8 +681,10 @@ export function HubScreen({ hub }: { hub: Hub }) {
   }, [activeTab, sectionLive, hub, visibleTabs, homeSection]);
   // The bottom bar takes the colour of a fixed-colour page (utils/tabBarTone); set before paint, so it never lags the page.
   useLayoutEffect(() => {
-    setTabBarTone(hub === 'services' ? 'services' : 'others', PAGE_BAR_TONE[activeTab] || null);
-  }, [hub, activeTab]);
+    // Tech & repairs and Deals follow the theme now (utils/themeNow): white bar in light, the theme's own bar in dark.
+    const followsTheme = activeTab === 'services' || activeTab === 'promos';
+    setTabBarTone(hub === 'services' ? 'services' : 'others', followsTheme && isDark ? null : PAGE_BAR_TONE[activeTab] || null);
+  }, [hub, activeTab, isDark]);
   const isMountedRef = useRef(true);
   // Set true in the body too: fast refresh / StrictMode re-run effects, and a ref left false would drop every later update.
   useEffect(() => { isMountedRef.current = true; return () => { isMountedRef.current = false; }; }, []);
@@ -1578,6 +1583,7 @@ export function HubScreen({ hub }: { hub: Hub }) {
     return (
       <View style={{ flex: 1, backgroundColor: isDark ? '#09090B' : '#FFFFFF' }}>
         <FoodV2Screen forceDark={isDark} sections={visibleTabs} onSection={selectTab} openSearch={storeSearchOnOpen} onSearchOpened={onStoreSearchOpened} />
+        <StatusBarScrim color={FOOD_HEADER.top} />
       </View>
     );
   }
@@ -1596,8 +1602,10 @@ export function HubScreen({ hub }: { hub: Hub }) {
   // categories and real services / store items. Lists are app/category/*, details app/services/*.
   if (activeTab === 'services') {
     return (
-      <View style={{ flex: 1, backgroundColor: '#F4F5FB' }}>
-        <ServicesV2Home sections={visibleTabs} onSection={selectTab} />
+      <View style={{ flex: 1, backgroundColor: isDark ? '#0A0B12' : '#F4F5FB' }}>
+        {/* Keyed by theme: the section's colours come from its tokens at render (utils/themeNow). */}
+        <ServicesV2Home key={isDark ? 'dark' : 'light'} sections={visibleTabs} onSection={selectTab} />
+        <StatusBarScrim color={TV.header[0]} />
       </View>
     );
   }
@@ -1606,8 +1614,9 @@ export function HubScreen({ hub }: { hub: Hub }) {
   // with the real wheel, ZenPoints and wallet, today's deals and your coupons. Inner screens are app/deals/* routes.
   if (activeTab === 'promos') {
     return (
-      <View style={{ flex: 1, backgroundColor: '#F5F3FF' }}>
-        <DealsV2Home sections={visibleTabs} onSection={selectTab} />
+      <View style={{ flex: 1, backgroundColor: isDark ? '#0B0918' : '#F5F3FF' }}>
+        <DealsV2Home key={isDark ? 'dark' : 'light'} sections={visibleTabs} onSection={selectTab} />
+        <StatusBarScrim color={DV.header[0]} />
       </View>
     );
   }

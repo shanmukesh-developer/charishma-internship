@@ -13,6 +13,7 @@ import { useTopInset } from '../../utils/useTopInset';
 import { DV, RADIUS, W, shadow } from './dealsV2Theme';
 import { IArrowLeft, IChevronRight } from './DealsV2Icons';
 import { useNav } from './dealsV2Nav';
+import { themedSheet } from '../../utils/themeNow';
 
 export { FadeInUp };
 
@@ -95,7 +96,7 @@ export function Card({ children, style, index }: { children: React.ReactNode; st
   return index === undefined ? body : <FadeInUp index={index}>{body}</FadeInUp>;
 }
 
-export const st = StyleSheet.create({
+export const st = themedSheet(() => ({
   head: { paddingHorizontal: 16, paddingBottom: 16, overflow: 'hidden', borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
   headRow: { flexDirection: 'row', alignItems: 'center' },
   headBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center' },
@@ -108,10 +109,10 @@ export const st = StyleSheet.create({
   allText: { fontSize: 13.5, color: DV.violet, fontWeight: W.label },
   cta: { height: 54, borderRadius: 18, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', paddingHorizontal: 18 },
   ctaSoft: { backgroundColor: DV.violetSoft, borderWidth: 1, borderColor: DV.violetLine },
-  ctaWhite: { backgroundColor: '#FFFFFF' },
+  ctaWhite: { backgroundColor: DV.card },
   ctaText: { fontSize: 16, fontWeight: W.title, letterSpacing: 0.1 },
   ctaSub: { fontSize: 11.5, marginTop: 1, opacity: 0.85 },
   sample: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, backgroundColor: DV.sampleSoft, borderWidth: StyleSheet.hairlineWidth, borderColor: '#EED9A4', alignSelf: 'flex-start' },
   sampleText: { fontSize: 10.5, color: DV.sample, fontWeight: W.label },
   card: { borderRadius: RADIUS.xl, backgroundColor: DV.card, borderWidth: StyleSheet.hairlineWidth, borderColor: DV.line, overflow: 'hidden' },
-});
+}));

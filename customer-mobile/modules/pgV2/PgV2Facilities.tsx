@@ -12,6 +12,7 @@ import { IInfo, IBuilding, IUtensils, mealIcon, STROKE } from './PgV2Icons';
 import { usePgDetail } from './pgV2Data';
 import { useNav, usePgIdFor } from './pgV2Nav';
 import { DAY_KEYS, fmtRange, istNow, mealsForDay, type MessTimetable } from '../../modules/pg/pgApi';
+import { themedSheet } from '../../utils/themeNow';
 
 /** "Veg / Non-Veg Available", "Veg only", … from the tags used anywhere in the week. Empty when untagged. */
 export const foodLine = (t: MessTimetable) => {
@@ -98,13 +99,13 @@ export default function PgV2Facilities() {
   );
 }
 
-const st = StyleSheet.create({
+const st = themedSheet(() => ({
   timeRow: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 54 },
   meal: { flex: 1, fontSize: 14, color: PG2.ink, fontWeight: W.label },
   time: { fontSize: 14, color: PG2.ink2 },
-  note: { marginTop: 12, flexDirection: 'row', alignItems: 'flex-start', gap: 12, borderRadius: 14, padding: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E6E3F5', backgroundColor: '#FFFFFF' },
+  note: { marginTop: 12, flexDirection: 'row', alignItems: 'flex-start', gap: 12, borderRadius: 14, padding: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: PG2.line, backgroundColor: PG2.card },
   noteIcon: { width: 24, alignItems: 'center', paddingTop: 1 },
   noteTitle: { fontSize: 13.5, fontWeight: W.label, color: PG2.ink },
   noteBody: { marginTop: 3, fontSize: 13, color: PG2.muted, lineHeight: 19 },
-  none: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FFFFFF', borderRadius: R.lg, padding: 16, borderWidth: 1, borderColor: PG2.line },
-});
+  none: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: PG2.card, borderRadius: R.lg, padding: 16, borderWidth: 1, borderColor: PG2.line },
+}));

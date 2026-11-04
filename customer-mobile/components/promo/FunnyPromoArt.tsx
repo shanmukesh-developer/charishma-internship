@@ -32,6 +32,7 @@ import Svg, {
 } from 'react-native-svg';
 import { Image } from 'expo-image';
 import { optimizeImageUri } from '../SafeImage';
+import SymbolIcon from '../../components/SymbolIcon';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared types & keyframe helpers
@@ -1354,7 +1355,7 @@ export const RideArt = memo(function RideArt({ active, size = 320, reduceMotion 
           ))}
         </Svg>
         <Animated.View style={[A({ left: 34, top: -14, width: 18, height: 18, borderRadius: 9, backgroundColor: '#22C55E', alignItems: 'center', justifyContent: 'center' }), { transform: [{ scale: v.okS }] }]}>
-          <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '900' }}>✓</Text>
+          <SymbolIcon name="checkmark" style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '900' }} />
         </Animated.View>
       </Animated.View>
 

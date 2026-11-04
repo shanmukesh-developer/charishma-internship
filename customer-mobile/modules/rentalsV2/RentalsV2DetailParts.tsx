@@ -18,6 +18,7 @@ import { useTopInset } from '../../utils/useTopInset';
 import { useNav } from './rentalsV2Nav';
 import type { RItem } from './rentalsV2Data';
 import type { Feature } from './rentalsV2Demo';
+import { themedSheet } from '../../utils/themeNow';
 
 export function Gallery({ item, height }: { item: RItem; height: number }) {
   const nav = useNav();
@@ -135,7 +136,7 @@ export function Safeguards({ lines }: { lines: string[] }) {
   );
 }
 
-export const d = StyleSheet.create({
+export const d = themedSheet(() => ({
   topBar: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between' },
   glass: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.94)', alignItems: 'center', justifyContent: 'center', ...shadow(1) },
   dots: { position: 'absolute', bottom: 40, alignSelf: 'center', flexDirection: 'row', gap: 6 },
@@ -143,21 +144,21 @@ export const d = StyleSheet.create({
   dotOn: { width: 18, backgroundColor: '#FFFFFF' },
   sheet: { marginTop: -26, backgroundColor: DAY.page, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 18, paddingTop: 20 },
   features: { flexDirection: 'row', gap: 8, marginTop: 18 },
-  feature: { flex: 1, alignItems: 'center', paddingVertical: 12, paddingHorizontal: 4, borderRadius: 16, backgroundColor: '#FFFFFF', ...shadow(1) },
+  feature: { flex: 1, alignItems: 'center', paddingVertical: 12, paddingHorizontal: 4, borderRadius: 16, backgroundColor: DAY.card, ...shadow(1) },
   featureIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 7 },
   featureText: { fontSize: 11.5, color: DAY.ink2, textAlign: 'center', lineHeight: 15 },
   secTitle: { fontSize: 16, fontWeight: W.title, color: DAY.ink },
-  info: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 16, backgroundColor: '#FFFFFF', ...shadow(1) },
+  info: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 16, backgroundColor: DAY.card, ...shadow(1) },
   infoIcon: { width: 40, height: 40, borderRadius: 13, backgroundColor: DAY.accentSoft, alignItems: 'center', justifyContent: 'center' },
   infoTitle: { fontSize: 14, color: DAY.ink, fontWeight: W.label },
   infoSub: { fontSize: 12, color: DAY.muted, marginTop: 2 },
-  owner: { flexDirection: 'row', gap: 12, padding: 14, borderRadius: 18, backgroundColor: '#FFFFFF', alignItems: 'center' },
+  owner: { flexDirection: 'row', gap: 12, padding: 14, borderRadius: 18, backgroundColor: DAY.card, alignItems: 'center' },
   avatar: { width: 50, height: 50, borderRadius: 25 },
   ownerName: { fontSize: 15, fontWeight: W.title, color: DAY.ink, flexShrink: 1 },
   ownerRole: { fontSize: 12, color: DAY.muted, marginTop: 1 },
   ownerNote: { fontSize: 11.5, color: DAY.muted, flex: 1 },
-  safe: { padding: 14, borderRadius: 18, backgroundColor: '#FFFFFF', gap: 10 },
+  safe: { padding: 14, borderRadius: 18, backgroundColor: DAY.card, gap: 10 },
   safeRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
   safeIcon: { width: 24, height: 24, borderRadius: 8, backgroundColor: DAY.greenSoft, alignItems: 'center', justifyContent: 'center' },
   safeText: { flex: 1, fontSize: 12.5, color: DAY.ink2, lineHeight: 18 },
-});
+}));

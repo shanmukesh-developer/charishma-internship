@@ -70,7 +70,7 @@ export function RHeader({ title, subtitle, right, onBack }: { title: string; sub
         onPress={onBack || (() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/others?tab=rentals' as any)))}
         style={[st.backBtn, { backgroundColor: p.card2 }]}
       >
-        <Text style={{ fontSize: 18, color: p.text }}>‹</Text>
+        <Ionicons name="chevron-back" size={20} color={p.text} />
       </TouchableOpacity>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={[st.hTitle, { color: p.text }]} numberOfLines={1}>{title}</Text>

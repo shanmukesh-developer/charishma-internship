@@ -18,6 +18,7 @@ import { IArrowLeft, IGift, IInfo, ITruck } from './DealsV2Icons';
 import { ORDERS_PER_SPIN, stripEmoji, useDeals, type Prize } from './dealsV2Data';
 import { useNav } from './dealsV2Nav';
 import { useSpin } from './useSpin';
+import { themedSheet } from '../../utils/themeNow';
 
 /** Unique prizes for "What you can win" (the server's table, emoji stripped). */
 const prizeChips = (prizes: Prize[]) => {
@@ -124,7 +125,7 @@ export default function DealsV2Spin() {
   );
 }
 
-const s = StyleSheet.create({
+const s = themedSheet(() => ({
   head: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 6, gap: 12 },
   headBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center' },
   headTitle: { flex: 1, color: '#FFFFFF', fontSize: 18, fontWeight: W.title },
@@ -146,4 +147,4 @@ const s = StyleSheet.create({
   devText: { color: 'rgba(255,255,255,0.6)', fontSize: 11.5 },
   devBtn: { paddingHorizontal: 10, height: 30, borderRadius: 15, backgroundColor: 'rgba(255,255,255,0.12)', justifyContent: 'center' },
   devBtnText: { color: '#FFFFFF', fontSize: 11.5, fontWeight: W.label },
-});
+}));

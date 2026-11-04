@@ -16,6 +16,7 @@ import { FadeInUp, GroundShadow, Press, usePageW } from './RentalsV2Kit';
 import { IArrowRight, IChevronRight, IPin } from './RentalsV2Icons';
 import { CAMPUSES } from './rentalsV2Data';
 import { useNav } from './rentalsV2Nav';
+import { themedSheet } from '../../utils/themeNow';
 
 const COPY: Record<Category, { t1: string; sub: string; label: string }> = {
   bike: { t1: 'Bike', sub: 'Daily · Weekly · Monthly', label: 'Bike rentals: daily, weekly, monthly' },
@@ -147,7 +148,7 @@ export function NearCampus() {
   );
 }
 
-const c = StyleSheet.create({
+const c = themedSheet(() => ({
   title: { color: '#FFFFFF', fontSize: 21, fontWeight: W.hero, lineHeight: 22.5, letterSpacing: -0.3, textShadowColor: 'rgba(30,10,80,0.28)', textShadowRadius: 8, textShadowOffset: { width: 0, height: 1 } },
   sub: { color: '#FFFFFF', fontSize: 12.5, marginTop: 5, fontWeight: W.label, textShadowColor: 'rgba(30,10,80,0.25)', textShadowRadius: 5 },
   arrow: { position: 'absolute', right: 10, bottom: 30, width: 30, height: 30, borderRadius: 15, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
@@ -161,4 +162,4 @@ const c = StyleSheet.create({
   campusName: { color: '#FFFFFF', fontSize: 12, fontWeight: W.title },
   kmPill: { alignSelf: 'flex-start', marginTop: 4, paddingHorizontal: 7, height: 18, borderRadius: 9, backgroundColor: 'rgba(167,139,250,0.24)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(196,181,253,0.45)', justifyContent: 'center' },
   kmText: { color: '#EDE7FF', fontSize: 10.5, fontWeight: W.label },
-});
+}));

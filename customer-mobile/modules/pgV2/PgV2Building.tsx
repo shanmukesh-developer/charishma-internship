@@ -17,6 +17,7 @@ import { buildingPhoto } from './pgV2Photos';
 import { usePgDetail, usePgV2, gKey, rentRange, placeText, kmText } from './pgV2Data';
 import { useNav, usePgIdFor } from './pgV2Nav';
 import { pgLink, type PgDetail } from '../../modules/pg/pgApi';
+import { themedSheet } from '../../utils/themeNow';
 
 export const buildingFigures = (pg: PgDetail) => {
   // One unit throughout (beds), all from the rooms listed for booking, so the three always add up.
@@ -144,10 +145,10 @@ export default function PgV2Building() {
   );
 }
 
-const st = StyleSheet.create({
-  page: { flex: 1, backgroundColor: '#FFFFFF' },
+const st = themedSheet(() => ({
+  page: { flex: 1, backgroundColor: PG2.card },
   floatRow: { position: 'absolute', left: GUTTER, right: GUTTER, flexDirection: 'row', justifyContent: 'space-between' },
-  sheet: { marginTop: -24, borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: '#FFFFFF', paddingHorizontal: GUTTER, paddingTop: 22 },
+  sheet: { marginTop: -24, borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: PG2.card, paddingHorizontal: GUTTER, paddingTop: 22 },
   nameRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 10 },
   name: { fontSize: 22, fontWeight: W.title, color: PG2.ink, letterSpacing: -0.3, flexShrink: 1 },
   type: { fontSize: 13, fontWeight: W.label, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, overflow: 'hidden' },
@@ -156,13 +157,13 @@ const st = StyleSheet.create({
   rent: { marginTop: 14, fontSize: 23, fontWeight: W.title, color: PG2.price, letterSpacing: -0.3 },
   rentUnit: { fontSize: 15, fontWeight: W.label, color: PG2.ink },
   figRow: { flexDirection: 'row', gap: 10 },
-  fig: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#FFFFFF', borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E6E3F5', paddingVertical: 10, paddingHorizontal: 12 },
+  fig: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: PG2.card, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: PG2.line, paddingVertical: 10, paddingHorizontal: 12 },
   figCol: { flexDirection: 'column', alignItems: 'flex-start' },
   figIcon: { width: 24, height: 24, justifyContent: 'center' },
   figLabel: { fontSize: 11.5, color: PG2.muted },
   figValue: { fontSize: 15, fontWeight: W.title, color: PG2.ink, marginTop: 1 },
-  link: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 14, backgroundColor: '#FFFFFF', borderWidth: StyleSheet.hairlineWidth, borderColor: '#E6E3F5' },
+  link: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 14, backgroundColor: PG2.card, borderWidth: StyleSheet.hairlineWidth, borderColor: PG2.line },
   linkIcon: { width: 24, alignItems: 'center', justifyContent: 'center' },
   linkTitle: { fontSize: 14, fontWeight: W.label, color: PG2.ink, marginBottom: 2 },
-  bar: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: GUTTER, paddingTop: 12, backgroundColor: 'rgba(255,255,255,0.97)', ...shadow(2) },
-});
+  bar: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: GUTTER, paddingTop: 12, backgroundColor: PG2.card, ...shadow(2) },
+}));

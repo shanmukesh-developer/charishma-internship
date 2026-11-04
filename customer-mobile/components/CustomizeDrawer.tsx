@@ -4,6 +4,7 @@ import { KeyboardAvoidingView } from './KeyboardAvoidingView';
 import { COLORS, SHADOWS } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
 import { Customizations } from '../context/CartContext';
+import SymbolIcon from './SymbolIcon';
 
 type ProductType = 'cake' | 'pizza' | 'biryani' | 'beverage' | 'burger' | 'dessert' | 'sweets' | 'fruit' | 'laundry' | 'rental' | 'pharmacy' | 'general-food' | 'general';
 
@@ -448,7 +449,7 @@ export default function CustomizeDrawer({ isOpen, onClose, onConfirm, itemName, 
               <Text style={s.itemName}>{itemName.toUpperCase()}</Text>
             </View>
             <TouchableOpacity style={[s.closeBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} onPress={onClose}>
-              <Text style={{ color: textClr, fontWeight: '700' }}>✕</Text>
+              <SymbolIcon name="close" style={{ color: textClr, fontWeight: '700' }} />
             </TouchableOpacity>
           </View>
 
@@ -504,7 +505,7 @@ export default function CustomizeDrawer({ isOpen, onClose, onConfirm, itemName, 
                         >
                           <View style={s.optionItemLeft}>
                             <View style={[s.checkbox, { borderColor: isSelected ? COLORS.red : (isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'), backgroundColor: isSelected ? `${COLORS.red}20` : 'transparent' }]}>
-                              {isSelected && <Text style={s.checkboxCheck}>✓</Text>}
+                              {isSelected && <SymbolIcon name="checkmark" style={s.checkboxCheck} />}
                             </View>
                             <Text style={[s.optionItemLabel, { color: textClr }]}>{o.label}</Text>
                           </View>

@@ -4,7 +4,7 @@
 // with the star burst, the golden wave and the shine / count-up glow.
 // The fog is painted once: a heavily blurred copy of the offer (rendered small, Gaussian-blurred, upscaled,
 // like the design's 50 x 104 down-and-up sample), the misty tint, ~380 water droplets with running drip
-// streaks, and the handwritten "Clear the fog… / Discover local deals!" in Caveat; then it is rasterised at
+// streaks, and the handwritten "Clear the fog… / Deals near you!" in Caveat; then it is rasterised at
 // the screen's pixel density so wiping only replays one image under the erased holes.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { PixelRatio } from 'react-native';
@@ -56,7 +56,7 @@ function useFog() {
     const sub = makePara(fm, ad.subline || '', PW, { family: FONT.body, size: 13, weight: 500, color: '#ffffff' });
     const hand = (t: string) => makePara(fm, t, PW, { family: FONT.hand, size: 32, weight: 600, color: 'rgba(255,255,255,0.85)' });
     const h1 = hand('Clear the fog…');
-    const h2 = hand('Discover local deals!');
+    const h2 = hand('Deals near you!');
 
     // What sits behind the glass: the offer's colours, the photo feathered in, the offer and its line.
     const source = createPicture((c) => {

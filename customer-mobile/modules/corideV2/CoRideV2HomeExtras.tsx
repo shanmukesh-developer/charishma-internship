@@ -17,6 +17,7 @@ import { useCoRide, isOffer, shareOf, type Ride } from './coRideV2Data';
 import { useNav } from './coRideV2Nav';
 import { inr, myRideInfo, sameDestination } from '../../modules/coride/coRideFormat';
 import type { ChargeLine, RouteFull } from '../../modules/autoRide/autoRideApi';
+import { themedSheet } from '../../utils/themeNow';
 
 const t = (r: Ride) => new Date(r.departureTime).getTime() || 0;
 const lineSeats = (l: ChargeLine) => (l.onCharge?.remainingSeats || 0) + (l.waitingAutos || []).reduce((n, a) => n + (a.remainingSeats || 0), 0);
@@ -190,7 +191,7 @@ export function SafetyCard() {
   );
 }
 
-const st = StyleSheet.create({
+const st = themedSheet(() => ({
   mini: { width: 228, backgroundColor: CR.card, borderRadius: R.lg, padding: 12, gap: 6, ...shadow(1) },
   miniTitle: { fontSize: 14, fontWeight: W.label, color: CR.ink, marginTop: 2 },
   miniMeta: { fontSize: 12.5, color: CR.muted, lineHeight: 17 },
@@ -209,4 +210,4 @@ const st = StyleSheet.create({
   safetyItem: { flex: 1, alignItems: 'center', gap: 6, paddingHorizontal: 6 },
   safetyText: { fontSize: 12, color: CR.ink2, textAlign: 'center', lineHeight: 16 },
   vline: { width: StyleSheet.hairlineWidth * 2, backgroundColor: CR.lineSoft },
-});
+}));

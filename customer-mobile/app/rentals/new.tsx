@@ -13,6 +13,7 @@ import {
   VEHICLE_META, DAY_NAMES, istDate, istDayLabel, fmtTime, RentalsError,
 } from '../../modules/rentals/rentalsApi';
 import { RHeader, usePalette, Card, SectionTitle, Btn, Field, Chips, Toggle, Notice, StateView, Row, TIME_SLOTS } from '../../modules/rentals/ui';
+import SymbolIcon from '../../components/SymbolIcon';
 
 type Img = { ref: string; preview: string };
 type Form = {
@@ -320,7 +321,7 @@ export default function ListVehicle() {
                   <Image source={{ uri: img.preview }} style={{ width: '100%', height: '100%' }} />
                   <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Remove photo ${i + 1}`} onPress={() => set('photos', form.photos.filter((x) => x.ref !== img.ref))}
                     style={{ position: 'absolute', top: 4, right: 4, backgroundColor: 'rgba(0,0,0,0.6)', width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}>
-                    <Text style={{ color: '#fff', fontWeight: '900' }}>✕</Text>
+                    <SymbolIcon name="close" style={{ color: '#fff', fontWeight: '900' }} />
                   </TouchableOpacity>
                   {i === 0 ? <View style={{ position: 'absolute', bottom: 4, left: 4, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 6, paddingHorizontal: 5 }}><Text style={{ color: '#fff', fontSize: 12, fontWeight: '800' }}>Cover</Text></View> : null}
                 </View>
@@ -328,7 +329,7 @@ export default function ListVehicle() {
               {form.photos.length < 6 ? (
                 <TouchableOpacity accessibilityRole="button" accessibilityLabel="Add photo" onPress={() => upload('rental_photo', (img) => setForm((f) => ({ ...f, photos: [...f.photos.filter((x) => x.ref !== img.ref), img].slice(0, 6) })), 'photo')}
                   style={{ width: 100, height: 100, borderRadius: 14, borderWidth: 1.5, borderStyle: 'dashed', borderColor: p.accent, alignItems: 'center', justifyContent: 'center' }}>
-                  {uploading === 'photo' ? <ActivityIndicator color={p.accent} /> : <><Text style={{ fontSize: 24, color: p.accent }}>＋</Text><Text style={{ fontSize: 12, color: p.accent, fontWeight: '800' }}>Add photo</Text></>}
+                  {uploading === 'photo' ? <ActivityIndicator color={p.accent} /> : <><SymbolIcon name="add" style={{ fontSize: 24, color: p.accent }} /><Text style={{ fontSize: 12, color: p.accent, fontWeight: '800' }}>Add photo</Text></>}
                 </TouchableOpacity>
               ) : null}
             </View>

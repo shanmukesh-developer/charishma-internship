@@ -14,6 +14,7 @@ import { buildingPhoto } from './pgV2Photos';
 import { usePgDetail, kmText, placeText } from './pgV2Data';
 import { useNav, usePgIdFor } from './pgV2Nav';
 import { mapsUrl, type PgDetail } from '../../modules/pg/pgApi';
+import { themedSheet } from '../../utils/themeNow';
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
 
@@ -102,15 +103,15 @@ export default function PgV2Map() {
   );
 }
 
-const st = StyleSheet.create({
+const st = themedSheet(() => ({
   mapWrap: { flex: 1, marginHorizontal: 8, borderRadius: R.xl, overflow: 'hidden', marginBottom: 8 },
-  card: { backgroundColor: '#FFFFFF', borderRadius: R.xl, padding: 14 },
+  card: { backgroundColor: PG2.card, borderRadius: R.xl, padding: 14 },
   cardFloat: { position: 'absolute', left: GUTTER + 8, right: GUTTER + 8, bottom: 28 },
   name: { fontSize: 15.5, fontWeight: W.title, color: PG2.ink },
   meta: { marginTop: 4, fontSize: 12.5, color: PG2.muted, lineHeight: 18 },
   dir: { marginTop: 14, height: 48, backgroundColor: PG2.page },
-  addr: { backgroundColor: '#FFFFFF', borderRadius: 14, padding: 16, alignItems: 'flex-start', borderWidth: StyleSheet.hairlineWidth, borderColor: '#E6E3F5' },
+  addr: { backgroundColor: PG2.card, borderRadius: 14, padding: 16, alignItems: 'flex-start', borderWidth: StyleSheet.hairlineWidth, borderColor: PG2.line },
   addrIcon: { marginBottom: 10 },
   addrLabel: { fontSize: 12.5, color: PG2.lavenderInk, fontWeight: W.label },
   addrText: { marginTop: 4, fontSize: 15, color: PG2.ink, lineHeight: 22, fontWeight: W.label },
-});
+}));

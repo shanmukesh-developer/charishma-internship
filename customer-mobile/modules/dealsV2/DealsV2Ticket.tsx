@@ -10,6 +10,7 @@ import { DV, W, shadow, shortDate } from './dealsV2Theme';
 import { Press } from './DealsV2Kit';
 import { IClock, ITicketPercent, ITruck } from './DealsV2Icons';
 import { couponMin, couponTitle, type Coupon } from './dealsV2Data';
+import { themedSheet } from '../../utils/themeNow';
 
 const STUB = 86;
 const NOTCH = 18;
@@ -53,7 +54,7 @@ export function Ticket({ coupon, onApply, onPress, page = DV.page, muted, note, 
           <View style={s.dash} />
           <View style={[s.notch, { bottom: -NOTCH / 2, backgroundColor: page }]} />
         </View>
-        <LinearGradient colors={['#FFFFFF', '#FAF8FF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.body}>
+        <LinearGradient colors={[DV.card, DV.page]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.body}>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={s.title} numberOfLines={1}>{couponTitle(coupon)}</Text>
             <Text style={s.cond} numberOfLines={1}>{couponCondition(coupon)}</Text>
@@ -75,9 +76,9 @@ export function Ticket({ coupon, onApply, onPress, page = DV.page, muted, note, 
   );
 }
 
-const s = StyleSheet.create({
+const s = themedSheet(() => ({
   wrap: { borderRadius: 18 },
-  ticket: { flexDirection: 'row', borderRadius: 18, overflow: 'hidden', minHeight: 104, backgroundColor: '#FFFFFF', borderWidth: StyleSheet.hairlineWidth, borderColor: DV.line },
+  ticket: { flexDirection: 'row', borderRadius: 18, overflow: 'hidden', minHeight: 104, backgroundColor: DV.card, borderWidth: StyleSheet.hairlineWidth, borderColor: DV.line },
   stub: { width: STUB, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   plate: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.45)' },
   scallops: { position: 'absolute', left: -6, top: 4, bottom: 4, justifyContent: 'space-between' },
@@ -92,4 +93,4 @@ const s = StyleSheet.create({
   chipText: { fontSize: 11.5, color: DV.violetDeep, fontWeight: W.label },
   apply: { height: 36, paddingHorizontal: 16, borderRadius: 18, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   applyText: { color: '#FFFFFF', fontSize: 13.5, fontWeight: W.title },
-});
+}));

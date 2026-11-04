@@ -22,6 +22,7 @@ import { ResultBody, ResultWash } from './DealsV2Result';
 import { DealSheetBody } from './DealsV2DealSheet';
 import { ORDERS_PER_SPIN, couponTitle, useDeals, type Coupon } from './dealsV2Data';
 import { useNav } from './dealsV2Nav';
+import { themedSheet } from '../../utils/themeNow';
 
 export function useApplyCoupon() {
   const { totalItems, basketCounts, lastAddedBasket } = useCart() as any;
@@ -66,7 +67,7 @@ export default function DealsV2Sheets() {
       <Pressable style={s.backdrop} onPress={nav.closeSheet} accessibilityLabel="Close" />
       {sh ? (
         <View style={[s.sheet, shadow(3), { paddingBottom: Math.max(insets.bottom, 12) + 14, maxHeight: height * 0.92 }]} accessibilityViewIsModal>
-          <LinearGradient colors={['#FFFFFF', '#F7F4FF']} style={StyleSheet.absoluteFill} />
+          <LinearGradient colors={[DV.card, DV.page]} style={StyleSheet.absoluteFill} />
           {sh.kind === 'result' ? <ResultWash /> : null}
           <View style={s.grab} />
           {sh.kind === 'sample' ? (
@@ -105,7 +106,7 @@ export default function DealsV2Sheets() {
   );
 }
 
-const s = StyleSheet.create({
+const s = themedSheet(() => ({
   backdrop: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: 'rgba(16,8,48,0.55)' },
   sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingTop: 10, overflow: 'hidden', maxWidth: 560, alignSelf: 'center', width: '100%' },
   grab: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: 'rgba(26,19,64,0.18)', marginBottom: 10 },
@@ -115,4 +116,4 @@ const s = StyleSheet.create({
   codeText: { flex: 1, fontSize: 15.5, fontWeight: W.title, color: DV.ink, letterSpacing: 0.5 },
   link: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: 12, marginTop: 2 },
   linkText: { color: DV.violet, fontSize: 14, fontWeight: W.label },
-});
+}));

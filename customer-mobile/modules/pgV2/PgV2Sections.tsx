@@ -32,6 +32,7 @@ import {
   fmtRange, fmtTime, inr, months, ordinal, metres, chargeText, INCLUDED_KEYS, INCLUDED_LABEL,
   type PgRuleGroup, type PgTimings, type PgPolicies, type PgSafety, type PgMoveIn, type PgLocationGuide, type PgFaq, type NearbyCategory,
 } from '../pg/pgApi';
+import { themedSheet } from '../../utils/themeNow';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) UIManager.setLayoutAnimationEnabledExperimental(true);
 
@@ -212,14 +213,14 @@ export function FaqBlock({ items }: { items: PgFaq[] }) {
   return <View>{items.map((f) => <Collapsible key={f.id} title={f.q}><Text style={st.body}>{f.a}</Text></Collapsible>)}</View>;
 }
 
-const st = StyleSheet.create({
-  group: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E6E3F5' },
+const st = themedSheet(() => ({
+  group: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: PG2.line },
   groupHead: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingVertical: 10 },
   groupTitle: { fontSize: 14.5, fontWeight: W.label, color: PG2.ink },
   groupSub: { marginTop: 2, fontSize: 12, color: PG2.muted },
   groupBody: { paddingBottom: 16, paddingLeft: 32 },
   kv: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 9 },
-  hair: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#ECEAF5' },
+  hair: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: PG2.line },
   kvKey: { fontSize: 13.5, color: PG2.muted },
   kvVal: { fontSize: 13.5, color: PG2.ink, fontWeight: W.label, textAlign: 'right', flexShrink: 1 },
   bullet: { flexDirection: 'row', gap: 8 },
@@ -227,6 +228,6 @@ const st = StyleSheet.create({
   body: { fontSize: 13.5, color: PG2.ink2, lineHeight: 20, flexShrink: 1 },
   small: { fontSize: 12, color: PG2.muted, lineHeight: 17 },
   check: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 },
-  card: { backgroundColor: '#FFFFFF', borderRadius: R.md, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E6E3F5', paddingHorizontal: 14 },
+  card: { backgroundColor: PG2.card, borderRadius: R.md, borderWidth: StyleSheet.hairlineWidth, borderColor: PG2.line, paddingHorizontal: 14 },
   near: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 50 },
-});
+}));

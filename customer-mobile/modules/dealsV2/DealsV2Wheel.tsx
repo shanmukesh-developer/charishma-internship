@@ -12,6 +12,7 @@ import Svg, { Circle, Defs, G, LinearGradient as SvgLinear, Path, RadialGradient
 import { Image } from 'expo-image';
 import { WHEEL_COLORS, wheelLabelLines } from '../../components/others/SpinWheelSvg';
 import type { Prize } from './dealsV2Data';
+import { themedSheet } from '../../utils/themeNow';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 export const ZCS_EMBLEM = require('../../assets/zenv-brand-badge-2026-11-04.webp');
@@ -165,6 +166,6 @@ export function PrizeWheel({ prizes, size, rotate, labels = true, style }: {
   );
 }
 
-const st = StyleSheet.create({
+const st = themedSheet(() => ({
   hub: { position: 'absolute', overflow: 'hidden', backgroundColor: '#FAE04B', borderWidth: 1, borderColor: 'rgba(255,240,200,0.9)' },
-});
+}));

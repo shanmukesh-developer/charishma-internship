@@ -16,6 +16,7 @@ import { formatINR } from '../../utils/format';
 import { TV, RADIUS, W, shadow } from './servicesV2Theme';
 import { BookPill, Press, Stepper } from './ServicesV2Kit';
 import { isServiceShelf, priceLine, type ShelfId, type ShelfItem } from './servicesV2Data';
+import { themedSheet } from '../../utils/themeNow';
 
 /** The catalogue photo over the item's type photo: the type photo shows while the catalogue photo loads (the campus
  * media server can be slow), and stays when the catalogue has no photo or it fails to load (services). */
@@ -92,7 +93,7 @@ export function ProductRow({ shelf, item, qty, storeClosed, onOpen, onAdd, onMin
   );
 }
 
-const r = StyleSheet.create({
+const r = themedSheet(() => ({
   row: { flexDirection: 'row', gap: 12, padding: 10, borderRadius: RADIUS.lg, backgroundColor: TV.card, marginHorizontal: 16, alignItems: 'stretch' },
   thumb: { borderRadius: 12, overflow: 'hidden', backgroundColor: TV.plate },
   over: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'transparent' },
@@ -105,4 +106,4 @@ const r = StyleSheet.create({
   note: { fontSize: 12, color: TV.sub, fontWeight: W.body },
   was: { fontSize: 12, color: TV.faint, textDecorationLine: 'line-through' },
   paused: { fontSize: 12.5, color: TV.faint, fontWeight: W.label },
-});
+}));

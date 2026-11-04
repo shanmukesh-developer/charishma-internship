@@ -13,6 +13,7 @@ import { Skeleton, StateBlock } from './DealsV2States';
 import { IClock, IFlame } from './DealsV2Icons';
 import { useDeals } from './dealsV2Data';
 import { sampleDeals } from './dealsV2Demo';
+import { themedSheet } from '../../utils/themeNow';
 
 export default function DealsV2Today() {
   const d = useDeals();
@@ -26,11 +27,11 @@ export default function DealsV2Today() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await d.reload(); setRefreshing(false); }} tintColor={DV.violet} colors={[DV.violet]} />}
       >
         <View style={[s.streak, shadow(1)]}>
-          <LinearGradient colors={['#FFFFFF', '#F1ECFF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+          <LinearGradient colors={[DV.card, DV.violetSoft]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
           <View style={s.flame}><IFlame size={20} color="#FFFFFF" strokeWidth={1.7} /></View>
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={s.streakTitle}>{d.signedIn ? `${d.streak}-day order streak` : 'Order streaks unlock bigger deals'}</Text>
-            <Text style={s.streakSub}>Order on consecutive days to unlock streak deals.</Text>
+            <Text style={s.streakTitle}>{d.signedIn ? `${d.streak}-day order streak` : 'Build an order streak'}</Text>
+            <Text style={s.streakSub}>Order on days in a row to get bigger deals.</Text>
           </View>
         </View>
         <View style={s.when}><IClock size={13} color={DV.sub} strokeWidth={1.8} /><Text style={s.whenText}>Deals reset every day at midnight</Text></View>
@@ -49,7 +50,7 @@ export default function DealsV2Today() {
   );
 }
 
-const s = StyleSheet.create({
+const s = themedSheet(() => ({
   streak: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 20, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: DV.line },
   flame: { width: 40, height: 40, borderRadius: 13, backgroundColor: DV.violet, alignItems: 'center', justifyContent: 'center' },
   streakTitle: { fontSize: 15, fontWeight: W.title, color: DV.ink },
@@ -57,4 +58,4 @@ const s = StyleSheet.create({
   when: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 2 },
   whenText: { fontSize: 12.5, color: DV.sub },
   label: { fontSize: 13, color: DV.faint, fontWeight: W.label, marginTop: 6 },
-});
+}));

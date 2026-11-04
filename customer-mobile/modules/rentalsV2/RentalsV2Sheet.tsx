@@ -9,6 +9,7 @@ import { useReducedMotion } from '../others/motion';
 import { DAY, W } from './rentalsV2Theme';
 import { Press } from './RentalsV2Kit';
 import { IX } from './RentalsV2Icons';
+import { themedSheet } from '../../utils/themeNow';
 
 export function Sheet({ visible, onClose, title, children, footer, maxH = 0.86 }: {
   visible: boolean; onClose: () => void; title?: string; children: React.ReactNode; footer?: React.ReactNode; maxH?: number;
@@ -67,14 +68,14 @@ export function Options<T extends string>({ items, value, onChange }: { items: {
   );
 }
 
-const sh = StyleSheet.create({
-  sheet: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingTop: 8 },
+const sh = themedSheet(() => ({
+  sheet: { backgroundColor: DAY.card, borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingTop: 8 },
   handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: '#DEDCEE', marginBottom: 6 },
   titleRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 8 },
   title: { flex: 1, fontSize: 18, fontWeight: W.title, color: DAY.ink },
   close: { width: 34, height: 34, borderRadius: 17, backgroundColor: DAY.lineSoft, alignItems: 'center', justifyContent: 'center' },
   label: { fontSize: 13.5, color: DAY.ink, fontWeight: W.label, marginTop: 16, marginBottom: 10 },
-  opt: { height: 38, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1, borderColor: DAY.line, backgroundColor: '#FFFFFF', justifyContent: 'center' },
+  opt: { height: 38, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1, borderColor: DAY.line, backgroundColor: DAY.card, justifyContent: 'center' },
   optOn: { borderColor: DAY.accent, backgroundColor: DAY.accentSoft },
   optText: { fontSize: 13, color: DAY.ink2, fontWeight: W.label },
-});
+}));

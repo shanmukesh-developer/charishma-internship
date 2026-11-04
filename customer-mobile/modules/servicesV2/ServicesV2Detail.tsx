@@ -21,6 +21,7 @@ import { ICash, IChevronRight, IClipboard, IHouse, IInfo, IReceipt, IRuler, ISto
 import { SHELF_META, SHELF_TRUST, detailPath, priceLine, useShelf, type ServiceShelf, type TrustIcon } from './servicesV2Data';
 import { useServicesV2Booking } from './useServicesV2Booking';
 import { openMyBookings } from './ServicesV2List';
+import { themedSheet } from '../../utils/themeNow';
 
 const TRUST_ICON: Record<TrustIcon, React.ComponentType<any>> = { house: IHouse, tag: ITag, cash: ICash, ruler: IRuler, clipboard: IClipboard };
 
@@ -202,7 +203,7 @@ export default function ServicesV2Detail({ shelf, id }: { shelf: ServiceShelf; i
   );
 }
 
-const d = StyleSheet.create({
+const d = themedSheet(() => ({
   photo: { marginHorizontal: 16, height: 200, borderRadius: RADIUS.xl, overflow: 'hidden', backgroundColor: TV.plate },
   tag: { position: 'absolute', left: 12, top: 12, paddingHorizontal: 10, height: 26, borderRadius: 13, backgroundColor: 'rgba(16,21,74,0.82)', justifyContent: 'center' },
   tagText: { color: '#FFFFFF', fontSize: 12, fontWeight: W.label },
@@ -239,4 +240,4 @@ const d = StyleSheet.create({
   barPrice: { fontSize: 18, color: TV.ink, fontWeight: W.title, marginTop: 1 },
   book: { height: 48, minWidth: 140, paddingHorizontal: 22, borderRadius: 24, backgroundColor: TV.accent, alignItems: 'center', justifyContent: 'center' },
   bookText: { color: '#FFFFFF', fontSize: 15, fontWeight: W.title },
-});
+}));

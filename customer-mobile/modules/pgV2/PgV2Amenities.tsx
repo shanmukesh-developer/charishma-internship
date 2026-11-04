@@ -38,6 +38,7 @@ import IKey from 'lucide-react-native/icons/key-round';
 import ICircleCheck from 'lucide-react-native/icons/circle-check';
 import { amenityLabel } from '../../modules/pg/ui';
 import { PG2, R, W } from './pgV2Theme';
+import { themedSheet } from '../../utils/themeNow';
 
 export const SLATE = '#475569';
 export const LINE_ICON = { size: 20, stroke: 1.6 } as const;
@@ -146,12 +147,12 @@ export function AmenityGroups({ items }: { items: AmenityItem[] }) {
   );
 }
 
-const st = StyleSheet.create({
-  card: { backgroundColor: '#FFFFFF', borderRadius: R.md, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E6E3F5', paddingHorizontal: 14 },
+const st = themedSheet(() => ({
+  card: { backgroundColor: PG2.card, borderRadius: R.md, borderWidth: StyleSheet.hairlineWidth, borderColor: PG2.line, paddingHorizontal: 14 },
   pair: { flexDirection: 'row', gap: 14, paddingVertical: 13 },
-  divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#ECEAF5' },
+  divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: PG2.line },
   row: { flex: 1, flexDirection: 'row', alignItems: 'flex-start', gap: 10, minWidth: 0 },
   label: { fontSize: 14, fontWeight: W.label, color: PG2.ink, lineHeight: 20 },
   tag: { marginTop: 1, fontSize: 11.5, color: PG2.green },
   groupTitle: { fontSize: 12.5, fontWeight: W.label, color: PG2.muted, marginBottom: 8, letterSpacing: 0.1 },
-});
+}));

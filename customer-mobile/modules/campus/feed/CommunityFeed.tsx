@@ -18,6 +18,7 @@ import { connectSocket } from '../../../utils/socket';
 import { useLiveSync } from '../../../utils/useLiveSync';
 import ShimmerLoader from '../../../components/ShimmerLoader';
 import { ActionMenu } from '../friends/shared/ActionMenu';
+import SymbolIcon from '../../../components/SymbolIcon';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
@@ -1799,7 +1800,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
             Chat with classmates, join class and club groups, and catch up on what's happening on campus.
           </Text>
           <View style={s.friendsFooter}>
-            <Text style={[s.friendsFooterText, { color: isDark ? COLORS.gold : '#8b5a2b' }]}>OPEN CAMPUS BUDDY →</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}><Text style={[s.friendsFooterText, { color: isDark ? COLORS.gold : '#8b5a2b' }]}>Open Campus</Text><SymbolIcon name="chevron-forward" style={[s.friendsFooterText, { color: isDark ? COLORS.gold : '#8b5a2b' }]} scale={1} /></View>
           </View>
         </DopaminePressable>
         )}
@@ -1997,7 +1998,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
             }}
             sound="click"
           >
-            <Text style={{ fontSize: 24, color: '#fff' }}>+</Text>
+            <SymbolIcon name="add" style={{ fontSize: 24, color: '#fff' }} />
           </ActionPressable>
         </FloatingPulse>
       )}
@@ -2156,7 +2157,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                           style={{ position: 'absolute', top: -8, right: -8, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.75)', alignItems: 'center', justifyContent: 'center' }}
                           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                         >
-                          <Text style={{ color: '#fff', fontSize: 12, fontWeight: '900' }}>✕</Text>
+                          <SymbolIcon name="close" style={{ color: '#fff', fontSize: 12, fontWeight: '900' }} />
                         </TouchableOpacity>
                       </View>
                     ) : null}
@@ -2241,7 +2242,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
 
                 {/* Close Button */}
                 <TouchableOpacity style={s.bdayCloseBtn} onPress={() => setShowBirthdayWishModal(false)}>
-                  <Text style={{ fontSize: 18, color: txtSec }}>✕</Text>
+                  <SymbolIcon name="close" style={{ fontSize: 18, color: txtSec }} />
                 </TouchableOpacity>
 
                 {selectedBirthday && (
@@ -2566,7 +2567,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
               style={{ position: 'absolute', top: 16, right: 16, zIndex: 10, width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' }}
               onPress={() => setSelectedHofWinner(null)}
             >
-              <Text style={{ fontSize: 16, color: '#FFF', fontWeight: '900' }}>✕</Text>
+              <SymbolIcon name="close" style={{ fontSize: 16, color: '#FFF', fontWeight: '900' }} />
             </TouchableOpacity>
 
             {/* Crown & Tag */}
@@ -2898,7 +2899,7 @@ const s = StyleSheet.create({
   friendsFooterText: {
     fontSize: 12,
     fontWeight: '900',
-    letterSpacing: 1,
+    letterSpacing: 0.3,
   },
 
   // ── THE WALL STYLING ──

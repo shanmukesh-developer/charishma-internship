@@ -19,6 +19,7 @@ import { DAY, PLATE, W, shadow } from './rentalsV2Theme';
 import { ChipRow, DayHeader, FadeInUp, Press, StateBlock } from './RentalsV2Kit';
 import { IBed, IBike, ICar, IChevronRight } from './RentalsV2Icons';
 import { useNav } from './rentalsV2Nav';
+import { themedSheet } from '../../utils/themeNow';
 
 type Tab = 'renter' | 'owner' | 'rooms';
 
@@ -138,16 +139,16 @@ export default function RentalsV2Mine() {
   );
 }
 
-const m = StyleSheet.create({
+const m = themedSheet(() => ({
   scope: { flexDirection: 'row', marginHorizontal: 16, marginBottom: 6, padding: 4, borderRadius: 12, backgroundColor: DAY.lineSoft, gap: 4 },
   scopeItem: { flex: 1, height: 34, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  scopeOn: { backgroundColor: '#FFFFFF', ...shadow(1) },
+  scopeOn: { backgroundColor: DAY.card, ...shadow(1) },
   scopeText: { fontSize: 13, color: DAY.ink2, fontWeight: W.label },
-  row: { marginHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, borderRadius: 18, backgroundColor: '#FFFFFF' },
+  row: { marginHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, borderRadius: 18, backgroundColor: DAY.card },
   thumb: { width: 84, height: 74, borderRadius: 14 },
   title: { fontSize: 14.5, fontWeight: W.title, color: DAY.ink },
   sub: { fontSize: 12, color: DAY.muted, marginTop: 2 },
   badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 7, flexShrink: 1 },
   badgeText: { fontSize: 11.5, fontWeight: W.label },
   price: { fontSize: 13, color: DAY.accent, fontWeight: W.title },
-});
+}));

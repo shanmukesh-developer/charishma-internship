@@ -19,6 +19,7 @@ import DopaminePressable, { ActionPressable } from '../../components/DopaminePre
 import SafeImage from '../../components/SafeImage';
 import { stallPayCopy } from '../../utils/localVendor';
 import { formatINR, formatClock, plural } from '../../utils/format';
+import SymbolIcon from '../../components/SymbolIcon';
 
 // Clean chip labels for the stored instruction ids (the ids and notes sent with the order stay the same).
 const INSTRUCTION_LABELS: Record<string, string> = {
@@ -452,7 +453,7 @@ export default function BasketScreen() {
                         sound="click"
                         activeScale={0.88}
                       >
-                        <Text style={[s.qtyText, { color: txt }]}>−</Text>
+                        <SymbolIcon name="remove" style={[s.qtyText, { color: txt }]} />
                       </DopaminePressable>
                       <Text style={[s.qtyNum, { color: txt }]}>{item.quantity}</Text>
                       <DopaminePressable 
@@ -463,7 +464,7 @@ export default function BasketScreen() {
                         sound="click"
                         activeScale={0.88}
                       >
-                        <Text style={[s.qtyText, { color: txt }]}>+</Text>
+                        <SymbolIcon name="add" style={[s.qtyText, { color: txt }]} />
                       </DopaminePressable>
                     </View>
                   </View>

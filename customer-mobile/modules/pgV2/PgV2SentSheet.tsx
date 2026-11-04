@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PG2, R, GUTTER, W } from './pgV2Theme';
 import { Tap, PrimaryButton, OutlineButton } from './PgV2Kit';
 import { ICheck, IBed, ICalendar, STROKE } from './PgV2Icons';
+import { themedSheet } from '../../utils/themeNow';
 
 export interface SentInfo { pgName: string; roomType: string; moveIn: string; deskUrl?: string | null }
 
@@ -51,12 +52,12 @@ export default function PgV2SentSheet({ open, info, onViewBookings, onDone }: { 
   );
 }
 
-const st = StyleSheet.create({
+const st = themedSheet(() => ({
   scrim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,16,60,0.42)' },
-  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: '#FFFFFF', borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingHorizontal: GUTTER + 4, paddingTop: 10, alignItems: 'center' },
+  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: PG2.card, borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingHorizontal: GUTTER + 4, paddingTop: 10, alignItems: 'center' },
   grabber: { width: 40, height: 4, borderRadius: 2, backgroundColor: PG2.line, marginBottom: 18 },
   artOuter: { width: 104, height: 104, alignItems: 'center', justifyContent: 'center' },
-  artMid: { width: 88, height: 88, borderRadius: 44, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E6E3F5', alignItems: 'center', justifyContent: 'center' },
+  artMid: { width: 88, height: 88, borderRadius: 44, borderWidth: StyleSheet.hairlineWidth, borderColor: PG2.line, alignItems: 'center', justifyContent: 'center' },
   artInner: { width: 62, height: 62, borderRadius: 31, backgroundColor: PG2.primary, alignItems: 'center', justifyContent: 'center' },
   spark: { position: 'absolute', width: 8, height: 8, borderRadius: 4, backgroundColor: '#B7A6FA' },
   title: { marginTop: 14, fontSize: 21, fontWeight: W.title, color: PG2.ink, letterSpacing: -0.3 },
@@ -68,4 +69,4 @@ const st = StyleSheet.create({
   body: { marginTop: 14, fontSize: 14, lineHeight: 21, color: PG2.ink2, textAlign: 'center', paddingHorizontal: 8 },
   link: { marginTop: 6, minHeight: 44, justifyContent: 'center', paddingHorizontal: 12 },
   linkText: { fontSize: 14, fontWeight: W.label, color: PG2.primary },
-});
+}));

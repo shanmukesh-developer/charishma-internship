@@ -16,6 +16,7 @@ import { Skeleton, StateBlock } from './DealsV2States';
 import { IChevronRight, IStar, IUserPlus } from './DealsV2Icons';
 import { ORDERS_PER_SPIN, useDeals } from './dealsV2Data';
 import { useNav } from './dealsV2Nav';
+import { themedSheet } from '../../utils/themeNow';
 
 export default function DealsV2Points() {
   const d = useDeals();
@@ -87,22 +88,22 @@ export default function DealsV2Points() {
   );
 }
 
-const s = StyleSheet.create({
+const s = themedSheet(() => ({
   balance: { flexDirection: 'row', alignItems: 'center', padding: 20, borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(181,122,14,0.3)' },
   balLabel: { fontSize: 13, color: '#7A4B00', fontWeight: W.label },
   balValue: { fontSize: 40, color: '#4A2A00', fontWeight: W.display, letterSpacing: -1, marginTop: 2 },
   balSub: { fontSize: 13, color: '#7A4B00' },
   h2: { fontSize: 17, fontWeight: W.title, color: DV.ink, marginTop: 24, marginBottom: 12 },
-  card: { padding: 16, borderRadius: 20, backgroundColor: '#FFFFFF', borderWidth: StyleSheet.hairlineWidth, borderColor: DV.line },
+  card: { padding: 16, borderRadius: 20, backgroundColor: DV.card, borderWidth: StyleSheet.hairlineWidth, borderColor: DV.line },
   cardTitle: { fontSize: 15, fontWeight: W.title, color: DV.ink },
   cardSub: { fontSize: 12.5, color: DV.sub, marginTop: 8 },
   stats: { flexDirection: 'row', marginTop: 14, borderTopWidth: StyleSheet.hairlineWidth, borderColor: DV.line, paddingTop: 12 },
   stat: { flex: 1, alignItems: 'center' },
   statValue: { fontSize: 19, fontWeight: W.title, color: DV.violetDeep },
   statLabel: { fontSize: 11.5, color: DV.sub, marginTop: 2, textAlign: 'center' },
-  way: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 18, backgroundColor: '#FFFFFF', borderWidth: StyleSheet.hairlineWidth, borderColor: DV.line },
+  way: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 18, backgroundColor: DV.card, borderWidth: StyleSheet.hairlineWidth, borderColor: DV.line },
   plate: { width: 40, height: 40, borderRadius: 13, backgroundColor: DV.violet, alignItems: 'center', justifyContent: 'center' },
   wayTitle: { fontSize: 14.5, fontWeight: W.title, color: DV.ink },
   waySub: { fontSize: 12.5, color: DV.sub, marginTop: 2 },
   foot: { fontSize: 12, color: DV.faint, textAlign: 'center', marginTop: 18, lineHeight: 17 },
-});
+}));

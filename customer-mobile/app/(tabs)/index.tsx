@@ -43,6 +43,7 @@ import { syncFavorites, toggleFavoriteStore, onFavoritesChange, isFavoriteIn } f
 import { useTopInset } from '../../utils/useTopInset';
 import { useIntroDone } from '../../utils/introGate';
 import { rememberIntroSoundSetting } from '../../components/intro/introSound';
+import SymbolIcon from '../../components/SymbolIcon';
 
 const VaultTimerBadge = ({ pulseAnim }: { pulseAnim: any }) => {
   const [vaultTimer, setVaultTimer] = useState('00:00:00');
@@ -407,14 +408,17 @@ export default function HomeScreen() {
   // "Under 20 min" only when the server has measured delivery times (utils/storeEta)
   // Promo slides for switched-off sections are left out. "Find a ride" waits for a confirmed live
   // Co-Ride (no slide that pops in and out); PG stays unless the server says it is off.
+  // Owner, 4 Nov 2026: no PG banner while PG stays has no listings (it led to an empty page). Unknown keeps it.
+  const pgHomeSWR = useSWRJson<{ pgs?: unknown[] }>('/api/pg/home', { freshMs: 5 * 60 * 1000 });
+  const noPgListed = Array.isArray(pgHomeSWR.data?.pgs) && pgHomeSWR.data!.pgs!.length === 0;
   const hiddenPromoSlides = React.useMemo(() => {
     const sec = sectionsSWR.data?.sections;
     const out: string[] = [];
     if (sec?.coride?.live !== true) out.push('ride');
-    if (sec?.pg?.live === false) out.push('stays');
+    if (sec?.pg?.live === false || noPgListed) out.push('stays');
     if (sec?.campus?.live === false) out.push('campus-buddy');
     return out;
-  }, [sectionsSWR.data]);
+  }, [sectionsSWR.data, noPgListed]);
   // Owner, 31 Oct 2026: Campus can be switched off from the admin (Friends master switch); then the header
   // button and its promo go. Unknown (offline, older server) keeps them.
   const campusOff = sectionsSWR.data?.sections?.campus?.live === false;
@@ -867,7 +871,7 @@ export default function HomeScreen() {
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 accessibilityLabel="Clear search"
               >
-                <Text style={{ fontSize: 14, fontWeight: '600', color: txtSec }}>✕</Text>
+                <SymbolIcon name="close" style={{ fontSize: 14, fontWeight: '600', color: txtSec }} />
               </TouchableOpacity>
             )}
           </TouchableOpacity>
@@ -1561,7 +1565,7 @@ export default function HomeScreen() {
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 6 }}>
               <Text style={[s.modalTitle, { color: txt, marginBottom: 0 }]}>Filters</Text>
               <TouchableOpacity onPress={() => setShowCatPrefModal(false)} style={{ padding: 4 }} accessibilityRole="button" accessibilityLabel="Close filters">
-                <Text style={{ fontSize: 18, color: txtSec, fontWeight: '600' }}>✕</Text>
+                <SymbolIcon name="close" style={{ fontSize: 18, color: txtSec, fontWeight: '600' }} />
               </TouchableOpacity>
             </View>
             <Text style={[s.modalSubtitle, { color: txtSec, marginBottom: 14 }]}>Diet and cuisine shortcuts</Text>

@@ -21,6 +21,7 @@ import { formatINR, plural } from '../../utils/format';
 import { TV, RADIUS, W, shadow } from './servicesV2Theme';
 import { IArrowLeft, ICash, IClipboard, ICloudOff, IHouse, IMinus, IPlus, IRuler, ISearch, ITag, IWifiOff, IX, IBag, IChevronRight, IClock } from './ServicesV2Icons';
 import type { TrustIcon } from './servicesV2Data';
+import { themedSheet } from '../../utils/themeNow';
 
 export const FadeIn = FadeInUp;
 
@@ -234,22 +235,22 @@ export function SkeletonRows({ count = 4 }: { count?: number }) {
   );
 }
 
-export const k = StyleSheet.create({
+export const k = themedSheet(() => ({
   barRow: { flexDirection: 'row', alignItems: 'center', paddingLeft: 6, paddingRight: 8, minHeight: 48 },
   barBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   barTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: W.title, letterSpacing: -0.1 },
   barSub: { color: TV.onDarkSub, fontSize: 12, marginTop: 1 },
-  search: { flexDirection: 'row', alignItems: 'center', gap: 9, height: 46, borderRadius: 23, backgroundColor: '#FFFFFF', paddingLeft: 15, paddingRight: 4, marginHorizontal: 16 },
+  search: { flexDirection: 'row', alignItems: 'center', gap: 9, height: 46, borderRadius: 23, backgroundColor: TV.card, paddingLeft: 15, paddingRight: 4, marginHorizontal: 16 },
   searchInput: { flex: 1, fontSize: 14.5, color: TV.ink, paddingVertical: 8, minWidth: 0 },
   searchClear: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  chip: { height: 36, paddingHorizontal: 16, borderRadius: RADIUS.pill, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: TV.line, alignItems: 'center', justifyContent: 'center' },
+  chip: { height: 36, paddingHorizontal: 16, borderRadius: RADIUS.pill, backgroundColor: TV.card, borderWidth: 1, borderColor: TV.line, alignItems: 'center', justifyContent: 'center' },
   chipOn: { backgroundColor: TV.accent, borderColor: TV.accent },
   chipText: { fontSize: 13, color: TV.ink2, fontWeight: W.label },
   hero: { marginHorizontal: 16, borderRadius: RADIUS.xl, overflow: 'hidden', backgroundColor: TV.heroInk, minHeight: 168 },
   heroPhoto: { position: 'absolute', top: 0, bottom: 0, right: 0, width: '64%' },
   heroTitle: { color: '#FFFFFF', fontSize: 19.5, lineHeight: 24, fontWeight: W.title, letterSpacing: -0.2 },
   heroLine: { color: TV.onDarkSub, fontSize: 12.5, lineHeight: 17.5, marginTop: 6 },
-  heroCta: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', marginTop: 12, height: 36, paddingHorizontal: 14, borderRadius: 18, backgroundColor: '#FFFFFF' },
+  heroCta: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', marginTop: 12, height: 36, paddingHorizontal: 14, borderRadius: 18, backgroundColor: TV.card },
   heroCtaText: { color: TV.accentDeep, fontSize: 13, fontWeight: W.title },
   trustRow: { flexDirection: 'row', marginTop: 'auto', paddingHorizontal: 8, paddingBottom: 12, paddingTop: 4 },
   trustItem: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 5 },
@@ -271,14 +272,14 @@ export const k = StyleSheet.create({
   basketIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' },
   basketCount: { color: TV.onDarkSub, fontSize: 12 },
   basketTotal: { color: '#FFFFFF', fontSize: 16, fontWeight: W.title, marginTop: 1 },
-  basketGo: { flexDirection: 'row', alignItems: 'center', gap: 3, height: 36, paddingHorizontal: 12, borderRadius: 18, backgroundColor: '#FFFFFF' },
+  basketGo: { flexDirection: 'row', alignItems: 'center', gap: 3, height: 36, paddingHorizontal: 12, borderRadius: 18, backgroundColor: TV.card },
   basketGoText: { color: TV.accentDeep, fontSize: 13, fontWeight: W.title },
-  state: { marginHorizontal: 16, padding: 22, borderRadius: RADIUS.lg, backgroundColor: '#FFFFFF', alignItems: 'center' },
+  state: { marginHorizontal: 16, padding: 22, borderRadius: RADIUS.lg, backgroundColor: TV.card, alignItems: 'center' },
   statePlate: { width: 56, height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 12, backgroundColor: TV.accentSoft },
   stateTitle: { fontSize: 16, fontWeight: W.title, color: TV.ink, textAlign: 'center' },
   stateBody: { fontSize: 13, color: TV.sub, textAlign: 'center', marginTop: 6, lineHeight: 19 },
   stateBtn: { marginTop: 14, paddingHorizontal: 18, height: 40, borderRadius: 12, backgroundColor: TV.accentSoft, alignItems: 'center', justifyContent: 'center' },
   stateBtnText: { fontSize: 13.5, color: TV.accent, fontWeight: W.label },
-  skel: { flexDirection: 'row', gap: 12, padding: 12, borderRadius: RADIUS.lg, backgroundColor: '#FFFFFF', alignItems: 'center' },
+  skel: { flexDirection: 'row', gap: 12, padding: 12, borderRadius: RADIUS.lg, backgroundColor: TV.card, alignItems: 'center' },
   skelBlock: { borderRadius: 6, backgroundColor: TV.lineSoft },
-});
+}));

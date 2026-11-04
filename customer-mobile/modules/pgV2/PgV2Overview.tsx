@@ -23,6 +23,7 @@ import { PhotoViewer, ToursRow } from './PgV2Media';
 import { ZENVY_SUPPORT_WHATSAPP } from '../../constants/api';
 import { inr, pgLink, INCLUDED_LABEL, chargeText, type PgDetail } from '../pg/pgApi';
 import { dial } from '../../utils/dial';
+import { themedSheet } from '../../utils/themeNow';
 
 type Tab = 'overview' | 'rooms' | 'amenities' | 'mess' | 'rules' | 'location' | 'reviews';
 const TABS: { key: Tab; label: string }[] = [
@@ -247,8 +248,8 @@ export default function PgV2Overview() {
   );
 }
 
-const st = StyleSheet.create({
-  page: { flex: 1, backgroundColor: '#FFFFFF' },
+const st = themedSheet(() => ({
+  page: { flex: 1, backgroundColor: PG2.card },
   thumbs: { flexDirection: 'row', gap: 8, marginTop: 10 },
   thumb: { borderRadius: 10, borderWidth: 2, borderColor: 'transparent', overflow: 'hidden' },
   more: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(20,16,60,0.5)', alignItems: 'center', justifyContent: 'center' },
@@ -259,7 +260,7 @@ const st = StyleSheet.create({
   rent: { marginTop: 10, fontSize: 21, fontWeight: W.title, color: PG2.price, letterSpacing: -0.3 },
   unit: { fontSize: 14, fontWeight: W.label, color: PG2.ink },
   // Pinned flush under the header: same opaque background, hairline, soft shadow once stuck.
-  tabBar: { backgroundColor: PG2.page, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E6E3F5', zIndex: 2 },
+  tabBar: { backgroundColor: PG2.page, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: PG2.line, zIndex: 2 },
   tabBarStuck: shadow(1),
   tabs: { paddingHorizontal: GUTTER - 6, height: TAB_H, alignItems: 'stretch' },
   tab: { paddingHorizontal: 10, justifyContent: 'center', minHeight: TAB_H },
@@ -268,10 +269,10 @@ const st = StyleSheet.create({
   tabLine: { position: 'absolute', left: 10, right: 10, bottom: 0, height: 2, borderRadius: 1, backgroundColor: PG2.primary },
   h2: { fontSize: 17, fontWeight: W.title, color: PG2.ink, letterSpacing: -0.2 },
   h3: { fontSize: 14.5, fontWeight: W.title, color: PG2.ink, marginBottom: 10 },
-  fact: { flex: 1, borderRadius: 12, padding: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E6E3F5' },
+  fact: { flex: 1, borderRadius: 12, padding: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: PG2.line },
   factValue: { marginTop: 4, fontSize: 15, fontWeight: W.title, color: PG2.ink },
-  box: { borderRadius: 12, padding: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: '#E6E3F5' },
+  box: { borderRadius: 12, padding: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: PG2.line },
   boxLabel: { fontWeight: W.label, color: PG2.ink },
-  mapBox: { height: 190, borderRadius: 14, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: '#E6E3F5' },
-  bar: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', gap: 12, paddingHorizontal: GUTTER, paddingTop: 12, backgroundColor: 'rgba(255,255,255,0.97)', ...shadow(2) },
-});
+  mapBox: { height: 190, borderRadius: 14, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: PG2.line },
+  bar: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', gap: 12, paddingHorizontal: GUTTER, paddingTop: 12, backgroundColor: PG2.card, ...shadow(2) },
+}));

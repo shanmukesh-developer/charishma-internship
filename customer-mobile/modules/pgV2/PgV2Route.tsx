@@ -7,6 +7,7 @@ import { View } from 'react-native';
 import { PgV2DataProvider, usePgV2 } from './pgV2Data';
 import { RouterNav, useRouteFromParams, type ScreenName } from './pgV2Nav';
 import { PG2 } from './pgV2Theme';
+import { useTheme } from '../../context/ThemeContext';
 import { PgV2HomeBody } from './PgV2Home';
 import PgV2List from './PgV2List';
 import PgV2Building from './PgV2Building';
@@ -31,13 +32,22 @@ function Mounted({ name, children }: { name: ScreenName; children: React.ReactNo
   return <RouterNav route={route} defaultPgId={defaultPgId}>{children}</RouterNav>;
 }
 
+/**
+ * Redraws the section when the app's theme changes: its colours are read from PG2 at render (utils/themeNow), and
+ * the Others tab stays mounted while the theme is switched on Home. Data stays in the provider above.
+ */
+function ThemeKeyed({ children }: { children: React.ReactNode }) {
+  const { isDark } = useTheme();
+  return <React.Fragment key={isDark ? 'dark' : 'light'}>{children}</React.Fragment>;
+}
+
 /** A full-screen PG v2 route. */
 export function PgV2Screen({ name }: { name: Exclude<ScreenName, 'home'> }) {
   const View_ = VIEWS[name];
   return (
     <PgV2DataProvider>
       <Mounted name={name}>
-        <View style={{ flex: 1, backgroundColor: PG2.page }}><View_ /></View>
+        <ThemeKeyed><View style={{ flex: 1, backgroundColor: PG2.page }}><View_ /></View></ThemeKeyed>
       </Mounted>
     </PgV2DataProvider>
   );
@@ -47,7 +57,7 @@ export function PgV2Screen({ name }: { name: Exclude<ScreenName, 'home'> }) {
 export function PgV2OthersSection() {
   return (
     <PgV2DataProvider>
-      <Mounted name="home"><PgV2HomeBody /></Mounted>
+      <Mounted name="home"><ThemeKeyed><PgV2HomeBody /></ThemeKeyed></Mounted>
     </PgV2DataProvider>
   );
 }

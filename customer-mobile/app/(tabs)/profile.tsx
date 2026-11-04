@@ -52,6 +52,7 @@ import { getSoundsEnabled, setSoundsEnabled, onSoundSettingChange } from '../../
 import { loadPushPrefs, savePushPrefs, DEFAULT_PUSH_PREFS, PUSH_CATEGORY_ROWS, PushPrefs, PushCategory } from '../../utils/pushPrefs';
 import { Ionicons } from '@expo/vector-icons';
 import { useTopInset } from '../../utils/useTopInset';
+import SymbolIcon from '../../components/SymbolIcon';
 
 const PHONE_RE = /^[6-9]\d{9}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -823,7 +824,7 @@ export default function ProfileScreen() {
                   <Text style={[s.telemetryVal, { color: goldColor, fontSize: 13 }]}>
                     {formatINR(user?.walletBalance)}
                   </Text>
-                  <Text style={[s.telemetryLabel, { color: goldColor, marginTop: 2 }]}>History ›</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}><Text style={[s.telemetryLabel, { color: goldColor, marginTop: 2 }]}>History</Text><SymbolIcon name="chevron-forward" style={[s.telemetryLabel, { color: goldColor, marginTop: 2 }]} scale={1} /></View>
                 </TouchableOpacity>
               </View>
 
@@ -913,7 +914,7 @@ export default function ProfileScreen() {
                     style={{ marginLeft: 6 }}
                     accessibilityLabel={`Remove ${a}`}
                   >
-                    <Text style={{ color: '#EF4444', fontWeight: 'bold', fontSize: 12 }}>✕</Text>
+                    <SymbolIcon name="close" style={{ color: '#EF4444', fontWeight: 'bold', fontSize: 12 }} />
                   </TouchableOpacity>
                 </View>
               ))}

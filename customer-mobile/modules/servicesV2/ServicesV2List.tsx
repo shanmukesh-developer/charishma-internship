@@ -17,6 +17,7 @@ import { SHELF_META, SHELF_TRUST, chipsFor, detailPath, matchesQuery, useShelf, 
 import { useServicesV2Booking } from './useServicesV2Booking';
 import { diagnosisItem } from '../services/serviceFlow';
 import { plural } from '../../utils/format';
+import { themedSheet } from '../../utils/themeNow';
 
 export const openMyBookings = (router: ReturnType<typeof useRouter>) =>
   router.push({ pathname: '/(tabs)/orders', params: { segment: 'services' } } as any);
@@ -107,11 +108,11 @@ export default function ServicesV2List({ shelf }: { shelf: ServiceShelf }) {
   );
 }
 
-const l = StyleSheet.create({
+const l = themedSheet(() => ({
   diag: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 16, marginTop: 12, padding: 12, borderRadius: RADIUS.lg, backgroundColor: TV.card, borderWidth: 1, borderColor: TV.accentLine },
   diagIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: TV.accentSoft, alignItems: 'center', justifyContent: 'center' },
   diagTitle: { fontSize: 14.5, color: TV.ink, fontWeight: W.title },
   diagSub: { fontSize: 12, color: TV.sub, marginTop: 2, lineHeight: 16 },
   count: { fontSize: 12.5, color: TV.sub, paddingHorizontal: 18, marginTop: 14, marginBottom: 8 },
   mine: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 16, marginTop: 22, padding: 12, borderRadius: RADIUS.lg, backgroundColor: TV.card },
-});
+}));

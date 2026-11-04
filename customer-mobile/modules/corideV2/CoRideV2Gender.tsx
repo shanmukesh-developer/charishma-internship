@@ -10,6 +10,7 @@ import { CR, W } from './coRideV2Theme';
 import { Chip } from './CoRideV2Kit';
 import { coRideApi } from './coRideV2Api';
 import { useCoRide } from './coRideV2Data';
+import { themedSheet } from '../../utils/themeNow';
 
 const GENDERS = ['Female', 'Male', 'Other', 'Prefer not to say'] as const;
 
@@ -53,9 +54,9 @@ export function WomenOnlyOption({ value, onChange }: { value: boolean; onChange:
   );
 }
 
-const st = StyleSheet.create({
+const st = themedSheet(() => ({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   title: { fontSize: 14, color: CR.ink, fontWeight: W.label },
   meta: { fontSize: 12.5, color: CR.muted, lineHeight: 17, marginTop: 2 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
-});
+}));

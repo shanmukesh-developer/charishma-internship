@@ -13,6 +13,7 @@ import { GroundShadow, Press, Heart, SampleTag, Rating, SpecChip } from './Renta
 import { CATEGORY_ICON, IPin } from './RentalsV2Icons';
 import { inr, kmText, unitText, type RItem } from './rentalsV2Data';
 import { itemRoute, useNav } from './rentalsV2Nav';
+import { themedSheet } from '../../utils/themeNow';
 
 export function ItemThumb({ item, w, h, radius = 16, style }: { item: RItem; w: number; h: number; radius?: number; style?: StyleProp<ViewStyle> }) {
   const plate = PLATE[item.category];
@@ -99,7 +100,7 @@ export function PopularCard({ item, w }: { item: RItem; w: number }) {
   );
 }
 
-const r = StyleSheet.create({
+const r = themedSheet(() => ({
   row: { flexDirection: 'row', gap: 12, padding: 10, borderRadius: 20, backgroundColor: DAY.card, marginHorizontal: 16 },
   title: { fontSize: 15, fontWeight: W.title, color: DAY.ink, letterSpacing: -0.1 },
   place: { fontSize: 12, color: DAY.muted, marginTop: 1, flexShrink: 1 },
@@ -107,4 +108,4 @@ const r = StyleSheet.create({
   popBadge: { position: 'absolute', top: 5, left: 5, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(20,18,50,0.38)', alignItems: 'center', justifyContent: 'center' },
   popTitle: { color: NIGHT.ink, fontSize: 12.5, fontWeight: W.label, marginTop: 7 },
   popPrice: { color: NIGHT.violet, fontSize: 12, marginTop: 2 },
-});
+}));

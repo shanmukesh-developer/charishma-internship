@@ -17,6 +17,7 @@ import { clock12 } from './coRideV2Regular';
 import { useCoRide } from './coRideV2Data';
 import { useNav } from './coRideV2Nav';
 import { inr, fmtRideWhen } from '../../modules/coride/coRideFormat';
+import { themedSheet } from '../../utils/themeNow';
 
 const daysText = (days: number[]) => {
   const set = WEEK_ORDER.filter((d) => days.includes(d));
@@ -124,10 +125,10 @@ export default function CoRideV2RegularScreen() {
   );
 }
 
-const st = StyleSheet.create({
+const st = themedSheet(() => ({
   row: { flexDirection: 'row', alignItems: 'center' },
   card: { backgroundColor: CR.card, borderRadius: R.lg, padding: 14, marginBottom: 12, ...shadow(1) },
   name: { fontSize: 15.5, fontWeight: W.title, color: CR.ink },
   meta: { fontSize: 12.5, color: CR.muted, marginTop: 2, lineHeight: 17 },
   icon: { width: 32, height: 32, borderRadius: 10, backgroundColor: CR.tint, alignItems: 'center', justifyContent: 'center' },
-});
+}));

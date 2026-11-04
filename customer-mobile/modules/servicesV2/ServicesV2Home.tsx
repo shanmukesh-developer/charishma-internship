@@ -24,6 +24,7 @@ import { ALL_SHELVES, SHELF_META, SHELF_TRUST, detailPath, priceLine, shelfPath,
 import { useStoreBasket } from './useStoreBasket';
 import { openMyBookings } from './ServicesV2List';
 import { goHome } from '../../utils/goHome';
+import { themedSheet } from '../../utils/themeNow';
 
 type Sections = { key: string; label: string }[];
 
@@ -233,21 +234,21 @@ function ServicesV2Home({ sections, onSection }: { sections?: Sections; onSectio
 }
 export default React.memo(ServicesV2Home);
 
-const h = StyleSheet.create({
+const h = themedSheet(() => ({
   brandRow: { flexDirection: 'row', alignItems: 'center', paddingLeft: 6, paddingRight: 16, paddingTop: 12 },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   brand: { color: '#FFFFFF', fontSize: 21, fontWeight: W.title, letterSpacing: 1.2, lineHeight: 25 },
   brandSub: { color: TV.onDarkSub, fontSize: 12.5, marginTop: 1, letterSpacing: 0.2 },
   dot: { position: 'absolute', top: 10, right: 11, width: 9, height: 9, borderRadius: 5, backgroundColor: TV.bellDot, borderWidth: 1.5, borderColor: TV.header[1] },
-  search: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 48, marginHorizontal: 16, marginTop: 14, borderRadius: 24, backgroundColor: '#FFFFFF', paddingHorizontal: 16 },
+  search: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 48, marginHorizontal: 16, marginTop: 14, borderRadius: 24, backgroundColor: TV.card, paddingHorizontal: 16 },
   searchText: { flex: 1, fontSize: 14, color: '#777B9A' },
   mine: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 16, marginTop: 26, padding: 12, borderRadius: RADIUS.lg, backgroundColor: TV.card },
   mineIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: TV.accentSoft, alignItems: 'center', justifyContent: 'center' },
   mineTitle: { fontSize: 14.5, color: TV.ink, fontWeight: W.title },
   mineSub: { fontSize: 12, color: TV.sub, marginTop: 2 },
-});
+}));
 
-const q = StyleSheet.create({
+const q = themedSheet(() => ({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: 16 },
   tile: { borderRadius: RADIUS.lg, backgroundColor: TV.card, overflow: 'hidden' },
   tileWide: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -256,9 +257,9 @@ const q = StyleSheet.create({
   title: { fontSize: 14, lineHeight: 18, color: TV.ink, fontWeight: W.title },
   sub: { fontSize: 12, color: TV.sub, marginTop: 2 },
   price: { fontSize: 12.5, color: TV.accentDeep, fontWeight: W.label, marginTop: 6 },
-});
+}));
 
-const c = StyleSheet.create({
+const c = themedSheet(() => ({
   rail: { paddingHorizontal: 16, gap: 10, paddingBottom: 6 },
   card: { width: 168, borderRadius: RADIUS.lg, backgroundColor: TV.card, overflow: 'hidden' },
   photo: { height: 104, backgroundColor: TV.plate },
@@ -267,4 +268,4 @@ const c = StyleSheet.create({
   price: { fontSize: 13.5, color: TV.ink, fontWeight: W.title, marginTop: 6 },
   note: { fontSize: 11.5, color: TV.sub, fontWeight: W.body },
   foot: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
-});
+}));

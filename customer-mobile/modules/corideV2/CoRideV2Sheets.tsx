@@ -15,6 +15,7 @@ import { useCoRide, KARMA_PER_RIDE, isOffer } from './coRideV2Data';
 import { useNav } from './coRideV2Nav';
 import { firstName } from '../../modules/coride/coRideFormat';
 import { dial } from '../../utils/dial';
+import { themedSheet } from '../../utils/themeNow';
 
 function Done({ title, body }: { title: string; body: string }) {
   return (
@@ -172,7 +173,7 @@ export default function CoRideV2Sheets() {
   );
 }
 
-const st = StyleSheet.create({
+const st = themedSheet(() => ({
   row: { flexDirection: 'row', alignItems: 'center' },
   doneHead: { alignItems: 'center', paddingTop: 10, paddingBottom: 16 },
   doneIcon: { width: 56, height: 56, borderRadius: 28, backgroundColor: CR.greenSoft, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
@@ -186,4 +187,4 @@ const st = StyleSheet.create({
   sosRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 60, borderBottomWidth: StyleSheet.hairlineWidth * 2, borderBottomColor: CR.lineSoft },
   sosIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   bullet: { width: 6, height: 6, borderRadius: 3, backgroundColor: CR.primary, marginTop: 7 },
-});
+}));

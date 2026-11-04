@@ -5,6 +5,7 @@
  * Weights stay light (titles 600, labels 500, body 400). No ALL CAPS anywhere.
  */
 import { Platform, type ViewStyle } from 'react-native';
+import { themedTokens, type Palette } from '../../utils/themeNow';
 
 export const NIGHT = {
   page: '#141438',
@@ -32,7 +33,7 @@ export const CARD = {
   flat: { grad: ['#2EB88F', '#009B74', '#00835D'] as const, glow: '#CFF1E3', shadow: '#006B47', ink: '#007B53' },
 };
 
-export const DAY = {
+const DAY_LIGHT = {
   page: '#F7F6FD',
   card: '#FFFFFF',
   ink: '#1B1840',
@@ -55,15 +56,54 @@ export const DAY = {
   sample: '#8A6A1E',
   sampleSoft: '#FFF6DF',
   hero: ['#7E66E0', '#6246D8', '#4F35C0'] as const,
+  plateGrad: ['#F3EFFF', '#E6DEFF'] as const,
 };
 
+/** Inner screens in dark mode (owner, 4 Nov 2026: they stayed white). The night home is unchanged. */
+const DAY_DARK: Palette<typeof DAY_LIGHT> = {
+  page: '#0C0B1A',
+  card: '#17152B',
+  ink: '#EEEBFF',
+  ink2: '#CBC7EA',
+  muted: '#9895B8',
+  faint: '#6B6890',
+  line: '#29263F',
+  lineSoft: '#201D33',
+  accent: '#8466F0',
+  accentDeep: '#7357EA',
+  accentSoft: '#241C48',
+  accentInk: '#B5A3FF',
+  star: '#F5B83A',
+  green: '#4CC48A',
+  greenSoft: '#12291D',
+  amber: '#E6A447',
+  amberSoft: '#33250F',
+  red: '#F06A80',
+  redSoft: '#3A1820',
+  sample: '#E8C46A',
+  sampleSoft: '#30260F',
+  hero: ['#7E66E0', '#6246D8', '#4F35C0'],
+  plateGrad: ['#241C48', '#2E2458'],
+};
+
+export const DAY: Palette<typeof DAY_LIGHT> = themedTokens<Palette<typeof DAY_LIGHT>>(DAY_LIGHT, DAY_DARK);
+
 /** Soft tinted plates of the light (inner) screens: the same four hues, very light. */
-export const PLATE = {
+const PLATE_LIGHT = {
   bike: { bg: ['#F5F3FF', '#E8E4FF'] as const, ink: '#6750AB', blob: '#DCD5FB' },
   car: { bg: ['#ECF6FF', '#D7EAFF'] as const, ink: '#2063B0', blob: '#C9E0FB' },
   room: { bg: ['#FFF1ED', '#FFDFD8'] as const, ink: '#A43C2F', blob: '#F9D0C7' },
   flat: { bg: ['#E9FAF2', '#CFF1E3'] as const, ink: '#007B53', blob: '#BFE9D6' },
 };
+
+const PLATE_DARK: Palette<typeof PLATE_LIGHT> = {
+  bike: { bg: ['#1E1A3A', '#2A2350'], ink: '#B3A3F5', blob: '#352C66' },
+  car: { bg: ['#122238', '#183052'], ink: '#7FB4F2', blob: '#1E3C66' },
+  room: { bg: ['#331A16', '#45221D'], ink: '#F29A8A', blob: '#5A2C25' },
+  flat: { bg: ['#0F2A20', '#14382B'], ink: '#5FD3A1', blob: '#1B4A38' },
+};
+
+export const PLATE: Palette<typeof PLATE_LIGHT> = themedTokens<Palette<typeof PLATE_LIGHT>>(PLATE_LIGHT, PLATE_DARK);
 
 export const RADIUS = { sm: 10, md: 14, lg: 18, xl: 22, pill: 999 } as const;
 export const W = { hero: '700', title: '600', label: '500', body: '400' } as const;

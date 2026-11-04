@@ -14,6 +14,7 @@ import { Coin, IconPlate } from './DealsV2Decor';
 import { PrizeWheel } from './DealsV2Wheel';
 import { IArrowRight, IChevronRight, IUser, IWallet } from './DealsV2Icons';
 import { ORDERS_PER_SPIN, type Prize } from './dealsV2Data';
+import { themedSheet } from '../../utils/themeNow';
 
 export function Balances({ zenPoints, wallet, onPoints, onWallet }: { zenPoints: number; wallet: number; onPoints: () => void; onWallet: () => void }) {
   return (
@@ -78,7 +79,7 @@ export function SpinRow({ prizes, signedIn, spinsLeft, nextIn, onPress }: { priz
         : `Earn a spin for every ${ORDERS_PER_SPIN} delivered orders`;
   return (
     <Press onPress={onPress} label={`Spin and win. ${line}`} style={[s.spin, shadow(2)]}>
-      <LinearGradient colors={['#FFFFFF', '#F6F2FF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[StyleSheet.absoluteFill, { borderRadius: 22 }]} />
+      <LinearGradient colors={[DV.card, DV.pageDeep]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[StyleSheet.absoluteFill, { borderRadius: 22 }]} />
       <PrizeWheel prizes={prizes} size={58} labels={false} />
       <View style={{ flex: 1, minWidth: 0, marginLeft: 12 }}>
         <Text style={s.rowTitle}>Spin & win</Text>
@@ -93,7 +94,7 @@ export function SpinRow({ prizes, signedIn, spinsLeft, nextIn, onPress }: { priz
   );
 }
 
-const s = StyleSheet.create({
+const s = themedSheet(() => ({
   row: { flexDirection: 'row', gap: 12, marginHorizontal: 16, marginTop: 16 },
   cardWrap: { flex: 1, borderRadius: 22 },
   card: { flexGrow: 1, borderRadius: 22, overflow: 'hidden', padding: 14, borderWidth: 1, minHeight: 138 },
@@ -103,10 +104,10 @@ const s = StyleSheet.create({
   value: { fontSize: 26, fontWeight: W.display, letterSpacing: -0.5, flexShrink: 1 },
   sub: { fontSize: 12, lineHeight: 16, marginTop: 4 },
   plate: { width: 38, height: 38, borderRadius: 13, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
-  signin: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 16, marginTop: 16, padding: 14, borderRadius: 22, backgroundColor: '#FFFFFF', borderWidth: StyleSheet.hairlineWidth, borderColor: DV.line },
-  spin: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginTop: 14, padding: 12, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, borderColor: DV.line, backgroundColor: '#FFFFFF' },
+  signin: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 16, marginTop: 16, padding: 14, borderRadius: 22, backgroundColor: DV.card, borderWidth: StyleSheet.hairlineWidth, borderColor: DV.line },
+  spin: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginTop: 14, padding: 12, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, borderColor: DV.line, backgroundColor: DV.card },
   rowTitle: { fontSize: 15.5, fontWeight: W.title, color: DV.ink },
   rowSub: { fontSize: 12.5, color: DV.sub, marginTop: 2, lineHeight: 17 },
   smallPill: { height: 36, paddingHorizontal: 14, borderRadius: 18, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   smallPillText: { color: '#FFFFFF', fontSize: 13, fontWeight: W.title },
-});
+}));

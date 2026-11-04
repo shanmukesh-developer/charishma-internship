@@ -19,6 +19,8 @@ import { ICheck, IInfo } from './RentalsV2Icons';
 import { ItemThumb } from './RentalsV2Rows';
 import { inr, useRentalsV2, type RItem } from './rentalsV2Data';
 import { useNav, type Duration } from './rentalsV2Nav';
+import { themedSheet } from '../../utils/themeNow';
+import SymbolIcon from '../../components/SymbolIcon';
 
 const SLOTS = ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'];
 const DAYS_FOR: Record<Duration, number> = { day: 1, week: 7, month: 30 };
@@ -87,9 +89,9 @@ function BookSheet({ item, duration }: { item: RItem; duration: Duration }) {
       {dur !== 'month' ? (
         <View style={b.stepper}>
           <Text style={b.stepLabel}>{dur === 'day' ? 'Days' : 'Weeks'}</Text>
-          <Press onPress={() => setCount(Math.max(1, count - 1))} label="Fewer" style={b.stepBtn}><Text style={b.stepSign}>−</Text></Press>
+          <Press onPress={() => setCount(Math.max(1, count - 1))} label="Fewer" style={b.stepBtn}><SymbolIcon name="remove" style={b.stepSign} /></Press>
           <Text style={b.stepVal}>{count}</Text>
-          <Press onPress={() => setCount(Math.min(dur === 'day' ? 30 : 4, count + 1))} label="More" style={b.stepBtn}><Text style={b.stepSign}>+</Text></Press>
+          <Press onPress={() => setCount(Math.min(dur === 'day' ? 30 : 4, count + 1))} label="More" style={b.stepBtn}><SymbolIcon name="add" style={b.stepSign} /></Press>
         </View>
       ) : <Text style={b.muted}>A month is 30 days, the longest single booking.</Text>}
 
@@ -176,7 +178,7 @@ export default function RentalsV2Sheets() {
   return <SentSheet title={sheet.title} body={sheet.body} mine={sheet.mine} />;
 }
 
-const b = StyleSheet.create({
+const b = themedSheet(() => ({
   gate: { flexDirection: 'row', gap: 10, padding: 12, borderRadius: 14, backgroundColor: DAY.accentSoft, alignItems: 'center', marginTop: 4 },
   gateText: { flex: 1, fontSize: 12.5, color: DAY.ink2, lineHeight: 18 },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 12 },
@@ -201,4 +203,4 @@ const b = StyleSheet.create({
   ghost: { height: 48, borderRadius: 14, borderWidth: 1, borderColor: DAY.line, alignItems: 'center', justifyContent: 'center' },
   ghostText: { fontSize: 14.5, color: DAY.accent, fontWeight: W.label },
   ok: { width: 76, height: 76, borderRadius: 38, alignItems: 'center', justifyContent: 'center' },
-});
+}));

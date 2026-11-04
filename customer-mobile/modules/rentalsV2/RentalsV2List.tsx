@@ -16,6 +16,7 @@ import { ItemRow } from './RentalsV2Rows';
 import { Options, Sheet, SheetLabel } from './RentalsV2Sheet';
 import { useRentalsV2, type RItem } from './rentalsV2Data';
 import { useNav, type Duration } from './rentalsV2Nav';
+import { themedSheet } from '../../utils/themeNow';
 
 const HERO: Record<Category, { h: string; sub: string }> = {
   bike: { h: 'Bikes and scooters\nnear campus', sub: 'Listed by verified students. Pay at pickup.' },
@@ -148,7 +149,7 @@ export default function RentalsV2List() {
   );
 }
 
-const l = StyleSheet.create({
+const l = themedSheet(() => ({
   hero: { marginHorizontal: 16, marginTop: 6, borderRadius: 24, flexDirection: 'row', alignItems: 'center' },
   ring: { position: 'absolute', backgroundColor: 'rgba(255,255,255,0.10)' },
   heroH: { color: '#FFFFFF', fontSize: 19, lineHeight: 23, fontWeight: W.hero, letterSpacing: -0.3 },
@@ -157,4 +158,4 @@ const l = StyleSheet.create({
   dotText: { color: '#FFFFFF', fontSize: 10, fontWeight: W.title },
   foot: { textAlign: 'center', color: DAY.muted, fontSize: 12, marginTop: 14 },
   reset: { color: DAY.accent, fontSize: 13.5, fontWeight: W.label, textAlign: 'center', marginTop: 20 },
-});
+}));
