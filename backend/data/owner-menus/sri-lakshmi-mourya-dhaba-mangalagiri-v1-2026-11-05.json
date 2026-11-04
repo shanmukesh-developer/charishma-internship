@@ -1,0 +1,1977 @@
+{
+ "version": 1,
+ "key": "owner-menu:sri-lakshmi-mourya-dhaba-mangalagiri",
+ "note": "Owner, 5 Nov 2026: 'add this resturent buddy which located near managalgiri buddy use real images and everything cause we have licence', with two photos of the printed menu card (small WhatsApp copies). Prices as read from the card; 12 prices were hard to read and are listed in the owner hand-over for checking: Mourya Special Veg Biryani 380, Chicken Fry Piece Biryani 350, Prawns Biryani 520, Single Dum Biryani 200, Mourya SP Chicken Biryani Family Pack 1800, Tandoori Chicken (Full) 600, Kaju Fried Rice 330, Boiled Egg 40, Egg Fry 150, Chicken Fry (Boneless) 360, Butter Chicken 380, Chicken Patiala 390. Names as printed, spelling made consistent (Chilly -> Chilli, Manchuria -> Manchurian, Megastic -> Majestic, Podina -> Pudina, Drumstic -> Drumstick, Lollypop -> Lollipop, Panjabi -> Punjabi, Patiyala -> Patiala, Affghani -> Afghani, Koftha -> Kofta, Burji -> Bhurji, Kheema -> Keema, Dham Aloo -> Dum Aloo, Green Piece Roast -> Green Peas Roast, Parota -> Paratha, Omlet -> Omelette, Kadhu ka keer -> Kaddu ka Kheer; the egg-curries 'Egg Omlette' is Egg Omelette Curry). Biryani Rice and Single Dum Biryani are printed under Non-Veg Biryani and are marked non-veg. Name, locality, map point (16.4512125, 80.5751386) and hours (12:00-23:00) from its EazyDiner listing (id 710367); the card's small text reads SRI LAKSHMI. Store photo = the restaurant's storefront photo from that listing, used with the restaurant's permission per the owner. Dish photos are licensed stock (sources.json); 81 marked closest match. No partner login, phone, FSSAI number, rating or offer is set.",
+ "imagesDir": "images/mourya-dhaba-mangalagiri",
+ "store": {
+  "name": "Sri Lakshmi Mourya Dhaba",
+  "location": "Navuluru, Mangalagiri",
+  "lat": 16.4512125,
+  "lon": 80.5751386,
+  "vendorType": "RESTAURANT",
+  "image": "store-banner.jpg",
+  "tags": [
+   "biryani",
+   "dhaba",
+   "andhra",
+   "north indian",
+   "indo-chinese",
+   "curries",
+   "tandoori",
+   "seafood",
+   "veg",
+   "non-veg"
+  ],
+  "operatingHours": {
+   "start": "12:00",
+   "end": "23:00"
+  },
+  "description": "Sri Lakshmi Mourya Dhaba in Navuluru, Mangalagiri is a family dhaba for biryanis, fried rice, Indo-Chinese starters, Andhra and North Indian curries, tandoori and breads, veg and non-veg.\n\n**On the menu**\n- Biryanis: veg, chicken, mutton, fish, prawns and egg, with Mourya Special and SP versions, and family packs to share\n- Fried rice: veg, egg, chicken, mixed and Schezwan, plus tomato, zeera and ghee rice\n- Starters: 65, Manchurian, chilli, 555, Majestic and pepper dishes in paneer, baby corn, mushroom, egg, chicken, mutton, prawns and fish; tandoori chicken and tikkas\n- Curries: Andhra chicken (bone and boneless), butter chicken, mutton, fish and prawns curries, paneer and kaju curries, dal and egg curries\n- Naan, roti, kulcha, paratha and pulka; curd rice, lassi and kaddu ka kheer\n\n**Good to know**\n- Open every day, 12:00 PM to 11:00 PM\n- 216 dishes, from ₹10 to ₹1800\n- Veg and non-veg; veg dishes are marked"
+ },
+ "items": [
+  {
+   "slug": "kaju-biryani",
+   "name": "Kaju Biryani",
+   "price": 320,
+   "category": "Veg Biryani",
+   "dietType": "veg",
+   "description": "Fragrant veg dum biryani layered with whole cashews (kaju) that are fried golden and folded through the rice. The rice is cooked with whole spices and finished on dum so the cashews stay crunchy against the soft grains.\n\nIngredients (Typical):\n- Basmati rice\n- Cashew nuts (kaju)\n- Mixed vegetables (if used in the actual recipe)\n- Onion, fried golden\n- Mint and coriander leaves\n- Curd\n- Ginger-garlic paste\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Ghee or oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Rich, nutty and aromatic.",
+   "image": "kaju-biryani.jpg"
+  },
+  {
+   "slug": "mushroom-biryani",
+   "name": "Mushroom Biryani",
+   "price": 280,
+   "category": "Veg Biryani",
+   "dietType": "veg",
+   "description": "Dum biryani made with mushrooms cooked in a spiced curd and onion masala, then layered with long-grain rice and slow-cooked so the mushrooms soak up the spices.\n\nIngredients (Typical):\n- Mushrooms\n- Basmati rice\n- Onion, fried golden\n- Mint and coriander leaves\n- Curd\n- Ginger-garlic paste\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Ghee or oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Earthy, spicy and aromatic.",
+   "image": "mushroom-biryani.jpg"
+  },
+  {
+   "slug": "paneer-biryani",
+   "name": "Paneer Biryani",
+   "price": 300,
+   "category": "Veg Biryani",
+   "dietType": "veg",
+   "description": "Biryani rice layered with cubes of paneer cooked in a spiced masala. The paneer stays soft while the rice picks up the flavour of whole spices, mint and fried onion.\n\nIngredients (Typical):\n- Paneer (cottage cheese)\n- Basmati rice\n- Onion, fried golden\n- Mint and coriander leaves\n- Curd\n- Ginger-garlic paste\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Ghee or oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Mildly rich, spicy and fragrant.",
+   "image": "paneer-biryani.jpg"
+  },
+  {
+   "slug": "veg-biryani",
+   "name": "Veg Biryani",
+   "price": 280,
+   "category": "Veg Biryani",
+   "dietType": "veg",
+   "description": "A classic vegetable biryani: mixed vegetables cooked in a spiced masala and layered with basmati rice, then steamed on dum so every grain carries the aroma of whole spices.\n\nIngredients (Typical):\n- Mixed vegetables (carrot, beans, peas, potato)\n- Basmati rice\n- Onion, fried golden\n- Mint and coriander leaves\n- Curd\n- Ginger-garlic paste\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Ghee or oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Spicy, aromatic and wholesome.",
+   "image": "veg-biryani.jpg"
+  },
+  {
+   "slug": "mourya-special-veg-biryani",
+   "name": "Mourya Special Veg Biryani",
+   "price": 380,
+   "category": "Veg Biryani",
+   "dietType": "veg",
+   "description": "Mourya Dhaba's own special version of veg biryani: vegetables and basmati rice layered with whole spices and finished on dum in the house style.\n\nIngredients (Typical):\n- Mixed vegetables\n- Basmati rice\n- Onion, fried golden\n- Mint and coriander leaves\n- Curd\n- Ginger-garlic paste\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Ghee or oil and salt\n- Paneer or cashews (if used in the actual recipe)\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Aromatic, spicy and hearty.",
+   "image": "mourya-special-veg-biryani.jpg"
+  },
+  {
+   "slug": "special-veg-biryani",
+   "name": "Special Veg Biryani",
+   "price": 350,
+   "category": "Veg Biryani",
+   "dietType": "veg",
+   "description": "The restaurant's special version of veg biryani, with vegetables and basmati rice cooked together in a spiced masala and finished on dum.\n\nIngredients (Typical):\n- Mixed vegetables\n- Basmati rice\n- Onion, fried golden\n- Mint and coriander leaves\n- Curd\n- Ginger-garlic paste\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Ghee or oil and salt\n- Paneer or cashews (if used in the actual recipe)\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Spicy, aromatic and wholesome.",
+   "image": "special-veg-biryani.jpg"
+  },
+  {
+   "slug": "baby-corn-biryani",
+   "name": "Baby Corn Biryani",
+   "price": 280,
+   "category": "Veg Biryani",
+   "dietType": "veg",
+   "description": "Veg biryani made with tender baby corn cooked in a spiced masala and layered with basmati rice, then slow-cooked on dum.\n\nIngredients (Typical):\n- Baby corn\n- Basmati rice\n- Onion, fried golden\n- Mint and coriander leaves\n- Curd\n- Ginger-garlic paste\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Ghee or oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Spicy, aromatic and lightly sweet from the corn.",
+   "image": "baby-corn-biryani.jpg"
+  },
+  {
+   "slug": "veg-pulav",
+   "name": "Veg Pulav",
+   "price": 280,
+   "category": "Veg Biryani",
+   "dietType": "veg",
+   "description": "A mild, fragrant rice dish cooked with vegetables and whole spices in one pot. Lighter on masala than a biryani, it is often finished with fried cashews and fresh coriander.\n\nIngredients (Typical):\n- Basmati rice\n- Mixed vegetables (carrot, beans, peas)\n- Whole spices (bay leaf, cloves, cardamom, cinnamon)\n- Onion\n- Cashews (if used in the actual recipe)\n- Ghee or oil and salt\n\nSpicy Level: Mild\n\nServing Suggestion: Best with raita or a curry from the menu (not included).\n\nTaste Profile: Mild, buttery and fragrant.",
+   "image": "veg-pulav.jpg"
+  },
+  {
+   "slug": "biryani-rice-full",
+   "name": "Biryani Rice Full",
+   "price": 180,
+   "category": "Non-Veg Biryani",
+   "dietType": "nonveg",
+   "description": "The spiced biryani rice on its own, without the meat pieces: long-grain rice cooked with whole spices, fried onion and mint. This is the full portion.\n\nIngredients (Typical):\n- Basmati rice\n- Onion, fried golden\n- Curd\n- Ginger-garlic paste\n- Mint and coriander leaves\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Red chilli powder\n- Ghee or oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best with raita, salan or a curry from the menu (not included).\n\nTaste Profile: Aromatic, spicy and savoury.",
+   "image": "biryani-rice-full.jpg"
+  },
+  {
+   "slug": "biryani-rice-half",
+   "name": "Biryani Rice Half",
+   "price": 160,
+   "category": "Non-Veg Biryani",
+   "dietType": "nonveg",
+   "description": "The spiced biryani rice on its own, without the meat pieces: long-grain rice cooked with whole spices, fried onion and mint. This is the half portion.\n\nIngredients (Typical):\n- Basmati rice\n- Onion, fried golden\n- Curd\n- Ginger-garlic paste\n- Mint and coriander leaves\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Red chilli powder\n- Ghee or oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best with raita, salan or a curry from the menu (not included).\n\nTaste Profile: Aromatic, spicy and savoury.",
+   "image": "biryani-rice-half.jpg"
+  },
+  {
+   "slug": "chicken-dum-biryani",
+   "name": "Chicken Dum Biryani",
+   "price": 320,
+   "category": "Non-Veg Biryani",
+   "dietType": "nonveg",
+   "description": "Hyderabadi-style chicken dum biryani: chicken marinated in curd and spices is layered with par-cooked basmati rice, sealed and slow-cooked on dum so the meat and rice cook in each other's aroma.\n\nIngredients (Typical):\n- Chicken (bone-in)\n- Basmati rice\n- Onion, fried golden\n- Curd\n- Ginger-garlic paste\n- Mint and coriander leaves\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Red chilli powder\n- Ghee or oil and salt\n- Saffron or food colour (if used in the actual recipe)\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Spicy, aromatic and juicy.",
+   "image": "chicken-dum-biryani.jpg"
+  },
+  {
+   "slug": "chicken-fry-piece-biryani",
+   "name": "Chicken Fry Piece Biryani",
+   "price": 350,
+   "category": "Non-Veg Biryani",
+   "dietType": "nonveg",
+   "description": "Biryani rice served with chicken pieces that are fried in a spicy masala until dark and crisp at the edges, giving a drier, punchier bite than dum chicken.\n\nIngredients (Typical):\n- Chicken, masala-fried\n- Basmati rice\n- Onion, fried golden\n- Curd\n- Ginger-garlic paste\n- Mint and coriander leaves\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Red chilli powder\n- Ghee or oil and salt\n\nSpicy Level: Hot\n\nServing Suggestion: Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Spicy, smoky and savoury.",
+   "image": "chicken-fry-piece-biryani.jpg"
+  },
+  {
+   "slug": "chicken-moglai-biryani",
+   "name": "Chicken Moglai Biryani",
+   "price": 450,
+   "category": "Non-Veg Biryani",
+   "dietType": "nonveg",
+   "description": "Chicken biryani in the Mughlai style, richer and more fragrant than a regular dum biryani, with chicken and rice slow-cooked together in a mildly spiced, aromatic masala.\n\nIngredients (Typical):\n- Chicken\n- Basmati rice\n- Onion, fried golden\n- Curd\n- Whole spices (cardamom, cloves, cinnamon, mace)\n- Cashew paste, cream or boiled egg (if used in the actual recipe)\n- Saffron (if used in the actual recipe)\n- Ghee and salt\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Rich, aromatic and mildly spiced.",
+   "image": "chicken-moglai-biryani.jpg"
+  },
+  {
+   "slug": "sp-chicken-biryani",
+   "name": "SP Chicken Biryani",
+   "price": 420,
+   "category": "Non-Veg Biryani",
+   "dietType": "nonveg",
+   "description": "The restaurant's special version of chicken biryani: chicken and basmati rice layered with whole spices and cooked in the house style.\n\nIngredients (Typical):\n- Chicken\n- Basmati rice\n- Onion, fried golden\n- Curd\n- Ginger-garlic paste\n- Mint and coriander leaves\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Red chilli powder\n- Ghee or oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Spicy, aromatic and hearty.",
+   "image": "sp-chicken-biryani.jpg"
+  },
+  {
+   "slug": "chicken-wings-biryani",
+   "name": "Chicken Wings Biryani",
+   "price": 470,
+   "category": "Non-Veg Biryani",
+   "dietType": "nonveg",
+   "description": "Chicken biryani made with chicken wings, cooked in a spiced masala and layered with basmati rice.\n\nIngredients (Typical):\n- Chicken wings\n- Basmati rice\n- Onion, fried golden\n- Curd\n- Ginger-garlic paste\n- Mint and coriander leaves\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Red chilli powder\n- Ghee or oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Spicy, aromatic and juicy.",
+   "image": "chicken-wings-biryani.jpg"
+  },
+  {
+   "slug": "mourya-special-chicken-biryani",
+   "name": "Mourya Special Chicken Biryani",
+   "price": 470,
+   "category": "Non-Veg Biryani",
+   "dietType": "nonveg",
+   "description": "Mourya Dhaba's own special version of chicken biryani: chicken layered with basmati rice, fried onion and whole spices, and finished on dum in the house style.\n\nIngredients (Typical):\n- Chicken\n- Basmati rice\n- Onion, fried golden\n- Curd\n- Ginger-garlic paste\n- Mint and coriander leaves\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Red chilli powder\n- Ghee or oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Spicy, aromatic and hearty.",
+   "image": "mourya-special-chicken-biryani.jpg"
+  },
+  {
+   "slug": "chicken-tikka-biryani",
+   "name": "Chicken Tikka Biryani",
+   "price": 450,
+   "category": "Non-Veg Biryani",
+   "dietType": "nonveg",
+   "description": "Biryani rice served with chicken tikka: boneless chicken marinated in curd and spices and chargrilled until smoky, then paired with fragrant biryani rice.\n\nIngredients (Typical):\n- Boneless chicken tikka (curd, red chilli, garam masala)\n- Basmati rice\n- Onion, fried golden\n- Curd\n- Ginger-garlic paste\n- Mint and coriander leaves\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Red chilli powder\n- Ghee or oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Smoky, spicy and aromatic.",
+   "image": "chicken-tikka-biryani.jpg"
+  },
+  {
+   "slug": "chicken-rambo-biryani",
+   "name": "Chicken Rambo Biryani",
+   "price": 450,
+   "category": "Non-Veg Biryani",
+   "dietType": "nonveg",
+   "description": "Chicken Rambo Biryani is one of the restaurant's own chicken biryanis, made with chicken and spiced basmati rice in the house style.\n\nIngredients (Typical):\n- Chicken\n- Basmati rice\n- Onion, fried golden\n- Curd\n- Ginger-garlic paste\n- Mint and coriander leaves\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Red chilli powder\n- Ghee or oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Spicy, aromatic and hearty.",
+   "image": "chicken-rambo-biryani.jpg"
+  },
+  {
+   "slug": "chicken-tandoori-biryani",
+   "name": "Chicken Tandoori Biryani",
+   "price": 650,
+   "category": "Non-Veg Biryani",
+   "dietType": "nonveg",
+   "description": "Biryani rice paired with tandoori chicken: chicken marinated in curd and red chilli and roasted until charred, served with spiced basmati rice.\n\nIngredients (Typical):\n- Tandoori chicken (curd, red chilli, garam masala, lemon)\n- Basmati rice\n- Onion, fried golden\n- Curd\n- Ginger-garlic paste\n- Mint and coriander leaves\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Red chilli powder\n- Ghee or oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Smoky, spicy and aromatic.",
+   "image": "chicken-tandoori-biryani.jpg"
+  },
+  {
+   "slug": "mutton-biryani",
+   "name": "Mutton Biryani",
+   "price": 550,
+   "category": "Non-Veg Biryani",
+   "dietType": "nonveg",
+   "description": "Mutton biryani made with tender pieces of goat meat cooked in a spiced curd masala, layered with basmati rice and slow-cooked on dum until the meat is soft.\n\nIngredients (Typical):\n- Mutton (goat meat, bone-in)\n- Basmati rice\n- Onion, fried golden\n- Curd\n- Ginger-garlic paste\n- Mint and coriander leaves\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Red chilli powder\n- Ghee or oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Rich, spicy and deeply aromatic.",
+   "image": "mutton-biryani.jpg"
+  },
+  {
+   "slug": "mourya-special-mutton-biryani",
+   "name": "Mourya Special Mutton Biryani",
+   "price": 750,
+   "category": "Non-Veg Biryani",
+   "dietType": "nonveg",
+   "description": "Mourya Dhaba's own special version of mutton biryani: tender mutton layered with basmati rice and whole spices, finished on dum in the house style.\n\nIngredients (Typical):\n- Mutton (goat meat)\n- Basmati rice\n- Onion, fried golden\n- Curd\n- Ginger-garlic paste\n- Mint and coriander leaves\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Red chilli powder\n- Ghee or oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Rich, spicy and deeply aromatic.",
+   "image": "mourya-special-mutton-biryani.jpg"
+  },
+  {
+   "slug": "mutton-moglai-biryani",
+   "name": "Mutton Moglai Biryani",
+   "price": 650,
+   "category": "Non-Veg Biryani",
+   "dietType": "nonveg",
+   "description": "Mutton biryani in the Mughlai style: tender mutton and fragrant rice cooked in a rich, mildly spiced masala with whole spices.\n\nIngredients (Typical):\n- Mutton (goat meat)\n- Basmati rice\n- Onion, fried golden\n- Curd\n- Whole spices (cardamom, cloves, cinnamon, mace)\n- Cashew paste, cream or boiled egg (if used in the actual recipe)\n- Saffron (if used in the actual recipe)\n- Ghee and salt\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Rich, aromatic and mildly spiced.",
+   "image": "mutton-moglai-biryani.jpg"
+  },
+  {
+   "slug": "sp-mutton-biryani",
+   "name": "SP Mutton Biryani",
+   "price": 650,
+   "category": "Non-Veg Biryani",
+   "dietType": "nonveg",
+   "description": "The restaurant's special version of mutton biryani: mutton and basmati rice layered with whole spices and cooked in the house style.\n\nIngredients (Typical):\n- Mutton (goat meat)\n- Basmati rice\n- Onion, fried golden\n- Curd\n- Ginger-garlic paste\n- Mint and coriander leaves\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Red chilli powder\n- Ghee or oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Rich, spicy and aromatic.",
+   "image": "sp-mutton-biryani.jpg"
+  },
+  {
+   "slug": "fish-biryani",
+   "name": "Fish Biryani",
+   "price": 500,
+   "category": "Non-Veg Biryani",
+   "dietType": "nonveg",
+   "description": "Biryani made with pieces of fish cooked in a spiced masala and layered with rice, so the rice takes on the flavour of the fish and spices.\n\nIngredients (Typical):\n- Fish pieces\n- Basmati rice\n- Onion, fried golden\n- Curd\n- Ginger-garlic paste\n- Mint and coriander leaves\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Red chilli powder\n- Ghee or oil and salt\n- Lemon (if used in the actual recipe)\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Spicy, aromatic and lightly tangy.",
+   "image": "fish-biryani.jpg"
+  },
+  {
+   "slug": "prawns-biryani",
+   "name": "Prawns Biryani",
+   "price": 520,
+   "category": "Non-Veg Biryani",
+   "dietType": "nonveg",
+   "description": "Biryani made with prawns cooked in a spicy onion and tomato masala and layered with fragrant rice.\n\nIngredients (Typical):\n- Prawns\n- Basmati rice\n- Onion, fried golden\n- Curd\n- Ginger-garlic paste\n- Mint and coriander leaves\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Red chilli powder\n- Ghee or oil and salt\n- Tomato\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Spicy, juicy and aromatic.",
+   "image": "prawns-biryani.jpg"
+  },
+  {
+   "slug": "sp-prawns-biryani",
+   "name": "SP Prawns Biryani",
+   "price": 650,
+   "category": "Non-Veg Biryani",
+   "dietType": "nonveg",
+   "description": "The restaurant's special version of prawns biryani: prawns and rice layered with whole spices and cooked in the house style.\n\nIngredients (Typical):\n- Prawns\n- Basmati rice\n- Onion, fried golden\n- Curd\n- Ginger-garlic paste\n- Mint and coriander leaves\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Red chilli powder\n- Ghee or oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Spicy, juicy and aromatic.",
+   "image": "sp-prawns-biryani.jpg"
+  },
+  {
+   "slug": "egg-biryani",
+   "name": "Egg Biryani",
+   "price": 280,
+   "category": "Non-Veg Biryani",
+   "dietType": "egg",
+   "description": "Biryani rice cooked with spices and served with boiled eggs that are lightly fried or tossed in masala before going into the pot.\n\nIngredients (Typical):\n- Boiled eggs\n- Basmati rice\n- Onion, fried golden\n- Curd\n- Ginger-garlic paste\n- Mint and coriander leaves\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Red chilli powder\n- Ghee or oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Spicy, aromatic and filling.",
+   "image": "egg-biryani.jpg"
+  },
+  {
+   "slug": "sp-egg-biryani",
+   "name": "SP Egg Biryani",
+   "price": 350,
+   "category": "Non-Veg Biryani",
+   "dietType": "egg",
+   "description": "The restaurant's special version of egg biryani: boiled eggs and spiced rice cooked together in the house style.\n\nIngredients (Typical):\n- Boiled eggs\n- Basmati rice\n- Onion, fried golden\n- Curd\n- Ginger-garlic paste\n- Mint and coriander leaves\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Red chilli powder\n- Ghee or oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Spicy, aromatic and filling.",
+   "image": "sp-egg-biryani.jpg"
+  },
+  {
+   "slug": "single-dum-biryani",
+   "name": "Single Dum Biryani",
+   "price": 200,
+   "category": "Non-Veg Biryani",
+   "dietType": "nonveg",
+   "description": "The single serving of the restaurant's chicken dum biryani: chicken and basmati rice layered with whole spices and slow-cooked on dum.\n\nIngredients (Typical):\n- Chicken\n- Basmati rice\n- Onion, fried golden\n- Curd\n- Ginger-garlic paste\n- Mint and coriander leaves\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Red chilli powder\n- Ghee or oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Spicy, aromatic and juicy.",
+   "image": "single-dum-biryani.jpg"
+  },
+  {
+   "slug": "chicken-dum-biryani-family-pack",
+   "name": "Chicken Dum Biryani Family Pack",
+   "price": 960,
+   "category": "Family Pack Biryani",
+   "dietType": "nonveg",
+   "description": "A larger pack of the restaurant's chicken dum biryani for sharing: chicken marinated in curd and spices, layered with basmati rice and slow-cooked on dum.\n\nIngredients (Typical):\n- Chicken (bone-in)\n- Basmati rice\n- Onion, fried golden\n- Curd\n- Ginger-garlic paste\n- Mint and coriander leaves\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Red chilli powder\n- Ghee or oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Made for sharing. Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Spicy, aromatic and juicy.",
+   "image": "chicken-dum-biryani-family-pack.jpg"
+  },
+  {
+   "slug": "chicken-fry-piece-biryani-family-pack",
+   "name": "Chicken Fry Piece Biryani Family Pack",
+   "price": 1100,
+   "category": "Family Pack Biryani",
+   "dietType": "nonveg",
+   "description": "A larger pack of the restaurant's chicken fry piece biryani for sharing: spiced biryani rice with chicken pieces fried in a spicy masala.\n\nIngredients (Typical):\n- Chicken, masala-fried\n- Basmati rice\n- Onion, fried golden\n- Curd\n- Ginger-garlic paste\n- Mint and coriander leaves\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Red chilli powder\n- Ghee or oil and salt\n\nSpicy Level: Hot\n\nServing Suggestion: Made for sharing. Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Spicy, smoky and savoury.",
+   "image": "chicken-fry-piece-biryani-family-pack.jpg"
+  },
+  {
+   "slug": "chicken-spl-biryani-family-pack",
+   "name": "Chicken SPL Biryani Family Pack",
+   "price": 1250,
+   "category": "Family Pack Biryani",
+   "dietType": "nonveg",
+   "description": "A larger pack of the restaurant's special chicken biryani for sharing, made with chicken and basmati rice layered with whole spices in the house style.\n\nIngredients (Typical):\n- Chicken\n- Basmati rice\n- Onion, fried golden\n- Curd\n- Ginger-garlic paste\n- Mint and coriander leaves\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Red chilli powder\n- Ghee or oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Made for sharing. Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Spicy, aromatic and hearty.",
+   "image": "chicken-spl-biryani-family-pack.jpg"
+  },
+  {
+   "slug": "veg-biryani-family-pack",
+   "name": "Veg Biryani Family Pack",
+   "price": 860,
+   "category": "Family Pack Biryani",
+   "dietType": "veg",
+   "description": "A larger pack of the restaurant's veg biryani for sharing: mixed vegetables and basmati rice cooked with whole spices and finished on dum.\n\nIngredients (Typical):\n- Mixed vegetables (carrot, beans, peas, potato)\n- Basmati rice\n- Onion, fried golden\n- Mint and coriander leaves\n- Curd\n- Ginger-garlic paste\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Ghee or oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Made for sharing. Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Spicy, aromatic and wholesome.",
+   "image": "veg-biryani-family-pack.jpg"
+  },
+  {
+   "slug": "mutton-biryani-family-pack",
+   "name": "Mutton Biryani Family Pack",
+   "price": 1500,
+   "category": "Family Pack Biryani",
+   "dietType": "nonveg",
+   "description": "A larger pack of the restaurant's mutton biryani for sharing: tender mutton layered with basmati rice and slow-cooked on dum.\n\nIngredients (Typical):\n- Mutton (goat meat, bone-in)\n- Basmati rice\n- Onion, fried golden\n- Curd\n- Ginger-garlic paste\n- Mint and coriander leaves\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Red chilli powder\n- Ghee or oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Made for sharing. Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Rich, spicy and deeply aromatic.",
+   "image": "mutton-biryani-family-pack.jpg"
+  },
+  {
+   "slug": "fish-biryani-family-pack",
+   "name": "Fish Biryani Family Pack",
+   "price": 1500,
+   "category": "Family Pack Biryani",
+   "dietType": "nonveg",
+   "description": "A larger pack of the restaurant's fish biryani for sharing: fish pieces cooked in a spiced masala and layered with rice.\n\nIngredients (Typical):\n- Fish pieces\n- Basmati rice\n- Onion, fried golden\n- Curd\n- Ginger-garlic paste\n- Mint and coriander leaves\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Red chilli powder\n- Ghee or oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Made for sharing. Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Spicy, aromatic and lightly tangy.",
+   "image": "fish-biryani-family-pack.jpg"
+  },
+  {
+   "slug": "prawns-biryani-family-pack",
+   "name": "Prawns Biryani Family Pack",
+   "price": 1500,
+   "category": "Family Pack Biryani",
+   "dietType": "nonveg",
+   "description": "A larger pack of the restaurant's prawns biryani for sharing: prawns cooked in a spicy masala and layered with fragrant rice.\n\nIngredients (Typical):\n- Prawns\n- Basmati rice\n- Onion, fried golden\n- Curd\n- Ginger-garlic paste\n- Mint and coriander leaves\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Red chilli powder\n- Ghee or oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Made for sharing. Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Spicy, juicy and aromatic.",
+   "image": "prawns-biryani-family-pack.jpg"
+  },
+  {
+   "slug": "mourya-sp-chicken-biryani-family-pack",
+   "name": "Mourya SP Chicken Biryani Family Pack",
+   "price": 1800,
+   "category": "Family Pack Biryani",
+   "dietType": "nonveg",
+   "description": "A larger pack of Mourya Dhaba's own special chicken biryani for sharing, made with chicken and basmati rice layered with whole spices in the house style.\n\nIngredients (Typical):\n- Chicken\n- Basmati rice\n- Onion, fried golden\n- Curd\n- Ginger-garlic paste\n- Mint and coriander leaves\n- Biryani masala (cardamom, cloves, cinnamon, bay leaf)\n- Red chilli powder\n- Ghee or oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Made for sharing. Best eaten hot with raita and salan (if served with it by the restaurant).\n\nTaste Profile: Spicy, aromatic and hearty.",
+   "image": "mourya-sp-chicken-biryani-family-pack.jpg"
+  },
+  {
+   "slug": "chicken-tikka",
+   "name": "Chicken Tikka",
+   "price": 380,
+   "category": "Tandoori Starters",
+   "dietType": "nonveg",
+   "description": "Boneless chicken pieces marinated in curd, red chilli and garam masala, threaded on skewers and roasted in the tandoor until charred at the edges and juicy inside.\n\nIngredients (Typical):\n- Boneless chicken\n- Curd\n- Ginger-garlic paste\n- Red chilli powder and garam masala\n- Lemon juice\n- Kasuri methi (if used in the actual recipe)\n- Oil or butter and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot with mint chutney, onion rings and lemon.\n\nTaste Profile: Smoky, spicy and tangy.",
+   "image": "chicken-tikka.jpg"
+  },
+  {
+   "slug": "tandoori-chicken-full",
+   "name": "Tandoori Chicken (Full)",
+   "price": 600,
+   "category": "Tandoori Starters",
+   "dietType": "nonveg",
+   "description": "Bone-in chicken marinated in curd, lemon and red chilli, then roasted in the tandoor until smoky and charred. This is the full portion.\n\nIngredients (Typical):\n- Chicken (bone-in)\n- Curd\n- Ginger-garlic paste\n- Kashmiri red chilli and tandoori masala\n- Lemon juice\n- Oil or butter and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot with mint chutney, onion rings and lemon.\n\nTaste Profile: Smoky, spicy and juicy.",
+   "image": "tandoori-chicken-full.jpg"
+  },
+  {
+   "slug": "tandoori-chicken-half",
+   "name": "Tandoori Chicken (Half)",
+   "price": 380,
+   "category": "Tandoori Starters",
+   "dietType": "nonveg",
+   "description": "Bone-in chicken marinated in curd, lemon and red chilli, then roasted in the tandoor until smoky and charred. This is the half portion.\n\nIngredients (Typical):\n- Chicken (bone-in)\n- Curd\n- Ginger-garlic paste\n- Kashmiri red chilli and tandoori masala\n- Lemon juice\n- Oil or butter and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot with mint chutney, onion rings and lemon.\n\nTaste Profile: Smoky, spicy and juicy.",
+   "image": "tandoori-chicken-half.jpg"
+  },
+  {
+   "slug": "paneer-tikka",
+   "name": "Paneer Tikka",
+   "price": 350,
+   "category": "Tandoori Starters",
+   "dietType": "veg",
+   "description": "Cubes of paneer marinated in spiced curd and roasted in the tandoor with onion, capsicum and tomato until lightly charred.\n\nIngredients (Typical):\n- Paneer (cottage cheese)\n- Curd\n- Capsicum, onion and tomato\n- Red chilli powder and garam masala\n- Lemon juice\n- Kasuri methi (if used in the actual recipe)\n- Oil or butter and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot with mint chutney, onion rings and lemon.\n\nTaste Profile: Smoky, creamy and lightly spicy.",
+   "image": "paneer-tikka.jpg"
+  },
+  {
+   "slug": "veg-fried-rice",
+   "name": "Veg Fried Rice",
+   "price": 250,
+   "category": "Fried Rice",
+   "dietType": "veg",
+   "description": "Indo-Chinese veg fried rice: cooked rice tossed on a hot wok with finely chopped vegetables, garlic and soy sauce.\n\nIngredients (Typical):\n- Rice\n- Carrot, beans, cabbage, capsicum and spring onion\n- Garlic\n- Soy sauce and vinegar\n- Black pepper, salt and oil\n\nSpicy Level: Mild\n\nServing Suggestion: Best eaten hot, straight from the wok. Pairs well with a Manchurian or chilli gravy (not included).\n\nTaste Profile: Savoury, smoky and light.",
+   "image": "veg-fried-rice.jpg"
+  },
+  {
+   "slug": "sp-veg-fried-rice",
+   "name": "SP Veg Fried Rice",
+   "price": 350,
+   "category": "Fried Rice",
+   "dietType": "veg",
+   "description": "The restaurant's special version of veg fried rice, tossed on a hot wok with vegetables, garlic and sauces in the house style.\n\nIngredients (Typical):\n- Rice\n- Mixed vegetables\n- Paneer, mushroom or cashews (if used in the actual recipe)\n- Garlic\n- Soy sauce and vinegar\n- Black pepper, salt and oil\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best eaten hot, straight from the wok. Pairs well with a Manchurian or chilli gravy (not included).\n\nTaste Profile: Savoury, smoky and wholesome.",
+   "image": "sp-veg-fried-rice.jpg"
+  },
+  {
+   "slug": "mushroom-fried-rice",
+   "name": "Mushroom Fried Rice",
+   "price": 270,
+   "category": "Fried Rice",
+   "dietType": "veg",
+   "description": "Fried rice tossed on a hot wok with sliced mushrooms, onion, garlic and soy sauce.\n\nIngredients (Typical):\n- Rice\n- Mushrooms\n- Onion and spring onion\n- Garlic\n- Soy sauce and vinegar\n- Black pepper, salt and oil\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best eaten hot, straight from the wok. Pairs well with a Manchurian or chilli gravy (not included).\n\nTaste Profile: Savoury, earthy and smoky.",
+   "image": "mushroom-fried-rice.jpg"
+  },
+  {
+   "slug": "kaju-fried-rice",
+   "name": "Kaju Fried Rice",
+   "price": 330,
+   "category": "Fried Rice",
+   "dietType": "veg",
+   "description": "Fried rice tossed with cashew nuts (kaju) that are fried golden, along with vegetables, garlic and light sauces.\n\nIngredients (Typical):\n- Rice\n- Cashew nuts (kaju)\n- Mixed vegetables (if used in the actual recipe)\n- Garlic\n- Soy sauce and vinegar\n- Black pepper, salt and oil\n\nSpicy Level: Mild\n\nServing Suggestion: Best eaten hot, straight from the wok. Pairs well with a Manchurian or chilli gravy (not included).\n\nTaste Profile: Savoury, nutty and buttery.",
+   "image": "kaju-fried-rice.jpg"
+  },
+  {
+   "slug": "paneer-fried-rice",
+   "name": "Paneer Fried Rice",
+   "price": 280,
+   "category": "Fried Rice",
+   "dietType": "veg",
+   "description": "Fried rice tossed with cubes of paneer, vegetables, garlic and soy sauce on a hot wok.\n\nIngredients (Typical):\n- Rice\n- Paneer (cottage cheese)\n- Mixed vegetables\n- Garlic\n- Soy sauce and vinegar\n- Black pepper, salt and oil\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best eaten hot, straight from the wok. Pairs well with a Manchurian or chilli gravy (not included).\n\nTaste Profile: Savoury, smoky and mildly rich.",
+   "image": "paneer-fried-rice.jpg"
+  },
+  {
+   "slug": "schezwan-veg-fried-rice",
+   "name": "Schezwan Veg Fried Rice",
+   "price": 270,
+   "category": "Fried Rice",
+   "dietType": "veg",
+   "description": "Veg fried rice tossed with fiery Schezwan sauce made from dried red chillies and garlic, along with crunchy vegetables.\n\nIngredients (Typical):\n- Rice\n- Schezwan sauce (dried red chilli, garlic)\n- Carrot, beans, capsicum and spring onion\n- Soy sauce\n- Salt and oil\n\nSpicy Level: Hot\n\nServing Suggestion: Best eaten hot, straight from the wok. Pairs well with a Manchurian or chilli gravy (not included).\n\nTaste Profile: Fiery, garlicky and smoky.",
+   "image": "schezwan-veg-fried-rice.jpg"
+  },
+  {
+   "slug": "mixed-veg-fried-rice",
+   "name": "Mixed Veg Fried Rice",
+   "price": 350,
+   "category": "Fried Rice",
+   "dietType": "veg",
+   "description": "Fried rice loaded with a generous mix of vegetables, tossed on a hot wok with garlic and light sauces.\n\nIngredients (Typical):\n- Rice\n- Carrot, beans, capsicum, cabbage, peas and spring onion\n- Garlic\n- Soy sauce and vinegar\n- Black pepper, salt and oil\n\nSpicy Level: Mild\n\nServing Suggestion: Best eaten hot, straight from the wok. Pairs well with a Manchurian or chilli gravy (not included).\n\nTaste Profile: Savoury, fresh and wholesome.",
+   "image": "mixed-veg-fried-rice.jpg"
+  },
+  {
+   "slug": "veg-manchurian-fried-rice",
+   "name": "Veg Manchurian Fried Rice",
+   "price": 380,
+   "category": "Fried Rice",
+   "dietType": "veg",
+   "description": "Veg fried rice combined with veg Manchurian: crisp-fried vegetable balls in a soy, garlic and chilli sauce, tossed with or served alongside the rice.\n\nIngredients (Typical):\n- Rice\n- Vegetable Manchurian balls (cabbage, carrot, flour)\n- Manchurian sauce (soy, garlic, ginger, chilli)\n- Capsicum and spring onion\n- Salt and oil\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Savoury, garlicky and tangy.",
+   "image": "veg-manchurian-fried-rice.jpg"
+  },
+  {
+   "slug": "babycorn-fried-rice",
+   "name": "Babycorn Fried Rice",
+   "price": 270,
+   "category": "Fried Rice",
+   "dietType": "veg",
+   "description": "Fried rice tossed with tender baby corn pieces, vegetables, garlic and soy sauce on a hot wok.\n\nIngredients (Typical):\n- Rice\n- Baby corn\n- Mixed vegetables\n- Garlic\n- Soy sauce and vinegar\n- Black pepper, salt and oil\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best eaten hot, straight from the wok. Pairs well with a Manchurian or chilli gravy (not included).\n\nTaste Profile: Savoury, smoky and lightly sweet.",
+   "image": "babycorn-fried-rice.jpg"
+  },
+  {
+   "slug": "tomato-rice",
+   "name": "Tomato Rice",
+   "price": 250,
+   "category": "Fried Rice",
+   "dietType": "veg",
+   "description": "A South Indian rice dish cooked with ripe tomatoes, onion, green chilli and a tempering of mustard seeds and curry leaves.\n\nIngredients (Typical):\n- Rice\n- Tomato\n- Onion and green chilli\n- Mustard seeds, curry leaves and chana dal\n- Ginger-garlic paste\n- Turmeric and red chilli powder\n- Oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best with raita or a curry from the menu (not included).\n\nTaste Profile: Tangy, spicy and comforting.",
+   "image": "tomato-rice.jpg"
+  },
+  {
+   "slug": "zeera-rice",
+   "name": "Zeera Rice",
+   "price": 250,
+   "category": "Fried Rice",
+   "dietType": "veg",
+   "description": "Basmati rice cooked with cumin seeds (jeera) tempered in ghee, light and fragrant.\n\nIngredients (Typical):\n- Basmati rice\n- Cumin seeds (jeera)\n- Ghee\n- Bay leaf (if used in the actual recipe)\n- Salt\n\nSpicy Level: Mild\n\nServing Suggestion: Best with dal or a curry from the menu (not included).\n\nTaste Profile: Mild, nutty and buttery.",
+   "image": "zeera-rice.jpg"
+  },
+  {
+   "slug": "ghee-fried-rice",
+   "name": "Ghee Fried Rice",
+   "price": 270,
+   "category": "Fried Rice",
+   "dietType": "veg",
+   "description": "Rice cooked with ghee, whole spices and fried onion, rich and fragrant without heavy masala.\n\nIngredients (Typical):\n- Rice\n- Ghee\n- Whole spices (bay leaf, cardamom, cloves)\n- Onion\n- Cashews (if used in the actual recipe)\n- Salt\n\nSpicy Level: Mild\n\nServing Suggestion: Best with a chicken or veg curry from the menu (not included).\n\nTaste Profile: Buttery, fragrant and mild.",
+   "image": "ghee-fried-rice.jpg"
+  },
+  {
+   "slug": "egg-fried-rice",
+   "name": "Egg Fried Rice",
+   "price": 280,
+   "category": "Fried Rice",
+   "dietType": "egg",
+   "description": "Indo-Chinese egg fried rice: rice tossed on a hot wok with scrambled egg, vegetables, garlic and soy sauce.\n\nIngredients (Typical):\n- Rice\n- Eggs\n- Carrot, cabbage and spring onion\n- Garlic\n- Soy sauce and vinegar\n- Black pepper, salt and oil\n\nSpicy Level: Mild\n\nServing Suggestion: Best eaten hot, straight from the wok. Pairs well with a Manchurian or chilli gravy (not included).\n\nTaste Profile: Savoury, smoky and light.",
+   "image": "egg-fried-rice.jpg"
+  },
+  {
+   "slug": "spl-egg-fried-rice",
+   "name": "SPL Egg Fried Rice",
+   "price": 350,
+   "category": "Fried Rice",
+   "dietType": "egg",
+   "description": "The restaurant's special version of egg fried rice, tossed on a hot wok with egg, vegetables and sauces in the house style.\n\nIngredients (Typical):\n- Rice\n- Eggs\n- Mixed vegetables\n- Garlic\n- Soy sauce and vinegar\n- Black pepper, salt and oil\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best eaten hot, straight from the wok. Pairs well with a Manchurian or chilli gravy (not included).\n\nTaste Profile: Savoury, smoky and filling.",
+   "image": "spl-egg-fried-rice.jpg"
+  },
+  {
+   "slug": "egg-schezwan-fried-rice",
+   "name": "Egg Schezwan Fried Rice",
+   "price": 300,
+   "category": "Fried Rice",
+   "dietType": "egg",
+   "description": "Egg fried rice tossed with fiery Schezwan sauce, scrambled egg and vegetables on a hot wok.\n\nIngredients (Typical):\n- Rice\n- Eggs\n- Schezwan sauce (dried red chilli, garlic)\n- Carrot, capsicum and spring onion\n- Soy sauce\n- Salt and oil\n\nSpicy Level: Hot\n\nServing Suggestion: Best eaten hot, straight from the wok. Pairs well with a Manchurian or chilli gravy (not included).\n\nTaste Profile: Fiery, garlicky and smoky.",
+   "image": "egg-schezwan-fried-rice.jpg"
+  },
+  {
+   "slug": "chicken-fried-rice",
+   "name": "Chicken Fried Rice",
+   "price": 300,
+   "category": "Fried Rice",
+   "dietType": "nonveg",
+   "description": "Indo-Chinese chicken fried rice: rice tossed on a hot wok with chicken pieces, vegetables, garlic and soy sauce.\n\nIngredients (Typical):\n- Rice\n- Chicken pieces\n- Egg (if used in the actual recipe)\n- Carrot, beans and spring onion\n- Garlic\n- Soy sauce and vinegar\n- Black pepper, salt and oil\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best eaten hot, straight from the wok. Pairs well with a Manchurian or chilli gravy (not included).\n\nTaste Profile: Savoury, smoky and filling.",
+   "image": "chicken-fried-rice.jpg"
+  },
+  {
+   "slug": "sp-chicken-fried-rice",
+   "name": "SP Chicken Fried Rice",
+   "price": 380,
+   "category": "Fried Rice",
+   "dietType": "nonveg",
+   "description": "The restaurant's special version of chicken fried rice, tossed on a hot wok with chicken, vegetables and sauces in the house style.\n\nIngredients (Typical):\n- Rice\n- Chicken\n- Egg (if used in the actual recipe)\n- Mixed vegetables\n- Garlic\n- Soy sauce and vinegar\n- Black pepper, salt and oil\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot, straight from the wok. Pairs well with a Manchurian or chilli gravy (not included).\n\nTaste Profile: Savoury, smoky and hearty.",
+   "image": "sp-chicken-fried-rice.jpg"
+  },
+  {
+   "slug": "mixed-non-veg-fried-rice",
+   "name": "Mixed Non-Veg Fried Rice",
+   "price": 370,
+   "category": "Fried Rice",
+   "dietType": "nonveg",
+   "description": "Fried rice loaded with a mix of meats, typically chicken, egg and prawns (as used in the actual recipe), tossed with vegetables on a hot wok.\n\nIngredients (Typical):\n- Rice\n- Chicken\n- Egg\n- Prawns or mutton (if used in the actual recipe)\n- Carrot, cabbage and spring onion\n- Garlic\n- Soy sauce and vinegar\n- Black pepper, salt and oil\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot, straight from the wok. Pairs well with a Manchurian or chilli gravy (not included).\n\nTaste Profile: Savoury, smoky and hearty.",
+   "image": "mixed-non-veg-fried-rice.jpg"
+  },
+  {
+   "slug": "schezwan-non-veg-fried-rice",
+   "name": "Schezwan Non-Veg Fried Rice",
+   "price": 380,
+   "category": "Fried Rice",
+   "dietType": "nonveg",
+   "description": "Non-veg fried rice tossed with fiery Schezwan sauce, with chicken or egg (as used in the actual recipe) and crunchy vegetables.\n\nIngredients (Typical):\n- Rice\n- Chicken and/or egg\n- Schezwan sauce (dried red chilli, garlic)\n- Cabbage, capsicum and spring onion\n- Soy sauce\n- Salt and oil\n\nSpicy Level: Hot\n\nServing Suggestion: Best eaten hot, straight from the wok. Pairs well with a Manchurian or chilli gravy (not included).\n\nTaste Profile: Fiery, garlicky and smoky.",
+   "image": "schezwan-non-veg-fried-rice.jpg"
+  },
+  {
+   "slug": "schezwan-mixed-non-veg-fried-rice",
+   "name": "Schezwan Mixed Non-Veg Fried Rice",
+   "price": 350,
+   "category": "Fried Rice",
+   "dietType": "nonveg",
+   "description": "Mixed non-veg fried rice tossed in fiery Schezwan sauce, with a mix of meats (as used in the actual recipe) and vegetables.\n\nIngredients (Typical):\n- Rice\n- Chicken\n- Egg\n- Prawns or mutton (if used in the actual recipe)\n- Schezwan sauce (dried red chilli, garlic)\n- Carrot, capsicum and spring onion\n- Soy sauce\n- Salt and oil\n\nSpicy Level: Hot\n\nServing Suggestion: Best eaten hot, straight from the wok. Pairs well with a Manchurian or chilli gravy (not included).\n\nTaste Profile: Fiery, garlicky and hearty.",
+   "image": "schezwan-mixed-non-veg-fried-rice.jpg"
+  },
+  {
+   "slug": "kaju-fry",
+   "name": "Kaju Fry",
+   "price": 320,
+   "category": "Veg Starters",
+   "dietType": "veg",
+   "description": "Whole cashew nuts fried in oil until golden and crisp, then tossed with salt and spices. A rich, crunchy vegetarian starter.\n\nIngredients (Typical):\n- Cashew nuts (kaju)\n- Red chilli powder and black pepper\n- Curry leaves (if used in the actual recipe)\n- Salt and oil\n\nSpicy Level: Mild\n\nServing Suggestion: Best eaten warm while the cashews are crisp, before the meal.\n\nTaste Profile: Nutty, buttery, crunchy and lightly salty.",
+   "image": "kaju-fry.jpg"
+  },
+  {
+   "slug": "baby-corn-manchurian",
+   "name": "Baby Corn Manchurian",
+   "price": 220,
+   "category": "Veg Starters",
+   "dietType": "veg",
+   "description": "Baby corn pieces coated in a light corn-flour batter, fried crisp and tossed in a dark, glossy Indo-Chinese Manchurian sauce with garlic, ginger and spring onion.\n\nIngredients (Typical):\n- Baby corn\n- Corn flour and maida (refined flour)\n- Garlic, ginger and green chilli\n- Onion, capsicum and spring onion\n- Soy sauce, chilli sauce and vinegar\n- Oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Savoury, garlicky, tangy and crunchy.",
+   "image": "baby-corn-manchurian.jpg"
+  },
+  {
+   "slug": "veg-65",
+   "name": "Veg 65",
+   "price": 210,
+   "category": "Veg Starters",
+   "dietType": "veg",
+   "description": "Mixed vegetables bound in a spiced batter, deep-fried crisp and tossed with curry leaves and green chilli in the South Indian 65 style.\n\nIngredients (Typical):\n- Mixed vegetables (such as cabbage, carrot, beans and cauliflower)\n- Corn flour, maida (refined flour) and rice flour\n- Ginger-garlic paste\n- Red chilli powder and spices\n- Curry leaves and green chilli\n- Curd (if used in the actual recipe)\n- Oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot with sliced onion and a squeeze of lemon.\n\nTaste Profile: Spicy, crispy and tangy.",
+   "image": "veg-65.jpg"
+  },
+  {
+   "slug": "crispy-veg",
+   "name": "Crispy Veg",
+   "price": 220,
+   "category": "Veg Starters",
+   "dietType": "veg",
+   "description": "Strips of mixed vegetables coated in a light batter, fried until crisp and tossed with garlic, chilli and spring onion in Indo-Chinese style.\n\nIngredients (Typical):\n- Mixed vegetables (such as carrot, capsicum, baby corn, beans and cabbage)\n- Corn flour and maida (refined flour)\n- Garlic, green chilli and spring onion\n- Soy sauce and chilli sauce\n- Oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Crunchy, savoury and lightly spicy.",
+   "image": "crispy-veg.jpg"
+  },
+  {
+   "slug": "chilli-mushroom",
+   "name": "Chilli Mushroom",
+   "price": 250,
+   "category": "Veg Starters",
+   "dietType": "veg",
+   "description": "Mushrooms coated in a corn-flour batter, fried and tossed on a hot wok with capsicum, onion, green chilli and Indo-Chinese sauces.\n\nIngredients (Typical):\n- Button mushrooms\n- Corn flour and maida (refined flour)\n- Capsicum, onion and spring onion\n- Garlic, ginger and green chilli\n- Soy sauce, chilli sauce and vinegar\n- Oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Spicy, savoury, tangy and juicy.",
+   "image": "chilli-mushroom.jpg"
+  },
+  {
+   "slug": "chilli-paneer",
+   "name": "Chilli Paneer",
+   "price": 300,
+   "category": "Veg Starters",
+   "dietType": "veg",
+   "description": "Cubes of paneer coated lightly, fried golden and tossed with capsicum, onion and green chilli in a spicy, tangy Indo-Chinese chilli sauce.\n\nIngredients (Typical):\n- Paneer (cottage cheese)\n- Corn flour and maida (refined flour)\n- Capsicum and onion\n- Garlic, ginger and green chilli\n- Soy sauce, chilli sauce and vinegar\n- Spring onion\n- Oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Spicy, tangy, savoury and soft inside.",
+   "image": "chilli-paneer.jpg"
+  },
+  {
+   "slug": "chilli-baby-corn",
+   "name": "Chilli Baby Corn",
+   "price": 220,
+   "category": "Veg Starters",
+   "dietType": "veg",
+   "description": "Baby corn pieces fried crisp in a light batter and tossed with garlic, green chilli and Indo-Chinese chilli sauce, finished with spring onion.\n\nIngredients (Typical):\n- Baby corn\n- Corn flour and maida (refined flour)\n- Garlic and green chilli\n- Capsicum and onion (if used in the actual recipe)\n- Soy sauce, chilli sauce and vinegar\n- Spring onion\n- Oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Spicy, tangy and crunchy.",
+   "image": "chilli-baby-corn.jpg"
+  },
+  {
+   "slug": "paneer-65",
+   "name": "Paneer 65",
+   "price": 280,
+   "category": "Veg Starters",
+   "dietType": "veg",
+   "description": "Paneer cubes marinated in a red spice mix, coated and deep-fried, then tossed with curry leaves and green chilli in the South Indian 65 style.\n\nIngredients (Typical):\n- Paneer (cottage cheese)\n- Ginger-garlic paste\n- Red chilli powder and spices\n- Corn flour and rice flour\n- Curd (if used in the actual recipe)\n- Curry leaves and green chilli\n- Oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot with sliced onion and a squeeze of lemon.\n\nTaste Profile: Spicy, crisp outside and soft inside.",
+   "image": "paneer-65.jpg"
+  },
+  {
+   "slug": "paneer-manchurian",
+   "name": "Paneer Manchurian",
+   "price": 280,
+   "category": "Veg Starters",
+   "dietType": "veg",
+   "description": "Fried paneer cubes tossed in a dark, glossy Indo-Chinese Manchurian sauce with garlic, ginger, onion and spring onion.\n\nIngredients (Typical):\n- Paneer (cottage cheese)\n- Corn flour and maida (refined flour)\n- Garlic, ginger and green chilli\n- Onion, capsicum and spring onion\n- Soy sauce, chilli sauce and vinegar\n- Oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Savoury, garlicky, tangy and soft.",
+   "image": "paneer-manchurian.jpg"
+  },
+  {
+   "slug": "mushroom-65",
+   "name": "Mushroom 65",
+   "price": 220,
+   "category": "Veg Starters",
+   "dietType": "veg",
+   "description": "Mushrooms coated in a spiced batter and deep-fried crisp, then tossed with curry leaves and green chilli in the 65 style.\n\nIngredients (Typical):\n- Button mushrooms\n- Ginger-garlic paste\n- Red chilli powder and spices\n- Corn flour, maida and rice flour\n- Curry leaves and green chilli\n- Oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot with sliced onion and a squeeze of lemon.\n\nTaste Profile: Spicy, crispy and earthy.",
+   "image": "mushroom-65.jpg"
+  },
+  {
+   "slug": "mushroom-manchurian",
+   "name": "Mushroom Manchurian",
+   "price": 210,
+   "category": "Veg Starters",
+   "dietType": "veg",
+   "description": "Batter-fried mushrooms tossed in a dark, glossy Manchurian sauce with garlic, ginger and spring onion, an Indo-Chinese restaurant favourite.\n\nIngredients (Typical):\n- Button mushrooms\n- Corn flour and maida (refined flour)\n- Garlic, ginger and green chilli\n- Onion and spring onion\n- Soy sauce, chilli sauce and vinegar\n- Oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Savoury, garlicky, tangy and earthy.",
+   "image": "mushroom-manchurian.jpg"
+  },
+  {
+   "slug": "veg-manchurian",
+   "name": "Veg Manchurian",
+   "price": 210,
+   "category": "Veg Starters",
+   "dietType": "veg",
+   "description": "Balls of finely chopped vegetables bound with flour, deep-fried and tossed in a dark, glossy Manchurian sauce with garlic, ginger and spring onion.\n\nIngredients (Typical):\n- Cabbage, carrot, beans and capsicum (finely chopped)\n- Corn flour and maida (refined flour)\n- Garlic, ginger and green chilli\n- Spring onion\n- Soy sauce, chilli sauce and vinegar\n- Oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Savoury, garlicky and tangy.",
+   "image": "veg-manchurian.jpg"
+  },
+  {
+   "slug": "baby-corn-65",
+   "name": "Baby Corn 65",
+   "price": 220,
+   "category": "Veg Starters",
+   "dietType": "veg",
+   "description": "Baby corn pieces coated in a red spice batter, deep-fried crisp and tossed with curry leaves and green chilli in the South Indian 65 style.\n\nIngredients (Typical):\n- Baby corn\n- Ginger-garlic paste\n- Red chilli powder and spices\n- Corn flour and rice flour\n- Curry leaves and green chilli\n- Oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot with sliced onion and a squeeze of lemon.\n\nTaste Profile: Spicy, crunchy and tangy.",
+   "image": "baby-corn-65.jpg"
+  },
+  {
+   "slug": "finger-chips",
+   "name": "Finger Chips",
+   "price": 180,
+   "category": "Veg Starters",
+   "dietType": "veg",
+   "description": "Potatoes cut into long fingers and deep-fried until golden and crisp, then salted. A simple side or starter that goes with everything.\n\nIngredients (Typical):\n- Potatoes\n- Oil\n- Salt\n- Pepper or chilli powder (if used in the actual recipe)\n\nSpicy Level: Mild\n\nServing Suggestion: Best eaten hot with tomato ketchup.\n\nTaste Profile: Crispy outside, soft inside and salty.",
+   "image": "finger-chips.jpg"
+  },
+  {
+   "slug": "green-peas-roast",
+   "name": "Green Peas Roast",
+   "price": 160,
+   "category": "Veg Starters",
+   "dietType": "veg",
+   "description": "Green peas roasted or fried with spices until dry and crunchy. A light vegetarian starter to snack on.\n\nIngredients (Typical):\n- Green peas\n- Onion, green chilli and curry leaves (if used in the actual recipe)\n- Red chilli powder and spices\n- Oil and salt\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best eaten warm as a snack before the meal.\n\nTaste Profile: Crunchy, savoury and lightly spiced.",
+   "image": "green-peas-roast.jpg"
+  },
+  {
+   "slug": "crispy-baby-corn",
+   "name": "Crispy Baby Corn",
+   "price": 220,
+   "category": "Veg Starters",
+   "dietType": "veg",
+   "description": "Baby corn pieces coated in a seasoned batter and fried until golden and very crisp, then tossed with garlic, chilli and spring onion.\n\nIngredients (Typical):\n- Baby corn\n- Corn flour and maida (refined flour)\n- Garlic and green chilli\n- Spring onion\n- Pepper and salt\n- Oil\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best eaten hot while it is crisp.\n\nTaste Profile: Crunchy, savoury and lightly spicy.",
+   "image": "crispy-baby-corn.jpg"
+  },
+  {
+   "slug": "paneer-majestic",
+   "name": "Paneer Majestic",
+   "price": 300,
+   "category": "Veg Starters",
+   "dietType": "veg",
+   "description": "Paneer strips fried and tossed with curd, green chilli and curry leaves, in the style of the Andhra and Hyderabad restaurant starter known as Majestic.\n\nIngredients (Typical):\n- Paneer (cottage cheese)\n- Curd\n- Ginger-garlic paste\n- Green chilli and curry leaves\n- Corn flour and maida (refined flour)\n- Red chilli powder and spices\n- Oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot with sliced onion and a squeeze of lemon.\n\nTaste Profile: Creamy, tangy, mildly spicy and aromatic.",
+   "image": "paneer-majestic.jpg"
+  },
+  {
+   "slug": "paneer-555",
+   "name": "Paneer 555",
+   "price": 300,
+   "category": "Veg Starters",
+   "dietType": "veg",
+   "description": "A spicy Andhra restaurant-style starter of fried paneer tossed in a red masala with garlic, green chilli and curry leaves.\n\nIngredients (Typical):\n- Paneer (cottage cheese)\n- Corn flour and maida (refined flour)\n- Ginger-garlic paste\n- Red chilli paste or powder\n- Green chilli and curry leaves\n- Capsicum (if used in the actual recipe)\n- Oil and salt\n\nSpicy Level: Hot\n\nServing Suggestion: Best eaten hot with sliced onion and a squeeze of lemon.\n\nTaste Profile: Spicy, garlicky and tangy.",
+   "image": "paneer-555.jpg"
+  },
+  {
+   "slug": "dragon-baby-corn",
+   "name": "Dragon Baby Corn",
+   "price": 230,
+   "category": "Veg Starters",
+   "dietType": "veg",
+   "description": "Baby corn strips fried crisp and tossed in a fiery red Indo-Chinese dragon sauce with garlic, dry red chilli, capsicum and onion.\n\nIngredients (Typical):\n- Baby corn\n- Corn flour and maida (refined flour)\n- Garlic and dry red chilli\n- Capsicum and onion\n- Chilli sauce, soy sauce and tomato sauce\n- Cashew nuts (if used in the actual recipe)\n- Oil and salt\n\nSpicy Level: Hot\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Fiery, sweet-tangy and crunchy.",
+   "image": "dragon-baby-corn.jpg"
+  },
+  {
+   "slug": "kaju-65",
+   "name": "Kaju 65",
+   "price": 330,
+   "category": "Veg Starters",
+   "dietType": "veg",
+   "description": "Cashew nuts coated in a thin spiced batter and fried crisp, then tossed with curry leaves and green chilli in the 65 style.\n\nIngredients (Typical):\n- Cashew nuts (kaju)\n- Corn flour and rice flour\n- Red chilli powder and spices\n- Ginger-garlic paste\n- Curry leaves and green chilli\n- Oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten warm while the coating is crisp.\n\nTaste Profile: Nutty, spicy and crunchy.",
+   "image": "kaju-65.jpg"
+  },
+  {
+   "slug": "pepper-mushroom",
+   "name": "Pepper Mushroom",
+   "price": 220,
+   "category": "Veg Starters",
+   "dietType": "veg",
+   "description": "Mushrooms sauteed with onion, curry leaves and plenty of freshly crushed black pepper until dry and well coated.\n\nIngredients (Typical):\n- Button mushrooms\n- Black pepper (crushed)\n- Onion and curry leaves\n- Ginger-garlic paste\n- Green chilli (if used in the actual recipe)\n- Oil or ghee and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot; also goes well with rice or rotis.\n\nTaste Profile: Peppery, earthy and aromatic.",
+   "image": "pepper-mushroom.jpg"
+  },
+  {
+   "slug": "egg-manchurian",
+   "name": "Egg Manchurian",
+   "price": 210,
+   "category": "Egg Starters",
+   "dietType": "egg",
+   "description": "Boiled eggs, cut and coated in batter, fried and tossed in a glossy Indo-Chinese Manchurian sauce with garlic, ginger and spring onion.\n\nIngredients (Typical):\n- Boiled eggs\n- Corn flour and maida (refined flour)\n- Garlic, ginger and green chilli\n- Onion and spring onion\n- Soy sauce, chilli sauce and vinegar\n- Oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Savoury, garlicky and tangy.",
+   "image": "egg-manchurian.jpg"
+  },
+  {
+   "slug": "egg-65",
+   "name": "Egg 65",
+   "price": 210,
+   "category": "Egg Starters",
+   "dietType": "egg",
+   "description": "Boiled egg pieces coated in a red spiced batter, deep-fried crisp and tossed with curry leaves and green chilli in the 65 style.\n\nIngredients (Typical):\n- Boiled eggs\n- Ginger-garlic paste\n- Red chilli powder and spices\n- Corn flour and rice flour\n- Curry leaves and green chilli\n- Oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot with sliced onion and a squeeze of lemon.\n\nTaste Profile: Spicy, crispy and rich.",
+   "image": "egg-65.jpg"
+  },
+  {
+   "slug": "chilli-egg",
+   "name": "Chilli Egg",
+   "price": 210,
+   "category": "Egg Starters",
+   "dietType": "egg",
+   "description": "Boiled eggs, cut and fried in a light coating, then tossed with capsicum, onion and green chilli in a spicy Indo-Chinese chilli sauce.\n\nIngredients (Typical):\n- Boiled eggs\n- Corn flour and maida (refined flour)\n- Capsicum and onion\n- Garlic and green chilli\n- Soy sauce, chilli sauce and vinegar\n- Spring onion\n- Oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Spicy, tangy and savoury.",
+   "image": "chilli-egg.jpg"
+  },
+  {
+   "slug": "ginger-egg",
+   "name": "Ginger Egg",
+   "price": 200,
+   "category": "Egg Starters",
+   "dietType": "egg",
+   "description": "Boiled eggs tossed with plenty of chopped ginger, garlic and green chilli in a savoury sauce, a ginger-forward egg starter.\n\nIngredients (Typical):\n- Boiled eggs\n- Ginger (chopped)\n- Garlic and green chilli\n- Onion and spring onion\n- Soy sauce (if used in the actual recipe)\n- Corn flour (if used in the actual recipe)\n- Oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Warm, gingery and savoury.",
+   "image": "ginger-egg.jpg"
+  },
+  {
+   "slug": "egg-omelette",
+   "name": "Egg Omelette",
+   "price": 50,
+   "category": "Egg Starters",
+   "dietType": "egg",
+   "description": "Beaten eggs mixed with onion, green chilli and coriander, cooked on a hot pan into a soft omelette.\n\nIngredients (Typical):\n- Eggs\n- Onion\n- Green chilli\n- Coriander leaves\n- Salt and pepper\n- Oil\n\nSpicy Level: Mild\n\nServing Suggestion: Best eaten hot, straight from the pan.\n\nTaste Profile: Soft, savoury and lightly spicy.",
+   "image": "egg-omelette.jpg"
+  },
+  {
+   "slug": "boiled-egg",
+   "name": "Boiled Egg",
+   "price": 40,
+   "category": "Egg Starters",
+   "dietType": "egg",
+   "description": "Eggs boiled until firm, peeled and served simply with salt and pepper.\n\nIngredients (Typical):\n- Eggs\n- Salt\n- Black pepper (if used in the actual recipe)\n\nSpicy Level: Mild\n\nServing Suggestion: Best eaten warm with a pinch of salt and pepper.\n\nTaste Profile: Plain, soft and filling.",
+   "image": "boiled-egg.jpg"
+  },
+  {
+   "slug": "egg-fry",
+   "name": "Egg Fry",
+   "price": 150,
+   "category": "Egg Starters",
+   "dietType": "egg",
+   "description": "Boiled eggs halved and pan-fried with onion, curry leaves and spices until coated in a dry masala.\n\nIngredients (Typical):\n- Boiled eggs\n- Onion and curry leaves\n- Ginger-garlic paste\n- Red chilli powder, turmeric and spices\n- Coriander leaves\n- Oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot; also goes well with rice.\n\nTaste Profile: Spicy, savoury and aromatic.",
+   "image": "egg-fry.jpg"
+  },
+  {
+   "slug": "chicken-555",
+   "name": "Chicken 555",
+   "price": 360,
+   "category": "Non-Veg Starters",
+   "dietType": "nonveg",
+   "description": "A spicy Andhra restaurant-style chicken starter: boneless chicken coated and fried, then tossed in a red masala with garlic, green chilli and curry leaves.\n\nIngredients (Typical):\n- Boneless chicken\n- Corn flour and maida (refined flour)\n- Ginger-garlic paste\n- Red chilli paste or powder\n- Green chilli and curry leaves\n- Curd (if used in the actual recipe)\n- Oil and salt\n\nSpicy Level: Hot\n\nServing Suggestion: Best eaten hot with sliced onion and a squeeze of lemon.\n\nTaste Profile: Spicy, garlicky and crispy.",
+   "image": "chicken-555.jpg"
+  },
+  {
+   "slug": "chicken-65",
+   "name": "Chicken 65",
+   "price": 360,
+   "category": "Non-Veg Starters",
+   "dietType": "nonveg",
+   "description": "A South Indian classic: chicken marinated in red chilli, ginger, garlic and spices, deep-fried crisp and tossed with curry leaves and green chilli.\n\nIngredients (Typical):\n- Chicken\n- Ginger-garlic paste\n- Red chilli powder and spices\n- Corn flour and rice flour\n- Curd (if used in the actual recipe)\n- Curry leaves and green chilli\n- Oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot with sliced onion and a squeeze of lemon.\n\nTaste Profile: Spicy, crispy outside and juicy inside.",
+   "image": "chicken-65.jpg"
+  },
+  {
+   "slug": "chicken-bone-roast",
+   "name": "Chicken Bone Roast",
+   "price": 350,
+   "category": "Non-Veg Starters",
+   "dietType": "nonveg",
+   "description": "Bone-in chicken pieces roasted in a thick, dark masala of onion, ginger-garlic and red chilli until the masala clings to the meat, in Andhra style.\n\nIngredients (Typical):\n- Chicken (with bones)\n- Onion\n- Ginger-garlic paste\n- Red chilli powder, turmeric and garam masala\n- Curry leaves\n- Coriander leaves\n- Oil and salt\n\nSpicy Level: Hot\n\nServing Suggestion: Best eaten hot; also goes well with rice, rotis or parottas.\n\nTaste Profile: Spicy, rich and deeply roasted.",
+   "image": "chicken-bone-roast.jpg"
+  },
+  {
+   "slug": "chicken-drumstick",
+   "name": "Chicken Drumstick",
+   "price": 400,
+   "category": "Non-Veg Starters",
+   "dietType": "nonveg",
+   "description": "Chicken drumsticks marinated in spices, coated and deep-fried until crisp outside and juicy inside.\n\nIngredients (Typical):\n- Chicken drumsticks\n- Ginger-garlic paste\n- Red chilli powder and spices\n- Corn flour and maida (refined flour)\n- Lemon juice (if used in the actual recipe)\n- Oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot with sliced onion and a squeeze of lemon.\n\nTaste Profile: Crispy, juicy and spicy.",
+   "image": "chicken-drumstick.jpg"
+  },
+  {
+   "slug": "chicken-fry-boneless",
+   "name": "Chicken Fry (Boneless)",
+   "price": 360,
+   "category": "Non-Veg Starters",
+   "dietType": "nonveg",
+   "description": "Boneless chicken pieces marinated in Andhra spices and fried with curry leaves and onion until dry and well browned.\n\nIngredients (Typical):\n- Boneless chicken\n- Ginger-garlic paste\n- Red chilli powder, turmeric and garam masala\n- Curry leaves and green chilli\n- Onion\n- Oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot with sliced onion and lemon; also goes well with rice.\n\nTaste Profile: Spicy, savoury and well roasted.",
+   "image": "chicken-fry-boneless.jpg"
+  },
+  {
+   "slug": "chicken-fry-bones",
+   "name": "Chicken Fry (Bones)",
+   "price": 340,
+   "category": "Non-Veg Starters",
+   "dietType": "nonveg",
+   "description": "Bone-in chicken pieces marinated in Andhra spices and fried with curry leaves and onion until dry and well browned.\n\nIngredients (Typical):\n- Chicken (with bones)\n- Ginger-garlic paste\n- Red chilli powder, turmeric and garam masala\n- Curry leaves and green chilli\n- Onion\n- Oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot with sliced onion and lemon; also goes well with rice.\n\nTaste Profile: Spicy, savoury and well roasted.",
+   "image": "chicken-fry-bones.jpg"
+  },
+  {
+   "slug": "chicken-lollipop",
+   "name": "Chicken Lollipop",
+   "price": 420,
+   "category": "Non-Veg Starters",
+   "dietType": "nonveg",
+   "description": "Chicken wing pieces with the meat pushed down the bone into a lollipop shape, marinated, batter-fried and often tossed in a spicy red Indo-Chinese sauce.\n\nIngredients (Typical):\n- Chicken wings (lollipop cut)\n- Ginger-garlic paste\n- Corn flour and maida (refined flour)\n- Red chilli powder or chilli sauce\n- Soy sauce (if used in the actual recipe)\n- Spring onion\n- Oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot, held by the bone, with a chilli dip.\n\nTaste Profile: Spicy, crispy and juicy.",
+   "image": "chicken-lollipop.jpg"
+  },
+  {
+   "slug": "chicken-majestic",
+   "name": "Chicken Majestic",
+   "price": 380,
+   "category": "Non-Veg Starters",
+   "dietType": "nonveg",
+   "description": "An Andhra and Hyderabad restaurant starter of boneless chicken strips fried and tossed with curd, green chilli and curry leaves.\n\nIngredients (Typical):\n- Boneless chicken\n- Curd\n- Ginger-garlic paste\n- Green chilli and curry leaves\n- Corn flour and maida (refined flour)\n- Red chilli powder and spices\n- Oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot with sliced onion and a squeeze of lemon.\n\nTaste Profile: Creamy, tangy, mildly spicy and aromatic.",
+   "image": "chicken-majestic.jpg"
+  },
+  {
+   "slug": "chicken-manchurian",
+   "name": "Chicken Manchurian",
+   "price": 360,
+   "category": "Non-Veg Starters",
+   "dietType": "nonveg",
+   "description": "Batter-fried chicken pieces tossed in a dark, glossy Indo-Chinese Manchurian sauce with garlic, ginger, green chilli and spring onion.\n\nIngredients (Typical):\n- Boneless chicken\n- Corn flour and maida (refined flour)\n- Garlic, ginger and green chilli\n- Onion, capsicum and spring onion\n- Soy sauce, chilli sauce and vinegar\n- Oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Savoury, garlicky and tangy.",
+   "image": "chicken-manchurian.jpg"
+  },
+  {
+   "slug": "chicken-wings-full",
+   "name": "Chicken Wings (Full)",
+   "price": 380,
+   "category": "Non-Veg Starters",
+   "dietType": "nonveg",
+   "description": "Chicken wings marinated in spices, coated and deep-fried until golden and crisp. This is the full portion of the restaurant's chicken wings.\n\nIngredients (Typical):\n- Chicken wings\n- Ginger-garlic paste\n- Red chilli powder and spices\n- Corn flour and maida (refined flour)\n- Oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot with a dip; good for sharing.\n\nTaste Profile: Crispy, juicy and savoury.",
+   "image": "chicken-wings-full.jpg"
+  },
+  {
+   "slug": "chicken-wings-half",
+   "name": "Chicken Wings (Half)",
+   "price": 200,
+   "category": "Non-Veg Starters",
+   "dietType": "nonveg",
+   "description": "Chicken wings marinated in spices, coated and deep-fried until golden and crisp. This is the half portion of the restaurant's chicken wings.\n\nIngredients (Typical):\n- Chicken wings\n- Ginger-garlic paste\n- Red chilli powder and spices\n- Corn flour and maida (refined flour)\n- Oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot with a dip.\n\nTaste Profile: Crispy, juicy and savoury.",
+   "image": "chicken-wings-half.jpg"
+  },
+  {
+   "slug": "chilli-chicken",
+   "name": "Chilli Chicken",
+   "price": 360,
+   "category": "Non-Veg Starters",
+   "dietType": "nonveg",
+   "description": "A favourite Indo-Chinese starter: batter-fried chicken tossed on a hot wok with capsicum, onion, green chilli and a spicy, tangy chilli-soy sauce.\n\nIngredients (Typical):\n- Boneless chicken\n- Corn flour and maida (refined flour)\n- Capsicum and onion\n- Garlic, ginger and green chilli\n- Soy sauce, chilli sauce and vinegar\n- Spring onion\n- Oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Spicy, tangy and savoury.",
+   "image": "chilli-chicken.jpg"
+  },
+  {
+   "slug": "rr-chicken",
+   "name": "RR Chicken",
+   "price": 390,
+   "category": "Non-Veg Starters",
+   "dietType": "nonveg",
+   "description": "RR Chicken is a spicy dry chicken starter seen on Andhra restaurant menus: fried chicken tossed with red chilli, garlic and curry leaves. Recipes differ from restaurant to restaurant.\n\nIngredients (Typical):\n- Chicken\n- Ginger-garlic paste\n- Red chilli (paste, powder or dry chillies)\n- Curry leaves and green chilli\n- Corn flour (if used in the actual recipe)\n- Oil and salt\n\nSpicy Level: Hot\n\nServing Suggestion: Best eaten hot with sliced onion and a squeeze of lemon.\n\nTaste Profile: Spicy, garlicky and bold.",
+   "image": "rr-chicken.jpg"
+  },
+  {
+   "slug": "dragon-chicken",
+   "name": "Dragon Chicken",
+   "price": 390,
+   "category": "Non-Veg Starters",
+   "dietType": "nonveg",
+   "description": "Strips of fried chicken tossed in a fiery red Indo-Chinese dragon sauce with garlic, dry red chilli, capsicum and onion.\n\nIngredients (Typical):\n- Boneless chicken (strips)\n- Corn flour and maida (refined flour)\n- Garlic and dry red chilli\n- Capsicum and onion\n- Chilli sauce, soy sauce and tomato sauce\n- Cashew nuts (if used in the actual recipe)\n- Oil and salt\n\nSpicy Level: Hot\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Fiery, sweet-tangy and crunchy.",
+   "image": "dragon-chicken.jpg"
+  },
+  {
+   "slug": "garlic-chicken",
+   "name": "Garlic Chicken",
+   "price": 360,
+   "category": "Non-Veg Starters",
+   "dietType": "nonveg",
+   "description": "Fried chicken tossed with a generous amount of chopped garlic, green chilli and spring onion in a savoury sauce.\n\nIngredients (Typical):\n- Chicken\n- Garlic (plenty, chopped)\n- Green chilli and spring onion\n- Corn flour and maida (refined flour)\n- Soy sauce (if used in the actual recipe)\n- Oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Garlicky, savoury and aromatic.",
+   "image": "garlic-chicken.jpg"
+  },
+  {
+   "slug": "ginger-chicken",
+   "name": "Ginger Chicken",
+   "price": 370,
+   "category": "Non-Veg Starters",
+   "dietType": "nonveg",
+   "description": "Fried chicken tossed with plenty of chopped ginger, garlic and green chilli in a savoury Indo-Chinese style sauce.\n\nIngredients (Typical):\n- Boneless chicken\n- Ginger (plenty, chopped)\n- Garlic and green chilli\n- Onion and spring onion\n- Soy sauce and corn flour\n- Oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Warm, gingery and savoury.",
+   "image": "ginger-chicken.jpg"
+  },
+  {
+   "slug": "hong-kong-chicken",
+   "name": "Hong Kong Chicken",
+   "price": 430,
+   "category": "Non-Veg Starters",
+   "dietType": "nonveg",
+   "description": "An Indo-Chinese starter of fried chicken tossed with dry red chilli, onion, capsicum and spring onion in a sweet and spicy sauce. Recipes differ from restaurant to restaurant.\n\nIngredients (Typical):\n- Boneless chicken\n- Corn flour and maida (refined flour)\n- Dry red chilli and garlic\n- Cashew nuts (if used in the actual recipe)\n- Onion, capsicum and spring onion\n- Soy sauce and chilli sauce\n- Oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Sweet, spicy and savoury.",
+   "image": "hong-kong-chicken.jpg"
+  },
+  {
+   "slug": "kaju-chicken",
+   "name": "Kaju Chicken",
+   "price": 450,
+   "category": "Non-Veg Starters",
+   "dietType": "nonveg",
+   "description": "Fried chicken tossed with roasted cashew nuts, onion, capsicum and a savoury Indo-Chinese sauce.\n\nIngredients (Typical):\n- Boneless chicken\n- Cashew nuts (kaju)\n- Onion and capsicum\n- Garlic, ginger and green chilli\n- Soy sauce and corn flour\n- Oil and salt\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Savoury, nutty and rich.",
+   "image": "kaju-chicken.jpg"
+  },
+  {
+   "slug": "mourya-sp-chicken",
+   "name": "Mourya SP Chicken",
+   "price": 460,
+   "category": "Non-Veg Starters",
+   "dietType": "nonveg",
+   "description": "Mourya SP Chicken is the restaurant's own special version of its chicken starter, made in the Mourya Dhaba house style.\n\nIngredients (Typical):\n- Chicken\n- Ginger-garlic paste\n- Red chilli and spices\n- Curry leaves and green chilli (if used in the actual recipe)\n- Oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot with sliced onion and a squeeze of lemon.\n\nTaste Profile: Spicy and savoury, made the house way.",
+   "image": "mourya-sp-chicken.jpg"
+  },
+  {
+   "slug": "pepper-chicken",
+   "name": "Pepper Chicken",
+   "price": 360,
+   "category": "Non-Veg Starters",
+   "dietType": "nonveg",
+   "description": "Chicken cooked with onion, curry leaves and plenty of freshly crushed black pepper until dry and well coated, in South Indian style.\n\nIngredients (Typical):\n- Chicken\n- Black pepper (crushed)\n- Onion and curry leaves\n- Ginger-garlic paste\n- Green chilli\n- Turmeric and spices\n- Oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot; also goes well with rice or parottas.\n\nTaste Profile: Peppery, aromatic and savoury.",
+   "image": "pepper-chicken.jpg"
+  },
+  {
+   "slug": "mutton-65",
+   "name": "Mutton 65",
+   "price": 520,
+   "category": "Non-Veg Starters",
+   "dietType": "nonveg",
+   "description": "Tender mutton pieces, cooked first and then coated in a red spice mix, deep-fried and tossed with curry leaves and green chilli in the 65 style.\n\nIngredients (Typical):\n- Mutton\n- Ginger-garlic paste\n- Red chilli powder and spices\n- Corn flour and rice flour\n- Curry leaves and green chilli\n- Oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot with sliced onion and a squeeze of lemon.\n\nTaste Profile: Spicy, crisp outside and tender inside.",
+   "image": "mutton-65.jpg"
+  },
+  {
+   "slug": "mutton-fry",
+   "name": "Mutton Fry",
+   "price": 520,
+   "category": "Non-Veg Starters",
+   "dietType": "nonveg",
+   "description": "Mutton pieces cooked with spices until tender, then fried with onion, curry leaves and masala until dark and dry, in Andhra style.\n\nIngredients (Typical):\n- Mutton\n- Onion\n- Ginger-garlic paste\n- Red chilli powder, turmeric and garam masala\n- Curry leaves and green chilli\n- Coriander leaves\n- Oil and salt\n\nSpicy Level: Hot\n\nServing Suggestion: Best eaten hot; also goes well with rice or rotis.\n\nTaste Profile: Spicy, rich and well roasted.",
+   "image": "mutton-fry.jpg"
+  },
+  {
+   "slug": "chilli-mutton",
+   "name": "Chilli Mutton",
+   "price": 520,
+   "category": "Non-Veg Starters",
+   "dietType": "nonveg",
+   "description": "Tender mutton pieces coated and fried, then tossed with green chilli, onion, capsicum and a spicy chilli sauce.\n\nIngredients (Typical):\n- Mutton\n- Corn flour and maida (refined flour)\n- Green chilli, garlic and ginger\n- Onion and capsicum\n- Soy sauce and chilli sauce\n- Oil and salt\n\nSpicy Level: Hot\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Spicy, savoury and rich.",
+   "image": "chilli-mutton.jpg"
+  },
+  {
+   "slug": "loose-prawns",
+   "name": "Loose Prawns",
+   "price": 450,
+   "category": "Non-Veg Starters",
+   "dietType": "nonveg",
+   "description": "An Andhra restaurant starter of prawns coated in a loose, spiced batter and deep-fried crisp, often with curry leaves and green chilli.\n\nIngredients (Typical):\n- Prawns\n- Gram flour (besan), corn flour and rice flour\n- Ginger-garlic paste\n- Red chilli powder and spices\n- Curry leaves and green chilli\n- Onion (if used in the actual recipe)\n- Oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot with sliced onion and a squeeze of lemon.\n\nTaste Profile: Crispy, juicy and lightly spicy.",
+   "image": "loose-prawns.jpg"
+  },
+  {
+   "slug": "prawns-fry",
+   "name": "Prawns Fry",
+   "price": 450,
+   "category": "Non-Veg Starters",
+   "dietType": "nonveg",
+   "description": "Prawns cooked with onion, curry leaves, ginger-garlic and red chilli until dry and well coated in masala, in South Indian style.\n\nIngredients (Typical):\n- Prawns\n- Onion and curry leaves\n- Ginger-garlic paste\n- Red chilli powder, turmeric and pepper\n- Coriander leaves\n- Oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot; also goes well with rice.\n\nTaste Profile: Spicy, savoury and naturally sweet from the prawns.",
+   "image": "prawns-fry.jpg"
+  },
+  {
+   "slug": "chilli-prawns",
+   "name": "Chilli Prawns",
+   "price": 450,
+   "category": "Non-Veg Starters",
+   "dietType": "nonveg",
+   "description": "Batter-fried prawns tossed on a hot wok with capsicum, onion, green chilli and a spicy, tangy Indo-Chinese chilli sauce.\n\nIngredients (Typical):\n- Prawns\n- Corn flour and maida (refined flour)\n- Capsicum and onion\n- Garlic and green chilli\n- Soy sauce, chilli sauce and vinegar\n- Spring onion\n- Oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Spicy, tangy and juicy.",
+   "image": "chilli-prawns.jpg"
+  },
+  {
+   "slug": "chilli-fish",
+   "name": "Chilli Fish",
+   "price": 460,
+   "category": "Non-Veg Starters",
+   "dietType": "nonveg",
+   "description": "Boneless fish pieces coated and fried, then tossed with capsicum, onion, green chilli and a spicy Indo-Chinese chilli sauce.\n\nIngredients (Typical):\n- Boneless fish\n- Corn flour and maida (refined flour)\n- Capsicum and onion\n- Garlic and green chilli\n- Soy sauce, chilli sauce and vinegar\n- Spring onion\n- Oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Spicy, tangy and flaky.",
+   "image": "chilli-fish.jpg"
+  },
+  {
+   "slug": "apollo-fish",
+   "name": "Apollo Fish",
+   "price": 460,
+   "category": "Non-Veg Starters",
+   "dietType": "nonveg",
+   "description": "A popular Andhra and Hyderabad restaurant starter: boneless fish pieces marinated, fried crisp and tossed with curd, green chilli, garlic and curry leaves.\n\nIngredients (Typical):\n- Boneless fish\n- Ginger-garlic paste\n- Corn flour and maida (refined flour)\n- Curd\n- Green chilli and curry leaves\n- Red chilli powder and spices\n- Oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot with sliced onion and a squeeze of lemon.\n\nTaste Profile: Spicy, tangy, crisp outside and soft inside.",
+   "image": "apollo-fish.jpg"
+  },
+  {
+   "slug": "lemon-chicken",
+   "name": "Lemon Chicken",
+   "price": 380,
+   "category": "Non-Veg Starters",
+   "dietType": "nonveg",
+   "description": "Chicken cooked or tossed in a tangy lemon sauce with green chilli and light seasoning, a milder, fresh-tasting chicken starter.\n\nIngredients (Typical):\n- Chicken\n- Lemon juice\n- Green chilli\n- Garlic and ginger\n- Corn flour (if used in the actual recipe)\n- Pepper and salt\n- Oil\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best eaten hot, straight from the wok.\n\nTaste Profile: Tangy, fresh and lightly spicy.",
+   "image": "lemon-chicken.jpg"
+  },
+  {
+   "slug": "pudina-chicken",
+   "name": "Pudina Chicken",
+   "price": 360,
+   "category": "Non-Veg Starters",
+   "dietType": "nonveg",
+   "description": "Chicken cooked in a green masala of fresh mint (pudina), coriander and green chilli until the herbs coat the pieces.\n\nIngredients (Typical):\n- Chicken\n- Mint leaves (pudina)\n- Coriander leaves\n- Green chilli\n- Ginger-garlic paste\n- Curd (if used in the actual recipe)\n- Spices, oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best eaten hot with sliced onion and a squeeze of lemon.\n\nTaste Profile: Fresh, herby, minty and mildly spicy.",
+   "image": "pudina-chicken.jpg"
+  },
+  {
+   "slug": "fish-fry",
+   "name": "Fish Fry",
+   "price": 460,
+   "category": "Non-Veg Starters",
+   "dietType": "nonveg",
+   "description": "Fish pieces marinated in red chilli, turmeric, ginger-garlic and lemon, then fried until crisp at the edges.\n\nIngredients (Typical):\n- Fish\n- Red chilli powder and turmeric\n- Ginger-garlic paste\n- Lemon juice\n- Rice flour or corn flour (if used in the actual recipe)\n- Oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best eaten hot with sliced onion and lemon; also goes well with rice.\n\nTaste Profile: Spicy, crisp and flaky.",
+   "image": "fish-fry.jpg"
+  },
+  {
+   "slug": "andhra-chicken-curry-bone",
+   "name": "Andhra Chicken Curry (Bone)",
+   "price": 320,
+   "category": "Non-Veg Curries",
+   "dietType": "nonveg",
+   "description": "Bone-in chicken cooked the Andhra way in a hot, spicy onion-tomato gravy with red chilli and whole spices. A fiery, homestyle curry with plenty of gravy.\n\nIngredients (Typical):\n- Chicken on the bone\n- Onion and tomato\n- Ginger-garlic paste\n- Andhra red chilli powder, turmeric and coriander powder\n- Garam masala, cinnamon, cloves and cardamom\n- Curry leaves and green chillies\n- Oil, salt and coriander leaves\n\nSpicy Level: Hot\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Fiery, spicy and deeply savoury.",
+   "image": "andhra-chicken-curry-bone.jpg"
+  },
+  {
+   "slug": "andhra-chicken-curry-boneless",
+   "name": "Andhra Chicken Curry (Boneless)",
+   "price": 340,
+   "category": "Non-Veg Curries",
+   "dietType": "nonveg",
+   "description": "Boneless chicken cooked the Andhra way in a hot, spicy onion-tomato gravy with red chilli and whole spices. All the heat of the classic Andhra curry, with no bones.\n\nIngredients (Typical):\n- Boneless chicken\n- Onion and tomato\n- Ginger-garlic paste\n- Andhra red chilli powder, turmeric and coriander powder\n- Garam masala, cinnamon, cloves and cardamom\n- Curry leaves and green chillies\n- Oil, salt and coriander leaves\n\nSpicy Level: Hot\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Fiery, spicy and deeply savoury.",
+   "image": "andhra-chicken-curry-boneless.jpg"
+  },
+  {
+   "slug": "butter-chicken",
+   "name": "Butter Chicken",
+   "price": 380,
+   "category": "Non-Veg Curries",
+   "dietType": "nonveg",
+   "description": "Tender chicken in a creamy, buttery tomato gravy, mildly spiced and finished with cream. A North Indian classic loved by everyone.\n\nIngredients (Typical):\n- Chicken\n- Tomato\n- Butter and cream\n- Cashew paste (if used in the actual recipe)\n- Ginger-garlic paste\n- Kashmiri chilli, garam masala and kasuri methi\n- Salt and a pinch of sugar\n\nSpicy Level: Mild\n\nServing Suggestion: Best with roti, naan or parota (not included).\n\nTaste Profile: Creamy, buttery and mildly sweet-tangy.",
+   "image": "butter-chicken.jpg"
+  },
+  {
+   "slug": "chicken-curry-boneless",
+   "name": "Chicken Curry (Boneless)",
+   "price": 340,
+   "category": "Non-Veg Curries",
+   "dietType": "nonveg",
+   "description": "Boneless chicken simmered in a classic onion-tomato curry with ginger, garlic and everyday Indian spices. A simple, homestyle chicken curry.\n\nIngredients (Typical):\n- Boneless chicken\n- Onion and tomato\n- Ginger-garlic paste\n- Red chilli, turmeric, coriander powder and garam masala\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Homestyle, savoury and well spiced.",
+   "image": "chicken-curry-boneless.jpg"
+  },
+  {
+   "slug": "chicken-curry-bones",
+   "name": "Chicken Curry (Bones)",
+   "price": 320,
+   "category": "Non-Veg Curries",
+   "dietType": "nonveg",
+   "description": "Bone-in chicken simmered in a classic onion-tomato curry with ginger, garlic and everyday Indian spices. The bones add extra flavour to the gravy.\n\nIngredients (Typical):\n- Chicken on the bone\n- Onion and tomato\n- Ginger-garlic paste\n- Red chilli, turmeric, coriander powder and garam masala\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Homestyle, savoury and well spiced.",
+   "image": "chicken-curry-bones.jpg"
+  },
+  {
+   "slug": "chicken-kolhapuri",
+   "name": "Chicken Kolhapuri",
+   "price": 380,
+   "category": "Non-Veg Curries",
+   "dietType": "nonveg",
+   "description": "A spicy chicken curry in the style of Kolhapur in Maharashtra, made with a roasted masala of dry red chillies, coconut and whole spices. Known for its bold heat.\n\nIngredients (Typical):\n- Chicken\n- Onion and tomato\n- Dry red chillies\n- Dry coconut (if used in the actual recipe)\n- Sesame seeds, coriander seeds, cumin and black pepper\n- Cloves, cinnamon and other whole spices\n- Ginger-garlic paste\n- Oil, salt and coriander leaves\n\nSpicy Level: Hot\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Bold, smoky-spicy and rich.",
+   "image": "chicken-kolhapuri.jpg"
+  },
+  {
+   "slug": "chicken-masala-boneless",
+   "name": "Chicken Masala (Boneless)",
+   "price": 350,
+   "category": "Non-Veg Curries",
+   "dietType": "nonveg",
+   "description": "Boneless chicken cooked in a thick, rich onion-tomato masala until the spices coat every piece. Thicker, with less gravy than a curry.\n\nIngredients (Typical):\n- Boneless chicken\n- Onion and tomato\n- Ginger-garlic paste\n- Red chilli, turmeric, coriander powder and garam masala\n- Green chillies\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Thick, masala-rich and savoury.",
+   "image": "chicken-masala-boneless.jpg"
+  },
+  {
+   "slug": "chicken-masala-bones",
+   "name": "Chicken Masala (Bones)",
+   "price": 330,
+   "category": "Non-Veg Curries",
+   "dietType": "nonveg",
+   "description": "Bone-in chicken cooked in a thick, rich onion-tomato masala until the spices coat every piece. Thicker, with less gravy than a curry.\n\nIngredients (Typical):\n- Chicken on the bone\n- Onion and tomato\n- Ginger-garlic paste\n- Red chilli, turmeric, coriander powder and garam masala\n- Green chillies\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Thick, masala-rich and savoury.",
+   "image": "chicken-masala-bones.jpg"
+  },
+  {
+   "slug": "chicken-moghalai-curry",
+   "name": "Chicken Moghalai Curry",
+   "price": 380,
+   "category": "Non-Veg Curries",
+   "dietType": "nonveg",
+   "description": "Chicken in a rich Mughlai-style curry made with onion, yogurt and aromatic whole spices, often enriched with nut paste or cream. Rich and fragrant rather than very hot.\n\nIngredients (Typical):\n- Chicken\n- Onion\n- Yogurt\n- Cashew or almond paste (if used in the actual recipe)\n- Cream (if used in the actual recipe)\n- Ginger-garlic paste\n- Cardamom, cloves, cinnamon and garam masala\n- Ghee or oil and salt\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best with roti, naan or parota (not included).\n\nTaste Profile: Rich, creamy and aromatic.",
+   "image": "chicken-moghalai-curry.jpg"
+  },
+  {
+   "slug": "moghalai-chicken-boneless",
+   "name": "Moghalai Chicken (Boneless)",
+   "price": 380,
+   "category": "Non-Veg Curries",
+   "dietType": "nonveg",
+   "description": "Boneless chicken in a rich, creamy Mughlai-style gravy made with onion, yogurt, nut paste and aromatic spices. Mild, rich and fragrant.\n\nIngredients (Typical):\n- Boneless chicken\n- Onion\n- Yogurt\n- Cashew or almond paste (if used in the actual recipe)\n- Cream (if used in the actual recipe)\n- Ginger-garlic paste\n- Cardamom, cloves, cinnamon and garam masala\n- Ghee or oil and salt\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best with roti, naan or parota (not included).\n\nTaste Profile: Rich, creamy and aromatic.",
+   "image": "moghalai-chicken-boneless.jpg"
+  },
+  {
+   "slug": "moghalai-chicken-bones",
+   "name": "Moghalai Chicken (Bones)",
+   "price": 360,
+   "category": "Non-Veg Curries",
+   "dietType": "nonveg",
+   "description": "Bone-in chicken in a rich, creamy Mughlai-style gravy made with onion, yogurt, nut paste and aromatic spices. Mild, rich and fragrant.\n\nIngredients (Typical):\n- Chicken on the bone\n- Onion\n- Yogurt\n- Cashew or almond paste (if used in the actual recipe)\n- Cream (if used in the actual recipe)\n- Ginger-garlic paste\n- Cardamom, cloves, cinnamon and garam masala\n- Ghee or oil and salt\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best with roti, naan or parota (not included).\n\nTaste Profile: Rich, creamy and aromatic.",
+   "image": "moghalai-chicken-bones.jpg"
+  },
+  {
+   "slug": "methi-chicken-curry",
+   "name": "Methi Chicken Curry",
+   "price": 370,
+   "category": "Non-Veg Curries",
+   "dietType": "nonveg",
+   "description": "Chicken cooked in an onion-tomato gravy with fresh fenugreek (methi) leaves, which give the curry its slightly bitter, earthy aroma. A flavourful change from the usual chicken curry.\n\nIngredients (Typical):\n- Chicken\n- Fresh methi (fenugreek) leaves\n- Kasuri methi (if used in the actual recipe)\n- Onion and tomato\n- Ginger-garlic paste\n- Red chilli, turmeric, coriander powder and garam masala\n- Oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Earthy, aromatic and savoury with a gentle bitterness.",
+   "image": "methi-chicken-curry.jpg"
+  },
+  {
+   "slug": "punjabi-chicken-curry",
+   "name": "Punjabi Chicken Curry",
+   "price": 390,
+   "category": "Non-Veg Curries",
+   "dietType": "nonveg",
+   "description": "Chicken cooked Punjabi style in a thick onion-tomato gravy with ginger, garlic, butter or ghee and warming garam masala. Hearty, rich and full of flavour.\n\nIngredients (Typical):\n- Chicken\n- Onion and tomato\n- Ginger-garlic paste\n- Butter or ghee\n- Red chilli, turmeric, coriander powder and garam masala\n- Kasuri methi (if used in the actual recipe)\n- Salt and coriander leaves\n\nSpicy Level: Medium\n\nServing Suggestion: Best with roti, naan or parota (not included).\n\nTaste Profile: Hearty, rich and warmly spiced.",
+   "image": "punjabi-chicken-curry.jpg"
+  },
+  {
+   "slug": "mutton-masala-curry",
+   "name": "Mutton Masala Curry",
+   "price": 450,
+   "category": "Non-Veg Curries",
+   "dietType": "nonveg",
+   "description": "Tender mutton slow-cooked in a thick, spicy onion-tomato masala with whole spices until the meat soaks up the flavour. Rich and hearty.\n\nIngredients (Typical):\n- Mutton\n- Onion and tomato\n- Ginger-garlic paste\n- Red chilli, turmeric, coriander powder and garam masala\n- Cinnamon, cloves and cardamom\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Rich, meaty and masala-heavy.",
+   "image": "mutton-masala-curry.jpg"
+  },
+  {
+   "slug": "mutton-curry",
+   "name": "Mutton Curry",
+   "price": 450,
+   "category": "Non-Veg Curries",
+   "dietType": "nonveg",
+   "description": "Mutton pieces slow-cooked until tender in a spicy onion-tomato gravy with ginger, garlic and whole spices. A homestyle mutton curry with plenty of gravy.\n\nIngredients (Typical):\n- Mutton\n- Onion and tomato\n- Ginger-garlic paste\n- Red chilli, turmeric, coriander powder and garam masala\n- Cinnamon, cloves and cardamom\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Meaty, spicy and comforting.",
+   "image": "mutton-curry.jpg"
+  },
+  {
+   "slug": "mutton-hyderabadi",
+   "name": "Mutton Hyderabadi",
+   "price": 450,
+   "category": "Non-Veg Curries",
+   "dietType": "nonveg",
+   "description": "Mutton cooked Hyderabadi style with yogurt, fried onions, mint and aromatic spices. Rich and fragrant.\n\nIngredients (Typical):\n- Mutton\n- Yogurt\n- Fried onions\n- Mint and coriander leaves\n- Ginger-garlic paste\n- Cashew or coconut paste (if used in the actual recipe)\n- Green chillies, garam masala, cardamom and cloves\n- Ghee or oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Rich, aromatic and gently spiced.",
+   "image": "mutton-hyderabadi.jpg"
+  },
+  {
+   "slug": "kadai-mutton-curry",
+   "name": "Kadai Mutton Curry",
+   "price": 460,
+   "category": "Non-Veg Curries",
+   "dietType": "nonveg",
+   "description": "Mutton cooked kadai style with capsicum, onion and tomato in a freshly ground kadai masala of coriander seeds and dry red chillies. Thick, chunky and bold.\n\nIngredients (Typical):\n- Mutton\n- Capsicum\n- Onion and tomato\n- Kadai masala (coriander seeds, dry red chillies)\n- Ginger-garlic paste\n- Garam masala and kasuri methi\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best with roti, naan or parota (not included).\n\nTaste Profile: Bold, smoky and spicy, with crunchy capsicum.",
+   "image": "kadai-mutton-curry.jpg"
+  },
+  {
+   "slug": "chicken-patiala",
+   "name": "Chicken Patiala",
+   "price": 390,
+   "category": "Non-Veg Curries",
+   "dietType": "nonveg",
+   "description": "A rich Punjabi-style chicken curry in a creamy onion-tomato gravy with cashew paste and aromatic spices. Rich and indulgent.\n\nIngredients (Typical):\n- Chicken\n- Onion and tomato\n- Cashew paste (if used in the actual recipe)\n- Cream (if used in the actual recipe)\n- Ginger-garlic paste\n- Red chilli, garam masala and kasuri methi\n- Butter or oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best with roti, naan or parota (not included).\n\nTaste Profile: Rich, creamy and well spiced.",
+   "image": "chicken-patiala.jpg"
+  },
+  {
+   "slug": "andhra-fish-curry",
+   "name": "Andhra Fish Curry",
+   "price": 320,
+   "category": "Non-Veg Curries",
+   "dietType": "nonveg",
+   "description": "Fish cooked the Andhra way in a tangy tamarind gravy with red chilli, onion and spices, known as chepala pulusu. Sour, spicy and full of flavour.\n\nIngredients (Typical):\n- Fish pieces\n- Tamarind\n- Onion and tomato\n- Andhra red chilli powder, turmeric and coriander powder\n- Fenugreek and mustard seeds\n- Curry leaves and green chillies\n- Oil and salt\n\nSpicy Level: Hot\n\nServing Suggestion: Best with hot rice (not included).\n\nTaste Profile: Tangy, spicy and bold.",
+   "image": "andhra-fish-curry.jpg"
+  },
+  {
+   "slug": "fish-curry",
+   "name": "Fish Curry",
+   "price": 400,
+   "category": "Non-Veg Curries",
+   "dietType": "nonveg",
+   "description": "Fish pieces simmered in a spicy, tangy onion-tomato gravy with everyday Indian spices. A classic fish curry with plenty of gravy.\n\nIngredients (Typical):\n- Fish pieces\n- Onion and tomato\n- Tamarind (if used in the actual recipe)\n- Ginger-garlic paste\n- Red chilli, turmeric and coriander powder\n- Curry leaves\n- Oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best with hot rice (not included).\n\nTaste Profile: Tangy, spicy and savoury.",
+   "image": "fish-curry.jpg"
+  },
+  {
+   "slug": "fish-masala",
+   "name": "Fish Masala",
+   "price": 400,
+   "category": "Non-Veg Curries",
+   "dietType": "nonveg",
+   "description": "Fish pieces cooked in a thick, rich onion-tomato masala with ginger, garlic and spices until well coated. Thicker and more masala-rich than a curry.\n\nIngredients (Typical):\n- Fish pieces\n- Onion and tomato\n- Ginger-garlic paste\n- Red chilli, turmeric, coriander powder and garam masala\n- Green chillies and curry leaves\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Thick, spicy and masala-rich.",
+   "image": "fish-masala.jpg"
+  },
+  {
+   "slug": "prawns-curry",
+   "name": "Prawns Curry",
+   "price": 400,
+   "category": "Non-Veg Curries",
+   "dietType": "nonveg",
+   "description": "Prawns simmered in a spicy onion-tomato curry with ginger, garlic and spices. A simple, flavourful seafood curry.\n\nIngredients (Typical):\n- Prawns\n- Onion and tomato\n- Ginger-garlic paste\n- Red chilli, turmeric and coriander powder\n- Coconut (if used in the actual recipe)\n- Curry leaves\n- Oil and salt\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best with hot rice (not included).\n\nTaste Profile: Savoury and spicy, with the natural sweetness of prawns.",
+   "image": "prawns-curry.jpg"
+  },
+  {
+   "slug": "prawns-masala-curry",
+   "name": "Prawns Masala Curry",
+   "price": 410,
+   "category": "Non-Veg Curries",
+   "dietType": "nonveg",
+   "description": "Prawns cooked in a thick, spicy onion-tomato masala until the masala clings to every prawn. Rich, spicy and full of flavour.\n\nIngredients (Typical):\n- Prawns\n- Onion and tomato\n- Ginger-garlic paste\n- Red chilli, turmeric, coriander powder and garam masala\n- Green chillies and curry leaves\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Thick, spicy and masala-rich.",
+   "image": "prawns-masala-curry.jpg"
+  },
+  {
+   "slug": "mourya-sp-chicken-curry",
+   "name": "Mourya SP Chicken Curry",
+   "price": 420,
+   "category": "Non-Veg Curries",
+   "dietType": "nonveg",
+   "description": "Mourya Dhaba's own special version of chicken curry, made the house way. It is built on a spicy, well-seasoned chicken curry gravy.\n\nIngredients (Typical):\n- Chicken\n- Onion and tomato\n- Ginger-garlic paste\n- Red chilli, turmeric, coriander powder and garam masala\n- Oil, salt and coriander leaves\n- House spices (as used in the actual recipe)\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Spicy, savoury and rich.",
+   "image": "mourya-sp-chicken-curry.jpg"
+  },
+  {
+   "slug": "chicken-afghani",
+   "name": "Chicken Afghani",
+   "price": 380,
+   "category": "Non-Veg Curries",
+   "dietType": "nonveg",
+   "description": "Chicken in the mild, creamy Afghani style, marinated in cream, yogurt, cashew and gentle spices. Rich and mild rather than hot.\n\nIngredients (Typical):\n- Chicken\n- Fresh cream\n- Yogurt\n- Cashew paste (if used in the actual recipe)\n- Ginger-garlic paste\n- Black pepper, cardamom and green chillies\n- Butter or oil and salt\n\nSpicy Level: Mild\n\nServing Suggestion: Best with roti, naan or parota (not included).\n\nTaste Profile: Creamy, rich and mildly peppery.",
+   "image": "chicken-afghani.jpg"
+  },
+  {
+   "slug": "hyderabadi-chicken",
+   "name": "Hyderabadi Chicken",
+   "price": 390,
+   "category": "Non-Veg Curries",
+   "dietType": "nonveg",
+   "description": "Chicken cooked Hyderabadi style with yogurt, fried onions, mint and aromatic spices. Rich and fragrant.\n\nIngredients (Typical):\n- Chicken\n- Yogurt\n- Fried onions\n- Mint and coriander leaves\n- Ginger-garlic paste\n- Cashew or coconut paste (if used in the actual recipe)\n- Green chillies, garam masala, cardamom and cloves\n- Ghee or oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Rich, aromatic and gently spiced.",
+   "image": "hyderabadi-chicken.jpg"
+  },
+  {
+   "slug": "kaju-chicken-curry",
+   "name": "Kaju Chicken Curry",
+   "price": 430,
+   "category": "Non-Veg Curries",
+   "dietType": "nonveg",
+   "description": "Chicken cooked in a rich gravy with whole cashew nuts (kaju) and cashew paste, with onion, tomato and spices. Rich, nutty and slightly sweet.\n\nIngredients (Typical):\n- Chicken\n- Cashew nuts (kaju), whole and as a paste\n- Onion and tomato\n- Ginger-garlic paste\n- Cream (if used in the actual recipe)\n- Red chilli, garam masala and cardamom\n- Butter or oil and salt\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best with roti, naan or parota (not included).\n\nTaste Profile: Rich, nutty and creamy.",
+   "image": "kaju-chicken-curry.jpg"
+  },
+  {
+   "slug": "chicken-tandoori-masala",
+   "name": "Chicken Tandoori Masala",
+   "price": 450,
+   "category": "Non-Veg Curries",
+   "dietType": "nonveg",
+   "description": "Tandoori-style chicken, marinated in yogurt and spices and roasted, then simmered in a rich onion-tomato masala gravy. Smoky chicken in a spicy gravy.\n\nIngredients (Typical):\n- Tandoori-marinated chicken (yogurt, red chilli, ginger-garlic)\n- Onion and tomato\n- Butter or cream (if used in the actual recipe)\n- Kashmiri chilli, garam masala and kasuri methi\n- Oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best with roti, naan or parota (not included).\n\nTaste Profile: Smoky, spicy and rich.",
+   "image": "chicken-tandoori-masala.jpg"
+  },
+  {
+   "slug": "chicken-tikka-masala",
+   "name": "Chicken Tikka Masala",
+   "price": 400,
+   "category": "Non-Veg Curries",
+   "dietType": "nonveg",
+   "description": "Roasted chicken tikka pieces simmered in a creamy, spiced onion-tomato gravy. A restaurant favourite, rich and mildly spicy.\n\nIngredients (Typical):\n- Chicken tikka (chicken marinated in yogurt and spices, then roasted)\n- Onion and tomato\n- Cream and butter\n- Ginger-garlic paste\n- Kashmiri chilli, garam masala and kasuri methi\n- Salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best with roti, naan or parota (not included).\n\nTaste Profile: Smoky, creamy and mildly spicy.",
+   "image": "chicken-tikka-masala.jpg"
+  },
+  {
+   "slug": "chicken-green-garden",
+   "name": "Chicken Green Garden",
+   "price": 460,
+   "category": "Non-Veg Curries",
+   "dietType": "nonveg",
+   "description": "Chicken cooked in a green masala of fresh coriander, mint and green chillies. Fresh-tasting and herby.\n\nIngredients (Typical):\n- Chicken\n- Fresh coriander leaves\n- Mint leaves\n- Spinach (if used in the actual recipe)\n- Green chillies\n- Onion and ginger-garlic paste\n- Garam masala\n- Oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Fresh, herby and spicy.",
+   "image": "chicken-green-garden.jpg"
+  },
+  {
+   "slug": "kadai-paneer-curry",
+   "name": "Kadai Paneer Curry",
+   "price": 220,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Cubes of paneer cooked with capsicum and onion in a thick, spicy tomato gravy flavoured with freshly ground kadai masala. A North Indian restaurant favourite with a smoky, peppery bite.\n\nIngredients (Typical):\n- Paneer (cottage cheese)\n- Capsicum and onion\n- Tomato\n- Ginger-garlic paste\n- Kadai masala (coriander seeds, dry red chillies)\n- Kasuri methi and garam masala\n- Butter or oil, salt and coriander leaves\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Spicy, smoky and rich.",
+   "image": "kadai-paneer-curry.jpg"
+  },
+  {
+   "slug": "kadai-veg-curry",
+   "name": "Kadai Veg Curry",
+   "price": 200,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Mixed vegetables cooked in a kadai with capsicum and onion in a spicy tomato gravy, finished with kadai masala. A colourful, chunky North Indian vegetable curry.\n\nIngredients (Typical):\n- Mixed vegetables (such as carrot, beans, cauliflower and peas)\n- Capsicum and onion\n- Tomato\n- Ginger-garlic paste\n- Kadai masala (coriander seeds, dry red chillies)\n- Garam masala\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Spicy, tangy and full of vegetables.",
+   "image": "kadai-veg-curry.jpg"
+  },
+  {
+   "slug": "kaju-curry",
+   "name": "Kaju Curry",
+   "price": 230,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Whole cashew nuts simmered in a rich, creamy onion-tomato gravy with mild spices. A festive, slightly sweet North Indian curry.\n\nIngredients (Typical):\n- Cashew nuts (kaju)\n- Onion and tomato\n- Cashew paste or cream\n- Ginger-garlic paste\n- Garam masala and red chilli powder\n- Butter or ghee (if used in the actual recipe)\n- Salt and coriander leaves\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Creamy, nutty and mildly sweet.",
+   "image": "kaju-curry.jpg"
+  },
+  {
+   "slug": "kaju-masala-curry",
+   "name": "Kaju Masala Curry",
+   "price": 230,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Roasted cashew nuts cooked in a spiced onion-tomato masala gravy. Richer and spicier than a plain kaju curry, with a thick, clinging masala.\n\nIngredients (Typical):\n- Cashew nuts (kaju)\n- Onion and tomato\n- Ginger-garlic paste\n- Red chilli powder, coriander powder and garam masala\n- Cream or cashew paste (if used in the actual recipe)\n- Butter or oil, salt and coriander leaves\n\nSpicy Level: Medium\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Rich, nutty and spicy.",
+   "image": "kaju-masala-curry.jpg"
+  },
+  {
+   "slug": "kaju-tomato-curry",
+   "name": "Kaju Tomato Curry",
+   "price": 220,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Cashew nuts cooked in a smooth, tangy tomato gravy with butter and mild spices. The tomato gives it a bright, slightly sour edge against the rich cashews.\n\nIngredients (Typical):\n- Cashew nuts (kaju)\n- Tomato puree\n- Onion\n- Ginger-garlic paste\n- Red chilli powder and garam masala\n- Butter or cream (if used in the actual recipe)\n- Salt and kasuri methi\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Tangy, buttery and nutty.",
+   "image": "kaju-tomato-curry.jpg"
+  },
+  {
+   "slug": "malai-kofta-curry",
+   "name": "Malai Kofta Curry",
+   "price": 180,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Soft fried koftas (dumplings) made with paneer and potato, served in a creamy, mildly spiced cashew-cream gravy. A rich North Indian vegetarian special.\n\nIngredients (Typical):\n- Paneer and potato (for the koftas)\n- Cashew nuts and raisins (if used in the actual recipe)\n- Onion and tomato\n- Cream (malai) and cashew paste\n- Ginger, garam masala and mild chilli\n- Oil for frying the koftas\n- Salt and coriander leaves\n\nSpicy Level: Mild\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Creamy, rich and mildly sweet.",
+   "image": "malai-kofta-curry.jpg"
+  },
+  {
+   "slug": "methi-chaman",
+   "name": "Methi Chaman",
+   "price": 210,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Paneer cooked in a creamy gravy with fresh fenugreek (methi) leaves. A rich, gently bitter-sweet curry from North India, often made with spinach as well.\n\nIngredients (Typical):\n- Paneer (cottage cheese)\n- Fresh methi (fenugreek) leaves\n- Spinach (if used in the actual recipe)\n- Onion and cream\n- Ginger, green chilli and garam masala\n- Ghee or oil and salt\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Creamy, herby and gently bitter.",
+   "image": "methi-chaman.jpg"
+  },
+  {
+   "slug": "mixed-veg-curry",
+   "name": "Mixed Veg Curry",
+   "price": 170,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "A medley of seasonal vegetables cooked together in a spiced onion-tomato gravy. A simple, wholesome curry that goes with any bread or rice.\n\nIngredients (Typical):\n- Mixed vegetables (such as carrot, beans, peas, cauliflower and potato)\n- Onion and tomato\n- Ginger-garlic paste\n- Turmeric, red chilli powder and garam masala\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Savoury, mildly spicy and homely.",
+   "image": "mixed-veg-curry.jpg"
+  },
+  {
+   "slug": "mushroom-curry",
+   "name": "Mushroom Curry",
+   "price": 170,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Button mushrooms cooked in a spicy onion-tomato gravy with Indian spices. A hearty vegetarian curry with plenty of gravy.\n\nIngredients (Typical):\n- Button mushrooms\n- Onion and tomato\n- Ginger-garlic paste\n- Red chilli powder, turmeric and garam masala\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Savoury, earthy and spicy.",
+   "image": "mushroom-curry.jpg"
+  },
+  {
+   "slug": "mushroom-masala",
+   "name": "Mushroom Masala",
+   "price": 180,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Mushrooms cooked in a thick, rich masala of onion, tomato and spices, often finished with butter or cream. Thicker and richer than a regular mushroom curry.\n\nIngredients (Typical):\n- Button mushrooms\n- Onion and tomato\n- Ginger-garlic paste\n- Red chilli powder, coriander powder and garam masala\n- Butter or cream (if used in the actual recipe)\n- Salt and coriander leaves\n\nSpicy Level: Medium\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Rich, earthy and spicy.",
+   "image": "mushroom-masala.jpg"
+  },
+  {
+   "slug": "palak-paneer",
+   "name": "Palak Paneer",
+   "price": 190,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Soft cubes of paneer in a smooth, bright green spinach gravy, lightly spiced and finished with a touch of cream. A classic North Indian vegetarian curry.\n\nIngredients (Typical):\n- Paneer (cottage cheese)\n- Spinach (palak)\n- Onion and tomato\n- Ginger, garlic and green chilli\n- Cumin and garam masala\n- Cream or butter (if used in the actual recipe)\n- Salt\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Creamy, earthy and mildly spiced.",
+   "image": "palak-paneer.jpg"
+  },
+  {
+   "slug": "paneer-butter-masala",
+   "name": "Paneer Butter Masala",
+   "price": 200,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Paneer cubes in a rich, buttery tomato and cashew gravy with a hint of sweetness. One of the most popular North Indian paneer curries.\n\nIngredients (Typical):\n- Paneer (cottage cheese)\n- Tomato\n- Butter and cream\n- Cashew paste\n- Ginger-garlic paste\n- Kashmiri red chilli powder, garam masala and kasuri methi\n- Salt and a little sugar (if used in the actual recipe)\n\nSpicy Level: Mild\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Buttery, creamy and mildly sweet.",
+   "image": "paneer-butter-masala.jpg"
+  },
+  {
+   "slug": "plain-palak",
+   "name": "Plain Palak",
+   "price": 110,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Fresh spinach cooked down and lightly spiced into a smooth green curry, without paneer or other additions. A simple, healthy spinach dish.\n\nIngredients (Typical):\n- Spinach (palak)\n- Onion\n- Garlic, ginger and green chilli\n- Cumin\n- Oil or ghee and salt\n\nSpicy Level: Mild\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Earthy, fresh and lightly spiced.",
+   "image": "plain-palak.jpg"
+  },
+  {
+   "slug": "tomato-curry",
+   "name": "Tomato Curry",
+   "price": 120,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Tomatoes simmered into a tangy, lightly spiced curry. A simple South Indian style everyday curry that is good with rice or roti.\n\nIngredients (Typical):\n- Tomato\n- Onion\n- Green chilli and curry leaves\n- Mustard seeds and cumin\n- Turmeric and red chilli powder\n- Coconut (if used in the actual recipe)\n- Oil and salt\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Tangy, light and comforting.",
+   "image": "tomato-curry.jpg"
+  },
+  {
+   "slug": "veg-kolhapuri",
+   "name": "Veg Kolhapuri",
+   "price": 210,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Mixed vegetables in a fiery Kolhapuri-style gravy made with roasted spices, dry red chillies and coconut. A bold, spicy curry from Maharashtra.\n\nIngredients (Typical):\n- Mixed vegetables (such as carrot, beans, cauliflower, peas and capsicum)\n- Paneer (if used in the actual recipe)\n- Onion and tomato\n- Kolhapuri masala (dry red chillies, coconut, sesame and whole spices)\n- Ginger-garlic paste\n- Oil, salt and coriander leaves\n\nSpicy Level: Hot\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Fiery, spicy and robust.",
+   "image": "veg-kolhapuri.jpg"
+  },
+  {
+   "slug": "dal-makhani",
+   "name": "Dal Makhani",
+   "price": 120,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Whole black urad dal and rajma slow-cooked with butter and cream into a thick, velvety dal. A rich Punjabi classic.\n\nIngredients (Typical):\n- Whole black urad dal\n- Rajma (kidney beans)\n- Butter and cream\n- Tomato puree\n- Ginger-garlic paste\n- Red chilli powder and garam masala\n- Salt and kasuri methi\n\nSpicy Level: Mild\n\nServing Suggestion: Best with butter naan, roti or jeera rice (not included).\n\nTaste Profile: Rich, creamy and smoky.",
+   "image": "dal-makhani.jpg"
+  },
+  {
+   "slug": "kaju-paneer",
+   "name": "Kaju Paneer",
+   "price": 230,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Paneer and cashew nuts together in a rich, creamy onion-tomato gravy. A festive curry that combines soft paneer with crunchy cashews.\n\nIngredients (Typical):\n- Paneer (cottage cheese)\n- Cashew nuts (kaju)\n- Onion and tomato\n- Cashew paste and cream\n- Ginger-garlic paste\n- Garam masala and red chilli powder\n- Butter or oil and salt\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Creamy, nutty and rich.",
+   "image": "kaju-paneer.jpg"
+  },
+  {
+   "slug": "kaju-mushroom",
+   "name": "Kaju Mushroom",
+   "price": 230,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Mushrooms and cashew nuts cooked together in a rich, mildly spiced gravy. A creamy, nutty vegetarian curry.\n\nIngredients (Typical):\n- Button mushrooms\n- Cashew nuts (kaju)\n- Onion and tomato\n- Cashew paste or cream\n- Ginger-garlic paste\n- Garam masala and red chilli powder\n- Oil, salt and coriander leaves\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Creamy, nutty and earthy.",
+   "image": "kaju-mushroom.jpg"
+  },
+  {
+   "slug": "paneer-patiala",
+   "name": "Paneer Patiala",
+   "price": 250,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Paneer Patiala is a rich Punjabi-style paneer dish, cooked in a spiced onion-tomato and cream gravy.\n\nIngredients (Typical):\n- Paneer (cottage cheese)\n- Onion and tomato\n- Cream and cashew paste (if used in the actual recipe)\n- Capsicum (if used in the actual recipe)\n- Ginger-garlic paste\n- Garam masala and red chilli powder\n- Butter or oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Rich, spicy and creamy.",
+   "image": "paneer-patiala.jpg"
+  },
+  {
+   "slug": "paneer-shahi-kurma",
+   "name": "Paneer Shahi Kurma",
+   "price": 220,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Paneer in a royal-style (shahi) kurma gravy of onion, cashews, cream and gentle whole spices. Mild, rich and fragrant.\n\nIngredients (Typical):\n- Paneer (cottage cheese)\n- Onion\n- Cashew paste and cream\n- Yogurt (if used in the actual recipe)\n- Cardamom, cloves and cinnamon\n- Ginger-garlic paste\n- Ghee or butter and salt\n\nSpicy Level: Mild\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Creamy, fragrant and mildly sweet.",
+   "image": "paneer-shahi-kurma.jpg"
+  },
+  {
+   "slug": "mourya-sp-veg-curry",
+   "name": "Mourya SP Veg Curry",
+   "price": 250,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Mourya SP Veg Curry is the restaurant's special version of its vegetable curry: mixed vegetables cooked in a spiced, rich gravy.\n\nIngredients (Typical):\n- Mixed vegetables\n- Onion and tomato\n- Ginger-garlic paste\n- Indian spices\n- Paneer, cashews or cream (if used in the actual recipe)\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Rich, savoury and well spiced.",
+   "image": "mourya-sp-veg-curry.jpg"
+  },
+  {
+   "slug": "baby-corn-curry",
+   "name": "Baby Corn Curry",
+   "price": 160,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Tender baby corn cooked in a spiced onion-tomato gravy. A mild, slightly sweet vegetable curry.\n\nIngredients (Typical):\n- Baby corn\n- Onion and tomato\n- Capsicum (if used in the actual recipe)\n- Ginger-garlic paste\n- Turmeric, red chilli powder and garam masala\n- Cream or cashew paste (if used in the actual recipe)\n- Oil, salt and coriander leaves\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Mildly sweet, savoury and spiced.",
+   "image": "baby-corn-curry.jpg"
+  },
+  {
+   "slug": "aloo-matar",
+   "name": "Aloo Matar",
+   "price": 190,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Potatoes and green peas simmered in a light, spiced tomato gravy. A comforting, homestyle North Indian curry.\n\nIngredients (Typical):\n- Potatoes (aloo)\n- Green peas (matar)\n- Onion and tomato\n- Ginger and green chilli\n- Cumin, turmeric and garam masala\n- Oil, salt and coriander leaves\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Homely, savoury and lightly tangy.",
+   "image": "aloo-matar.jpg"
+  },
+  {
+   "slug": "matar-paneer",
+   "name": "Matar Paneer",
+   "price": 180,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Paneer and green peas in a spiced onion-tomato gravy. One of the best-known North Indian paneer curries.\n\nIngredients (Typical):\n- Paneer (cottage cheese)\n- Green peas (matar)\n- Onion and tomato\n- Ginger-garlic paste\n- Red chilli powder, turmeric and garam masala\n- Cream (if used in the actual recipe)\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Savoury, mildly sweet and spiced.",
+   "image": "matar-paneer.jpg"
+  },
+  {
+   "slug": "aloo-gobi",
+   "name": "Aloo Gobi",
+   "price": 200,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Potatoes and cauliflower cooked with onion, tomato and spices. A classic North Indian vegetable dish.\n\nIngredients (Typical):\n- Potatoes (aloo)\n- Cauliflower (gobi)\n- Onion and tomato\n- Ginger and green chilli\n- Turmeric, cumin, coriander powder and garam masala\n- Oil, salt and coriander leaves\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Savoury, earthy and lightly spiced.",
+   "image": "aloo-gobi.jpg"
+  },
+  {
+   "slug": "kadai-pakoda",
+   "name": "Kadai Pakoda",
+   "price": 100,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Listed on the menu as Kadai Pakoda. Typically this is kadhi pakoda: fried gram flour fritters (pakodas) in a tangy yogurt and gram flour curry tempered with spices.\n\nIngredients (Typical):\n- Yogurt (curd)\n- Gram flour (besan)\n- Onion (in the pakodas, if used in the actual recipe)\n- Turmeric and red chilli powder\n- Mustard seeds, cumin, fenugreek seeds and curry leaves\n- Dry red chillies\n- Oil and salt\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best with steamed rice or roti (not included).\n\nTaste Profile: Tangy, savoury and comforting.",
+   "image": "kadai-pakoda.jpg"
+  },
+  {
+   "slug": "aloo-paneer",
+   "name": "Aloo Paneer",
+   "price": 190,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Potato and paneer cubes cooked together in a spiced onion-tomato masala. A filling, homestyle curry.\n\nIngredients (Typical):\n- Potatoes (aloo)\n- Paneer (cottage cheese)\n- Onion and tomato\n- Ginger-garlic paste\n- Red chilli powder, turmeric and garam masala\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Savoury, hearty and spiced.",
+   "image": "aloo-paneer.jpg"
+  },
+  {
+   "slug": "paneer-gobi-masala",
+   "name": "Paneer Gobi Masala",
+   "price": 150,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Paneer and cauliflower cooked together in a spiced onion-tomato masala. A hearty vegetarian curry.\n\nIngredients (Typical):\n- Paneer (cottage cheese)\n- Cauliflower (gobi)\n- Onion and tomato\n- Ginger-garlic paste\n- Red chilli powder, coriander powder and garam masala\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Savoury, spiced and hearty.",
+   "image": "paneer-gobi-masala.jpg"
+  },
+  {
+   "slug": "punjabi-veg",
+   "name": "Punjabi Veg",
+   "price": 200,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Mixed vegetables cooked in a Punjabi-style spiced onion-tomato masala. A hearty, flavourful vegetable curry.\n\nIngredients (Typical):\n- Mixed vegetables (such as cauliflower, potato, carrot and peas)\n- Onion and tomato\n- Ginger-garlic paste\n- Red chilli powder, turmeric and garam masala\n- Butter or oil, salt and coriander leaves\n\nSpicy Level: Medium\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Savoury, spiced and robust.",
+   "image": "punjabi-veg.jpg"
+  },
+  {
+   "slug": "veg-jaipuri",
+   "name": "Veg Jaipuri",
+   "price": 180,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Mixed vegetables cooked in a rich, spiced gravy in the Jaipuri style, often with cashews and paneer. A colourful vegetable curry.\n\nIngredients (Typical):\n- Mixed vegetables (such as beans, carrot, cauliflower and capsicum)\n- Onion and tomato\n- Cashew paste (if used in the actual recipe)\n- Paneer (if used in the actual recipe)\n- Ginger-garlic paste\n- Red chilli powder and garam masala\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Rich, savoury and spiced.",
+   "image": "veg-jaipuri.jpg"
+  },
+  {
+   "slug": "dum-aloo",
+   "name": "Dum Aloo",
+   "price": 100,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Potatoes slow-cooked (dum) in a spiced yogurt and tomato gravy. A rich, flavourful potato curry.\n\nIngredients (Typical):\n- Baby potatoes\n- Yogurt (curd)\n- Onion and tomato\n- Ginger, fennel and dry ginger powder (if used in the actual recipe)\n- Kashmiri red chilli powder and garam masala\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Rich, tangy and spiced.",
+   "image": "dum-aloo.jpg"
+  },
+  {
+   "slug": "matar-mushroom",
+   "name": "Matar Mushroom",
+   "price": 190,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Mushrooms and green peas cooked together in a spiced onion-tomato gravy. A light, wholesome vegetarian curry.\n\nIngredients (Typical):\n- Button mushrooms\n- Green peas (matar)\n- Onion and tomato\n- Ginger-garlic paste\n- Turmeric, red chilli powder and garam masala\n- Oil, salt and coriander leaves\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Earthy, savoury and lightly spiced.",
+   "image": "matar-mushroom.jpg"
+  },
+  {
+   "slug": "baby-corn-masala",
+   "name": "Baby Corn Masala",
+   "price": 190,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Baby corn tossed in a thick, spicy onion-tomato masala until well coated. Drier and spicier than a baby corn curry.\n\nIngredients (Typical):\n- Baby corn\n- Onion, tomato and capsicum\n- Ginger-garlic paste\n- Red chilli powder, coriander powder and garam masala\n- Kasuri methi (if used in the actual recipe)\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Spicy, savoury and slightly sweet.",
+   "image": "baby-corn-masala.jpg"
+  },
+  {
+   "slug": "paneer-pasanda",
+   "name": "Paneer Pasanda",
+   "price": 210,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Slices of paneer, usually sandwiched with a filling and lightly fried, served in a rich, creamy gravy. A royal-style North Indian paneer dish.\n\nIngredients (Typical):\n- Paneer (cottage cheese)\n- Filling of nuts, khoya or spices (if used in the actual recipe)\n- Onion\n- Cashew paste and cream\n- Mild whole spices and garam masala\n- Butter or ghee and salt\n\nSpicy Level: Mild\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Rich, creamy and mildly sweet.",
+   "image": "paneer-pasanda.jpg"
+  },
+  {
+   "slug": "aloo-palak",
+   "name": "Aloo Palak",
+   "price": 150,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Potato cubes cooked in a spiced spinach gravy. A simple, homestyle North Indian curry.\n\nIngredients (Typical):\n- Potatoes (aloo)\n- Spinach (palak)\n- Onion and tomato\n- Garlic, ginger and green chilli\n- Cumin and garam masala\n- Oil and salt\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Earthy, savoury and lightly spiced.",
+   "image": "aloo-palak.jpg"
+  },
+  {
+   "slug": "kadai-mushroom",
+   "name": "Kadai Mushroom",
+   "price": 220,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Mushrooms cooked in a kadai with capsicum and onion in a spicy tomato gravy and freshly ground kadai masala. Bold, peppery and full of flavour.\n\nIngredients (Typical):\n- Button mushrooms\n- Capsicum and onion\n- Tomato\n- Ginger-garlic paste\n- Kadai masala (coriander seeds, dry red chillies)\n- Garam masala and kasuri methi\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Spicy, smoky and earthy.",
+   "image": "kadai-mushroom.jpg"
+  },
+  {
+   "slug": "veg-nizami-handi",
+   "name": "Veg Nizami Handi",
+   "price": 210,
+   "category": "Veg Curries",
+   "dietType": "veg",
+   "description": "Mixed vegetables cooked in a handi (pot) in a rich, mildly spiced white gravy of cashews, cream and yogurt, in the Hyderabadi Nizami style.\n\nIngredients (Typical):\n- Mixed vegetables (such as carrot, beans, peas, cauliflower and potato)\n- Cashew paste and cream\n- Yogurt (if used in the actual recipe)\n- Onion\n- Cardamom and other whole spices\n- Ginger-garlic paste\n- Ghee or oil and salt\n\nSpicy Level: Mild\n\nServing Suggestion: Best with roti, naan or parota, or with rice (not included).\n\nTaste Profile: Creamy, rich and fragrant.",
+   "image": "veg-nizami-handi.jpg"
+  },
+  {
+   "slug": "egg-palak",
+   "name": "Egg Palak",
+   "price": 140,
+   "category": "Egg Curries",
+   "dietType": "egg",
+   "description": "Eggs cooked with spinach (palak), onion and spices. A simple, wholesome egg and greens dish.\n\nIngredients (Typical):\n- Eggs\n- Spinach (palak)\n- Onion and tomato\n- Ginger-garlic paste\n- Green chillies, cumin and garam masala\n- Oil and salt\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Earthy, savoury and wholesome.",
+   "image": "egg-palak.jpg"
+  },
+  {
+   "slug": "egg-bhurji",
+   "name": "Egg Bhurji",
+   "price": 150,
+   "category": "Egg Curries",
+   "dietType": "egg",
+   "description": "Eggs scrambled with onion, tomato, green chillies and spices. A quick, much-loved Indian egg dish.\n\nIngredients (Typical):\n- Eggs\n- Onion and tomato\n- Green chillies\n- Turmeric, red chilli and garam masala\n- Oil or butter, salt and coriander leaves\n\nSpicy Level: Medium\n\nServing Suggestion: Best with roti, naan or parota (not included).\n\nTaste Profile: Soft, savoury and lightly spicy.",
+   "image": "egg-bhurji.jpg"
+  },
+  {
+   "slug": "egg-curry",
+   "name": "Egg Curry",
+   "price": 160,
+   "category": "Egg Curries",
+   "dietType": "egg",
+   "description": "Boiled eggs simmered in a spicy onion-tomato curry. A homestyle favourite that never fails.\n\nIngredients (Typical):\n- Boiled eggs\n- Onion and tomato\n- Ginger-garlic paste\n- Red chilli, turmeric and garam masala\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Homestyle, spicy and savoury.",
+   "image": "egg-curry.jpg"
+  },
+  {
+   "slug": "egg-masala-curry",
+   "name": "Egg Masala Curry",
+   "price": 170,
+   "category": "Egg Curries",
+   "dietType": "egg",
+   "description": "Boiled eggs, often lightly fried, cooked in a thick, spicy onion-tomato masala. Richer and thicker than a regular egg curry.\n\nIngredients (Typical):\n- Boiled eggs\n- Onion and tomato\n- Ginger-garlic paste\n- Red chilli, turmeric, coriander powder and garam masala\n- Green chillies and curry leaves\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Thick, spicy and masala-rich.",
+   "image": "egg-masala-curry.jpg"
+  },
+  {
+   "slug": "egg-tomato-curry",
+   "name": "Egg Tomato Curry",
+   "price": 190,
+   "category": "Egg Curries",
+   "dietType": "egg",
+   "description": "Boiled eggs in a tangy tomato-based curry with onion and spices. Tomato gives this curry its bright, sour taste.\n\nIngredients (Typical):\n- Boiled eggs\n- Tomato\n- Onion\n- Ginger-garlic paste\n- Red chilli, turmeric and coriander powder\n- Curry leaves (if used in the actual recipe)\n- Oil and salt\n\nSpicy Level: Medium\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Tangy, spicy and savoury.",
+   "image": "egg-tomato-curry.jpg"
+  },
+  {
+   "slug": "egg-omelette-curry",
+   "name": "Egg Omelette Curry",
+   "price": 160,
+   "category": "Egg Curries",
+   "dietType": "egg",
+   "description": "An omelette cut into pieces and simmered in a spicy onion-tomato curry. A comforting, homestyle egg dish.\n\nIngredients (Typical):\n- Eggs (made into an omelette)\n- Onion and tomato\n- Green chillies\n- Ginger-garlic paste\n- Red chilli, turmeric and garam masala\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Soft, savoury and spicy.",
+   "image": "egg-omelette-curry.jpg"
+  },
+  {
+   "slug": "egg-kadai-paneer",
+   "name": "Egg Kadai Paneer",
+   "price": 230,
+   "category": "Egg Curries",
+   "dietType": "egg",
+   "description": "Egg and paneer cooked together kadai style with onion, capsicum, tomato and kadai masala.\n\nIngredients (Typical):\n- Eggs\n- Paneer\n- Capsicum and onion\n- Tomato\n- Kadai masala (coriander seeds, dry red chillies)\n- Ginger-garlic paste\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium\n\nServing Suggestion: Best with roti, naan or parota (not included).\n\nTaste Profile: Spicy, savoury and hearty.",
+   "image": "egg-kadai-paneer.jpg"
+  },
+  {
+   "slug": "egg-mushroom",
+   "name": "Egg Mushroom",
+   "price": 210,
+   "category": "Egg Curries",
+   "dietType": "egg",
+   "description": "Eggs and mushrooms cooked together in a spiced onion-tomato masala.\n\nIngredients (Typical):\n- Eggs\n- Mushrooms\n- Onion and tomato\n- Ginger-garlic paste\n- Red chilli, turmeric and garam masala\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Savoury, earthy and spicy.",
+   "image": "egg-mushroom.jpg"
+  },
+  {
+   "slug": "dal-egg-tadka",
+   "name": "Dal Egg Tadka",
+   "price": 160,
+   "category": "Egg Curries",
+   "dietType": "egg",
+   "description": "Lentils (dal) cooked with egg and finished with a hot tadka of ghee or oil, garlic, cumin and dry red chillies. Comforting and filling.\n\nIngredients (Typical):\n- Lentils (dal)\n- Eggs\n- Onion and tomato\n- Garlic, cumin and dry red chillies for the tadka\n- Turmeric and red chilli\n- Ghee or oil, salt and coriander leaves\n\nSpicy Level: Medium\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Comforting and savoury, smoky from the tadka.",
+   "image": "dal-egg-tadka.jpg"
+  },
+  {
+   "slug": "egg-keema",
+   "name": "Egg Keema",
+   "price": 160,
+   "category": "Egg Curries",
+   "dietType": "egg",
+   "description": "Eggs cooked into a finely minced, keema-style masala with onion, tomato, green chillies and spices.\n\nIngredients (Typical):\n- Eggs\n- Onion and tomato\n- Green chillies\n- Ginger-garlic paste\n- Red chilli, turmeric and garam masala\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium to Hot\n\nServing Suggestion: Best with roti, naan or parota (not included).\n\nTaste Profile: Spicy, savoury and masala-rich.",
+   "image": "egg-keema.jpg"
+  },
+  {
+   "slug": "egg-aloo",
+   "name": "Egg Aloo",
+   "price": 150,
+   "category": "Egg Curries",
+   "dietType": "egg",
+   "description": "Boiled eggs and potato (aloo) cooked together in a spicy onion-tomato curry. Hearty and homestyle.\n\nIngredients (Typical):\n- Boiled eggs\n- Potato (aloo)\n- Onion and tomato\n- Ginger-garlic paste\n- Red chilli, turmeric and garam masala\n- Oil, salt and coriander leaves\n\nSpicy Level: Medium\n\nServing Suggestion: Best with hot rice, roti or chapati (not included).\n\nTaste Profile: Hearty, spicy and comforting.",
+   "image": "egg-aloo.jpg"
+  },
+  {
+   "slug": "butter-naan",
+   "name": "Butter Naan",
+   "price": 60,
+   "category": "Roti & Parota",
+   "dietType": "veg",
+   "description": "Soft leavened flatbread baked in a tandoor and brushed with butter. Light, fluffy and slightly chewy.\n\nIngredients (Typical):\n- Refined wheat flour (maida)\n- Yogurt\n- Baking powder or yeast\n- Butter\n- Milk, sugar and salt (if used in the actual recipe)\n\nSpicy Level: Mild\n\nServing Suggestion: Best with any curry or dal from the menu.\n\nTaste Profile: Soft, buttery and fluffy.",
+   "image": "butter-naan.jpg"
+  },
+  {
+   "slug": "butter-roti",
+   "name": "Butter Roti",
+   "price": 40,
+   "category": "Roti & Parota",
+   "dietType": "veg",
+   "description": "Whole wheat roti baked in a tandoor and brushed with butter. A simple, everyday bread for curries.\n\nIngredients (Typical):\n- Whole wheat flour (atta)\n- Water and salt\n- Butter\n\nSpicy Level: Mild\n\nServing Suggestion: Best with any curry or dal from the menu.\n\nTaste Profile: Wholesome, buttery and lightly smoky.",
+   "image": "butter-roti.jpg"
+  },
+  {
+   "slug": "garlic-naan",
+   "name": "Garlic Naan",
+   "price": 80,
+   "category": "Roti & Parota",
+   "dietType": "veg",
+   "description": "Tandoor-baked naan topped with chopped garlic and coriander, then brushed with butter. Fragrant and soft.\n\nIngredients (Typical):\n- Refined wheat flour (maida)\n- Yogurt\n- Baking powder or yeast\n- Garlic\n- Coriander leaves\n- Butter and salt\n\nSpicy Level: Mild\n\nServing Suggestion: Best with any curry or dal from the menu.\n\nTaste Profile: Garlicky, buttery and soft.",
+   "image": "garlic-naan.jpg"
+  },
+  {
+   "slug": "masala-kulcha",
+   "name": "Masala Kulcha",
+   "price": 80,
+   "category": "Roti & Parota",
+   "dietType": "veg",
+   "description": "A soft leavened bread stuffed with a spiced filling, usually potato and onion, and baked in a tandoor. Filling and flavourful.\n\nIngredients (Typical):\n- Refined wheat flour (maida)\n- Yogurt and baking powder\n- Spiced potato and onion filling (if used in the actual recipe)\n- Coriander leaves and green chilli\n- Butter and salt\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best with any curry or dal from the menu.\n\nTaste Profile: Soft, savoury and lightly spiced.",
+   "image": "masala-kulcha.jpg"
+  },
+  {
+   "slug": "plain-naan",
+   "name": "Plain Naan",
+   "price": 50,
+   "category": "Roti & Parota",
+   "dietType": "veg",
+   "description": "Classic leavened flatbread baked in a tandoor. Soft with lightly charred spots.\n\nIngredients (Typical):\n- Refined wheat flour (maida)\n- Yogurt\n- Baking powder or yeast\n- Salt and a little sugar (if used in the actual recipe)\n\nSpicy Level: Mild\n\nServing Suggestion: Best with any curry or dal from the menu.\n\nTaste Profile: Soft, plain and lightly smoky.",
+   "image": "plain-naan.jpg"
+  },
+  {
+   "slug": "pulka",
+   "name": "Pulka",
+   "price": 10,
+   "category": "Roti & Parota",
+   "dietType": "veg",
+   "description": "A thin whole wheat flatbread (phulka) cooked on a tawa and puffed over the flame. Light and soft, made without oil.\n\nIngredients (Typical):\n- Whole wheat flour (atta)\n- Water\n- Salt (if used in the actual recipe)\n\nSpicy Level: Mild\n\nServing Suggestion: Best with any curry or dal from the menu.\n\nTaste Profile: Light, soft and wholesome.",
+   "image": "pulka.jpg"
+  },
+  {
+   "slug": "roti",
+   "name": "Roti",
+   "price": 30,
+   "category": "Roti & Parota",
+   "dietType": "veg",
+   "description": "Whole wheat flatbread baked in a tandoor. Plain, wholesome and slightly smoky.\n\nIngredients (Typical):\n- Whole wheat flour (atta)\n- Water and salt\n\nSpicy Level: Mild\n\nServing Suggestion: Best with any curry or dal from the menu.\n\nTaste Profile: Plain, wholesome and lightly smoky.",
+   "image": "roti.jpg"
+  },
+  {
+   "slug": "aloo-paratha",
+   "name": "Aloo Paratha",
+   "price": 70,
+   "category": "Roti & Parota",
+   "dietType": "veg",
+   "description": "Whole wheat flatbread stuffed with a spiced mashed potato filling and cooked on a tawa with ghee or butter. A filling North Indian favourite.\n\nIngredients (Typical):\n- Whole wheat flour (atta)\n- Potato filling (potato, onion, green chilli, coriander)\n- Cumin, red chilli powder and amchur (if used in the actual recipe)\n- Ghee or butter and salt\n\nSpicy Level: Mild to Medium\n\nServing Suggestion: Best with curd, pickle or any curry (not included).\n\nTaste Profile: Hearty, savoury and lightly spiced.",
+   "image": "aloo-paratha.jpg"
+  },
+  {
+   "slug": "paneer-kulcha",
+   "name": "Paneer Kulcha",
+   "price": 100,
+   "category": "Roti & Parota",
+   "dietType": "veg",
+   "description": "A soft leavened bread stuffed with spiced grated paneer and baked until golden. Rich and filling.\n\nIngredients (Typical):\n- Refined wheat flour (maida)\n- Yogurt and baking powder\n- Grated paneer filling\n- Green chilli, coriander and spices\n- Butter and salt\n\nSpicy Level: Mild\n\nServing Suggestion: Best with any curry or dal from the menu.\n\nTaste Profile: Soft, rich and savoury.",
+   "image": "paneer-kulcha.jpg"
+  },
+  {
+   "slug": "punjabi-naan",
+   "name": "Punjabi Naan",
+   "price": 130,
+   "category": "Roti & Parota",
+   "dietType": "veg",
+   "description": "A Punjabi-style naan: soft leavened bread baked in a tandoor and finished with butter.\n\nIngredients (Typical):\n- Refined wheat flour (maida)\n- Yogurt\n- Baking powder or yeast\n- Butter\n- Toppings or filling (if used in the actual recipe)\n- Salt\n\nSpicy Level: Mild\n\nServing Suggestion: Best with any curry or dal from the menu.\n\nTaste Profile: Soft, buttery and filling.",
+   "image": "punjabi-naan.jpg"
+  },
+  {
+   "slug": "lachha-paratha",
+   "name": "Lachha Paratha",
+   "price": 60,
+   "category": "Roti & Parota",
+   "dietType": "veg",
+   "description": "A layered, flaky whole wheat paratha made by pleating and coiling the dough, then cooked with ghee. Crisp outside and soft inside.\n\nIngredients (Typical):\n- Whole wheat flour (atta)\n- Ghee or butter\n- Water and salt\n\nSpicy Level: Mild\n\nServing Suggestion: Best with any curry or dal from the menu.\n\nTaste Profile: Flaky, crisp and buttery.",
+   "image": "lachha-paratha.jpg"
+  },
+  {
+   "slug": "parcel-pulka",
+   "name": "Parcel Pulka",
+   "price": 12,
+   "category": "Roti & Parota",
+   "dietType": "veg",
+   "description": "Pulka (thin whole wheat phulka) packed for takeaway. The same light, oil-free flatbread as the pulka, packed as a parcel.\n\nIngredients (Typical):\n- Whole wheat flour (atta)\n- Water\n- Salt (if used in the actual recipe)\n\nSpicy Level: Mild\n\nServing Suggestion: Best with any curry or dal from the menu.\n\nTaste Profile: Light, soft and wholesome.",
+   "image": "parcel-pulka.jpg"
+  },
+  {
+   "slug": "plain-curd",
+   "name": "Plain Curd",
+   "price": 25,
+   "category": "Meals",
+   "dietType": "veg",
+   "description": "Fresh, plain set curd (dahi). Cool and mildly sour, a classic side for spicy curries and biryani.\n\nIngredients (Typical):\n- Milk\n- Curd culture\n\nSpicy Level: Not spicy\n\nServing Suggestion: Have it with biryani, rice or any spicy curry.\n\nTaste Profile: Cool, creamy and mildly tangy.",
+   "image": "plain-curd.jpg"
+  },
+  {
+   "slug": "curd-rice",
+   "name": "Curd Rice",
+   "price": 110,
+   "category": "Meals",
+   "dietType": "veg",
+   "description": "Soft cooked rice mixed with curd and tempered with mustard seeds, curry leaves and chillies. A cooling South Indian comfort dish.\n\nIngredients (Typical):\n- Cooked rice\n- Curd (yogurt)\n- Milk (if used in the actual recipe)\n- Mustard seeds, urad dal and curry leaves\n- Green chilli, ginger and dry red chilli\n- Salt and coriander leaves\n\nSpicy Level: Mild\n\nServing Suggestion: Best on its own, or with pickle.\n\nTaste Profile: Cool, creamy and mildly tangy.",
+   "image": "curd-rice.jpg"
+  },
+  {
+   "slug": "sweet-lassi",
+   "name": "Sweet Lassi",
+   "price": 35,
+   "category": "Meals",
+   "dietType": "veg",
+   "description": "Chilled, whisked curd sweetened with sugar. A refreshing Punjabi drink.\n\nIngredients (Typical):\n- Curd (yogurt)\n- Sugar\n- Water or milk\n- Cardamom (if used in the actual recipe)\n- Malai (cream) (if used in the actual recipe)\n\nSpicy Level: Not spicy\n\nServing Suggestion: Best chilled, with or after a spicy meal.\n\nTaste Profile: Sweet, creamy and refreshing.",
+   "image": "sweet-lassi.jpg"
+  },
+  {
+   "slug": "kaddu-ka-kheer",
+   "name": "Kaddu ka Kheer",
+   "price": 100,
+   "category": "Meals",
+   "dietType": "veg",
+   "description": "A sweet pudding of grated pumpkin (kaddu) cooked in milk with sugar and cardamom, garnished with nuts.\n\nIngredients (Typical):\n- Pumpkin (kaddu)\n- Milk\n- Sugar\n- Cardamom\n- Ghee (if used in the actual recipe)\n- Cashews and raisins (if used in the actual recipe)\n\nSpicy Level: Not spicy\n\nServing Suggestion: Serve warm or chilled as a dessert.\n\nTaste Profile: Sweet, creamy and mildly fruity.",
+   "image": "kaddu-ka-kheer.jpg"
+  },
+  {
+   "slug": "water-bottle-1-ltr",
+   "name": "Water Bottle 1 Ltr",
+   "price": 20,
+   "category": "Beverages",
+   "dietType": "veg",
+   "description": "A packaged drinking water bottle (1 litre).\n\nIngredients (Typical):\n- Packaged drinking water\n\nSpicy Level: Not spicy\n\nServing Suggestion: Have it with your meal.\n\nTaste Profile: Plain and refreshing.",
+   "image": "water-bottle-1-ltr.jpg"
+  },
+  {
+   "slug": "soft-drink-pet",
+   "name": "Soft Drink (Pet)",
+   "price": 20,
+   "category": "Beverages",
+   "dietType": "veg",
+   "description": "A chilled soft drink in a PET (plastic) bottle. Brand and flavour as available at the restaurant.\n\nIngredients (Typical):\n- Carbonated soft drink (brand and flavour as available)\n\nSpicy Level: Not spicy\n\nServing Suggestion: Best served chilled with your meal.\n\nTaste Profile: Sweet, fizzy and refreshing.",
+   "image": "soft-drink-pet.jpg"
+  }
+ ]
+}
