@@ -190,7 +190,10 @@ export default function NotificationsPage() {
             <div className="p-4">
               <div className="rounded-lg border border-line bg-surface-2/50 p-3">
                 <div className="mb-2 flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-xs font-medium text-fg"><span className="flex h-5 w-5 items-center justify-center rounded bg-fg text-2xs font-semibold text-bg">Z</span>ZCS</span>
+                  <span className="flex items-center gap-2 text-xs font-medium text-fg">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/zenv-favicon-2026-11-04.png" alt="" width={20} height={20} className="h-5 w-5 rounded-full" aria-hidden />ZENV
+                  </span>
                   <span className="text-xs text-fg-subtle">now</span>
                 </div>
                 <p className="break-words text-sm font-medium text-fg">{title || 'Notification title'}</p>

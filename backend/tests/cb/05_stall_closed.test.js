@@ -33,7 +33,7 @@ test('outside the stall hours (IST): 409 with when it opens', async () => {
   assert.strictEqual(r.body.opensAt, `${hh}:00`);
 });
 
-test('marked offline by ZCS: closed', async () => {
+test('marked offline by ZENV: closed', async () => {
   const s = await T.mkStall({ store: { isOffline: true } });
   const r = await T.book(await T.mkUser(), s);
   assert.strictEqual(r.body.code, 'STALL_CLOSED');

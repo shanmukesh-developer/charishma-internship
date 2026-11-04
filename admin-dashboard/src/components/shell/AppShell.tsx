@@ -41,10 +41,12 @@ function AuthScreen({ title, detail, action, busy }: { title: string; detail?: s
 export function Wordmark({ className, compact = false }: { className?: string; compact?: boolean }) {
   return (
     <div className={cn('flex items-center gap-2', className)}>
-      <span className="flex h-7 w-7 items-center justify-center rounded-md bg-fg text-[15px] font-semibold leading-none text-bg" aria-hidden>Z</span>
+      {/* ZENV logo (owner, 4 Nov 2026): the yellow disc with the scooter rider. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/zenv-brand-badge-2026-11-04.png" alt="" width={28} height={28} className="h-7 w-7 shrink-0 rounded-full" aria-hidden />
       {!compact && (
         <span className="flex items-baseline gap-1.5">
-          <span className="text-[15px] font-semibold tracking-[-0.01em] text-fg">ZCS</span>
+          <span className="text-[15px] font-semibold tracking-[-0.01em] text-fg">ZENV</span>
           <span className="text-sm text-fg-subtle">Admin</span>
         </span>
       )}
@@ -203,9 +205,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   // Document title follows the page name from the navigation model.
   useEffect(() => {
-    if (isLoginPage) { document.title = 'Sign in · ZCS Admin'; return; }
+    if (isLoginPage) { document.title = 'Sign in · ZENV Admin'; return; }
     const hit = findNavItem(pathname);
-    document.title = hit ? `${hit.item.label} · ZCS Admin` : 'ZCS Admin';
+    document.title = hit ? `${hit.item.label} · ZENV Admin` : 'ZENV Admin';
   }, [pathname, isLoginPage]);
 
   const themeItems = useThemeMenuItems();
@@ -215,7 +217,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   if (auth.status === 'checking') {
-    return <AuthScreen busy title="Checking your session" detail="Confirming your admin access with the ZCS server." />;
+    return <AuthScreen busy title="Checking your session" detail="Confirming your admin access with the ZENV server." />;
   }
 
   if (auth.status === 'error') {
@@ -248,7 +250,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const sidebarInner = (
     <>
       <div className="flex h-14 shrink-0 items-center justify-between px-4">
-        <Link href="/" aria-label="ZCS Admin overview"><Wordmark /></Link>
+        <Link href="/" aria-label="ZENV Admin overview"><Wordmark /></Link>
         <IconButton label="Close menu" className="lg:hidden" onClick={() => setNavOpen(false)}><IconX size={16} /></IconButton>
       </div>
       <div className="px-3 pb-3">
@@ -349,7 +351,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <div className="mx-auto w-full max-w-[1400px]">
             {auth.user?.weakPassword && (
               <Notice tone="danger" title="Change your admin password now" className="mb-6">
-                This admin account still uses a password that the old setup scripts published, so anyone who has seen the code can sign in as you. Change it in the ZCS app: Sign in, then Forgot password (a code comes to this account&apos;s phone). Or set ADMIN_RESET_PASSWORD (12 or more characters) in Render, Environment. Then turn on 2-step sign-in in Account security.
+                This admin account still uses a password that the old setup scripts published, so anyone who has seen the code can sign in as you. Change it in the ZENV app: Sign in, then Forgot password (a code comes to this account&apos;s phone). Or set ADMIN_RESET_PASSWORD (12 or more characters) in Render, Environment. Then turn on 2-step sign-in in Account security.
               </Notice>
             )}
             {volatile && (

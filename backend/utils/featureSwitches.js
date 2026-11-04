@@ -13,7 +13,7 @@ const TTL_MS = 30 * 1000;
 
 const SWITCHES = Object.freeze({
   whispers: { key: 'CAMPUS_WHISPERS_ENABLED', label: 'Campus Whispers', message: 'Campus Whispers is paused right now. Please check back soon.' },
-  afterDark: { key: 'AFTER_DARK_ENABLED', label: 'ZCS After Dark', message: 'ZCS After Dark is paused right now. Please check back soon.' },
+  afterDark: { key: 'AFTER_DARK_ENABLED', label: 'ZENV After Dark', message: 'ZENV After Dark is paused right now. Please check back soon.' },
 });
 
 const cache = new Map(); // name -> { at, value }

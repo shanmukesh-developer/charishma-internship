@@ -57,7 +57,7 @@ const upiLinkOf = (b) => {
     ...(b.payeeName ? [`pn=${encodeURIComponent(b.payeeName)}`] : []),
     `am=${(rupees(b.amountPaise)).toFixed(2)}`,
     'cu=INR',
-    `tn=${encodeURIComponent(`ZCS booking ${b.ref}`)}`,
+    `tn=${encodeURIComponent(`ZENV booking ${b.ref}`)}`,
   ];
   return `upi://pay?${q.join('&')}`;
 };

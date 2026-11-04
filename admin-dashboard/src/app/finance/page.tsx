@@ -170,7 +170,7 @@ export default function FinanceConsole() {
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
     const link = document.createElement('a');
     link.href = url;
-    link.download = `zenvy_ledger_page${currentPage}_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `zenv_ledger_page${currentPage}_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -264,7 +264,7 @@ export default function FinanceConsole() {
     <div>
       <PageHeader
         title="Payments and payouts"
-        description="What ZCS earned, what stores and riders are owed, cash riders hold, and refunds for cancelled orders."
+        description="What ZENV earned, what stores and riders are owed, cash riders hold, and refunds for cancelled orders."
         meta={report ? <Badge tone="accent">Commission all time: {rupees(report.totalCommission)}</Badge> : undefined}
       >
         <Tabs

@@ -65,7 +65,7 @@ export function VideosPanel({ pg, onSaved }: { pg: PGHostel; onSaved: (pg: Parti
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm text-fg-muted">{videos.length} of {MAX_VIDEOS} videos</p>
-          <p className="mt-1 text-xs text-fg-muted">Upload room tours to the ZCS YouTube channel, then paste the link here. Students play them inside the app.</p>
+          <p className="mt-1 text-xs text-fg-muted">Upload room tours to the ZENV YouTube channel, then paste the link here. Students play them inside the app.</p>
         </div>
         <button type="button" disabled={videos.length >= MAX_VIDEOS} onClick={() => setVideos(prev => [...prev, { key: nextKey(), link: '', title: '', roomType: null }])} className="rounded-lg bg-surface-2 px-4 py-2.5 text-sm font-semibold text-fg hover:bg-surface-3 disabled:opacity-40">Add video</button>
       </div>

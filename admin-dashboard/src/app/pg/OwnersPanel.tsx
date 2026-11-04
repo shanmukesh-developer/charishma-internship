@@ -282,7 +282,7 @@ export function OwnersPanel({ pgs }: { pgs: PGHostel[] }) {
         </div>
       </Toolbar>
       <p className="text-xs text-fg-muted">
-        Owners use the ZCS PG Partner app to accept or decline booking requests, update free beds, the mess menu, rent records and
+        Owners use the ZENV PG Partner app to accept or decline booking requests, update free beds, the mess menu, rent records and
         complaints for their linked PGs only. They never see students&apos; phone numbers. Verification and listing details stay with you.
       </p>
 
@@ -306,7 +306,7 @@ export function OwnersPanel({ pgs }: { pgs: PGHostel[] }) {
         error={error || null}
         onRetry={() => load()}
         noun="owners"
-        empty={{ title: 'No PG owner accounts yet', description: 'Create one for each PG owner and link their listing. They sign in to ZCS PG Partner with the phone number and temporary password.', action: <Button variant="primary" onClick={openCreate}>Add owner</Button> }}
+        empty={{ title: 'No PG owner accounts yet', description: 'Create one for each PG owner and link their listing. They sign in to ZENV PG Partner with the phone number and temporary password.', action: <Button variant="primary" onClick={openCreate}>Add owner</Button> }}
       />
 
       <Modal

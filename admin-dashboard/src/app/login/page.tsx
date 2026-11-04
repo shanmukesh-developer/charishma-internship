@@ -103,7 +103,7 @@ export default function AdminLoginPage() {
       if (data.code === 'MFA_TOKEN_INVALID' || data.code === 'MFA_TOKEN_USED') backToPassword();
       setError(data.message || 'That code did not work. Please try again.');
     } catch {
-      setError('Could not reach the ZCS server. Check your connection and try again.');
+      setError('Could not reach the ZENV server. Check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -134,7 +134,7 @@ export default function AdminLoginPage() {
       if (Number(data.retryAfter) > 0) setResendIn(Number(data.retryAfter));
       setError(data.message || 'Could not send a new code. Please try again.');
     } catch {
-      setError('Could not reach the ZCS server. Check your connection and try again.');
+      setError('Could not reach the ZENV server. Check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -200,7 +200,7 @@ export default function AdminLoginPage() {
         setError(data.message || data.errors?.[0]?.msg || 'Sign in failed. Please try again.');
       }
     } catch {
-      setError('Could not reach the ZCS server. Check your connection and try again.');
+      setError('Could not reach the ZENV server. Check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -212,10 +212,12 @@ export default function AdminLoginPage() {
     <main className="flex min-h-screen flex-col bg-bg">
       <div className="flex flex-1 items-center justify-center px-4 py-12">
         <div className="w-full max-w-[380px]">
-          <div className="mb-8 flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-md bg-fg text-base font-semibold text-bg" aria-hidden>Z</span>
+          <div className="mb-8 flex items-center gap-2.5">
+            {/* ZENV logo (owner, 4 Nov 2026): the yellow disc with the scooter rider. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/zenv-brand-badge-2026-11-04.png" alt="" width={40} height={40} className="h-10 w-10 shrink-0 rounded-full" aria-hidden />
             <span className="flex items-baseline gap-1.5">
-              <span className="text-lg font-semibold tracking-[-0.01em] text-fg">ZCS</span>
+              <span className="text-lg font-semibold tracking-[-0.01em] text-fg">ZENV</span>
               <span className="text-sm text-fg-subtle">Admin</span>
             </span>
           </div>
@@ -234,7 +236,7 @@ export default function AdminLoginPage() {
                       ? 'Enter one of your recovery codes. Each code works once.'
                       : emailMethod
                         ? `We emailed a 6-digit code to ${emailHint || 'your email'}. Each code works for 10 minutes: use the latest one.`
-                        : 'Open your authenticator app and enter the 6-digit code for ZCS Admin.'}
+                        : 'Open your authenticator app and enter the 6-digit code for ZENV Admin.'}
                   </p>
                 </div>
                 <div>
@@ -343,7 +345,7 @@ export default function AdminLoginPage() {
           </div>
 
           <p className="mt-6 text-center text-xs text-fg-subtle">
-            For ZCS staff only.
+            For ZENV staff only.
           </p>
         </div>
       </div>

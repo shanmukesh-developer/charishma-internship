@@ -245,8 +245,8 @@ const claimBlockedByCash = async ({ sequelize, riderId, orderId, transaction = n
 const LABELS = {
   COD_COLLECTED: 'Cash collected (COD)',
   STORE_PURCHASE: 'Paid at the shop',
-  CASH_DEPOSITED: 'Deposited to ZCS',
-  ADJUSTMENT: 'Adjusted by ZCS',
+  CASH_DEPOSITED: 'Deposited to ZENV',
+  ADJUSTMENT: 'Adjusted by ZENV',
 };
 
 const toPublic = (row) => {

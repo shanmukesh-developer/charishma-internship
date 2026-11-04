@@ -89,14 +89,14 @@ export default function RiderCashPanel() {
       sortValue: r => r.cashHeldPaise,
       cell: r => <div className="tabular-nums"><p className={r.overLimit ? 'font-medium text-danger-text' : 'font-medium text-fg'}>{rs(r.cashHeldPaise)}</p>{r.overLimit && <Badge tone="danger">At limit</Badge>}</div>,
     },
-    { key: 'owes', header: 'ZCS owes', align: 'right', hideBelow: 'lg', sortValue: r => r.position.zenvyOwesPaise, cell: r => <span className="tabular-nums text-fg-muted" title="Earnings plus tips">{rs(r.position.zenvyOwesPaise)}</span> },
+    { key: 'owes', header: 'ZENV owes', align: 'right', hideBelow: 'lg', sortValue: r => r.position.zenvyOwesPaise, cell: r => <span className="tabular-nums text-fg-muted" title="Earnings plus tips">{rs(r.position.zenvyOwesPaise)}</span> },
     {
       key: 'net',
       header: 'Net',
       sortValue: r => r.position.netPaise,
       cell: r => (r.position.netPaise < 0
         ? <span className="text-danger-text">Rider owes {rs(-r.position.netPaise)}</span>
-        : r.position.netPaise > 0 ? <span className="text-fg">ZCS owes {rs(r.position.netPaise)}</span> : <span className="text-fg-muted">Settled</span>),
+        : r.position.netPaise > 0 ? <span className="text-fg">ZENV owes {rs(r.position.netPaise)}</span> : <span className="text-fg-muted">Settled</span>),
     },
     { key: 'last', header: 'Last deposit', hideBelow: 'xl', sortValue: r => (r.lastDepositAt ? new Date(r.lastDepositAt) : null), cell: r => <span className="text-xs text-fg-muted">{when(r.lastDepositAt)}</span> },
     { key: 'action', header: <span className="sr-only">Action</span>, align: 'right', cell: r => <Button size="sm" onClick={() => setOpen(r)}>Deposit and history</Button> },
@@ -110,7 +110,7 @@ export default function RiderCashPanel() {
         </NoticeBox>
       )}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-        <StatTile label="Cash riders hold for ZCS" value={data ? rs(data.totalHeldPaise) : null} loading={loading && !data} tone={data && data.totalHeldPaise > 0 ? 'warning' : 'neutral'} />
+        <StatTile label="Cash riders hold for ZENV" value={data ? rs(data.totalHeldPaise) : null} loading={loading && !data} tone={data && data.totalHeldPaise > 0 ? 'warning' : 'neutral'} />
         <StatTile
           label="Cash-on-delivery limit"
           value={data ? (data.limitEnabled ? rs(data.limitPaise) : 'Off') : null}
@@ -251,7 +251,7 @@ function RiderCashDrawer({ row, onClose, onChanged }: { row: HoldingRow; onClose
         {entries && !entries.inSync && <NoticeBox tone="danger" title="History does not match">The cash history adds up to {rs(entries.ledgerPaise)}. Run the cash check on the main list.</NoticeBox>}
         {entries && (
           <p className="text-sm text-fg-muted">
-            ZCS owes {rs(entries.position.zenvyOwesPaise)} (earnings {rs(entries.position.earningsPaise)} plus tips {rs(entries.position.tipsPaise)}). Net: {entries.position.netPaise < 0 ? `the rider owes ${rs(-entries.position.netPaise)}` : `ZCS owes ${rs(entries.position.netPaise)}`}.
+            ZENV owes {rs(entries.position.zenvyOwesPaise)} (earnings {rs(entries.position.earningsPaise)} plus tips {rs(entries.position.tipsPaise)}). Net: {entries.position.netPaise < 0 ? `the rider owes ${rs(-entries.position.netPaise)}` : `ZENV owes ${rs(entries.position.netPaise)}`}.
           </p>
         )}
 
@@ -266,7 +266,7 @@ function RiderCashDrawer({ row, onClose, onChanged }: { row: HoldingRow; onClose
                 <Field label="How it was paid">
                   <Select value={method} onChange={(e) => setMethod(e.target.value as 'cash' | 'upi')}>
                     <option value="cash">Cash handover</option>
-                    <option value="upi">UPI to ZCS</option>
+                    <option value="upi">UPI to ZENV</option>
                   </Select>
                 </Field>
                 <Field label={method === 'upi' ? 'UPI reference (UTR)' : 'Receipt number or received by'}>

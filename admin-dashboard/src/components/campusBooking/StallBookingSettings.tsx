@@ -92,7 +92,7 @@ export function StallBookingSettings({ stall, onSaved }: { stall: CampusStall; o
         label="In-Campus Booking"
         description={form.enabled ? 'Students pre-book this stall for pickup while it is open and pay the stall directly by UPI. It is pickup-only: it is not listed with the delivery stalls.' : 'Off: the stall is not listed for In-Campus Booking.'}
       />
-      <Field label="Stall UPI ID" hint="Students pay this UPI ID directly. ZCS never holds the money." required={form.enabled}>
+      <Field label="Stall UPI ID" hint="Students pay this UPI ID directly. ZENV never holds the money." required={form.enabled}>
         <Input value={form.upiId} onChange={(e) => setForm((f) => ({ ...f, upiId: e.target.value.replace(/\s/g, '') }))} placeholder="stallname@okaxis" autoComplete="off" />
       </Field>
       <Field label="Name on the UPI account" optional hint="Shown as 'Pay to' on the student's payment screen.">
@@ -115,7 +115,7 @@ export function StallBookingSettings({ stall, onSaved }: { stall: CampusStall; o
         </div>
       </Field>
       <div className="rounded-lg border border-line p-3 text-sm">
-        <p className="font-medium text-fg">Stall login (ZCS Campus Stall app)</p>
+        <p className="font-medium text-fg">Stall login (ZENV Campus Stall app)</p>
         <p className="mt-0.5 text-fg-muted">The stall signs in with its phone number and a password, then checks payments, accepts and marks orders ready.</p>
         <Link href={`/restaurants/?store=${encodeURIComponent(stall.id)}&tab=login`} className="mt-1.5 inline-block font-semibold text-accent-text hover:underline">Set or reset the login →</Link>
       </div>

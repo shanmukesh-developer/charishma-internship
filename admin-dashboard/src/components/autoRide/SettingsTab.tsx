@@ -84,7 +84,7 @@ export default function SettingsTab({ tick, onChanged }: { tick: number; onChang
       <div className="rounded-lg border border-line bg-surface p-4 shadow-xs">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h3 className="font-semibold">ZCS Wallet payments for autos: {data.walletEnabled ? 'ON' : 'OFF'}</h3>
+            <h3 className="font-semibold">ZENV Wallet payments for autos: {data.walletEnabled ? 'ON' : 'OFF'}</h3>
             <p className="mt-1 max-w-2xl text-sm text-warning-text">Keep off until RBI / payment-aggregator and legal review is done: collecting fares into the wallet on behalf of drivers may need a licence. Cash to the driver is always available.</p>
           </div>
           <Btn tone={data.walletEnabled ? 'bad' : 'plain'} onClick={() => setSwitchTo({ key: 'walletEnabled', value: !data.walletEnabled })}>{data.walletEnabled ? 'Turn wallet off' : 'Turn wallet on'}</Btn>
@@ -121,7 +121,7 @@ export default function SettingsTab({ tick, onChanged }: { tick: number; onChang
               ? <><p className="font-semibold text-warning-text">Confirm the legal checks are done: transport permits, permitted capacity, commercial passenger rules, insurance and every live driver&apos;s documents.</p><p>Passengers will immediately be able to browse and book seats.</p></>
               : <p>New bookings, holds and full-auto requests stop immediately. Existing bookings are not cancelled; passengers can still view and cancel them.</p>)
             : (switchTo.value
-              ? <p className="font-semibold text-warning-text">Only after RBI / payment and legal review. Passengers will be able to pay auto fares from their ZCS Wallet.</p>
+              ? <p className="font-semibold text-warning-text">Only after RBI / payment and legal review. Passengers will be able to pay auto fares from their ZENV Wallet.</p>
               : <p>Passengers can only pay cash to the driver. Existing wallet bookings keep their payment and refunds.</p>)}
           onCancel={() => setSwitchTo(null)}
           onConfirm={async () => {

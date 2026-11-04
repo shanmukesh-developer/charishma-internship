@@ -113,7 +113,7 @@ test('driver signs up with the existing OTP flow, uploads private documents, reg
   assert.equal(v.status, 201, JSON.stringify(v.body));
   assert.equal(v.body.vehicle.approvedCapacity, null, 'drivers never set the approved capacity');
   const clash = await api('POST', '/api/auto-ride/driver/vehicles', reg2.body.token, { registrationNumber: 'ap07tb4321', rcSeatingCapacity: 3 });
-  assert.equal(clash.status, 409, 'one registration number on ZCS');
+  assert.equal(clash.status, 409, 'one registration number on ZENV');
   const sub = await api('POST', '/api/auto-ride/driver/me/submit', tok);
   assert.equal(sub.status, 200);
   assert.equal(sub.body.driver.status, 'PENDING_REVIEW');
@@ -235,7 +235,7 @@ test('admin: live summary counts, booking search by code, cancel with audit, inc
   assert.equal(ct.status, 200);
   assert.equal(ct.body.trip.status, 'CANCELLED');
   const dn = await H.notificationsFor(t.driver.id);
-  assert.ok(dn.some((n) => n.title === 'Trip cancelled by ZCS'));
+  assert.ok(dn.some((n) => n.title === 'Trip cancelled by ZENV'));
 });
 
 // 1 Nov 2026: a handed-over phone. The second driver's device token is taken off the first driver, so the first

@@ -136,7 +136,7 @@ test('adjustment: reason required, signed, audited; non-admin cannot record cash
   assert.equal((await api('POST', `/api/admin/rider-cash/${d.id}/deposit`, d.token, { amount: 10, method: 'cash', reference: 'x-1' })).status, 403);
 });
 
-test('net position: cash held vs what Zenvy owes (earnings + tips), never netted', async () => {
+test('net position: cash held vs what ZENV owes (earnings + tips), never netted', async () => {
   const d = await H.mkRider({ wallet: 25 });
   const { item } = await H.mkStore({ price: 100 });
   const u = await H.mkUser();

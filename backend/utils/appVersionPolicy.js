@@ -29,9 +29,9 @@ const PACKAGES = {
   // ZCS Campus Stall (In-Campus Booking, campus-stall-app)
   campusstall: 'com.srm.zcscampusstall',
 };
-const APP_LABELS = { customer: 'ZCS', rider: 'ZCS Rider', restaurant: 'ZCS Restaurant', vendor: 'ZCS Vendor', autodriver: 'ZCS Auto Driver', pgowner: 'ZCS PG Partner', campusstall: 'ZCS Campus Stall' };
+const APP_LABELS = { customer: 'ZENV', rider: 'ZENV Rider', restaurant: 'ZENV Restaurant', vendor: 'ZENV Vendor', autodriver: 'ZENV Auto Driver', pgowner: 'ZENV PG Partner', campusstall: 'ZENV Campus Stall' };
 const playUrl = (pkg) => `https://play.google.com/store/apps/details?id=${pkg}`;
-const DEFAULT_MESSAGE = 'This version of the app is no longer supported. Please update to keep using ZCS.';
+const DEFAULT_MESSAGE = 'This version of the app is no longer supported. Please update to keep using ZENV.';
 const MAX_MESSAGE = 300;
 const MAX_URL = 500;
 const MAX_BUILD = 2100000000; // Play Store versionCode ceiling
@@ -314,7 +314,7 @@ const gate = async (req, res, next) => {
         code: 'UPGRADE_REQUIRED',
         app: null,
         storeUrl: null,
-        message: 'This version of the ZCS app is no longer supported. Please update it from the Play Store.',
+        message: 'This version of the ZENV app is no longer supported. Please update it from the Play Store.',
       });
     }
     const app = normalizeApp(rawName);

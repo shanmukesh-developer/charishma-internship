@@ -56,7 +56,7 @@ const MANAGED_KEYS: string[] = [...RETENTION.map(r => r.key), 'CAMPUS_SPOTS_DEFA
 const MANAGED_ELSEWHERE: Record<string, { label: string; href: string }> = {
   VEHICLE_RENTALS_ENABLED: { label: 'Vehicle rentals on/off', href: '/rentals' },
   CAMPUS_WHISPERS_ENABLED: { label: 'Campus Whispers on/off', href: '/friends' },
-  AFTER_DARK_ENABLED: { label: 'ZCS After Dark on/off', href: '/friends' },
+  AFTER_DARK_ENABLED: { label: 'ZENV After Dark on/off', href: '/friends' },
 };
 const MAX_RETENTION_DAYS = 3650;
 
@@ -66,7 +66,7 @@ const FEATURE_SWITCHES = [
   { key: 'CAMPUS_EVENTS_ENABLED', label: 'Campus events', href: '/campus-events?tab=settings', where: 'Open Events settings', what: 'On: students can browse events, register and get tickets, and organisers can submit events. Off: browsing, registration and submissions close; existing tickets stay readable and check-in keeps working.' },
   { key: 'VEHICLE_RENTALS_ENABLED', label: 'Vehicle rentals', href: '/rentals', where: 'Open Rentals', what: 'On: students can list their vehicles and book other students’ vehicles. Off: the rentals section is closed in the app.' },
   { key: 'CAMPUS_WHISPERS_ENABLED', label: 'Campus Whispers', href: '/friends', where: 'Open Friends app', what: 'On: students can post and read anonymous campus whispers. Off: whispers are hidden and new posts are refused.' },
-  { key: 'AFTER_DARK_ENABLED', label: 'ZCS After Dark', href: '/friends', where: 'Open Friends app', what: 'On: the late-night lounge chats and rooms open in the app. Off: they are closed.' },
+  { key: 'AFTER_DARK_ENABLED', label: 'ZENV After Dark', href: '/friends', where: 'Open Friends app', what: 'On: the late-night lounge chats and rooms open in the app. Off: they are closed.' },
 ] as const;
 
 
@@ -257,7 +257,7 @@ export default function ConfigTerminal() {
     const ok = await confirm({
       title: on ? 'Turn the intro sound on?' : 'Turn the intro sound off?',
       description: on
-        ? 'Students hear the short ZCS sound with the opening rings (never on silent or vibrate, and never over their music).'
+        ? 'Students hear the short ZENV sound with the opening rings (never on silent or vibrate, and never over their music).'
         : 'The opening rings play without sound for every student.',
       confirmLabel: on ? 'Turn on' : 'Turn off',
     });
@@ -459,7 +459,7 @@ export default function ConfigTerminal() {
               disabled={savingIntro}
               onChange={handleIntroSound}
               label="Intro sound"
-              description="A short ZCS sound with the opening rings when the app starts. It never plays when the phone is on silent or vibrate, never stops the student's music, and stays off for students who switch App sounds off. A change reaches each phone from its next app start."
+              description="A short ZENV sound with the opening rings when the app starts. It never plays when the phone is on silent or vibrate, never stops the student's music, and stays off for students who switch App sounds off. A change reaches each phone from its next app start."
             />
             {introMsg && <p className={introMsg.kind === 'ok' ? 'text-sm text-success-text' : 'text-sm text-danger-text'}>{introMsg.text}</p>}
           </CardBody>

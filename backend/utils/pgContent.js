@@ -289,7 +289,7 @@ const validateMessHolidays = (raw, mealKeys) => {
       }
     }
     const note = cleanText(h.note, 120, `${f} note`);
-    if (note && PHONE_RE.test(note)) fail('Phone numbers are not allowed here. Students reach you through the ZCS housing desk.', `${f}.note`);
+    if (note && PHONE_RE.test(note)) fail('Phone numbers are not allowed here. Students reach you through the ZENV housing desk.', `${f}.note`);
     out.push({ date, meals, note });
   });
   return out.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
@@ -487,7 +487,7 @@ const txt = (v, max, label, path, opts = {}) => {
   const raw = v === undefined || v === null ? '' : (typeof v === 'string' ? v.replace(EMOJI_RE, '') : v);
   let s;
   try { s = cleanText(raw, max, label, opts); } catch (e) { e.field = path; throw e; }
-  if (s && PHONE_RE.test(s)) fail(`${label}: phone numbers are not shown on listings. Students contact staff through the ZCS housing desk.`, path);
+  if (s && PHONE_RE.test(s)) fail(`${label}: phone numbers are not shown on listings. Students contact staff through the ZENV housing desk.`, path);
   return s;
 };
 const intIn = (v, min, max, label, path) => {

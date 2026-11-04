@@ -41,7 +41,7 @@ const assertLicenceFor = (lic, listing, { requireVerified = false, at = new Date
     throw fail(403, 'LICENCE_REJECTED', `Your driving licence was not accepted${lic.rejectionReason ? `: ${lic.rejectionReason}` : ''}. Upload it again.`);
   }
   if (requireVerified && lic.status !== E.LICENCE_STATUS.VERIFIED) {
-    throw fail(409, 'LICENCE_NOT_VERIFIED', "The renter's driving licence is still being verified by ZCS. You can accept once it is verified.");
+    throw fail(409, 'LICENCE_NOT_VERIFIED', "The renter's driving licence is still being verified by ZENV. You can accept once it is verified.");
   }
   if (requireExpiry && !lic.expiresOn) {
     throw fail(428, 'LICENCE_EXPIRY_REQUIRED', 'Add your driving licence expiry date before booking: open Driving licence and save it again with the "valid till" date.');
@@ -87,7 +87,7 @@ const upsert = async (req, res) => {
   if (e < istYmdNow()) throw fail(400, 'LICENCE_EXPIRED', 'This licence has already expired. Upload your renewed licence.', { field: 'expiresOn' });
   const expiresOn = e;
   const taken = await Licence.findOne({ where: { licenceNumber: number, userId: { [Op.ne]: req.user.id } }, attributes: ['id'] });
-  if (taken) throw fail(409, 'LICENCE_IN_USE', 'This licence number is already registered to another ZCS account. Contact support if it is yours.', { field: 'licenceNumber' });
+  if (taken) throw fail(409, 'LICENCE_IN_USE', 'This licence number is already registered to another ZENV account. Contact support if it is yours.', { field: 'licenceNumber' });
   const existing = await Licence.findOne({ where: { userId: req.user.id } });
   const keep = existing ? [existing.frontImage, existing.backImage].filter(Boolean) : [];
   const [front] = await checkRefs(req.user.id, [b.frontImage], { purposes: ['rental_licence'], field: 'frontImage', min: 1, max: 1, keep, label: 'licence photo' });
@@ -108,7 +108,7 @@ const upsert = async (req, res) => {
   const isUnique = (err) => /unique|constraint/i.test(String(err && (err.name || err.message)));
   // Another account saving the same number at the same moment loses on the unique index (migrations.js).
   const numberTaken = async () => !!(await Licence.findOne({ where: { licenceNumber: number, userId: { [Op.ne]: req.user.id } }, attributes: ['id'] }));
-  const inUse = () => fail(409, 'LICENCE_IN_USE', 'This licence number is already registered to another ZCS account. Contact support if it is yours.', { field: 'licenceNumber' });
+  const inUse = () => fail(409, 'LICENCE_IN_USE', 'This licence number is already registered to another ZENV account. Contact support if it is yours.', { field: 'licenceNumber' });
   let row;
   try {
     if (existing) row = await existing.update(data);

@@ -173,7 +173,7 @@ const middleware = () => async (req, res, next) => {
   if (r.status === 'valid') return next();
   if (mode === 'enforce' && enforcedGroups().has(group)) {
     count(group, 'blocked');
-    return res.status(401).json({ code: 'APP_CHECK_REQUIRED', message: 'Please update ZCS from the Play Store and try again.' });
+    return res.status(401).json({ code: 'APP_CHECK_REQUIRED', message: 'Please update ZENV from the Play Store and try again.' });
   }
   if (r.status === 'invalid') warn(`[APP_CHECK] invalid token on ${req.method} ${req.path} (${r.reason}); ${mode} mode, allowed`);
   return next();

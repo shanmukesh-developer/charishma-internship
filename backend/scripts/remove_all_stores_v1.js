@@ -70,7 +70,7 @@ const runRemoveAllStores = async ({ io = null } = {}) => {
   const open = ids.length ? await Order.findAll({ where: { restaurantId: { [Op.in]: ids }, status: { [Op.notIn]: ['Delivered', 'Cancelled'] } } }) : [];
   for (const order of open) {
     try {
-      const { cancelled } = await cancelAndRefund(order, { reason: 'This store was removed from ZCS', by: 'system' });
+      const { cancelled } = await cancelAndRefund(order, { reason: 'This store was removed from ZENV', by: 'system' });
       if (cancelled) result.ordersCancelled++;
     } catch (err) {
       console.warn('[REMOVE_ALL_STORES] cancel failed', order.id, err.message);

@@ -34,7 +34,7 @@ module.exports = {
         'Take a fresh selfie now with the front camera (not a gallery photo).',
         `Do this in the photo: ${challenge}.`,
         'Your whole face must be visible, in good light, with no filters, masks or sunglasses.',
-        'A ZCS admin compares it with your Connect photos. The selfie is deleted as soon as they decide.',
+        'A ZENV admin compares it with your Connect photos. The selfie is deleted as soon as they decide.',
       ],
       expiresAt: new Date(Date.now() + CHALLENGE_TTL_MS).toISOString(),
     };

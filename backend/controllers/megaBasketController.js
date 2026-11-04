@@ -440,13 +440,13 @@ const completeDelivery = async (req, res) => {
       { where: { id: basket.id, [Op.or]: [{ deliveryPinAttempts: null }, { deliveryPinAttempts: { [Op.lt]: MAX_BASKET_PIN_ATTEMPTS } }] } }
     );
     if (claimed === 0) {
-      return res.status(429).json({ code: 'PIN_LOCKED', message: 'Too many wrong PINs for this basket. Please contact ZCS support to complete the handover.' });
+      return res.status(429).json({ code: 'PIN_LOCKED', message: 'Too many wrong PINs for this basket. Please contact ZENV support to complete the handover.' });
     }
     if (basket.deliveryPin !== String(deliveryPin).trim()) {
       const fresh = await MegaBasket.findByPk(basket.id, { attributes: ['id', 'deliveryPinAttempts'] });
       const used = Number(fresh?.deliveryPinAttempts) || MAX_BASKET_PIN_ATTEMPTS;
       const left = Math.max(0, MAX_BASKET_PIN_ATTEMPTS - used);
-      return res.status(400).json({ code: 'INVALID_PIN', attemptsLeft: left, message: left > 0 ? `That PIN doesn't match. Ask the customer for the 4-digit PIN in their ZCS app (${left} ${left === 1 ? 'try' : 'tries'} left).` : 'Too many wrong PINs for this basket. Please contact ZCS support to complete the handover.' });
+      return res.status(400).json({ code: 'INVALID_PIN', attemptsLeft: left, message: left > 0 ? `That PIN doesn't match. Ask the customer for the 4-digit PIN in their ZENV app (${left} ${left === 1 ? 'try' : 'tries'} left).` : 'Too many wrong PINs for this basket. Please contact ZENV support to complete the handover.' });
     }
 
     const [done] = await MegaBasket.update(
@@ -458,7 +458,7 @@ const completeDelivery = async (req, res) => {
 
     broadcastBasketStatus(req, basket.id, { id: basket.id, status: basket.status });
 
-    tellBasketCustomer(basket, 'Shopping delivered', 'Your shopping list was delivered. Thank you for using ZCS!');
+    tellBasketCustomer(basket, 'Shopping delivered', 'Your shopping list was delivered. Thank you for using ZENV!');
 
     res.json({ message: 'Delivery completed successfully', basket: withoutPin(basket) });
   } catch (error) {
@@ -563,7 +563,7 @@ const cancelBasket = async (req, res) => {
       if (io && basket.deliveryPartnerId) io.to(`rider_${basket.deliveryPartnerId}`).emit('statusUpdated', { id: basket.id, status: 'Cancelled' });
     } catch (_e) { /* best effort */ }
     if (basket.deliveryPartnerId) {
-      riderJobs.tellJobRider({ kind: 'basket', id: basket.id, riderId: basket.deliveryPartnerId, title: 'Shopping list cancelled', body: isAdmin ? 'ZCS support cancelled this shopping list. Do not buy the items.' : 'The customer cancelled this shopping list. Do not buy the items.' });
+      riderJobs.tellJobRider({ kind: 'basket', id: basket.id, riderId: basket.deliveryPartnerId, title: 'Shopping list cancelled', body: isAdmin ? 'ZENV support cancelled this shopping list. Do not buy the items.' : 'The customer cancelled this shopping list. Do not buy the items.' });
     }
     res.json({ message: 'Basket cancelled', basket: withoutPin(basket) });
   } catch (error) {

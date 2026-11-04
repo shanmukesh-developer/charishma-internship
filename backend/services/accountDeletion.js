@@ -83,7 +83,7 @@ const safeLog = (msg, err) => console.warn(`[ACCOUNT_DELETE] ${msg}:`, err && (e
 const precheck = async (sequelize, user) => {
   const blockers = [];
   if (PROTECTED_ROLES.includes(String(user.role || '').toLowerCase())) {
-    blockers.push({ code: 'STAFF_ACCOUNT', message: 'Staff and partner accounts are closed by the ZCS team. Please contact support.' });
+    blockers.push({ code: 'STAFF_ACCOUNT', message: 'Staff and partner accounts are closed by the ZENV team. Please contact support.' });
   }
   const { Order, RentalBooking } = sequelize.models;
   if (Order) {

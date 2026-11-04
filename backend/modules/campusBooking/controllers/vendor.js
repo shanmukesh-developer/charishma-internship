@@ -20,7 +20,7 @@ const istDayStart = (now = new Date()) => {
 
 const storeOnly = (req, res, next) => {
   if (String((req.user && req.user.role) || '').toLowerCase() !== 'restaurant') {
-    return res.status(403).json({ code: 'STALLS_ONLY', message: "Sign in with your stall's account: the stall's phone number and its password from ZCS." });
+    return res.status(403).json({ code: 'STALLS_ONLY', message: "Sign in with your stall's account: the stall's phone number and its password from ZENV." });
   }
   return next();
 };
@@ -220,7 +220,7 @@ const updateSettings = async (req, res) => {
   if (!store) throw fail(404, 'NOT_FOUND', 'Stall not found.');
   const patch = await settingsPatch(req, req.body || {}, store.id);
   if (store.campusBookingEnabled === true && Object.prototype.hasOwnProperty.call(patch, 'campusUpiId') && !patch.campusUpiId) {
-    throw fail(400, 'UPI_REQUIRED', 'In-Campus Booking is on for your stall, so it needs a UPI ID. Ask ZCS to switch it off first.', { field: 'upiId' });
+    throw fail(400, 'UPI_REQUIRED', 'In-Campus Booking is on for your stall, so it needs a UPI ID. Ask ZENV to switch it off first.', { field: 'upiId' });
   }
   if (Object.keys(patch).length) {
     await store.update(patch, { hooks: false });

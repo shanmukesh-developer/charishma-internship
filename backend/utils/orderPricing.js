@@ -262,7 +262,7 @@ const computeOrderQuote = async ({ user, items, couponCode }) => {
   await slotsLib.loadConfig();
   const slotNow = slotsLib.now();
   const openState = isStall && store.isOffline
-    ? { isOpen: false, message: `${store.name} is not taking orders on ZCS right now.` }
+    ? { isOpen: false, message: `${store.name} is not taking orders on ZENV right now.` }
     : getStoreOpenState(store, slotNow);
   // Delivery slots: the store must be open at the START of a bookable slot, not necessarily right now (an
   // order at 10 PM for tomorrow's 12:30 slot is fine). The lead time comes from the items (cakes take longer).
@@ -369,7 +369,7 @@ const computeOrderQuote = async ({ user, items, couponCode }) => {
   const perks = isStall ? { deliveryDiscount: 0, orderDiscount: 0 } : calculateBadgePerks(user);
   // Plain bill labels ("Gold member: delivery discount"), never the badge nicknames.
   const tierWord = perks.tier ? `${perks.tier} member` : 'Member';
-  const perkDeliveryLabel = perks.pointsFreeDelivery ? '200+ ZCS Points: free delivery' : `${tierWord}: delivery discount`;
+  const perkDeliveryLabel = perks.pointsFreeDelivery ? '200+ ZENV Points: free delivery' : `${tierWord}: delivery discount`;
   if (perks.deliveryDiscount > 0) addDeliveryDiscount('perk_delivery', perkDeliveryLabel, Math.round(deliveryFee * perks.deliveryDiscount));
 
   let coupon = null;
@@ -436,7 +436,7 @@ const computeOrderQuote = async ({ user, items, couponCode }) => {
 
 const PAYMENT_ALIASES = {
   cod: 'COD', cash: 'COD', 'cash on delivery': 'COD', 'cash_on_delivery': 'COD',
-  wallet: 'Wallet', 'zenvy wallet': 'Wallet', zenvywallet: 'Wallet', 'zcs wallet': 'Wallet', zcswallet: 'Wallet'
+  wallet: 'Wallet', 'zenvy wallet': 'Wallet', zenvywallet: 'Wallet', 'zcs wallet': 'Wallet', zcswallet: 'Wallet', 'zenv wallet': 'Wallet', zenvwallet: 'Wallet'
 };
 const normalizePaymentMethod = (pm) => {
   if (pm === undefined || pm === null || pm === '') return null;

@@ -62,7 +62,7 @@ const runTestDataCleanup = async () => {
     const open = await Order.findAll({ where: { restaurantId: { [Op.in]: storeIds }, status: { [Op.notIn]: ['Delivered', 'Cancelled'] } } });
     for (const order of open) {
       try {
-        const { cancelled } = await cancelAndRefund(order, { reason: 'This test store was removed from ZCS', by: 'system' });
+        const { cancelled } = await cancelAndRefund(order, { reason: 'This test store was removed from ZENV', by: 'system' });
         if (cancelled) out.ordersCancelled++;
       } catch (err) {
         out.errors.push(`cancel ${order.id}: ${String(err.message).slice(0, 80)}`);

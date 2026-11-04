@@ -250,7 +250,7 @@ const STUDENT_ROLES = new Set(['student', 'admin', 'user', 'customer']);
 const studentOnly = (req, res, next) => {
   const role = String((req.user && req.user.role) || '').toLowerCase();
   if (req.user && STUDENT_ROLES.has(role)) return next();
-  return res.status(403).json({ code: 'STUDENTS_ONLY', message: 'This part of ZCS is only for student accounts.' });
+  return res.status(403).json({ code: 'STUDENTS_ONLY', message: 'This part of ZENV is only for student accounts.' });
 };
 
 // Claims of the token this request was authenticated with (after protect() verified it). Used by the

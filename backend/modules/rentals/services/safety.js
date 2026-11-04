@@ -112,16 +112,16 @@ const otherChargesCapFor = (settings, deposit) => {
 const businessName = async () => {
   try {
     const s = await require('../../../utils/legalSettings').getSettings();
-    return (s && s.businessName) || 'ZCS';
+    return (s && s.businessName) || 'ZENV';
   } catch {
-    return 'ZCS';
+    return 'ZENV';
   }
 };
 
 const defaultDisclaimer = (biz) => `${biz} is not an insurer and does not provide any insurance for this trip. Whether the vehicle's insurance covers you as a driver depends on that policy, so check before you ride. The agreement is between the two students: ${biz} is not a party to it, never holds the money and cannot force either side to pay.`;
 
 /** The terms the renter / borrower accepts for one booking (version E.TERMS_VERSION). */
-const termsFor = (mode, { biz = 'ZCS', hours = DEFAULTS.chargesResponseHours } = {}) => {
+const termsFor = (mode, { biz = 'ZENV', hours = DEFAULTS.chargesResponseHours } = {}) => {
   const common = [
     `Pay any ${mode === E.RENTAL_MODES.RENT ? 'rent' : 'cost share'} and the refundable deposit in cash, directly to the ${mode === E.RENTAL_MODES.RENT ? 'owner' : 'lender'}. ${biz} never holds the money.`,
     'Photos of the vehicle and the odometer reading are recorded at pickup and at return. Check them before you ride.',

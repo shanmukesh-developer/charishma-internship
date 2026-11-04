@@ -169,7 +169,7 @@ const runCampusEventJobs = async (now = clock.now()) => {
       const amt = await payments.processRefund(r.id);
       if (amt > 0) {
         out.refunds++;
-        notify.toUsers([r.userId], 'Refund done', `₹${amt} was refunded${r.paymentMode === E.PAYMENT_MODE.WALLET ? ' to your ZCS Wallet' : ''}.`, { type: N.REFUND_DONE, registrationId: r.id, eventId: r.eventId });
+        notify.toUsers([r.userId], 'Refund done', `₹${amt} was refunded${r.paymentMode === E.PAYMENT_MODE.WALLET ? ' to your ZENV Wallet' : ''}.`, { type: N.REFUND_DONE, registrationId: r.id, eventId: r.eventId });
       }
     });
   }

@@ -23,14 +23,14 @@ const readToken = (req) => {
 };
 
 const suspendedError = (owner) => fail(403, 'PG_OWNER_SUSPENDED', owner.suspendedReason
-  ? `Your ZCS PG Partner account is suspended: ${owner.suspendedReason}`
-  : 'Your ZCS PG Partner account is suspended. Please contact ZCS support.');
+  ? `Your ZENV PG Partner account is suspended: ${owner.suspendedReason}`
+  : 'Your ZENV PG Partner account is suspended. Please contact ZENV support.');
 
 /** Express middleware: live, non-suspended PgOwner behind a current token. Sets req.owner. */
 const protectOwner = async (req, res, next) => {
   try {
     const token = readToken(req);
-    if (!token) throw fail(401, 'NOT_AUTHORISED', 'Please sign in to the ZCS PG Partner app.');
+    if (!token) throw fail(401, 'NOT_AUTHORISED', 'Please sign in to the ZENV PG Partner app.');
     const secret = process.env.JWT_SECRET;
     if (!secret) throw fail(500, 'SERVER_CONFIG', 'Server configuration error. Please try again later.');
     let decoded;

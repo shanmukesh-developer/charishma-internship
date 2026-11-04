@@ -52,7 +52,7 @@ const makeOriginChecker = (env = process.env, { log = console } = {}) => {
     if (local && /^https?:\/\/(localhost|127\.0\.0\.1|[a-z0-9-]+\.localhost)(:\d+)?$/.test(origin)) return true;
     if (origin.startsWith('capacitor://') || origin.startsWith('exp://')) return true;
     if (/\.onrender\.com$/.test(origin) && log) {
-      log.warn(`[CORS] Refused ${origin}. Add it to ALLOWED_ORIGINS if it is a real Zenvy app.`);
+      log.warn(`[CORS] Refused ${origin}. Add it to ALLOWED_ORIGINS if it is a real ZENV app.`);
     }
     return false;
   };

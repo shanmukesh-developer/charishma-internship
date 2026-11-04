@@ -71,7 +71,7 @@ export function StoreDrawer({ store, tab, onTab, onClose, onEdit, onChanged, onT
               <h2 id={titleId} className="truncate text-xl font-semibold">{store.name}</h2>
               <Chip tone={STATUS_TONE[status]} dot title={STATUS_META[status].help}>{STATUS_META[status].label}</Chip>
               {store.isFeatured && <Chip tone="amber">{store.featuredBadge || 'Featured'}</Chip>}
-              {store.isOffline && <Chip>Managed by ZCS</Chip>}
+              {store.isOffline && <Chip>Managed by ZENV</Chip>}
               {local && (booking
                 ? <Chip tone="sky" title="In-Campus Booking: students pre-book, pay the stall by UPI and collect at the counter">Pickup only · UPI</Chip>
                 : <Chip tone="sky" title="Customers pay the stall cash; the stall delivers">Stall delivers · COD</Chip>)}
@@ -145,7 +145,7 @@ function OverviewTab({ store, stats, orders, ordersState, onTab, onEdit, onPubli
     { ok: !!store.whatsappNumber || !local, text: local ? 'WhatsApp number for orders' : 'Contact number', fix: () => onEdit('location'), fixLabel: 'Add number' },
     { ok: store.lat != null && store.lon != null, text: isBookingStall(store) ? 'Map pin' : 'Map pin for riders', fix: () => onEdit('location'), fixLabel: 'Set pin' },
     { ok: (store.tags || []).length > 0, text: 'Cuisine tags', fix: () => onEdit('basics'), fixLabel: 'Add tags' },
-    { ok: !!store.hasPassword || (!local && !!store.isOffline), text: local ? `Stall can sign in to ${partnerAppName(store)}` : 'Partner can sign in (or managed by ZCS)', fix: () => onTab('login'), fixLabel: 'Set password' },
+    { ok: !!store.hasPassword || (!local && !!store.isOffline), text: local ? `Stall can sign in to ${partnerAppName(store)}` : 'Partner can sign in (or managed by ZENV)', fix: () => onTab('login'), fixLabel: 'Set password' },
   ];
   const todo = checks.filter(c => !c.ok);
   const recent = orders.slice(0, 8);
@@ -202,7 +202,7 @@ function OverviewTab({ store, stats, orders, ordersState, onTab, onEdit, onPubli
               {!local && <DD k="Commission" v={store.commissionType === 'flat' ? `₹${store.commissionRate ?? 0} per order` : `${store.commissionRate ?? 0}% of order`} />}
               <DD k="Packaging fee" v={Number(store.packagingFee) > 0 ? `₹${store.packagingFee} per order` : 'None'} />
               <DD k="Minimum order" v={Number(store.minOrderValue) > 0 ? `₹${store.minOrderValue}` : 'None'} />
-              <DD k={local ? 'Vendor app' : 'Partner app'} v={store.isOffline && !local ? 'Managed by ZCS (no app)' : `${partnerAppName(store)} · ${store.hasPassword ? 'login set' : 'no password yet'} · ${store.pushDevices ? `${store.pushDevices} phone${store.pushDevices === 1 ? '' : 's'}` : 'not signed in on any phone'}`} />
+              <DD k={local ? 'Vendor app' : 'Partner app'} v={store.isOffline && !local ? 'Managed by ZENV (no app)' : `${partnerAppName(store)} · ${store.hasPassword ? 'login set' : 'no password yet'} · ${store.pushDevices ? `${store.pushDevices} phone${store.pushDevices === 1 ? '' : 's'}` : 'not signed in on any phone'}`} />
               <DD k="Login phone" v={store.partnerPhone ? `+91 ${formatWhatsapp(store.partnerPhone)}` : local && store.whatsappNumber ? 'WhatsApp number' : 'Not set'} />
               {local && <DD k="Delivery" v={isBookingStall(store) ? 'None: In-Campus Booking, students collect at the stall and pay it by UPI' : 'Stall delivers itself · cash on delivery · no rider or PIN'} />}
               <DD k="Published" v={store.publishedAt ? new Date(store.publishedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Never (draft)'} />
@@ -377,10 +377,10 @@ function LoginTab({ store, onChanged }: { store: Store; onChanged: (s: Store) =>
           <code className="flex-1 select-all break-all rounded-lg border border-line bg-surface px-3 py-2 text-xs text-success-text">{id}</code>
           <CopyButton text={id} label="Copy Store ID" />
         </div>
-        <p className="text-xs text-fg-muted">ZCS stores only a hash, so the current password cannot be shown. Reset it to share a new one.</p>
+        <p className="text-xs text-fg-muted">ZENV stores only a hash, so the current password cannot be shown. Reset it to share a new one.</p>
         {local && !store.hasPassword && (isBookingStall(store)
           ? <Callout tone="amber">Bookings reach only the {app} app, where the stall checks each payment and accepts. Until the stall can sign in, students&apos; bookings wait.</Callout>
-          : <Callout tone="amber">Stall orders reach only the ZCS Vendor app. Until the stall can sign in, its orders wait and are cancelled after 7 minutes.</Callout>)}
+          : <Callout tone="amber">Stall orders reach only the ZENV Vendor app. Until the stall can sign in, its orders wait and are cancelled after 7 minutes.</Callout>)}
       </section>
 
       <section className="space-y-3">
@@ -407,8 +407,8 @@ function LoginTab({ store, onChanged }: { store: Store; onChanged: (s: Store) =>
           <Toggle
             checked={!!store.isOffline}
             onChange={v => setConfirmManaged(v)}
-            label="Managed by ZCS (no partner app)"
-            description="Orders skip the partner's accept step; the ZCS team / rider handles them. Turn off once the partner uses the app."
+            label="Managed by ZENV (no partner app)"
+            description="Orders skip the partner's accept step; the ZENV team / rider handles them. Turn off once the partner uses the app."
           />
         </section>
       )}
@@ -446,15 +446,15 @@ function LoginTab({ store, onChanged }: { store: Store; onChanged: (s: Store) =>
       )}
       {confirmManaged !== null && (
         <ConfirmModal
-          title={confirmManaged ? 'Manage this store from ZCS?' : 'Hand over to the partner app?'}
-          body={<p>{confirmManaged ? 'New orders will skip the partner accept step and go straight to the kitchen flow handled by the ZCS team and rider.' : 'New orders will wait for the partner to accept them in the ZCS Restaurant app. Make sure they can sign in first.'}</p>}
-          actionLabel={confirmManaged ? 'Yes, ZCS manages it' : 'Yes, partner app'}
+          title={confirmManaged ? 'Manage this store from ZENV?' : 'Hand over to the partner app?'}
+          body={<p>{confirmManaged ? 'New orders will skip the partner accept step and go straight to the kitchen flow handled by the ZENV team and rider.' : 'New orders will wait for the partner to accept them in the ZENV Restaurant app. Make sure they can sign in first.'}</p>}
+          actionLabel={confirmManaged ? 'Yes, ZENV manages it' : 'Yes, partner app'}
           onClose={() => setConfirmManaged(null)}
           onConfirm={async () => {
             const saved = await patchStore(id, { isOffline: confirmManaged });
             onChanged(saved);
             setConfirmManaged(null);
-            toast.success(confirmManaged ? 'Store is now managed by ZCS.' : 'Store now uses the partner app.');
+            toast.success(confirmManaged ? 'Store is now managed by ZENV.' : 'Store now uses the partner app.');
           }}
         />
       )}
@@ -463,7 +463,7 @@ function LoginTab({ store, onChanged }: { store: Store; onChanged: (s: Store) =>
 }
 
 // ─── Promote ─────────────────────────────────────────────────────────────────
-const BADGES = ['Featured', 'Bestseller', 'New on ZCS', 'Campus favourite', 'Late-night'];
+const BADGES = ['Featured', 'Bestseller', 'New on ZENV', 'Campus favourite', 'Late-night'];
 const toLocalInput = (iso?: string | null) => {
   if (!iso) return '';
   const d = new Date(iso);
@@ -596,7 +596,7 @@ const ACTION_TEXT: Record<string, string> = {
 const FIELD_TEXT: Record<string, string> = {
   isActive: 'visibility', isOpenNow: 'open/paused', operatingHours: 'hours', imageUrl: 'cover photo', brandTheme: 'brand kit',
   isFeatured: 'promotion', featuredBadge: 'badge', promoOffer: 'offer', featuredUntil: 'promotion end', whatsappNumber: 'WhatsApp',
-  deliveryTime: 'delivery time', commissionRate: 'commission', commissionType: 'commission type', isOffline: 'managed by ZCS',
+  deliveryTime: 'delivery time', commissionRate: 'commission', commissionType: 'commission type', isOffline: 'managed by ZENV',
   stallDescription: 'description', vendorType: 'type', lat: 'map pin', lon: 'map pin',
   phone: 'login phone', packagingFee: 'packaging fee', minOrderValue: 'minimum order', logoUrl: 'logo', tags: 'tags',
   location: 'address', campus: 'campus', zone: 'zone', name: 'name',

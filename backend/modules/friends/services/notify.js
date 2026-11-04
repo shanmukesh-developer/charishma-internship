@@ -30,7 +30,7 @@ const TYPES = {
   TASK_COMPLETED: { pref: 'tasks', sub: 'tasks', title: 'Task completed', generic: 'A task was confirmed as completed.' },
   TASK_REVIEW: { pref: 'tasks', sub: 'tasks', title: 'New review', generic: 'You received a task review.' },
   TASK_CANCELLED: { pref: 'tasks', sub: 'tasks', title: 'Task cancelled', generic: 'A task you are part of was cancelled.' },
-  CONNECT_MATCH: { pref: 'connect', sub: 'connect', title: 'ZCS Friends', generic: 'You have a new match.', alwaysGeneric: true },
+  CONNECT_MATCH: { pref: 'connect', sub: 'connect', title: 'ZENV Friends', generic: 'You have a new match.', alwaysGeneric: true },
   MOD_OUTCOME: { pref: 'moderation', sub: 'safety', title: 'Friends safety update', generic: 'There is an update on a Friends safety review.', alwaysGeneric: true, mandatory: true },
   APPEAL_DECIDED: { pref: 'moderation', sub: 'safety', title: 'Appeal decided', generic: 'Your appeal has been reviewed.', alwaysGeneric: true, mandatory: true },
 };

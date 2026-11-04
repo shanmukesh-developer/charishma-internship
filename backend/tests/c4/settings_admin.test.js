@@ -25,7 +25,7 @@ test('GET returns defaults (existing operator + contact, empty officer) with a m
   const res = await H.api('GET', '/api/admin/legal-settings', { token: adminU.token });
   assert.strictEqual(res.status, 200);
   const s = res.body.settings;
-  assert.strictEqual(s.businessName, 'ZCS');
+  assert.strictEqual(s.businessName, 'ZENV');
   assert.strictEqual(s.operatorName, 'Shanmukesh Kunjam');
   assert.strictEqual(s.contactEmail, 'projectshanmukh@gmail.com');
   assert.deepStrictEqual(s.grievanceOfficer, { name: '', designation: '', email: '', phone: '', address: '' });
@@ -114,7 +114,7 @@ test('public /api/config/legal: version, date and absolute page links', async ()
 test('a junk stored value falls back to safe defaults (never breaks pages)', async () => {
   await H.setLegal({ businessName: 42, contactEmail: 'bad', policyVersion: '<x>', effectiveDate: 'no', grievanceOfficer: 'x' });
   const s = await H.r('utils/legalSettings').getSettings({ fresh: true });
-  assert.strictEqual(s.businessName, 'ZCS');
+  assert.strictEqual(s.businessName, 'ZENV');
   assert.strictEqual(s.contactEmail, 'projectshanmukh@gmail.com');
   assert.strictEqual(s.policyVersion, '1.0');
   assert.strictEqual(s.effectiveDate, '2026-10-18');

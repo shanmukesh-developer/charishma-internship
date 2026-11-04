@@ -395,10 +395,10 @@ function StoresScreen() {
                 <span className="truncate font-medium text-fg hover:underline">{store.name}</span>
                 <Chip tone={STATUS_TONE[status]} dot title={status === 'closed' && store.closedReason ? store.closedReason : STATUS_META[status].help}>{status === 'closed' && store.isOpenNow === false ? 'Paused' : STATUS_META[status].label}</Chip>
                 {store.isFeatured && <Chip tone="amber">{store.featuredBadge || 'Featured'}</Chip>}
-                {store.isOffline && !local && <Chip title="No partner app; ZCS handles orders">Managed</Chip>}
+                {store.isOffline && !local && <Chip title="No partner app; ZENV handles orders">Managed</Chip>}
                 {local && (isBookingStall(store)
                   ? <Chip tone="sky" title="In-Campus Booking: students pre-book and collect at the stall, paying it by UPI">Pickup, UPI</Chip>
-                  : <Chip tone="sky" title="Customers pay the stall cash; the stall delivers with ZCS Vendor">Stall, cash</Chip>)}
+                  : <Chip tone="sky" title="Customers pay the stall cash; the stall delivers with ZENV Vendor">Stall, cash</Chip>)}
                 <FssaiChip store={store} />
                 {!store.hasPassword && !(store.isOffline && !local) && <Chip tone="amber" title={local ? `The stall cannot see its orders until it can sign in to ${partnerAppName(store)}` : 'The partner cannot sign in to accept orders'}>No login</Chip>}
               </span>

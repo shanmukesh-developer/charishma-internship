@@ -36,7 +36,7 @@ const campusLabel = (address) => {
   if (/\bsrm\b/.test(a)) return 'SRM AP campus';
   if (/\bvit\b/.test(a)) return 'VIT AP campus';
   if (a.includes('amrita')) return 'Amrita campus';
-  return 'Delivered by a ZCS rider';
+  return 'Delivered by a ZENV rider';
 };
 
 module.exports = { stripStoreSecrets, stripItemSecrets, applyFeaturedExpiry, STORE_SECRET_FIELDS, STORE_PRIVATE_FIELDS, ITEM_SECRET_FIELDS, customerFirstName, campusLabel };

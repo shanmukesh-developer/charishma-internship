@@ -200,7 +200,7 @@ router.post('/', protect, async (req, res) => {
       if (!isUuid(restaurantId)) return res.status(400).json({ code: 'REVIEW_NEEDS_STORE', message: 'Pick the place you are reviewing.' });
       const { getRestaurantModel } = require('../models/Restaurant');
       const store = await getRestaurantModel().findByPk(String(restaurantId), { attributes: ['id', 'name'] });
-      if (!store) return res.status(404).json({ code: 'STORE_NOT_FOUND', message: 'That place is not on ZCS.' });
+      if (!store) return res.status(404).json({ code: 'STORE_NOT_FOUND', message: 'That place is not on ZENV.' });
       const { getOrderModel } = require('../models/Order');
       const delivered = await getOrderModel().findAll({
         where: { userId: req.user.id, restaurantId: String(store.id), status: 'Delivered' },
@@ -249,7 +249,7 @@ router.post('/', protect, async (req, res) => {
     try {
       newPost = await CommunityPost.create({
         userId: req.user.id,
-        userName: author?.name || req.user.name || 'ZCS member',
+        userName: author?.name || req.user.name || 'ZENV member',
         // Inline base64 avatars are never copied into posts: the short avatar URL is used instead.
         userAvatar: author ? require('../modules/campus/campusHelpers').avatarUrlFor(req, { id: req.user.id, profileImage: author.profileImage }) : null,
         content: typeof textFilter.values.content === 'string' ? textFilter.values.content : '',

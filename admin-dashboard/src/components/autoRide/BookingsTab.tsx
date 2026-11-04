@@ -74,7 +74,7 @@ function BookingDetail({ b, onChanged }: { b: Booking; onChanged: () => void }) 
     setMsg(null);
     try {
       const r = await autoRideApi.retryRefund(b.id);
-      setMsg(r.booking.status === 'REFUNDED' ? { ok: true, text: `Refunded ${inr(r.refunded)} to the passenger's ZCS Wallet.` } : { ok: false, text: `Refund still pending (attempt ${r.booking.refundAttempts}). Try again later.` });
+      setMsg(r.booking.status === 'REFUNDED' ? { ok: true, text: `Refunded ${inr(r.refunded)} to the passenger's ZENV Wallet.` } : { ok: false, text: `Refund still pending (attempt ${r.booking.refundAttempts}). Try again later.` });
       onChanged();
     } catch (e) { setMsg({ ok: false, text: errText(e, 'Could not retry the refund.') }); } finally { setBusy(false); }
   };
@@ -110,8 +110,8 @@ function BookingDetail({ b, onChanged }: { b: Booking; onChanged: () => void }) 
           body={<>
             <p>The seat{b.seatCount === 1 ? ' is' : 's are'} released and the passenger and driver are notified.</p>
             {b.status === 'HELD' ? <p>This is only a hold: nothing was paid.</p>
-              : walletPaid ? <p className="font-semibold text-success-text">{inr(b.walletDebited || b.amount)} is refunded in full to the passenger&apos;s ZCS Wallet.</p>
-                : <p>Cash booking: nothing was paid to ZCS, nothing to refund.</p>}
+              : walletPaid ? <p className="font-semibold text-success-text">{inr(b.walletDebited || b.amount)} is refunded in full to the passenger&apos;s ZENV Wallet.</p>
+                : <p>Cash booking: nothing was paid to ZENV, nothing to refund.</p>}
           </>}
           onCancel={() => setCancel(false)}
           onConfirm={async (reason) => {

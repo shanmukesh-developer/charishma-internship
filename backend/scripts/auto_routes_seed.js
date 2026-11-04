@@ -72,7 +72,7 @@ const runAutoRoutesSeed = async ({ dataPath = DATA_PATH } = {}) => {
       await GlobalConfig.create({
         key: marker,
         value: { doneAt: new Date().toISOString(), ...result },
-        description: `ZCS Auto stands seeded (scripts/auto_routes_seed.js, ${path.basename(dataPath)}); delete to re-run.`,
+        description: `ZENV Auto stands seeded (scripts/auto_routes_seed.js, ${path.basename(dataPath)}); delete to re-run.`,
       }, { transaction: t });
     });
   } catch (err) {

@@ -124,7 +124,7 @@ const requestDeletion = async (req, res) => {
   notify.admin('pg_owner', 'updated', o.id);
   res.json({
     owner: S.ownerSelf(o, await listingBriefs(o.id)),
-    message: 'Request sent. The ZCS team will confirm it with you and close the account within 7 days. Booking and rent records are kept as the law requires.',
+    message: 'Request sent. The ZENV team will confirm it with you and close the account within 7 days. Booking and rent records are kept as the law requires.',
   });
 };
 

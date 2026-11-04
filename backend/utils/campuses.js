@@ -116,7 +116,7 @@ const orderingCheck = async (campusKey) => {
   const status = (await getStatuses())[campusKey];
   if (status === 'open') return { ok: true };
   const label = labelOf(campusKey);
-  if (status === 'soon') return { ok: false, code: 'CAMPUS_SOON', message: `ZCS starts at ${label} soon. We will let you know when ordering opens there.` };
+  if (status === 'soon') return { ok: false, code: 'CAMPUS_SOON', message: `ZENV starts at ${label} soon. We will let you know when ordering opens there.` };
   return { ok: false, code: 'CAMPUS_PAUSED', message: `Ordering at ${label} is paused for now. Please check back a little later.` };
 };
 

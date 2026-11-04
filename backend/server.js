@@ -247,7 +247,7 @@ app.use(cors({
       callback(null, true);
     } else {
       // 403 (not a 500 "server error") for a refused browser origin.
-      const err = new Error('This origin is not allowed to call the ZCS API.');
+      const err = new Error('This origin is not allowed to call the ZENV API.');
       err.status = 403;
       err.code = 'CORS_REFUSED';
       callback(err);
@@ -854,7 +854,7 @@ const initializeApp = async () => {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ZCS Secure Auth Gateway</title>
+  <title>ZENV Secure Auth Gateway</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -1052,7 +1052,7 @@ const initializeApp = async () => {
       <div class="logo-container">
         ✨
       </div>
-      <h1>ZCS <span>SECURE</span></h1>
+      <h1>ZENV <span>SECURE</span></h1>
       <p id="subtitle" class="subtitle">Authenticating session...</p>
     </div>
 
@@ -1269,7 +1269,7 @@ const initializeApp = async () => {
         // Embedded in a web page (iframe): hand the result to the parent window only. Never display tokens.
         // frame-ancestors (CSP above) already limits who can embed this page; also address the
         // message to the embedding page's own origin when the browser tells us what it is.
-        // Never '*': only ZCS's own origins (the same list as frame-ancestors) receive it.
+        // Never '*': only ZENV's own origins (the same list as frame-ancestors) receive it.
         try {
           if (window.parent && window.parent !== window) {
             var allowed = ${JSON.stringify(PRODUCTION_ORIGINS)}.concat([location.origin]);
@@ -1387,6 +1387,13 @@ const initializeApp = async () => {
     inBootQueue(() => require('./scripts/campus_off_until_launch_v1').runCampusOffOnce())
       .then((r) => console.log('🎓 [CAMPUS_OFF_ONCE]', JSON.stringify(r)))
       .catch((err) => console.warn('⚠️ [CAMPUS_OFF_ONCE] failed:', err.message));
+    // 🏷️ Company renamed ZCS -> ZENV (owner, 4 Nov 2026), once (LEGAL_BUSINESS_NAME_ZENV_V1_DONE): saved legal
+    // settings whose business name is exactly 'ZCS' get 'ZENV' (the /legal pages, receipts and the apps read it);
+    // nothing else in them changes. scripts/legal_business_name_zenv_v1.js; DISABLE_LEGAL_BUSINESS_NAME_ZENV=true
+    // switches it off.
+    inBootQueue(() => require('./scripts/legal_business_name_zenv_v1').runLegalBusinessNameZenv())
+      .then((r) => console.log('🏷️ [LEGAL_BUSINESS_NAME_ZENV]', JSON.stringify(r)))
+      .catch((err) => console.warn('⚠️ [LEGAL_BUSINESS_NAME_ZENV] failed:', err.message));
 
 
 
@@ -1490,7 +1497,7 @@ const initializeApp = async () => {
         const { getUserModel } = require('./models/User');
         const User = getUserModel();
         if (User && !(await User.findOne({ where: { phone: adminPhone } }))) {
-          await User.create({ name: process.env.ADMIN_NAME || 'ZCS Admin', phone: adminPhone, password: adminPassword, role: 'admin' });
+          await User.create({ name: process.env.ADMIN_NAME || 'ZENV Admin', phone: adminPhone, password: adminPassword, role: 'admin' });
           console.log('👤 [ADMIN_BOOTSTRAP] Admin account created from ADMIN_PHONE.');
         }
       } else if (process.env.ADMIN_PHONE || process.env.ADMIN_PASSWORD) {
@@ -1667,7 +1674,7 @@ const initializeApp = async () => {
 
     // Basic Health Check
     app.get('/', (req, res) => {
-      res.status(200).json({ status: 'success', message: 'ZCS API (PostgreSQL) is running...', version: '2.0.1' });
+      res.status(200).json({ status: 'success', message: 'ZENV API (PostgreSQL) is running...', version: '2.0.1' });
     });
 
     // Unknown API routes get a JSON 404 (never an HTML error page), then the global error handler
@@ -1742,7 +1749,7 @@ const initializeApp = async () => {
               if (tokens.length) {
                 const { RIDER_PUSH_ANDROID } = require('./utils/riderDispatch');
                 await require('./utils/push').sendPushToTokens(tokens, "You're off duty now",
-                  'ZCS lost contact with your phone for a while, so you were taken off duty. Open the app and go online to get orders again.',
+                  'ZENV lost contact with your phone for a while, so you were taken off duty. Open the app and go online to get orders again.',
                   { type: 'OFF_DUTY' }, { persist: false, android: RIDER_PUSH_ANDROID });
               }
             } catch (pushErr) {
@@ -2159,7 +2166,7 @@ const initializeApp = async () => {
         } catch (e) {
           console.warn('[SOCKET_NAME_LOOKUP_WARN]', e.message);
         }
-        socket.data.displayName = name || (socketRole() === 'rider' ? 'Your rider' : socketRole() === 'admin' ? 'ZCS Support' : 'Customer');
+        socket.data.displayName = name || (socketRole() === 'rider' ? 'Your rider' : socketRole() === 'admin' ? 'ZENV Support' : 'Customer');
         return socket.data.displayName;
       };
 
@@ -2195,12 +2202,12 @@ const initializeApp = async () => {
       const afterDarkClosed = () => {
         // C2: admin kill switch (cached GlobalConfig AFTER_DARK_ENABLED) closes it whatever the hour.
         if (!require('./utils/featureSwitches').peek('afterDark')) {
-          socket.emit('after_dark_closed', { open: false, enabled: false, message: 'ZCS After Dark is paused right now.' });
+          socket.emit('after_dark_closed', { open: false, enabled: false, message: 'ZENV After Dark is paused right now.' });
           return true;
         }
         if (isAfterDarkNow()) return false;
         const s = afterDarkStatus();
-        socket.emit('after_dark_closed', { ...s, message: `ZCS After Dark opens at ${s.opensAt} IST.` });
+        socket.emit('after_dark_closed', { ...s, message: `ZENV After Dark opens at ${s.opensAt} IST.` });
         return true;
       };
 
@@ -2372,7 +2379,7 @@ const initializeApp = async () => {
                   const { sendPushToTokens } = require('./utils/push');
                   await sendPushToTokens(
                     receiver.fcmTokens,
-                    `📞 Incoming ZCS Call`,
+                    `📞 Incoming ZENV Call`,
                     `${userName} is calling you...`,
                     {
                       type: 'call',

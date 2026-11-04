@@ -114,7 +114,7 @@ const nameCache = async (rows) => {
   return names;
 };
 
-const DEFAULT_NAMES = { customer: 'Customer', rider: 'Your rider', admin: 'ZCS Support' };
+const DEFAULT_NAMES = { customer: 'Customer', rider: 'Your rider', admin: 'ZENV Support' };
 
 /** Oldest first, in the same shape as the live 'receiveMessage' event (+ id, senderType). */
 const listOrderMessages = async (orderId, { limit = 100, before = null } = {}) => {
@@ -132,7 +132,7 @@ const listOrderMessages = async (orderId, { limit = 100, before = null } = {}) =
     senderType: r.senderType,
     senderRole: r.senderType,
     senderId: r.senderId,
-    sender: r.senderType === 'admin' ? DEFAULT_NAMES.admin : names.get(`${r.senderType}:${r.senderId}`) || DEFAULT_NAMES[r.senderType] || 'ZCS',
+    sender: r.senderType === 'admin' ? DEFAULT_NAMES.admin : names.get(`${r.senderType}:${r.senderId}`) || DEFAULT_NAMES[r.senderType] || 'ZENV',
     message: r.text,
     timestamp: r.createdAt,
   }));

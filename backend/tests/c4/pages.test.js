@@ -57,7 +57,7 @@ test('no fake grievance officer by default: placeholder + contact email', async 
 
 test('settings changes are reflected (business, officer, address, jurisdiction, version, date) and escaped', async () => {
   await H.setLegal({
-    businessName: 'Zenvy Test <b>Co</b>', operatorName: 'Op Name', contactEmail: 'help@example.test',
+    businessName: 'ZENV Test <b>Co</b>', operatorName: 'Op Name', contactEmail: 'help@example.test',
     registeredAddress: 'Line 1\nLine 2', jurisdictionCity: 'Testpur',
     grievanceOfficer: { name: 'Officer Jane', designation: 'Grievance Officer', email: 'grievance@example.test', phone: '+91 90000 00000', address: '' },
     effectiveDate: '2026-11-01', policyVersion: '2.0',
@@ -72,7 +72,7 @@ test('settings changes are reflected (business, officer, address, jurisdiction, 
   assert.ok(t.includes('Version 2.0'));
   assert.ok(t.includes('Effective 1 November 2026'));
   assert.ok(!g.text.includes('<b>Co</b>'), 'business name is HTML-escaped');
-  assert.ok(g.text.includes('Zenvy Test &lt;b&gt;Co&lt;/b&gt;'));
+  assert.ok(g.text.includes('ZENV Test &lt;b&gt;Co&lt;/b&gt;'));
   const terms = H.text((await H.api('GET', '/legal/terms')).text);
   assert.ok(terms.includes('the courts at Testpur, India'));
   assert.ok(terms.includes('operated by Op Name'));

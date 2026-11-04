@@ -338,7 +338,7 @@ const acceptPrivate = async (req, res) => {
     throw fail(409, 'SEATS_ALREADY_BOOKED', 'Seats on this auto were booked by other passengers, so it can no longer be booked as a full auto.', { request: S.privateRequestDriver(r.request, null) });
   }
   if (r.paymentFailed) {
-    notify.toCustomers([r.request.userId], 'Full-auto request declined', 'Your ZCS Wallet balance was not enough. Nothing was charged.', { type: 'AUTO_PRIVATE_DECLINED', requestId: r.request.id });
+    notify.toCustomers([r.request.userId], 'Full-auto request declined', 'Your ZENV Wallet balance was not enough. Nothing was charged.', { type: 'AUTO_PRIVATE_DECLINED', requestId: r.request.id });
     notify.nudgeCustomers([r.request.userId], 'private_request', r.request.id, r.request.status);
     throw fail(409, 'PAYMENT_FAILED', 'The passenger\'s wallet balance was not enough. The request was declined.');
   }

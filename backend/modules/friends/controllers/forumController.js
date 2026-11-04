@@ -285,7 +285,7 @@ const loadResponses = async (req, reviewIds, viewerId) => {
     body: r.body,
     responderRole: r.responderRole,
     responder: r.responderRole === 'admin'
-      ? { name: 'ZCS Friends team', official: true }
+      ? { name: 'ZENV Friends team', official: true }
       : { ...(ids.get(String(r.responderId)) || { name: 'Faculty' }), official: true },
     createdAt: r.createdAt,
     editedAt: r.editedAt,
@@ -1680,15 +1680,15 @@ const guardModReversal = async (actor, keys, action, status) => {
   if (actor.role !== 'community_mod' || !['approve', 'restore'].includes(action)) return;
   const where = { [Op.or]: keys.map((k) => ({ targetType: k.targetType, targetId: k.targetId })) };
   const critical = await M('FriendsReport').count({ where: { ...where, status: { [Op.in]: OPEN }, severity: 'critical' } });
-  if (critical) throw fail(403, 'ADMIN_ONLY', 'Reports about threats or self-harm are reviewed by the ZCS team.');
+  if (critical) throw fail(403, 'ADMIN_ONLY', 'Reports about threats or self-harm are reviewed by the ZENV team.');
   if (action !== 'restore') return;
-  if (status === 'hidden') throw fail(403, 'ADMIN_ONLY', 'Hidden content can only be restored by the ZCS team.');
+  if (status === 'hidden') throw fail(403, 'ADMIN_ONLY', 'Hidden content can only be restored by the ZENV team.');
   const last = await M('FriendsModAction').findOne({
     where: { ...where, action: { [Op.in]: ['remove', 'hide'] } },
     order: [['createdAt', 'DESC'], ['id', 'DESC']],
     attributes: ['actorRole'],
   });
-  if (last && ['admin', 'system'].includes(last.actorRole)) throw fail(403, 'ADMIN_ONLY', 'This was taken down by the ZCS team. Only an admin can restore it.');
+  if (last && ['admin', 'system'].includes(last.actorRole)) throw fail(403, 'ADMIN_ONLY', 'This was taken down by the ZENV team. Only an admin can restore it.');
 };
 
 /**
@@ -1708,7 +1708,7 @@ const moderatePost = async (actor, post, action, reason) => {
         if (answered) throw fail(403, 'CONFLICT_OF_INTEREST', 'You replied to this review, so you cannot moderate it.');
         const target = await M('FriendsReviewTarget').findByPk(rv.targetId);
         if (target && target.kind === 'professor' && ['approve', 'restore'].includes(action)) {
-          throw fail(403, 'ADMIN_ONLY', 'Faculty reviews under review are decided by the ZCS team.');
+          throw fail(403, 'ADMIN_ONLY', 'Faculty reviews under review are decided by the ZENV team.');
         }
       }
     }
@@ -1933,7 +1933,7 @@ const modDismiss = async (req, res) => {
   if (!info || !communities.includes(info.communityId)) throw fail(403, 'NOT_MODERATOR', 'Only moderators of this community can do that.');
   if (info.authorId === String(me)) throw fail(403, 'CONFLICT_OF_INTEREST', 'This report is about your own content.');
   const open = await M('FriendsReport').findAll({ where: { targetType: report.targetType, targetId: report.targetId, status: { [Op.in]: OPEN } }, attributes: ['severity'] });
-  if (open.some((r) => r.severity === 'critical')) throw fail(403, 'ADMIN_ONLY', 'Reports about threats or self-harm are reviewed by the ZCS team.');
+  if (open.some((r) => r.severity === 'critical')) throw fail(403, 'ADMIN_ONLY', 'Reports about threats or self-harm are reviewed by the ZENV team.');
   const reason = modReason(req);
   limiter.enforce(me, 'forum_mod');
   const row = await audit.record({ actorId: me, actorRole: 'community_mod', action: 'dismiss', targetType: report.targetType, targetId: report.targetId, communityId: info.communityId, reportId: report.id, reason });
@@ -1963,7 +1963,7 @@ const modLogPayload = async (req, communityId) => {
       id: a.id,
       action: a.action,
       actorRole: a.actorRole,
-      moderator: a.actorRole === 'community_mod' ? (ids.get(String(a.actorId)) || null) : { name: a.actorRole === 'admin' ? 'ZCS Friends team' : 'Automatic check' },
+      moderator: a.actorRole === 'community_mod' ? (ids.get(String(a.actorId)) || null) : { name: a.actorRole === 'admin' ? 'ZENV Friends team' : 'Automatic check' },
       targetType: a.targetType,
       targetId: a.targetId,
       reason: a.reason,

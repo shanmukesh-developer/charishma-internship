@@ -173,9 +173,9 @@ const listStalls = async ({ q = '', category = '', campus = '', college = '' } =
 /** One bookable stall + its menu. 404 when the stall does not take bookings. */
 const getStallWithMenu = async (id) => {
   const { Restaurant, MenuItem } = models();
-  if (!require('./util').isUuid(String(id || ''))) throw fail(404, 'STALL_NOT_FOUND', 'This stall is not taking bookings on ZCS.');
+  if (!require('./util').isUuid(String(id || ''))) throw fail(404, 'STALL_NOT_FOUND', 'This stall is not taking bookings on ZENV.');
   const store = await Restaurant.findOne({ where: { id, ...(await listWhere()) }, attributes: { include: imageColumns(), exclude: ['imageUrl', 'logoUrl'] } });
-  if (!store) throw fail(404, 'STALL_NOT_FOUND', 'This stall is not taking bookings on ZCS.');
+  if (!store) throw fail(404, 'STALL_NOT_FOUND', 'This stall is not taking bookings on ZENV.');
   const rows = await MenuItem.findAll({ where: { restaurantId: store.id }, attributes: { include: itemImageColumns(), exclude: ['imageUrl', 'customCommission', 'ownerName', 'ownerPhone'] } });
   const menu = require('../../../utils/menuSort').sortMenuItems(rows).map(serializeItem);
   const ratings = await require('../../../utils/storeRatings').realRatingsFor([store.id]);

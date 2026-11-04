@@ -245,7 +245,7 @@ const updateReport = async (req, res) => {
   await row.update({ status, adminNote: note, ...(closed ? { resolvedBy: req.user.id, resolvedAt: new Date() } : { resolvedBy: null, resolvedAt: null }) });
   await audit(req, row.id, 'RENTAL_REPORT_STATUS', { status, bookingId: row.bookingId });
   if (closed) {
-    notify.push(row.reporterId, 'Your rental report was reviewed', note ? `ZCS team: ${note}` : 'The ZCS team has reviewed your report.', { type: 'RENTAL_REPORT_UPDATE', bookingId: row.bookingId, screen: 'rental_booking' });
+    notify.push(row.reporterId, 'Your rental report was reviewed', note ? `ZENV team: ${note}` : 'The ZENV team has reviewed your report.', { type: 'RENTAL_REPORT_UPDATE', bookingId: row.bookingId, screen: 'rental_booking' });
   }
   notify.admin('rental_report', 'updated', row.id);
   res.json({ report: S.reportAdmin(req, row, {}) });
@@ -299,7 +299,7 @@ const resolveDispute = async (req, res) => {
   await audit(req, row.id, 'RENTAL_CHARGES_DISPUTE_RESOLVED', { outcome, claimed, amount: money(amount), reason, ownerId: row.ownerId, renterId: row.renterId });
   const words = E.wordsFor(row.rentalMode);
   const what = outcome === 'UPHOLD' ? `upheld the charges: ₹${claimed} stands` : outcome === 'VOID' ? 'cancelled the charges: nothing extra is due' : `reduced the charges to ₹${money(amount)}`;
-  notify.booking(row, { to: 'both', title: 'Extra charges dispute resolved', body: `${row.vehicleTitle}: the ZCS team ${what}. Reason: ${reason}`, type: 'RENTAL_CHARGES' });
+  notify.booking(row, { to: 'both', title: 'Extra charges dispute resolved', body: `${row.vehicleTitle}: the ZENV team ${what}. Reason: ${reason}`, type: 'RENTAL_CHARGES' });
   notify.admin('rental_dispute', 'updated', row.id);
   const users = await usersById([row.ownerId, row.renterId]);
   res.json({

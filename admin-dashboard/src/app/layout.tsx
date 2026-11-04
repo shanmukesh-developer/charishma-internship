@@ -15,8 +15,13 @@ const geistSans = localFont({ src: "./fonts/GeistVF.woff", variable: "--font-san
 const geistMono = localFont({ src: "./fonts/GeistMonoVF.woff", variable: "--font-mono", weight: "100 900", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "ZCS Admin",
-  description: "ZCS operations admin: orders, stores, riders, campus services and customers.",
+  title: "ZENV Admin",
+  description: "ZENV operations admin: orders, stores, riders, campus services and customers.",
+  // ZENV logo (owner, 4 Nov 2026), from public/. The old favicon.ico is kept in assets/ (not served).
+  icons: {
+    icon: [{ url: "/zenv-favicon-2026-11-04.png", type: "image/png", sizes: "64x64" }],
+    apple: [{ url: "/zenv-brand-badge-2026-11-04.png", type: "image/png", sizes: "512x512" }],
+  },
 };
 
 export const viewport: Viewport = {

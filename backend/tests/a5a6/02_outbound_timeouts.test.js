@@ -57,7 +57,7 @@ test('axios safety net: a call without its own timeout gives up at OUTBOUND_TIME
 
 test('Brevo mailer: MAIL_TIMEOUT_MS bound -> { ok:false, reason:"timeout" }', async () => {
   process.env.BREVO_API_KEY = 'test-key-not-real';
-  process.env.MAIL_FROM = 'Zenvy <noreply@example.com>';
+  process.env.MAIL_FROM = 'ZENV <noreply@example.com>';
   process.env.MAIL_TIMEOUT_MS = '1000';
   const origFetch = global.fetch;
   // Hanging transport that honours the abort signal (no network).

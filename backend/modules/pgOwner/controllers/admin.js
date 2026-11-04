@@ -138,7 +138,7 @@ const create = async (req, res) => {
   const ls = (await listingsByOwner([o.id])).get(String(o.id)) || [];
   res.status(201).json({
     owner: S.ownerAdmin(o, ls, { fullPhone: true }),
-    message: `Account created. ${name} can sign in to ZCS PG Partner with ${phone} and the temporary password, and must set an own password first.`,
+    message: `Account created. ${name} can sign in to ZENV PG Partner with ${phone} and the temporary password, and must set an own password first.`,
   });
 };
 

@@ -293,7 +293,7 @@ const updateCampusProfile = async (req, res) => {
       if (changingCampus || changingCollegeId) {
         return res.status(400).json({
           code: 'VERIFIED_FIELDS_LOCKED',
-          message: 'Your campus and college ID are locked after verification. Contact ZCS support to change them.'
+          message: 'Your campus and college ID are locked after verification. Contact ZENV support to change them.'
         });
       }
     }
@@ -306,7 +306,7 @@ const updateCampusProfile = async (req, res) => {
         return res.status(400).json({
           code: 'DOB_LOCKED',
           field: 'dob',
-          message: 'Your date of birth is locked. Contact ZCS support if it is wrong.'
+          message: 'Your date of birth is locked. Contact ZENV support if it is wrong.'
         });
       }
     }
@@ -446,7 +446,7 @@ const requestEmailOtp = async (req, res) => {
       attributes: ['id'],
     });
     if (taken) {
-      return res.status(409).json({ code: 'EMAIL_IN_USE', message: 'This college email is already verified on another ZCS account.' });
+      return res.status(409).json({ code: 'EMAIL_IN_USE', message: 'This college email is already verified on another ZENV account.' });
     }
 
     const Verification = getVerificationModel();
@@ -574,7 +574,7 @@ const confirmEmailOtp = async (req, res) => {
       attributes: ['id'],
     });
     if (taken) {
-      return res.status(409).json({ code: 'EMAIL_IN_USE', message: 'This college email is already verified on another ZCS account.' });
+      return res.status(409).json({ code: 'EMAIL_IN_USE', message: 'This college email is already verified on another ZENV account.' });
     }
 
     // Single use: only the request that flips pending -> approved wins.
@@ -613,7 +613,7 @@ const confirmEmailOtp = async (req, res) => {
     out.hasIdCard = !!out.idCardImageUrl;
     out.idCardImageUrl = null;
     res.json({
-      message: 'You are verified! Welcome to ZCS Campus.',
+      message: 'You are verified! Welcome to ZENV Campus.',
       verificationStatus: 'verified',
       pointsAwarded: alreadyVerified ? 0 : VERIFY_REWARD_POINTS,
       profile: out,
@@ -814,7 +814,7 @@ const reviewVerification = async (req, res) => {
         reviewNotes: action === 'reject' ? record.reviewNotes : null,
       },
       action === 'approve'
-        ? { title: 'You are verified on ZCS Campus', body: 'Your student ID was approved. Welcome to ZCS Campus!' }
+        ? { title: 'You are verified on ZENV Campus', body: 'Your student ID was approved. Welcome to ZENV Campus!' }
         : profile.verificationStatus === 'verified'
         ? null // already verified another way: an old request's rejection is not news
         : { title: 'Your ID card needs another look', body: record.reviewNotes ? `Reason: ${record.reviewNotes.replace(/[.!\s]+$/, '')}. Please upload a clearer photo.` : 'Please upload a clearer photo of your student ID card.' }

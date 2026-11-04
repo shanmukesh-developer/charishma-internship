@@ -40,7 +40,7 @@ export async function upsertStoreBanner(store: Store, badge: string, offer: stri
     tagline: badge || 'Featured',
     title1: store.name.toUpperCase(),
     title2: offer || vendorLabel(store.vendorType),
-    description: `Order from ${store.name} on ZCS.`,
+    description: `Order from ${store.name} on ZENV.`,
     buttonText: 'ORDER NOW',
     redirectUrl,
     isActive: true,

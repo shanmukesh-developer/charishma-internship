@@ -72,18 +72,18 @@ const captureIo = (req) => {
 const SETTINGS_KEY = 'friends.connect';
 
 const DEFAULT_POLICY = [
-  'ZCS Connect — privacy notice',
+  'ZENV Connect — privacy notice',
   '',
   'What Connect is: an optional, 18+ way to meet verified students of your own campus for dating, friendship, study or events. It is off until you turn it on, and you can pause or delete it at any time.',
   '',
   'What we collect for Connect: the Connect profile you write (first name, bio, interests, what you are looking for, which years and branches you hide from), the photos you add, your likes and passes, your matches and Connect chats, your consent records, and — for the selfie check — one selfie taken while doing a random gesture.',
-  'What we reuse from your ZCS account: your college verification, campus, year and branch (shown only if you allow it) and your date of birth, from which we show your age in whole years. We never use or show your location.',
+  'What we reuse from your ZENV account: your college verification, campus, year and branch (shown only if you allow it) and your date of birth, from which we show your age in whole years. We never use or show your location.',
   '',
   'Why: only to show your profile to eligible students of your campus, to make matches when two people like each other, to let matches chat, and to keep Connect safe (age and liveness checks, reports, moderation). We do not sell your data, use it for ads, or show it outside Connect.',
   '',
-  'Who sees what: other eligible Connect users on your campus see your Connect profile and only the photos a ZCS admin has approved. They never see your full name, phone number, email, room or account details. Photos are served through private links that expire within an hour. ZCS admins can see Connect data only to review photos, selfie checks and reports, and every such access is logged.',
+  'Who sees what: other eligible Connect users on your campus see your Connect profile and only the photos a ZENV admin has approved. They never see your full name, phone number, email, room or account details. Photos are served through private links that expire within an hour. ZENV admins can see Connect data only to review photos, selfie checks and reports, and every such access is logged.',
   '',
-  'Selfie check: the selfie is used only to confirm that a real person matching your photos made the profile. It is viewed by a ZCS admin and deleted as soon as they decide (or after 30 days if it was never reviewed). We do not build a face template.',
+  'Selfie check: the selfie is used only to confirm that a real person matching your photos made the profile. It is viewed by a ZENV admin and deleted as soon as they decide (or after 30 days if it was never reviewed). We do not build a face template.',
   '',
   'How long we keep it: your Connect profile, photos, likes, matches and chats are deleted when you delete Connect. Chats of ended matches are deleted 30 days after the match ended. Reports you or others filed keep a short text copy as evidence for up to 180 days. A record that you consented and later withdrew is kept as proof of consent.',
   '',
@@ -91,7 +91,7 @@ const DEFAULT_POLICY = [
   '',
   'Safety: never share your phone number, address or money details with someone you have not met. Meet in public places on campus. Report anyone who makes you uncomfortable; blocking someone ends the match and they can never contact you through Connect again.',
   '',
-  'Grievances: use Report, or write to the ZCS team from the app\'s help section. This notice may change; if a change needs your consent again, Connect will ask you before you can continue.',
+  'Grievances: use Report, or write to the ZENV team from the app\'s help section. This notice may change; if a change needs your consent again, Connect will ask you before you can continue.',
 ].join('\n');
 
 const DEFAULT_HELPLINES = [
@@ -104,7 +104,7 @@ const DEFAULT_HELPLINES = [
 const DEFAULT_GUIDANCE = [
   'Only verified students of your campus who turned Connect on can see you.',
   'Nobody can message you unless you both liked each other.',
-  'Keep chats inside ZCS until you trust someone. Never share OTPs, money or intimate photos.',
+  'Keep chats inside ZENV until you trust someone. Never share OTPs, money or intimate photos.',
   'Meet for the first time in a public place on campus and tell a friend where you are.',
   '"No" means no. Unmatching or blocking ends the chat at once, for both of you.',
   'Report anything that feels wrong. Reports are reviewed by people, and the other person is not told who reported them.',
@@ -888,7 +888,7 @@ const livenessStart = async (req, res) => {
   const hasConsent = await M('FriendsConsent').findOne({ where: { userId: me, kind: 'liveness', withdrawnAt: null } });
   if (!hasConsent) {
     if ((req.body || {}).consent !== true) {
-      throw fail(400, 'LIVENESS_CONSENT_REQUIRED', 'Agree to the selfie check first: one selfie, seen only by a ZCS admin, deleted after review.');
+      throw fail(400, 'LIVENESS_CONSENT_REQUIRED', 'Agree to the selfie check first: one selfie, seen only by a ZENV admin, deleted after review.');
     }
     await recordConsent(me, 'liveness', cfgOf(req).connectConsentVersion, req);
   }
@@ -1549,7 +1549,7 @@ const adminPutSettings = async (req, res) => {
     row.changed('value', true);
     await row.save();
   } else {
-    await GC.create({ key: SETTINGS_KEY, value: stored, description: 'ZCS Friends Connect: privacy notice, helplines, Spark prompts' });
+    await GC.create({ key: SETTINGS_KEY, value: stored, description: 'ZENV Friends Connect: privacy notice, helplines, Spark prompts' });
   }
   settingsCache = null;
   await audit.recordSafe({ actorId: req.user.id, actorRole: 'admin', action: 'config_update', targetType: 'connect_settings', meta: { keys: Object.keys(b) } });
