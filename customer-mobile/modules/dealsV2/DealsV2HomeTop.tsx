@@ -80,7 +80,7 @@ export function HomeTop({ sections, onSaved }: { sections?: { key: string; label
 const s = themedSheet(() => ({
   brandRow: { flexDirection: 'row', alignItems: 'center', paddingLeft: 6, paddingRight: 16, paddingTop: 12 },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  brand: { color: '#FFFFFF', fontSize: 21, fontWeight: W.title, letterSpacing: 1.2, lineHeight: 25 },
+  brand: { color: '#FFFFFF', fontSize: 21, fontWeight: W.title, letterSpacing: 0.2, lineHeight: 25 },
   brandSub: { color: 'rgba(235,230,255,0.8)', fontSize: 12.5, marginTop: 1, letterSpacing: 0.2 },
   dot: { position: 'absolute', top: 10, right: 11, width: 9, height: 9, borderRadius: 5, backgroundColor: DV.bellDot, borderWidth: 1.5, borderColor: DV.header[1] },
   lead: { color: '#FFFFFF', fontSize: 14, lineHeight: 20, marginTop: 14, marginBottom: 58, marginHorizontal: 16, maxWidth: 300 },

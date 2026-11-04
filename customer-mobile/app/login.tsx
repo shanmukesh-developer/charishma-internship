@@ -686,7 +686,7 @@ const s = StyleSheet.create({
   brandTitle: {
     fontSize: 24,
     fontWeight: '900',
-    letterSpacing: 3,
+    letterSpacing: 0.6,
     // Web and iOS add the spacing after the last letter too: the same space in front keeps the word centred.
     paddingLeft: Platform.OS === 'android' ? 0 : 3,
     marginTop: 10,

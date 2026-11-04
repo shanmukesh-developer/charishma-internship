@@ -559,7 +559,7 @@ const s = StyleSheet.create({
   },
   brandRow: { flexDirection: 'row', alignItems: 'center' },
   brandText: { marginLeft: 10 },
-  brand: { ...BRAND_FONT, color: '#E2C26E', fontSize: 18, letterSpacing: 3 },
+  brand: { ...BRAND_FONT, color: '#E2C26E', fontSize: 18, letterSpacing: 0.6 },
   skip: {
     paddingHorizontal: 15,
     paddingVertical: 7,

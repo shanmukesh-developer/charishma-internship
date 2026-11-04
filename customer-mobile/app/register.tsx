@@ -829,7 +829,7 @@ const s = StyleSheet.create({
     fontSize: 26, 
     fontWeight: '900', 
     color: '#FFFFFF', 
-    letterSpacing: 3, 
+    letterSpacing: 0.6, 
     // Web and iOS add the spacing after the last letter too: the same space in front keeps the word centred.
     paddingLeft: Platform.OS === 'android' ? 0 : 3,
     marginTop: 10,

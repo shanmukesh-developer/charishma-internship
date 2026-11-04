@@ -53,7 +53,7 @@ export function Hero({ prizes, spinsLeft, signedIn, onWheel }: { prizes: Prize[]
           <View style={{ flex: 1, minWidth: 0, paddingRight: 4 }}>
             <View style={s.eyebrow}>
               <View><ICrown size={13} color={DV.gold} strokeWidth={1.8} /></View>
-              <Text style={s.eyebrowText}>ZenWe REWARDS</Text>
+              <Text style={s.eyebrowText}>ZenWe Rewards</Text>
             </View>
             <Text style={[s.h1, { fontSize: h1, lineHeight: h1 + 5 }]} accessibilityRole="header">Spin and win</Text>
             <Text style={[s.body, { fontSize: compact ? 12.3 : 13 }]}>
@@ -82,7 +82,7 @@ const s = themedSheet(() => ({
   card: { borderRadius: 26, overflow: 'hidden', paddingLeft: 18, paddingRight: 12, paddingTop: 18, paddingBottom: 18, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.24)' },
   row: { flexDirection: 'row', alignItems: 'center' },
   eyebrow: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingHorizontal: 9, height: 24, borderRadius: 12, backgroundColor: 'rgba(16,8,60,0.3)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.3)' },
-  eyebrowText: { color: '#FFFFFF', fontSize: 10.5, fontWeight: W.title, letterSpacing: 1.4 },
+  eyebrowText: { color: '#FFFFFF', fontSize: 12, fontWeight: W.title, letterSpacing: 0.3 },
   h1: { color: '#FFFFFF', fontWeight: W.display, letterSpacing: -0.3, marginTop: 12 },
   body: { color: 'rgba(240,236,255,0.9)', lineHeight: 18, marginTop: 6 },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 7, alignSelf: 'flex-start', height: 40, paddingLeft: 8, paddingRight: 14, borderRadius: 20, backgroundColor: DV.card, marginTop: 14 },

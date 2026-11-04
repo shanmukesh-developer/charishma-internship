@@ -118,7 +118,7 @@ export default function SectionHeader({ topPad, pageW, compact, colors, subtitle
 const st = StyleSheet.create({
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 16 },
   brandBlock: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  brandWord: { color: '#FFFFFF', fontSize: 22, fontWeight: '600', letterSpacing: 1.2, lineHeight: 26 },
+  brandWord: { color: '#FFFFFF', fontSize: 22, fontWeight: '700', letterSpacing: 0.2, lineHeight: 26 },
   brandSub: { color: 'rgba(255,255,255,0.72)', fontSize: 12.5, fontWeight: '400', marginTop: 1, letterSpacing: 0.2 },
   iconRow: { flexDirection: 'row', alignItems: 'center', marginRight: -10 },
   hdrBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },

@@ -1679,7 +1679,7 @@ const s = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#000',
-    letterSpacing: 2,
+    letterSpacing: 0.4,
   },
   zenvyDots: {
     flexDirection: 'row',
