@@ -3,14 +3,14 @@
     "extra": {
       "trustedApiHosts": ["hostelbites-backend-jwmt.onrender.com"]
     },
-    "name": "ZCS PG Partner",
+    "name": "ZENV PG Partner",
     "slug": "zcs-pg-partner",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/zenv-pg-partner-icon-2026-11-04.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/zenv-splash-badge-2026-11-04.png",
       "resizeMode": "contain",
       "backgroundColor": "#0B0A1E"
     },
@@ -20,13 +20,13 @@
     },
     "android": {
       "package": "com.srm.zenvypgowner",
-      "versionCode": 5,
+      "versionCode": 6,
       "allowBackup": false,
       "adaptiveIcon": {
-        "backgroundColor": "#0B0A1E",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundColor": "#FAE04B",
+        "foregroundImage": "./assets/zenv-pg-partner-adaptive-foreground-2026-11-04.png",
+        "backgroundImage": "./assets/zenv-adaptive-backdrop-2026-11-04.png",
+        "monochromeImage": "./assets/zenv-pg-partner-adaptive-monochrome-2026-11-04.png"
       },
       "blockedPermissions": [
         "android.permission.ACCESS_FINE_LOCATION",
@@ -45,22 +45,22 @@
         "./plugins/withReleaseSigning",
         {
           "prefix": "ZENVY_PGOWNER_UPLOAD",
-          "appLabel": "ZCS PG Partner",
+          "appLabel": "ZENV PG Partner",
           "readme": "pg-owner-app/README.md"
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "ZCS PG Partner uses your photos to add pictures of your PG (rooms, bathrooms, mess, building).",
-          "cameraPermission": "ZCS PG Partner uses the camera to take pictures of your PG for the listing.",
+          "photosPermission": "ZENV PG Partner uses your photos to add pictures of your PG (rooms, bathrooms, mess, building).",
+          "cameraPermission": "ZENV PG Partner uses the camera to take pictures of your PG for the listing.",
           "microphonePermission": false
         }
       ],
       [
         "expo-notifications",
         {
-          "color": "#4F46E5",
+          "color": "#EF4F5F",
           "sounds": [
             "./assets/sounds/alert.wav"
           ],

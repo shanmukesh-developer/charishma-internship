@@ -64,7 +64,7 @@ export default function CheckInScreen({ navigation, route }: ScreenProps<'CheckI
       setPin('');
       if (e instanceof ApiError && e.code === 'WRONG_PIN') setAttemptsLeft(Number(e.data?.attemptsLeft ?? 0));
       if (e instanceof ApiError && e.code === 'PIN_LOCKED') setLocked(e.message);
-      setError(e instanceof NetworkError ? 'No internet. The PIN must be checked by ZCS. Try again when online.' : errorMessage(e));
+      setError(e instanceof NetworkError ? 'No internet. The PIN must be checked by ZENV. Try again when online.' : errorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -109,7 +109,7 @@ export default function CheckInScreen({ navigation, route }: ScreenProps<'CheckI
   return (
     <Screen title="Check in" onBack={() => navigation.goBack()} stationary
       footer={<Button label="Check in" icon="checkmark-circle" size="huge" variant="accept" loading={busy} disabled={pin.length !== 4 || code.length < 4 || !!locked} onPress={submit} />}>
-      <Text style={[font.body, { color: color.textSecondary }]}>Ask the passenger for the booking code and 4-digit PIN in their ZCS app.</Text>
+      <Text style={[font.body, { color: color.textSecondary }]}>Ask the passenger for the booking code and 4-digit PIN in their ZENV app.</Text>
       <View style={{ gap: space.xxs }}>
         <Text style={[font.label, { color: color.textSecondary }]}>BOOKING CODE</Text>
         <TextInput value={code} onChangeText={(v) => setCode(cleanCode(v))} autoCapitalize="characters" autoCorrect={false} placeholder="ZA······" placeholderTextColor={color.textMuted}

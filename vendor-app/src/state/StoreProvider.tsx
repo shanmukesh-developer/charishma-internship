@@ -207,7 +207,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (!alive.current) return;
       if (api.isLocalVendorAccount(raw) === false) {
         // A restaurant account (rider-delivered orders) restored into this app: its orders need the other flow.
-        signOut('This is a restaurant account. Please use the ZCS Restaurant app.');
+        signOut('This is a restaurant account. Please use the ZENV Restaurant app.');
         return;
       }
       setStore(s);

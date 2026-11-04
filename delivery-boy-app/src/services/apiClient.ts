@@ -18,7 +18,7 @@ export class ApiError extends Error {
 }
 
 export class NetworkError extends Error {
-  constructor(message = "Can't reach ZCS. Check your internet and try again.") {
+  constructor(message = "Can't reach ZENV. Check your internet and try again.") {
     super(message);
     this.name = 'NetworkError';
   }

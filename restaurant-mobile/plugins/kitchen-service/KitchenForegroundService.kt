@@ -186,9 +186,9 @@ class KitchenForegroundService : Service(), TextToSpeech.OnInitListener {
             )
             val notice = NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
                 .setSmallIcon(R.mipmap.ic_launcher)
-                .setContentTitle("ZCS order alerts paused")
-                .setContentText("Android stopped the background alerts. Open ZCS to keep hearing new orders.")
-                .setStyle(NotificationCompat.BigTextStyle().bigText("Android stopped the background alerts. Open ZCS to keep hearing new orders."))
+                .setContentTitle("ZENV order alerts paused")
+                .setContentText("Android stopped the background alerts. Open ZENV to keep hearing new orders.")
+                .setStyle(NotificationCompat.BigTextStyle().bigText("Android stopped the background alerts. Open ZENV to keep hearing new orders."))
                 .setPriority(NotificationCompat.PRIORITY_MAX)
                 .setCategory(NotificationCompat.CATEGORY_ALARM)
                 .setContentIntent(pendingIntent)
@@ -248,7 +248,7 @@ class KitchenForegroundService : Service(), TextToSpeech.OnInitListener {
 
             val alertNotification = NotificationCompat.Builder(this, if (silent) SILENT_ALERT_CHANNEL_ID else ALERT_CHANNEL_ID)
                 .setSmallIcon(R.mipmap.ic_launcher)
-                .setContentTitle(if (!title.isNullOrEmpty()) title else "🔔 జెన్వీ కొత్త ఆర్డర్! (₹$amount)")
+                .setContentTitle(if (!title.isNullOrEmpty()) title else "🔔 ZENV కొత్త ఆర్డర్! (₹$amount)")
                 .setContentText(if (!body.isNullOrEmpty()) body else "రసీదు నంబర్ #${orderNum}. త్వరగా కిచెన్‌లో తయారు చేయండి!")
                 .setPriority(NotificationCompat.PRIORITY_MAX)
                 .setCategory(NotificationCompat.CATEGORY_CALL)
@@ -293,7 +293,7 @@ class KitchenForegroundService : Service(), TextToSpeech.OnInitListener {
         )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("🛎️ ZCS కిచెన్ ఆన్‌లైన్")
+            .setContentTitle("🛎️ ZENV కిచెన్ ఆన్‌లైన్")
             .setContentText("కొత్త ఆర్డర్ల కోసం వేచి ఉంది • లైవ్ డిస్పాచ్ యాక్టివ్")
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentIntent(pendingIntent)
@@ -308,7 +308,7 @@ class KitchenForegroundService : Service(), TextToSpeech.OnInitListener {
 
             val liveChannel = NotificationChannel(
                 CHANNEL_ID,
-                "ZCS Kitchen Status",
+                "ZENV Kitchen Status",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
                 description = "Shows continuous live kitchen connection status"
@@ -322,7 +322,7 @@ class KitchenForegroundService : Service(), TextToSpeech.OnInitListener {
 
             val alertChannel = NotificationChannel(
                 ALERT_CHANNEL_ID,
-                "ZCS Incoming Orders",
+                "ZENV Incoming Orders",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = "Plays loud Telugu voice and chime on incoming orders"
@@ -335,7 +335,7 @@ class KitchenForegroundService : Service(), TextToSpeech.OnInitListener {
 
             val silentAlertChannel = NotificationChannel(
                 SILENT_ALERT_CHANNEL_ID,
-                "ZCS Incoming Orders (shown with the app ring)",
+                "ZENV Incoming Orders (shown with the app ring)",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = "Shows the new order while the app's own ring plays (no second sound)"

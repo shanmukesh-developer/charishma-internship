@@ -55,9 +55,9 @@ export default function BuildingScreen({ navigation }: ScreenProps<'Building'>) 
               <Text style={[font.h3, { color: color.text }]}>{detail.name}</Text>
               <Text style={[font.small, { color: color.textMuted }]}>{detail.address}</Text>
             </View>
-            {detail.isVerified ? <Badge text="Verified by ZCS" fg={color.ok} bg={color.okTint} icon="shield-checkmark" /> : <Badge text="Not verified yet" fg={color.textMuted} bg={color.surfaceAlt} />}
+            {detail.isVerified ? <Badge text="Verified by ZENV" fg={color.ok} bg={color.okTint} icon="shield-checkmark" /> : <Badge text="Not verified yet" fg={color.textMuted} bg={color.surfaceAlt} />}
           </Card>
-          <Text style={[font.small, { color: color.textMuted }]}>Name, address, rents and verification are managed by the ZCS housing team. Changes below show to students right away.</Text>
+          <Text style={[font.small, { color: color.textMuted }]}>Name, address, rents and verification are managed by the ZENV housing team. Changes below show to students right away.</Text>
           <DescriptionSection key={`d-${detail.id}`} detail={detail} setDetail={setDetail} />
           <AmenitiesSection key={`a-${detail.id}`} detail={detail} setDetail={setDetail} />
           <RulesSection key={`r-${detail.id}`} detail={detail} setDetail={setDetail} />

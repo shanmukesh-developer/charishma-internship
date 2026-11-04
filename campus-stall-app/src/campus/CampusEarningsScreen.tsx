@@ -61,7 +61,7 @@ export default function CampusEarningsScreen({ onBack, onOpen }: { onBack?: () =
           </Card>
           <View style={{ flexDirection: 'row', gap: space.xs }}>
             <Tile label="Orders" value={String(data.orders)} caption={`${data.collected} collected`} />
-            <Tile label={`ZCS commission ${data.commissionPct}%`} value={inr(data.commission)} caption="Recorded per order" />
+            <Tile label={`ZENV commission ${data.commissionPct}%`} value={inr(data.commission)} caption="Recorded per order" />
           </View>
           <Card style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Text style={[font.body, { color: color.textSecondary, flex: 1 }]}>Yours after commission</Text>
@@ -92,7 +92,7 @@ export default function CampusEarningsScreen({ onBack, onOpen }: { onBack?: () =
               </View>
               <View style={{ alignItems: 'flex-end', gap: 4 }}>
                 <Text style={[font.h3, { color: color.text }]}>{inr(b.amount)}</Text>
-                <Text style={[font.small, { color: color.textMuted }]}>- {inr(b.commission)} ZCS</Text>
+                <Text style={[font.small, { color: color.textMuted }]}>- {inr(b.commission)} ZENV</Text>
               </View>
               <StatusBadge status={b.status} />
             </Card>

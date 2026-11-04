@@ -60,7 +60,7 @@ export default function ComplaintsScreen({ navigation }: ScreenProps<'Complaints
       {error && !list ? <ErrorStrip text={error} onRetry={load} busy={loading} /> : null}
       {!list && !error ? <SkeletonCard /> : null}
       {list && !list.length ? (
-        <EmptyState icon="happy-outline" title={tab === 'open' ? 'No open complaints' : 'Nothing resolved yet'} body={tab === 'open' ? 'Tenants can raise a complaint about the PG from the ZCS app. You will be notified.' : undefined} />
+        <EmptyState icon="happy-outline" title={tab === 'open' ? 'No open complaints' : 'Nothing resolved yet'} body={tab === 'open' ? 'Tenants can raise a complaint about the PG from the ZENV app. You will be notified.' : undefined} />
       ) : null}
       {list?.map((c) => {
         const s = STATUS[c.status];

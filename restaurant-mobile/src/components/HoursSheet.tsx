@@ -89,7 +89,7 @@ export function HoursSheet({ visible, onClose, start, end, weekly }: { visible: 
         </Text>
         {weekly ? (
           <Text style={[font.small, { color: color.warning, fontWeight: '700' }]}>
-            ZCS set different hours for some days. Saving here uses these same hours every day.
+            ZENV set different hours for some days. Saving here uses these same hours every day.
           </Text>
         ) : null}
         {err ? <Text style={[font.body, { color: color.alertDark, fontWeight: '700' }]}>{err}</Text> : null}

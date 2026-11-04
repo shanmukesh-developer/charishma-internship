@@ -174,7 +174,7 @@ export default function CampusOrderScreen({ bookingId, onBack }: { bookingId: st
           ) : null}
           <View style={[kit.divider, { marginVertical: space.xs }]} />
           <Row label="Total paid by the student" value={inr(b.amount)} strong />
-          <Row label={`ZCS commission ${b.commissionPct}%`} value={`- ${inr(b.commission)}`} />
+          <Row label={`ZENV commission ${b.commissionPct}%`} value={`- ${inr(b.commission)}`} />
           <Row label="Your amount" value={inr(b.net)} strong />
         </Card>
 

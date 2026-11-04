@@ -35,10 +35,10 @@ export function SosButton() {
 
   return (
     <>
-      <IconBtn icon="alarm-light" label="SOS. Ask ZCS for help" color={C.white} bg={C.red} onPress={show} />
+      <IconBtn icon="alarm-light" label="SOS. Ask ZENV for help" color={C.white} bg={C.red} onPress={show} />
       <Sheet visible={open} onClose={() => setOpen(false)} title="Need help?">
         <Text style={[T.body, { color: C.ink2 }]}>
-          Send SOS to alert the ZCS team with your location. They will call you. If you are in danger, call 112 first.
+          Send SOS to alert the ZENV team with your location. They will call you. If you are in danger, call 112 first.
         </Text>
         <View style={{ gap: S.sm }}>
           <Text style={[T.label, { color: C.ink2 }]}>WHAT HAPPENED? (OPTIONAL)</Text>
@@ -62,7 +62,7 @@ export function SosButton() {
             maxLength={NOTE_MAX}
             multiline
             style={[T.body, styles.input]}
-            accessibilityLabel="SOS note for the ZCS team"
+            accessibilityLabel="SOS note for the ZENV team"
           />
         </View>
         <View style={{ gap: S.md }}>

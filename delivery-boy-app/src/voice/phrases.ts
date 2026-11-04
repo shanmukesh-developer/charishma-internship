@@ -72,7 +72,7 @@ const TE: Record<PhraseKey, Builder> = {
     const amt = spokenAmount(a.amount);
     return amt ? `మీకు ${amt} రూపాయలు టిప్ వచ్చింది.` : 'మీకు టిప్ వచ్చింది.';
   },
-  test: () => 'జెన్వీ వాయిస్ పని చేస్తోంది. మీ అకౌంట్ లో 10 రూపాయలు జమ అయ్యింది.',
+  test: () => 'జెన్వ్ వాయిస్ పని చేస్తోంది. మీ అకౌంట్ లో 10 రూపాయలు జమ అయ్యింది.',
 };
 
 const HI: Record<PhraseKey, Builder> = {
@@ -103,7 +103,7 @@ const HI: Record<PhraseKey, Builder> = {
     const amt = spokenAmount(a.amount);
     return amt ? `आपको ${amt} रुपये की टिप मिली है।` : 'आपको टिप मिली है।';
   },
-  test: () => 'ज़ेनवी वॉइस चालू है। आपके अकाउंट में 10 रुपये जमा हो गए।',
+  test: () => 'ज़ेन्व वॉइस चालू है। आपके अकाउंट में 10 रुपये जमा हो गए।',
 };
 
 const EN: Record<PhraseKey, Builder> = {
@@ -131,7 +131,7 @@ const EN: Record<PhraseKey, Builder> = {
     const amt = spokenAmount(a.amount);
     return amt ? `You received a ${amt} rupees tip.` : 'You received a tip.';
   },
-  test: () => 'ZCS voice is working. 10 rupees credited to your account.',
+  test: () => 'ZENV voice is working. 10 rupees credited to your account.',
 };
 
 const TABLE: Record<VoiceLang, Record<PhraseKey, Builder>> = { te: TE, hi: HI, en: EN };

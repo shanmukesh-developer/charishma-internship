@@ -35,7 +35,7 @@ export function SosButton({ tripId }: { tripId?: string | null }) {
         const description = `SOS from the driver app${note.trim() ? `: ${note.trim()}` : ''}`;
         r = await driverApi.reportIncident({ category: 'SAFETY', description, ...(tripId ? { tripId } : {}) });
       }
-      toast.show(r.message || 'ZCS has been alerted.', 'success');
+      toast.show(r.message || 'ZENV has been alerted.', 'success');
       setOpen(false);
     } catch (e) {
       toast.show(`${errorMessage(e)} Call 112 if you are in danger.`, 'error');
@@ -51,7 +51,7 @@ export function SosButton({ tripId }: { tripId?: string | null }) {
         <View style={{ gap: space.md }}>
           <Button label={`Call ${EMERGENCY_NUMBER} now`} icon="call" variant="reject" size="huge" onPress={() => call(EMERGENCY_NUMBER)} />
           <Text style={[font.body, { color: color.textSecondary }]}>
-            Or alert the ZCS team. They get your name, phone and current trip, with its pickup stand as your last known spot, and will call you back.
+            Or alert the ZENV team. They get your name, phone and current trip, with its pickup stand as your last known spot, and will call you back.
           </Text>
           <View style={styles.chips}>
             {QUICK.map((q) => (
@@ -65,10 +65,10 @@ export function SosButton({ tripId }: { tripId?: string | null }) {
             placeholderTextColor={color.textMuted}
             multiline
             style={[font.body, styles.input]}
-            accessibilityLabel="Note for the ZCS team"
+            accessibilityLabel="Note for the ZENV team"
           />
-          <Button label="Alert ZCS" icon="megaphone" variant="rejectOutline" loading={busy} onPress={send} />
-          <Button label="Call ZCS support" icon="headset" variant="secondary" size="secondary" onPress={() => call(`+${SUPPORT_PHONE}`)} />
+          <Button label="Alert ZENV" icon="megaphone" variant="rejectOutline" loading={busy} onPress={send} />
+          <Button label="Call ZENV support" icon="headset" variant="secondary" size="secondary" onPress={() => call(`+${SUPPORT_PHONE}`)} />
         </View>
       </Sheet>
     </>

@@ -20,7 +20,7 @@ const TYPE_LABEL: Record<FssaiType, string> = { BASIC: 'Basic registration', STA
 const STATUS: Record<FssaiStatus, { text: string; fg: string; bg: string; icon: IconName }> = {
   MISSING: { text: 'MISSING', fg: color.alertDark, bg: color.alertTint, icon: 'alert-circle' },
   EXPIRED: { text: 'EXPIRED', fg: color.alertDark, bg: color.alertTint, icon: 'close-circle' },
-  PENDING: { text: 'WAITING FOR ZCS CHECK', fg: color.warning, bg: color.warningTint, icon: 'time' },
+  PENDING: { text: 'WAITING FOR ZENV CHECK', fg: color.warning, bg: color.warningTint, icon: 'time' },
   VERIFIED: { text: 'VERIFIED', fg: color.openDark, bg: color.openTint, icon: 'checkmark-circle' },
 };
 
@@ -141,7 +141,7 @@ export default function CompliancePanel() {
       const res = await saveCompliance(rid, body);
       setData(res.compliance);
       setEditing(false);
-      toast.show(res.compliance.fssaiStatus === 'PENDING' ? 'Saved. ZCS will check your licence.' : 'Saved.', 'success');
+      toast.show(res.compliance.fssaiStatus === 'PENDING' ? 'Saved. ZENV will check your licence.' : 'Saved.', 'success');
       load();
     } catch (e) {
       const field = e instanceof ApiError ? (e.data?.field as Field | undefined) : undefined;
@@ -189,7 +189,7 @@ export default function CompliancePanel() {
           {data.bankAccountHolder ? <Row label="Account name" value={data.bankAccountHolder} /> : null}
           <Row label="IFSC" value={data.bankIfsc} />
           <Row label="PAN" value={data.hasPan ? data.panMasked || 'On file' : null} />
-          <Text style={[font.small, { color: color.textMuted }]}>To change PAN or payout details, contact ZCS support.</Text>
+          <Text style={[font.small, { color: color.textMuted }]}>To change PAN or payout details, contact ZENV support.</Text>
           {loadErr ? <ErrorStrip text={loadErr} onRetry={load} busy={loading} /> : null}
         </Card>
       ) : null}
@@ -198,7 +198,7 @@ export default function CompliancePanel() {
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: space.xs, paddingBottom: space.md }}>
           <Text style={[font.small, { color: color.textMuted }]}>
             Customers see your FSSAI licence number on your store page and receipts. A new number, type or expiry date
-            shows as “Waiting for ZCS check” until ZCS verifies it.
+            shows as “Waiting for ZENV check” until ZENV verifies it.
           </Text>
 
           <Text style={styles.label}>FSSAI LICENCE NUMBER</Text>
@@ -274,7 +274,7 @@ export default function CompliancePanel() {
           />
           {errors.gstin ? <Text style={styles.err}>{errors.gstin}</Text> : null}
 
-          <Text style={[styles.hint, { marginTop: space.xs }]}>Leave a box empty to remove it. PAN and payout details can only be changed by ZCS support.</Text>
+          <Text style={[styles.hint, { marginTop: space.xs }]}>Leave a box empty to remove it. PAN and payout details can only be changed by ZENV support.</Text>
           {saveErr ? <Text style={styles.err}>{saveErr}</Text> : null}
           <Button label="SAVE" icon="checkmark" variant="accept" onPress={save} loading={saving} style={{ marginTop: space.sm }} />
           <Button label="Cancel" variant="secondary" size="secondary" onPress={() => setEditing(false)} disabled={saving} />

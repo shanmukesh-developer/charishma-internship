@@ -118,7 +118,7 @@ export function EarningsScreen({ navigation }: ScreenProps<'Earnings'>) {
           </Card>
           <Card style={{ gap: 2 }}>
             <KeyValue k="Cash you collected" v={rupees(q.data.cashCollected)} strong />
-            <KeyValue k="ZCS Wallet payments" v={rupees(q.data.walletPayments)} />
+            <KeyValue k="ZENV Wallet payments" v={rupees(q.data.walletPayments)} />
           </Card>
           <Banner tone="info" text={q.data.note} />
         </>
@@ -155,7 +155,7 @@ export function QueueScreen({ navigation }: ScreenProps<'Queue'>) {
             <Text style={[font.body, { color: color.textSecondary, textAlign: 'center' }]}>{cur.statusLabel} · {cur.confirmedSeats}/{cur.capacity} passengers · leaves {timeIst(cur.departureAt)} ({relative(cur.departureAt)})</Text>
             <Button label="Open trip" icon="open" variant="secondary" size="secondary" onPress={() => navigation.navigate('TripDetail', { tripId: cur.id })} />
           </Card>
-        ) : <EmptyState icon="people" title="Not in a queue" body="ZCS gives you a queue number when you publish a trip at a pickup point." />
+        ) : <EmptyState icon="people" title="Not in a queue" body="ZENV gives you a queue number when you publish a trip at a pickup point." />
       ) : null}
       {q.data?.atPickup && q.data.atPickup.queue.length ? <SectionTitle text={`At ${q.data.atPickup.pickupPoint.name}`} /> : null}
       {(q.data?.atPickup?.queue || []).map((t) => (
@@ -234,7 +234,7 @@ export function ProfileScreen({ navigation }: ScreenProps<'Profile'>) {
       } finally { setBusy(false); }
     };
     if (sensitive) {
-      Alert.alert('Send for checking again?', 'Changing your name or licence sends your account back to ZCS for checking. You go offline until then.', [
+      Alert.alert('Send for checking again?', 'Changing your name or licence sends your account back to ZENV for checking. You go offline until then.', [
         { text: 'Cancel', style: 'cancel' }, { text: 'Save', onPress: run },
       ]);
     } else run();
@@ -312,7 +312,7 @@ export function SupportScreen({ navigation }: ScreenProps<'Support'>) {
   return (
     <Screen title="Help and support" onBack={() => navigation.goBack()} keyboard>
       <Button label={`Emergency: call ${EMERGENCY_NUMBER}`} icon="call" variant="reject" size="huge" onPress={() => call(EMERGENCY_NUMBER)} />
-      <Button label={`Call ZCS (${SUPPORT_PHONE_DISPLAY})`} icon="headset" variant="secondary" onPress={() => call(`+${SUPPORT_PHONE}`)} />
+      <Button label={`Call ZENV (${SUPPORT_PHONE_DISPLAY})`} icon="headset" variant="secondary" onPress={() => call(`+${SUPPORT_PHONE}`)} />
       <SectionTitle text="Report a problem" />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.xs }}>
         {INCIDENT_CATEGORIES.map((c) => <Chip key={c} label={CAT_LABEL[c]} selected={cat === c} tone={c === 'SAFETY' || c === 'HARASSMENT' ? 'red' : 'dark'} onPress={() => setCat(c)} style={{ flexGrow: 1, minWidth: 140 }} />)}
@@ -322,8 +322,8 @@ export function SupportScreen({ navigation }: ScreenProps<'Support'>) {
       {cur ? (
         <Chip label={linkTrip ? `About my current trip (${timeIst(cur.departureAt)}) ✓` : 'Not about my current trip'} selected={linkTrip} onPress={() => setLinkTrip(!linkTrip)} />
       ) : null}
-      <Button label="Send to ZCS" icon="send" onPress={send} loading={busy} disabled={!cat || text.trim().length < 5} />
-      <Text style={[font.small, { color: color.textMuted }]}>ZCS reads every report. For danger, call {EMERGENCY_NUMBER} first.</Text>
+      <Button label="Send to ZENV" icon="send" onPress={send} loading={busy} disabled={!cat || text.trim().length < 5} />
+      <Text style={[font.small, { color: color.textMuted }]}>ZENV reads every report. For danger, call {EMERGENCY_NUMBER} first.</Text>
     </Screen>
   );
 }
@@ -342,7 +342,7 @@ export function SettingsScreen({ navigation }: ScreenProps<'Settings'>) {
     ]);
   };
   const pushText = pushState === 'ok' ? 'On. Booking alerts reach this phone even when the app is closed.'
-    : pushState === 'blocked' ? 'Blocked. Allow notifications for ZCS Auto Driver in phone Settings.'
+    : pushState === 'blocked' ? 'Blocked. Allow notifications for ZENV Auto Driver in phone Settings.'
       : pushState === 'unavailable' ? 'Not available in this build (no Firebase setup). Alerts show only while the app is open, and in Notifications.'
         : 'Checking…';
   return (

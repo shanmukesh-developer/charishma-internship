@@ -49,7 +49,7 @@ export default function HomeTab({ open, go }: TabProps) {
       <OfflineBanner />
       <ScrollView contentContainerStyle={st.body} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={color.primary} colors={[color.primary]} />}>
         {!owner?.listings.length ? (
-          <Banner tone="warn" title="No PG linked yet" text="The ZCS housing team links your PG listing to this account. Call support if you expected to see it here." />
+          <Banner tone="warn" title="No PG linked yet" text="The ZENV housing team links your PG listing to this account. Call support if you expected to see it here." />
         ) : null}
         {error && !home ? <ErrorStrip text={error} onRetry={refresh} busy={refreshing} /> : null}
 
@@ -61,7 +61,7 @@ export default function HomeTab({ open, go }: TabProps) {
           </View>
         ) : !home ? <SkeletonCard lines={2} /> : null}
 
-        {summary && !summary.isActive ? <Banner tone="warn" text="This PG is hidden from students right now. The ZCS team can list it again." /> : null}
+        {summary && !summary.isActive ? <Banner tone="warn" text="This PG is hidden from students right now. The ZENV team can list it again." /> : null}
 
         {counts && counts.pendingRequests > 0 ? (
           <Card style={st.callout}>
@@ -84,7 +84,7 @@ export default function HomeTab({ open, go }: TabProps) {
           <MenuRow icon="settings-outline" title="Settings" onPress={() => open('Settings')} last />
         </MenuGroup>
         <Text style={[font.small, { color: color.textMuted, textAlign: 'center' }]}>
-          Students reach you through the ZCS housing desk. Rent is paid at the PG; this app keeps the record.
+          Students reach you through the ZENV housing desk. Rent is paid at the PG; this app keeps the record.
         </Text>
       </ScrollView>
     </View>

@@ -65,7 +65,7 @@ function OpenSwitch() {
         disabled={saving}
         accessibilityRole="switch"
         accessibilityState={{ checked: on, busy: saving }}
-        accessibilityLabel={paused ? 'Store paused by ZCS. Tap for support' : live ? 'Store open. Tap to close' : on ? 'Switched on but outside hours' : 'Store closed. Tap to open'}
+        accessibilityLabel={paused ? 'Store paused by ZENV. Tap for support' : live ? 'Store open. Tap to close' : on ? 'Switched on but outside hours' : 'Store closed. Tap to open'}
         style={({ pressed }) => [styles.pill, { backgroundColor: live ? color.open : on ? color.warning : color.closed }, pressed && { opacity: 0.85 }]}
       >
         {saving ? <ActivityIndicator color={color.textInverse} style={{ flex: 1 }} /> : (
@@ -94,18 +94,18 @@ function OpenSwitch() {
         </View>
       </Sheet>
 
-      <Sheet visible={pausedInfo} onClose={() => setPausedInfo(false)} title="Paused by ZCS">
+      <Sheet visible={pausedInfo} onClose={() => setPausedInfo(false)} title="Paused by ZENV">
         <Text style={[font.body, { color: color.textSecondary, marginBottom: space.md }]}>
-          ZCS has paused your store, so customers can't order right now. Call ZCS support to turn it back on.
+          ZENV has paused your store, so customers can't order right now. Call ZENV support to turn it back on.
         </Text>
-        <Button label="Call ZCS support" icon="call" onPress={() => Linking.openURL(`tel:+${SUPPORT_PHONE}`).catch(() => {})} />
+        <Button label="Call ZENV support" icon="call" onPress={() => Linking.openURL(`tel:+${SUPPORT_PHONE}`).catch(() => {})} />
       </Sheet>
 
       <Sheet visible={readOnlyInfo} onClose={() => setReadOnlyInfo(false)} title="Store status">
         <Text style={[font.body, { color: color.textSecondary, marginBottom: space.md }]}>
-          Opening and closing from the app is not available yet. Call ZCS support to change it.
+          Opening and closing from the app is not available yet. Call ZENV support to change it.
         </Text>
-        <Button label="Call ZCS support" icon="call" onPress={() => Linking.openURL(`tel:+${SUPPORT_PHONE}`).catch(() => {})} />
+        <Button label="Call ZENV support" icon="call" onPress={() => Linking.openURL(`tel:+${SUPPORT_PHONE}`).catch(() => {})} />
       </Sheet>
     </>
   );
@@ -119,7 +119,7 @@ export function StoreBar() {
   let lineColor: string = color.textMuted;
   if (store) {
     if (store.isActive === false) {
-      line = 'Paused by ZCS — contact support';
+      line = 'Paused by ZENV — contact support';
       lineColor = color.alertDark;
     } else if (store.isOpen) {
       line = 'Accepting orders';
@@ -144,7 +144,7 @@ export function StoreBar() {
       {store?.isOffline ? (
         <View style={styles.notice}>
           <Ionicons name="information-circle" size={18} color={color.info} />
-          <Text style={[font.small, { color: color.info, flex: 1 }]}>ZCS is handling your orders directly right now.</Text>
+          <Text style={[font.small, { color: color.info, flex: 1 }]}>ZENV is handling your orders directly right now.</Text>
         </View>
       ) : null}
     </View>
@@ -174,7 +174,7 @@ export function ConnBanner() {
     <View style={[styles.banner, { backgroundColor: color.warningTint }]} accessibilityLiveRegion="polite">
       <ActivityIndicator color={color.warning} />
       <Text style={[font.body, { color: color.warning, fontWeight: '800', flex: 1 }]}>
-        {conn === 'connecting' ? 'Connecting to ZCS…' : 'Reconnecting…'}
+        {conn === 'connecting' ? 'Connecting to ZENV…' : 'Reconnecting…'}
       </Text>
     </View>
   );
@@ -186,10 +186,10 @@ export function PushOffBanner() {
   if (pushState !== 'blocked' && pushState !== 'unavailable' && pushState !== 'muted') return null;
   const fixable = pushState === 'blocked' || pushState === 'muted';
   const text = pushState === 'blocked'
-    ? 'Do not close this app. Notifications are blocked, so new orders ring only while ZCS is open. Tap to fix.'
+    ? 'Do not close this app. Notifications are blocked, so new orders ring only while ZENV is open. Tap to fix.'
     : pushState === 'muted'
-      ? 'The "New orders" sound is off in your phone settings, so a new order may not ring when ZCS is closed. Tap to turn it on.'
-      : 'Do not close this app. Alerts with the app closed are not available on this phone, so new orders ring only while ZCS is open.';
+      ? 'The "New orders" sound is off in your phone settings, so a new order may not ring when ZENV is closed. Tap to turn it on.'
+      : 'Do not close this app. Alerts with the app closed are not available on this phone, so new orders ring only while ZENV is open.';
   return (
     <Pressable
       onPress={fixable ? () => { openNotificationSettings(pushState); } : undefined}

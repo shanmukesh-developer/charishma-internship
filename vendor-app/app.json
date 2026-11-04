@@ -3,11 +3,11 @@
     "extra": {
       "trustedApiHosts": ["hostelbites-backend-jwmt.onrender.com"]
     },
-    "name": "ZCS Vendor",
+    "name": "ZENV Vendor",
     "slug": "zenvy-vendor",
-    "version": "1.0.7",
+    "version": "1.0.8",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/zenv-vendor-icon-2026-11-04.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
@@ -15,13 +15,13 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#0B0D12",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundColor": "#FAE04B",
+        "foregroundImage": "./assets/zenv-vendor-adaptive-foreground-2026-11-04.png",
+        "backgroundImage": "./assets/zenv-adaptive-backdrop-2026-11-04.png",
+        "monochromeImage": "./assets/zenv-vendor-adaptive-monochrome-2026-11-04.png"
       },
       "package": "com.srm.zenvyvendor",
-      "versionCode": 8,
+      "versionCode": 9,
       "allowBackup": false,
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW",
@@ -47,15 +47,15 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "ZCS Vendor uses your photos to add pictures of your items.",
-          "cameraPermission": "ZCS Vendor uses the camera to take pictures of your items.",
+          "photosPermission": "ZENV Vendor uses your photos to add pictures of your items.",
+          "cameraPermission": "ZENV Vendor uses the camera to take pictures of your items.",
           "microphonePermission": false
         }
       ],
       [
         "expo-notifications",
         {
-          "color": "#0B0D12",
+          "color": "#EF4F5F",
           "sounds": [
             "./assets/sounds/alert.wav"
           ],

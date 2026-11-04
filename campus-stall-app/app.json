@@ -3,15 +3,15 @@
     "extra": {
       "trustedApiHosts": ["hostelbites-backend-jwmt.onrender.com"]
     },
-    "name": "ZCS Campus Stall",
+    "name": "ZENV Campus Stall",
     "slug": "zcs-campus-stall",
     "scheme": "zcsstall",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/zenv-stall-icon-2026-11-04.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/zenv-splash-badge-2026-11-04.png",
       "resizeMode": "contain",
       "backgroundColor": "#F3F4F6"
     },
@@ -21,13 +21,13 @@
     },
     "android": {
       "package": "com.srm.zcscampusstall",
-      "versionCode": 6,
+      "versionCode": 7,
       "allowBackup": false,
       "adaptiveIcon": {
-        "backgroundColor": "#FFFFFF",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundColor": "#FAE04B",
+        "foregroundImage": "./assets/zenv-stall-adaptive-foreground-2026-11-04.png",
+        "backgroundImage": "./assets/zenv-adaptive-backdrop-2026-11-04.png",
+        "monochromeImage": "./assets/zenv-stall-adaptive-monochrome-2026-11-04.png"
       },
       "blockedPermissions": [
         "android.permission.ACCESS_FINE_LOCATION",
@@ -46,22 +46,22 @@
         "./plugins/withReleaseSigning",
         {
           "prefix": "ZCS_CAMPUSSTALL_UPLOAD",
-          "appLabel": "ZCS Campus Stall",
+          "appLabel": "ZENV Campus Stall",
           "readme": "campus-stall-app/README.md"
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "ZCS Campus Stall uses your photos to add your UPI QR and pictures of your menu items.",
-          "cameraPermission": "ZCS Campus Stall uses the camera to photograph your UPI QR and your menu items.",
+          "photosPermission": "ZENV Campus Stall uses your photos to add your UPI QR and pictures of your menu items.",
+          "cameraPermission": "ZENV Campus Stall uses the camera to photograph your UPI QR and your menu items.",
           "microphonePermission": false
         }
       ],
       [
         "expo-notifications",
         {
-          "color": "#0E9F5B",
+          "color": "#EF4F5F",
           "sounds": [
             "./assets/sounds/alert.wav"
           ],

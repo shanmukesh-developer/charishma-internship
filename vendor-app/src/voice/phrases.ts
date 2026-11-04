@@ -72,9 +72,9 @@ export function phrase(e: VoiceEvent, lang: VoiceLang): string {
         return 'The customer cancelled the order.';
       }
       if (e.by === 'support') {
-        if (lang === 'te') return 'జెన్వీ సపోర్ట్ ఆర్డర్ క్యాన్సిల్ చేశారు.';
-        if (lang === 'hi') return 'ज़ेनवी सपोर्ट ने ऑर्डर कैंसल कर दिया.';
-        return 'ZCS support cancelled the order.';
+        if (lang === 'te') return 'జెన్వ్ సపోర్ట్ ఆర్డర్ క్యాన్సిల్ చేశారు.';
+        if (lang === 'hi') return 'ज़ेन्व सपोर्ट ने ऑर्डर कैंसल कर दिया.';
+        return 'ZENV support cancelled the order.';
       }
       // The stall's own cancel, an automatic cancel, or not known: no blame on the customer.
       if (lang === 'te') return 'ఆర్డర్ క్యాన్సిల్ అయ్యింది.';
@@ -107,19 +107,19 @@ export function phrase(e: VoiceEvent, lang: VoiceLang): string {
       if (lang === 'hi') return 'नया आइटम जुड़ गया.';
       return 'New item added.';
     case 'test':
-      if (lang === 'te') return 'జెన్వీ వాయిస్ పని చేస్తోంది. కొత్త ఆర్డర్ వస్తే ఇలా చెబుతాను.';
-      if (lang === 'hi') return 'ज़ेनवी आवाज़ चालू है. नया ऑर्डर आने पर ऐसे बताऊंगी.';
-      return 'ZCS voice is working. I will announce new orders like this.';
+      if (lang === 'te') return 'జెన్వ్ వాయిస్ పని చేస్తోంది. కొత్త ఆర్డర్ వస్తే ఇలా చెబుతాను.';
+      if (lang === 'hi') return 'ज़ेन्व आवाज़ चालू है. नया ऑर्डर आने पर ऐसे बताऊंगी.';
+      return 'ZENV voice is working. I will announce new orders like this.';
   }
 }
 
 /** Text of the native heads-up notification for a new order (shown on the lock screen). */
 export function orderNotification(orderNum: string, amount: string, lang: VoiceLang): { title: string; body: string } {
   if (lang === 'hi') {
-    return { title: `🔔 ज़ेनवी नया ऑर्डर! (₹${amount})`, body: `ऑर्डर #${orderNum}. खोलकर स्वीकार करें.` };
+    return { title: `🔔 ZENV नया ऑर्डर! (₹${amount})`, body: `ऑर्डर #${orderNum}. खोलकर स्वीकार करें.` };
   }
   if (lang === 'en') {
-    return { title: `🔔 New ZCS order! (₹${amount})`, body: `Order #${orderNum}. Open the app to accept.` };
+    return { title: `🔔 New ZENV order! (₹${amount})`, body: `Order #${orderNum}. Open the app to accept.` };
   }
-  return { title: `🔔 జెన్వీ కొత్త ఆర్డర్! (₹${amount})`, body: `ఆర్డర్ #${orderNum}. యాప్ తెరిచి యాక్సెప్ట్ చేయండి.` };
+  return { title: `🔔 ZENV కొత్త ఆర్డర్! (₹${amount})`, body: `ఆర్డర్ #${orderNum}. యాప్ తెరిచి యాక్సెప్ట్ చేయండి.` };
 }

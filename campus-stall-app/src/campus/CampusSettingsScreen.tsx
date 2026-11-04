@@ -92,7 +92,7 @@ export default function CampusSettingsScreen({ onBack, title = 'UPI and pickup',
             <Badge text={s.takingBookings ? 'Taking bookings' : s.enabled ? 'Needs UPI ID' : 'Off'} fg={s.takingBookings ? color.openDark : color.warning} bg={s.takingBookings ? color.openTint : color.warningTint} />
           </View>
           <Text style={[font.body, { color: color.textSecondary }]}>
-            Students pay you directly on this UPI ID. ZCS never holds the money. ZCS records a {s.commissionPct}% commission on each paid booking. ZCS support switches bookings on or off for your stall.
+            Students pay you directly on this UPI ID. ZENV never holds the money. ZENV records a {s.commissionPct}% commission on each paid booking. ZENV support switches bookings on or off for your stall.
           </Text>
         </Card>
 

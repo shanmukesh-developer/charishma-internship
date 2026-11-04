@@ -112,8 +112,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           // A stall session saved by an older build: its orders cannot be completed in this app.
           clearSession();
           setNotice(r && (r as any).campusBookingEnabled === true
-            ? 'This stall takes In-Campus Bookings. Please log in with the ZCS Campus Stall app.'
-            : 'This is a stall account. Please log in with the ZCS Vendor app.');
+            ? 'This stall takes In-Campus Bookings. Please log in with the ZENV Campus Stall app.'
+            : 'This is a stall account. Please log in with the ZENV Vendor app.');
           return;
         }
         tokenRef.current = t;

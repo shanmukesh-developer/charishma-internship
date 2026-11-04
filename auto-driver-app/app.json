@@ -3,11 +3,11 @@
     "extra": {
       "trustedApiHosts": ["hostelbites-backend-jwmt.onrender.com"]
     },
-    "name": "ZCS Auto Driver",
+    "name": "ZENV Auto Driver",
     "slug": "zenvy-auto-driver",
-    "version": "1.0.9",
+    "version": "1.0.10",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/zenv-auto-icon-2026-11-04.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": false,
@@ -15,13 +15,13 @@
     },
     "android": {
       "package": "com.srm.zenvyautodriver",
-      "versionCode": 10,
+      "versionCode": 11,
       "allowBackup": false,
       "adaptiveIcon": {
-        "backgroundColor": "#0B0D12",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundColor": "#FAE04B",
+        "foregroundImage": "./assets/zenv-auto-adaptive-foreground-2026-11-04.png",
+        "backgroundImage": "./assets/zenv-adaptive-backdrop-2026-11-04.png",
+        "monochromeImage": "./assets/zenv-auto-adaptive-monochrome-2026-11-04.png"
       },
       "blockedPermissions": [
         "android.permission.ACCESS_FINE_LOCATION",
@@ -49,15 +49,15 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "ZCS Auto Driver uses your photos to upload your licence, vehicle papers and auto photos for verification.",
-          "cameraPermission": "ZCS Auto Driver uses the camera to photograph your licence, vehicle papers and auto for verification.",
+          "photosPermission": "ZENV Auto Driver uses your photos to upload your licence, vehicle papers and auto photos for verification.",
+          "cameraPermission": "ZENV Auto Driver uses the camera to photograph your licence, vehicle papers and auto for verification.",
           "microphonePermission": false
         }
       ],
       [
         "expo-notifications",
         {
-          "color": "#0B0D12",
+          "color": "#EF4F5F",
           "sounds": [
             "./assets/sounds/alert.wav"
           ],

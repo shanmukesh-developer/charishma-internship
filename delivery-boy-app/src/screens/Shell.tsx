@@ -177,7 +177,7 @@ function NetBanner() {
     text = r.queueCount ? `No internet · ${r.queueCount} update${r.queueCount === 1 ? '' : 's'} saved on phone` : 'No internet · showing saved data';
     tone = 'red';
   } else if (!r.serverReachable) {
-    text = 'ZCS is not responding. Retrying…';
+    text = 'ZENV is not responding. Retrying…';
   } else if (r.queueCount) {
     text = `Syncing ${r.queueCount} saved update${r.queueCount === 1 ? '' : 's'}…`;
   }

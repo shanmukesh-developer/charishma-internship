@@ -72,7 +72,7 @@ export function CustomerBlock({ order, compact }: { order: Order; compact?: bool
             icon="logo-whatsapp"
             variant="secondary"
             size={compact ? 'secondary' : 'primary'}
-            onPress={() => whatsappNumber(phone, `Hi${order.customerName ? ` ${order.customerName}` : ''}, about your ZCS order #${order.shortId}`)}
+            onPress={() => whatsappNumber(phone, `Hi${order.customerName ? ` ${order.customerName}` : ''}, about your ZENV order #${order.shortId}`)}
             style={{ flex: 1 }}
             a11y={`WhatsApp ${order.customerName || 'customer'}`}
           />

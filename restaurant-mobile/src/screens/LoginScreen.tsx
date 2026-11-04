@@ -19,8 +19,8 @@ type ServerState = 'checking' | 'up' | 'waking';
 
 /** Which partner app a stall account belongs to: In-Campus Booking stalls use ZCS Campus Stall, the others ZCS Vendor. */
 const stallAppMessage = (r: any) => (r && r.campusBookingEnabled === true
-  ? 'This stall takes In-Campus Bookings. Please log in with the ZCS Campus Stall app.'
-  : 'This is a stall account. Please log in with the ZCS Vendor app.');
+  ? 'This stall takes In-Campus Bookings. Please log in with the ZENV Campus Stall app.'
+  : 'This is a stall account. Please log in with the ZENV Vendor app.');
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
@@ -78,7 +78,7 @@ export default function LoginScreen() {
     } catch (e) {
       if (e instanceof ApiError && e.code === 'USE_VENDOR_APP') {
         // The server names the right app (ZCS Campus Stall for In-Campus Booking stalls, else ZCS Vendor).
-        setError(e.message || 'This is a stall account. Please log in with the ZCS Vendor app.');
+        setError(e.message || 'This is a stall account. Please log in with the ZENV Vendor app.');
       } else if (e instanceof ApiError && e.status === 401 && /invalid credentials/i.test(e.message)) {
         setError('Wrong store login ID or password. Check and try again.');
       } else if (e instanceof ApiError) {
@@ -88,7 +88,7 @@ export default function LoginScreen() {
           setNow(Date.now());
         }
       } else if (e instanceof NetworkError) {
-        setError(server === 'waking' ? 'ZCS is waking up. Please try again in a few seconds.' : e.message);
+        setError(server === 'waking' ? 'ZENV is waking up. Please try again in a few seconds.' : e.message);
       } else {
         setError('Something went wrong. Please try again.');
       }
@@ -99,7 +99,7 @@ export default function LoginScreen() {
   };
 
   const call = () => Linking.openURL(`tel:+${SUPPORT_PHONE}`).catch(() => {});
-  const wa = () => Linking.openURL(`https://wa.me/${SUPPORT_PHONE}?text=${encodeURIComponent(`Hi ZCS, I forgot the password for the restaurant partner app. Please reset it.${identifier.trim() ? ` My store login ID: ${identifier.trim()}.` : ''}`)}`).catch(() => {});
+  const wa = () => Linking.openURL(`https://wa.me/${SUPPORT_PHONE}?text=${encodeURIComponent(`Hi ZENV, I forgot the password for the restaurant partner app. Please reset it.${identifier.trim() ? ` My store login ID: ${identifier.trim()}.` : ''}`)}`).catch(() => {});
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: color.bg }}>
@@ -108,8 +108,8 @@ export default function LoginScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.brand}>
-          <Image source={require('../../assets/icon.png')} style={styles.logo} accessibilityIgnoresInvertColors />
-          <Text style={[font.h1, { color: color.text }]}>ZCS Partner</Text>
+          <Image source={require('../../assets/zenv-brand-badge-2026-11-04.png')} style={styles.logo} accessibilityIgnoresInvertColors />
+          <Text style={[font.h1, { color: color.text }]}>ZENV Partner</Text>
           <Text style={[font.body, { color: color.textSecondary }]}>Restaurant login</Text>
         </View>
 
@@ -122,7 +122,7 @@ export default function LoginScreen() {
 
         <View style={styles.card}>
           <Text style={styles.label}>Store login ID</Text>
-          <Text style={[font.small, { color: color.textMuted, marginBottom: space.xxs }]}>From your ZCS welcome message. Your store name also works.</Text>
+          <Text style={[font.small, { color: color.textMuted, marginBottom: space.xxs }]}>From your ZENV welcome message. Your store name also works.</Text>
           <TextInput
             value={identifier}
             onChangeText={(t) => { setIdentifier(t); setError(null); }}
@@ -134,7 +134,7 @@ export default function LoginScreen() {
             returnKeyType="next"
             onSubmitEditing={() => pwRef.current?.focus()}
             style={styles.input}
-            accessibilityLabel="Store login ID, from your ZCS welcome message"
+            accessibilityLabel="Store login ID, from your ZENV welcome message"
           />
 
           <Text style={[styles.label, { marginTop: space.md }]}>Password</Text>
@@ -188,13 +188,13 @@ export default function LoginScreen() {
             <View style={[styles.dot, { backgroundColor: server === 'up' ? color.open : color.warning }]} />
           )}
           <Text style={[font.small, { color: color.textMuted }]}>
-            {server === 'checking' ? 'Checking ZCS…' : server === 'up' ? 'ZCS is online' : 'ZCS is waking up — first login can take ~30 s'}
+            {server === 'checking' ? 'Checking ZENV…' : server === 'up' ? 'ZENV is online' : 'ZENV is waking up — first login can take ~30 s'}
           </Text>
         </View>
 
         <View style={styles.help}>
           <Text style={[font.body, { color: color.text, fontWeight: '800', textAlign: 'center' }]}>Forgot password?</Text>
-          <Text style={[font.small, { color: color.textSecondary, textAlign: 'center' }]}>Ask your ZCS admin to reset it. New partner? Contact us the same way.</Text>
+          <Text style={[font.small, { color: color.textSecondary, textAlign: 'center' }]}>Ask your ZENV admin to reset it. New partner? Contact us the same way.</Text>
           <View style={{ flexDirection: 'row', gap: space.sm }}>
             <Button label="Call" icon="call" variant="secondary" size="secondary" onPress={call} style={{ flex: 1 }} />
             <Button label="WhatsApp" icon="logo-whatsapp" variant="secondary" size="secondary" onPress={wa} style={{ flex: 1 }} />

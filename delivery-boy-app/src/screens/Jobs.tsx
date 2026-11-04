@@ -226,7 +226,7 @@ function BasketJob({ basket: b, onClose }: { basket: RiderBasket; onClose: () =>
     if (!ok) {
       setPin('');
       setShake((n) => n + 1);
-      setPinMsg('Ask the customer for the 4-digit PIN in their ZCS app.');
+      setPinMsg('Ask the customer for the 4-digit PIN in their ZENV app.');
     }
   };
 
@@ -363,7 +363,7 @@ function ServiceJob({ booking: s, onClose }: { booking: RiderService; onClose: (
       ) : null}
 
       {s.status === 'REQUESTED' || s.status === 'CONFIRMED' ? (
-        <Btn title="Collected from student" icon="check-bold" variant="green" onPress={() => j.step(() => jobs.setServiceStatus(s.id, 'IN_PROGRESS', 'Collected by the ZCS rider'), 'Marked as collected')} />
+        <Btn title="Collected from student" icon="check-bold" variant="green" onPress={() => j.step(() => jobs.setServiceStatus(s.id, 'IN_PROGRESS', 'Collected by the ZENV rider'), 'Marked as collected')} />
       ) : null}
       {s.status === 'IN_PROGRESS' ? (
         <Btn title="Ready: bringing it back" icon="moped" variant="green" onPress={() => j.step(() => jobs.setServiceStatus(s.id, 'READY_FOR_DELIVERY', 'Rider is bringing it back'), 'Student told')} />

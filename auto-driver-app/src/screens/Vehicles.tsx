@@ -42,7 +42,7 @@ export function VehiclesScreen({ navigation }: ScreenProps<'Vehicles'>) {
       footer={live < LIMITS.MAX_VEHICLES ? <Button label="Add an auto" icon="add-circle" onPress={() => navigation.navigate('VehicleForm')} /> : null}
     >
       {q.loading ? <SkeletonCard /> : q.error && !q.data ? <ErrorStrip text={q.error} onRetry={q.refresh} busy={q.refreshing} /> : null}
-      {!q.loading && q.data && !vehicles.length ? <EmptyState icon="car" title="No auto added yet" body="Add your auto with its RC seating capacity and papers. ZCS checks them and sets how many passengers it may carry." /> : null}
+      {!q.loading && q.data && !vehicles.length ? <EmptyState icon="car" title="No auto added yet" body="Add your auto with its RC seating capacity and papers. ZENV checks them and sets how many passengers it may carry." /> : null}
       {vehicles.map((v) => <VehicleCard key={v.id} v={v} onEdit={() => navigation.navigate('VehicleForm', { vehicleId: v.id })} />)}
     </Screen>
   );
@@ -59,11 +59,11 @@ function VehicleCard({ v, onEdit }: { v: Vehicle; onEdit: () => void }) {
       <Text style={[font.body, { color: color.textSecondary }]}>{[v.make, v.model, v.fuel, v.colour].filter(Boolean).join(' · ') || 'Auto'}</Text>
       <KeyValue k="RC seating capacity" v={String(v.rcSeatingCapacity)} />
       <KeyValue k="You asked for" v={`${v.requestedCapacity} passengers`} />
-      <KeyValue k="Approved by ZCS" v={v.approvedCapacity ? `${v.approvedCapacity} passengers` : 'Not yet'} strong />
+      <KeyValue k="Approved by ZENV" v={v.approvedCapacity ? `${v.approvedCapacity} passengers` : 'Not yet'} strong />
       {v.rejectionReason ? <Banner tone="error" text={`Reason: ${v.rejectionReason}`} /> : null}
       {v.status === 'APPROVED' && v.seatLayout ? (
         <>
-          <SectionTitle text="Seat layout (set by ZCS)" />
+          <SectionTitle text="Seat layout (set by ZENV)" />
           <LayoutPreview layout={v.seatLayout} />
         </>
       ) : null}
@@ -144,7 +144,7 @@ function VehicleForm({ current, onDone, onBack, toast }: { current: Vehicle | nu
       try {
         if (current) await driverApi.updateVehicle(current.id, body);
         else await driverApi.createVehicle(body);
-        toast.show('Saved. ZCS will check your auto.', 'success');
+        toast.show('Saved. ZENV will check your auto.', 'success');
         onDone();
       } catch (err) {
         if (err instanceof ApiError && err.data?.field) setErrors({ [String(err.data.field).replace('documents.', 'doc_')]: err.message });
@@ -154,7 +154,7 @@ function VehicleForm({ current, onDone, onBack, toast }: { current: Vehicle | nu
       }
     };
     if (current && current.status === 'APPROVED') {
-      Alert.alert('Send for checking again?', 'Any change sends this auto back to ZCS for checking. You cannot publish trips with it until it is approved again.', [
+      Alert.alert('Send for checking again?', 'Any change sends this auto back to ZENV for checking. You cannot publish trips with it until it is approved again.', [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Save and send', onPress: run },
       ]);
@@ -164,7 +164,7 @@ function VehicleForm({ current, onDone, onBack, toast }: { current: Vehicle | nu
   return (
     <Screen title={current ? 'Edit auto' : 'Add your auto'} onBack={onBack} keyboard
       footer={<Button label={current ? 'Save and send for checking' : 'Save auto'} icon="checkmark-circle" variant="accept" onPress={save} loading={busy} />}>
-      <Banner tone="info" text="ZCS checks the RC and decides how many passengers this auto may carry. That number is never more than the RC seating capacity." />
+      <Banner tone="info" text="ZENV checks the RC and decides how many passengers this auto may carry. That number is never more than the RC seating capacity." />
       <Field label="Registration number" value={reg} onChangeText={(v) => setReg(v.toUpperCase().slice(0, 16))} autoCapitalize="characters" placeholder="AP 07 TA 1234" error={errors.registrationNumber} />
       <View style={{ flexDirection: 'row', gap: space.sm }}>
         <Field label="Make" value={make} onChangeText={(v) => setMake(v.slice(0, 40))} placeholder="Bajaj" style={{ flex: 1 }} />
@@ -179,7 +179,7 @@ function VehicleForm({ current, onDone, onBack, toast }: { current: Vehicle | nu
         {FUELS.map((f) => <Chip key={f} label={f} selected={fuel === f} onPress={() => setFuel(fuel === f ? null : f)} style={{ minWidth: 90 }} />)}
       </View>
       <Stepper label="RC seating capacity (passengers)" value={rc} min={1} max={LIMITS.ABSOLUTE_MAX_CAPACITY} onChange={(v) => { setRc(v); if (requested > v) setRequested(v); }} hint="Exactly as printed on the RC, without the driver." />
-      <Stepper label="Passengers you want to carry" value={Math.min(requested, rc)} min={1} max={rc} onChange={setRequested} hint="ZCS approves the final number." />
+      <Stepper label="Passengers you want to carry" value={Math.min(requested, rc)} min={1} max={rc} onChange={setRequested} hint="ZENV approves the final number." />
       <Field label="Permit number" value={permitNumber} onChangeText={(v) => setPermitNumber(v.slice(0, 40))} autoCapitalize="characters" placeholder="Optional" />
       {DATE_FIELDS.map(([k, label, req]) => (
         <Field key={k} label={`${label}${req ? '' : ' (optional)'}`} value={dates[k]} onChangeText={(v) => setDates((d) => ({ ...d, [k]: v.replace(/[^\d-]/g, '').slice(0, 10) }))}

@@ -48,11 +48,11 @@ function Statement({ p }: { p: PayoutStatement }) {
         {p.periodStart ? `${dateIST(p.periodStart)} to ${dateIST(p.periodEnd)}` : `Up to ${dateIST(p.periodEnd)}`} · {p.orderCount} order{p.orderCount === 1 ? '' : 's'}
       </Text>
       {p.net < 0 ? (
-        <Text style={[font.small, { color: color.alertDark, fontWeight: '700' }]}>You owe ZCS this amount: you collected the cash for these orders yourself.</Text>
+        <Text style={[font.small, { color: color.alertDark, fontWeight: '700' }]}>You owe ZENV this amount: you collected the cash for these orders yourself.</Text>
       ) : null}
       <View>
         <Line label="Sales" value={rupees(p.gross)} />
-        <Line label="ZCS commission" value={p.commission ? `-${rupees(p.commission)}` : rupees(0)} />
+        <Line label="ZENV commission" value={p.commission ? `-${rupees(p.commission)}` : rupees(0)} />
         {p.adjustments ? <Line label="Adjustments" value={rupees(p.adjustments)} /> : null}
         <Line label="Net" value={rupees(p.net)} strong />
         {paid ? <Line label="Paid on" value={dateIST(p.paidAt)} /> : null}
@@ -142,7 +142,7 @@ export default function PayoutsScreen({ onBack }: { onBack: () => void }) {
               </Text>
             </Card>
             {data.payouts.length === 0 ? (
-              <EmptyState icon="wallet-outline" title="No statements yet" body="When ZCS pays you, each statement shows here with its UTR (bank reference)." />
+              <EmptyState icon="wallet-outline" title="No statements yet" body="When ZENV pays you, each statement shows here with its UTR (bank reference)." />
             ) : (
               data.payouts.map((p) => <Statement key={p.id} p={p} />)
             )}

@@ -123,7 +123,7 @@ export async function playChime(kind: ChimeKind, text: string): Promise<void> {
   try {
     await ensureChannels();
     const id = await Notifications.scheduleNotificationAsync({
-      content: { title: 'ZCS Rider', body: text, sound: kind === 'order' ? ALERT_SOUND : 'default', data: { chime: true } },
+      content: { title: 'ZENV Rider', body: text, sound: kind === 'order' ? ALERT_SOUND : 'default', data: { chime: true } },
       trigger: Platform.OS === 'android' ? { channelId: CHIME_CHANNEL_FOR[kind] } : null,
     });
     setTimeout(() => {

@@ -126,7 +126,7 @@ export async function notifyLoggedOut(message: string): Promise<void> {
   try {
     await ensureChannel();
     await Notifications.scheduleNotificationAsync({
-      content: { title: 'ZCS Campus Stall logged out', body: `${message} Log in again to keep getting bookings.` },
+      content: { title: 'ZENV Campus Stall logged out', body: `${message} Log in again to keep getting bookings.` },
       trigger: null,
     });
   } catch { /* ignore */ }

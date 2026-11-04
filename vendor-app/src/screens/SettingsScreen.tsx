@@ -152,7 +152,7 @@ export default function SettingsScreen() {
 
       <Text style={[font.label, { color: color.textMuted }]}>HELP</Text>
       <Card style={{ paddingVertical: 0 }}>
-        <LinkRow icon="call" label="Call ZCS support" sub={SUPPORT_PHONE_DISPLAY} onPress={() => Linking.openURL(`tel:+${SUPPORT_PHONE}`).catch(() => {})} />
+        <LinkRow icon="call" label="Call ZENV support" sub={SUPPORT_PHONE_DISPLAY} onPress={() => Linking.openURL(`tel:+${SUPPORT_PHONE}`).catch(() => {})} />
         <View style={{ height: 1, backgroundColor: color.surfaceAlt }} />
         <LinkRow icon="logo-whatsapp" label="WhatsApp support" sub="Menu, hours, password, anything else" onPress={wa} />
       </Card>
@@ -174,17 +174,17 @@ export default function SettingsScreen() {
       {/* C9: store accounts are created by Zenvy, so the Zenvy team closes them (Play account-deletion policy). */}
       <Sheet visible={deleteInfo} onClose={() => setDeleteInfo(false)} title="Delete account">
         <Text style={[font.body, { color: color.textSecondary, marginBottom: space.sm }]}>
-          Shop accounts are set up by ZCS, so the ZCS team closes them for you. Email us from the owner's registered email or
+          Shop accounts are set up by ZENV, so the ZENV team closes them for you. Email us from the owner's registered email or
           mobile number, or call support. We confirm the request with the owner, settle any payouts and close the account within
           7 days. Order, payout and tax records are kept as the law requires.
         </Text>
         <View style={{ gap: space.xs }}>
           <Button
-            label="Email ZCS"
+            label="Email ZENV"
             icon="mail-outline"
-            onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`Close my ZCS shop account (${name})`)}`).catch(() => {})}
+            onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`Close my ZENV shop account (${name})`)}`).catch(() => {})}
           />
-          <Button label="Call ZCS support" icon="call-outline" variant="secondary" size="secondary" onPress={() => Linking.openURL(`tel:+${SUPPORT_PHONE}`).catch(() => {})} />
+          <Button label="Call ZENV support" icon="call-outline" variant="secondary" size="secondary" onPress={() => Linking.openURL(`tel:+${SUPPORT_PHONE}`).catch(() => {})} />
           <Button label="How account deletion works" variant="secondary" size="secondary" onPress={() => openLegal('deleteAccount')} />
           <Button label="Cancel" variant="secondary" size="secondary" onPress={() => setDeleteInfo(false)} />
         </View>

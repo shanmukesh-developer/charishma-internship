@@ -108,7 +108,7 @@ export function validatePublish(f: PublishForm, nowMs: number): FormErrors {
   const e: FormErrors = {};
   const v = f.vehicle;
   if (!v) e.vehicle = 'Pick your auto.';
-  else if (v.status !== 'APPROVED' || !v.approvedCapacity) e.vehicle = 'This auto is not approved by ZCS yet.';
+  else if (v.status !== 'APPROVED' || !v.approvedCapacity) e.vehicle = 'This auto is not approved by ZENV yet.';
   const r = f.route;
   if (!r) e.route = 'Pick a route.';
   else if (!f.pickupPointId || !r.pickupPoints.some((p) => p.id === f.pickupPointId && p.isActive !== false)) e.pickup = 'Pick a pickup point on this route.';
@@ -138,7 +138,7 @@ export function validatePublish(f: PublishForm, nowMs: number): FormErrors {
 
 /** Friendly words for server error codes the trip screens can get. */
 export const CODE_HINT: Record<string, string> = {
-  FEATURE_OFF: 'Auto-Ride is switched off by ZCS right now. Your account and drafts are safe.',
+  FEATURE_OFF: 'Auto-Ride is switched off by ZENV right now. Your account and drafts are safe.',
   DRIVER_OFFLINE: 'Go online first, then publish.',
   INVALID_TRANSITION: 'The trip changed meanwhile. The latest status is shown now.',
 };

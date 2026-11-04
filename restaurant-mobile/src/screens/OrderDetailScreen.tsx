@@ -87,7 +87,7 @@ export default function OrderDetailScreen({ orderId, onBack }: { orderId: string
 
         <Card style={{ gap: space.xs }}>
           <Text style={[font.label, { color: color.textMuted }]}>PAYMENT</Text>
-          <Row label="Method" value={order.isCOD ? 'Cash on delivery' : order.paymentMethod === 'Wallet' ? 'Paid (ZCS Wallet)' : order.paymentMethod || '—'} />
+          <Row label="Method" value={order.isCOD ? 'Cash on delivery' : order.paymentMethod === 'Wallet' ? 'Paid (ZENV Wallet)' : order.paymentMethod || '—'} />
           <Row label="Customer pays" value={rupees(order.finalPrice)} />
           {order.isCOD ? <Text style={[font.small, { color: color.cash, fontWeight: '700' }]}>The rider collects the cash. You don't collect anything.</Text> : null}
         </Card>

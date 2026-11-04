@@ -70,7 +70,7 @@ export function EarningsHistory({ reloadKey }: { reloadKey: number }) {
       ) : state === 'error' && !data ? (
         <ErrorState message={error ?? 'Could not load your earnings.'} onRetry={load} />
       ) : state === 'missing' || !data ? (
-        <EmptyState icon="calendar-clock" title="History is not available yet" body="ZCS is updating. Check again later today." />
+        <EmptyState icon="calendar-clock" title="History is not available yet" body="ZENV is updating. Check again later today." />
       ) : (
         <>
           <View style={[styles.hero, shadow]}>
@@ -186,9 +186,9 @@ export function PayoutHistory({ reloadKey }: { reloadKey: number }) {
 
   if (state === 'loading' && !list) return <Skeleton height={140} />;
   if (state === 'error' && !list) return <ErrorState message={error ?? 'Could not load your payouts.'} onRetry={load} />;
-  if (state === 'missing') return <EmptyState icon="bank-outline" title="Payouts are not available yet" body="ZCS is updating. Check again later today." />;
+  if (state === 'missing') return <EmptyState icon="bank-outline" title="Payouts are not available yet" body="ZENV is updating. Check again later today." />;
   if (!list || list.length === 0) {
-    return <EmptyState icon="bank-outline" title="No payouts yet" body="When ZCS pays your earnings, each payment shows here with its reference number (UTR)." />;
+    return <EmptyState icon="bank-outline" title="No payouts yet" body="When ZENV pays your earnings, each payment shows here with its reference number (UTR)." />;
   }
   return (
     <View style={{ gap: S.md }}>

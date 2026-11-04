@@ -503,10 +503,10 @@ export function RiderProvider({ children }: { children: React.ReactNode }) {
             handedOver.current.delete(o.id);
             showToast(how === 'released'
               ? `Order #${o.shortId} went back to other riders: it was not picked up in time.`
-              : `Order #${o.shortId} was given to another rider by ZCS support.`, 'info');
+              : `Order #${o.shortId} was given to another rider by ZENV support.`, 'info');
             setDeliveryId((cur) => (cur === o.id ? null : cur));
           } else if (hist?.some((h) => h.id === o.id)) {
-            showToast(`Order #${o.shortId} was marked delivered by ZCS support.`, 'success');
+            showToast(`Order #${o.shortId} was marked delivered by ZENV support.`, 'success');
             setDeliveryId((cur) => (cur === o.id ? null : cur));
           } else if (hist === null) {
             // Could not check history (bad network): do not claim a cancellation we cannot prove.
@@ -758,7 +758,7 @@ export function RiderProvider({ children }: { children: React.ReactNode }) {
         refreshProfile();
       },
       onTicketUpdated: () => {
-        showToast('ZCS support replied to your ticket.', 'info');
+        showToast('ZENV support replied to your ticket.', 'info');
         setTicketNonce((n) => n + 1);
       },
       // Live pool (riders_online room): refetch at once instead of waiting for the poll / push.
@@ -867,7 +867,7 @@ export function RiderProvider({ children }: { children: React.ReactNode }) {
         ...(text ? { note: text } : {}),
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-      showToast('SOS sent. The ZCS team will call you now.', 'success');
+      showToast('SOS sent. The ZENV team will call you now.', 'success');
       return true;
     } catch (e) {
       showToast(`${errorMessage(e)} If you are in danger, call 112.`, 'error');
@@ -1213,7 +1213,7 @@ export function RiderProvider({ children }: { children: React.ReactNode }) {
       await api.deleteAccount(proof);
       // The server already ended every session and removed the push tokens: just clear this phone.
       await endSession();
-      showToast('Your ZCS Rider account has been deleted.', 'success');
+      showToast('Your ZENV Rider account has been deleted.', 'success');
     },
     [endSession, showToast],
   );
