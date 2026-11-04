@@ -42,7 +42,7 @@ const alertOnce = async (M, day, cap, io) => {
     console.error(`🚨 [SMS_BUDGET] Daily SMS cap reached (${cap} on ${day} IST): OTP SMS are paused until midnight IST. Raise SMS_DAILY_CAP on Render if this is real traffic.`);
     await require('./adminAlert').pushAdmins(
       '🚨 SMS budget reached',
-      `ZENV sent ${cap} OTP SMS today (the daily cap). New OTP SMS are paused until midnight IST; password login still works. Raise SMS_DAILY_CAP if this is real traffic.`,
+      `ZenWe sent ${cap} OTP SMS today (the daily cap). New OTP SMS are paused until midnight IST; password login still works. Raise SMS_DAILY_CAP if this is real traffic.`,
       { type: 'SMS_BUDGET', day },
       { io },
     );

@@ -43,7 +43,7 @@ export default function RentalsV2Place() {
     if (room && item.pgId) router.push(`/pg/book?pg=${encodeURIComponent(item.pgId)}&type=${encodeURIComponent(item.roomKey || '')}` as any);
   };
   const safeguards = room
-    ? ['Your request goes to the ZENV housing team, who confirm the room with the PG before you pay.', item.deposit ? `Security deposit ${inr(item.deposit)}, paid to the PG at move-in.` : 'Rent is paid to the PG at move-in. Nothing is charged in the app.', 'Visit the PG before moving in; you can withdraw a request any time before it is confirmed.']
+    ? ['Your request goes to the ZenWe housing team, who confirm the room with the PG before you pay.', item.deposit ? `Security deposit ${inr(item.deposit)}, paid to the PG at move-in.` : 'Rent is paid to the PG at move-in. Nothing is charged in the app.', 'Visit the PG before moving in; you can withdraw a request any time before it is confirmed.']
     : ['Visit the flat with the owner before paying anything.', item.deposit ? `Typical deposit ${inr(item.deposit)}, agreed with the owner in a written rental agreement.` : 'Agree the deposit in a written rental agreement.', 'Never pay token money online to someone you have not met.'];
 
   return (

@@ -145,7 +145,7 @@ export function DeliveryScreen({ orderId, onClose }: { orderId: string; onClose:
           <Text style={[T.h2, { color: C.ink }]}>{order.restaurantName ?? 'Store'}</Text>
           <Text style={[T.body, { color: order.buyAtStore ? C.amber : C.ink2 }]}>
             {order.buyAtStore
-              ? 'This store has no ZENV app. Order and pay for these items at the counter, keep the bill, then tick each item.'
+              ? 'This store has no ZenWe app. Order and pay for these items at the counter, keep the bill, then tick each item.'
               : 'Tick every item before you leave.'}
           </Text>
         </View>
@@ -199,7 +199,7 @@ export function DeliveryScreen({ orderId, onClose }: { orderId: string; onClose:
               <MaterialCommunityIcons name="lock-alert" size={30} color={C.red} />
               <Text style={[T.h3, { color: C.red, flex: 1 }]}>PIN locked</Text>
             </View>
-            <Text style={[T.body, { color: C.ink2 }]}>{pinMsg || 'Too many wrong PINs. ZENV support can complete this delivery for you.'}</Text>
+            <Text style={[T.body, { color: C.ink2 }]}>{pinMsg || 'Too many wrong PINs. ZenWe support can complete this delivery for you.'}</Text>
             <Btn
               title="Get help from support"
               icon="lifebuoy"
@@ -241,7 +241,7 @@ export function DeliveryScreen({ orderId, onClose }: { orderId: string; onClose:
                   onPress: () =>
                     links.whatsapp(
                       order.customerPhone,
-                      `Hi${custName ? ' ' + custName : ''}, your ZENV rider is here with your order. Please share the 4-digit delivery PIN from your ZENV app.`,
+                      `Hi${custName ? ' ' + custName : ''}, your ZenWe rider is here with your order. Please share the 4-digit delivery PIN from your ZenWe app.`,
                     ),
                 }
               : null
@@ -268,7 +268,7 @@ export function DeliveryScreen({ orderId, onClose }: { orderId: string; onClose:
     body = (
       <Card style={{ gap: S.md }}>
         <Text style={[T.body, { color: C.ink }]}>
-          This order has a status this app does not recognise{order.rawStatus ? ` ("${order.rawStatus}")` : ''}. Please contact ZENV support before you do anything with it.
+          This order has a status this app does not recognise{order.rawStatus ? ` ("${order.rawStatus}")` : ''}. Please contact ZenWe support before you do anything with it.
         </Text>
         <Btn
           title="Get help from support"
@@ -342,7 +342,7 @@ export function DeliveryScreen({ orderId, onClose }: { orderId: string; onClose:
         <Row
           icon="lifebuoy"
           label="Get help"
-          value="Message ZENV support"
+          value="Message ZenWe support"
           onPress={() => {
             setMenu(false);
             r.setOverlay({ kind: 'support', prefill: helpPrefill });
@@ -354,7 +354,7 @@ export function DeliveryScreen({ orderId, onClose }: { orderId: string; onClose:
           value={`#${order.shortId}`}
           onPress={() => {
             setMenu(false);
-            Share.share({ message: `ZENV order #${order.shortId} (${order.id})` }).catch(() => {});
+            Share.share({ message: `ZenWe order #${order.shortId} (${order.id})` }).catch(() => {});
           }}
         />
       </Sheet>

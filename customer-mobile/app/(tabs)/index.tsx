@@ -688,7 +688,7 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-        Alert.alert('Close ZENV?', undefined, [
+        Alert.alert('Close ZenWe?', undefined, [
           { text: 'Cancel', onPress: () => null, style: 'cancel' },
           { text: 'Close', onPress: () => BackHandler.exitApp() },
         ]);
@@ -1186,7 +1186,7 @@ export default function HomeScreen() {
             <View style={[s.emptyFilterBox, { backgroundColor: cardBg, borderColor: isDark ? goldBorderColor : COLORS.borderLight }]}>
               <Ionicons name="cloud-offline-outline" size={34} color={txtSec} style={{ marginBottom: 8 }} />
               <Text style={[s.emptyFilterTitle, { color: txt }]}>
-                {loadError === 'server' ? 'ZENV is still starting up' : "Couldn't load restaurants"}
+                {loadError === 'server' ? 'ZenWe is still starting up' : "Couldn't load restaurants"}
               </Text>
               <Text style={[s.emptyFilterSub, { color: txtSec }]}>
                 {loadError === 'server'
@@ -1206,7 +1206,7 @@ export default function HomeScreen() {
               <Ionicons name="restaurant-outline" size={34} color={txtSec} style={{ marginBottom: 8 }} />
               {noFoodVendors ? (
                 <>
-                  <Text style={[s.emptyFilterTitle, { color: txt }]}>Restaurants are joining ZENV soon</Text>
+                  <Text style={[s.emptyFilterTitle, { color: txt }]}>Restaurants are joining ZenWe soon</Text>
                   <Text style={[s.emptyFilterSub, { color: txtSec }]}>Meanwhile, shop pickles and groceries from campus stores.</Text>
                   <TouchableOpacity
                     style={[s.resetFilterBtn, { backgroundColor: goldColor }]}

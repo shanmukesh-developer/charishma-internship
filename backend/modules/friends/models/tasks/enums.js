@@ -43,5 +43,5 @@ module.exports = {
   CHAT_OPEN_DAYS_AFTER_COMPLETION: 7,
 
   // Exact text from the owner's spec (section 8). Tests compare it character for character.
-  PAYMENT_NOTICE: 'ZENV does not collect, hold, escrow, or guarantee payments between students. Any payment is arranged directly between the participating users. Verify the recipient and amount before making a payment.',
+  PAYMENT_NOTICE: 'ZenWe does not collect, hold, escrow, or guarantee payments between students. Any payment is arranged directly between the participating users. Verify the recipient and amount before making a payment.',
 };

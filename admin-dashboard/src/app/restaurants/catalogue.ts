@@ -162,8 +162,8 @@ export type VendorGroup = 'Food' | 'Shops' | 'Services' | 'Campus';
 
 /** Canonical store types the backend understands (see backend/utils/vendorTypes.js). */
 export const VENDOR_TYPES: { value: string; label: string; group: VendorGroup; hint: string }[] = [
-  { value: 'RESTAURANT', label: 'Restaurant', group: 'Food', hint: 'Cooked food. Orders, payment and ZENV riders.' },
-  { value: 'LOCAL_VENDOR', label: 'Local stall', group: 'Campus', hint: 'Customers order in ZENV and pay the stall cash; the stall delivers with the ZENV Vendor app (no rider). Pickup-only stalls: use Add campus stall on In-Campus Booking.' },
+  { value: 'RESTAURANT', label: 'Restaurant', group: 'Food', hint: 'Cooked food. Orders, payment and ZenWe riders.' },
+  { value: 'LOCAL_VENDOR', label: 'Local stall', group: 'Campus', hint: 'Customers order in ZenWe and pay the stall cash; the stall delivers with the ZenWe Vendor app (no rider). Pickup-only stalls: use Add campus stall on In-Campus Booking.' },
   { value: 'GROCERY', label: 'Grocery / Kirana', group: 'Shops', hint: 'Packaged goods, fruits, pickles and late-night mart.' },
   { value: 'BAKERY', label: 'Bakery & cakes', group: 'Shops', hint: 'Cakes, breads and bakes. Shows under Bakery in Groceries; set weights and flavours per product.' },
   { value: 'PHARMACY', label: 'Pharmacy', group: 'Shops', hint: 'Medicines and health essentials.' },
@@ -188,7 +188,7 @@ export const isLocalVendorType = (type?: string | null) => ['LOCAL_VENDOR', 'LOC
 /** A campus stall with In-Campus Booking on: pickup only (no delivery), run from the ZCS Campus Stall app. */
 export const isBookingStall = (s: Pick<Store, 'vendorType' | 'campusBookingEnabled'>) => isLocalVendorType(s.vendorType) && s.campusBookingEnabled === true;
 /** The app a store's partner signs in to. */
-export const partnerAppName = (s: Pick<Store, 'vendorType' | 'campusBookingEnabled'>) => (isBookingStall(s) ? 'ZENV Campus Stall' : isLocalVendorType(s.vendorType) ? 'ZENV Vendor' : 'ZENV Restaurant');
+export const partnerAppName = (s: Pick<Store, 'vendorType' | 'campusBookingEnabled'>) => (isBookingStall(s) ? 'ZenWe Campus Stall' : isLocalVendorType(s.vendorType) ? 'ZenWe Vendor' : 'ZenWe Restaurant');
 
 const LEGACY_LABELS: Record<string, string> = {
   STATIONARY: 'Stationery (old spelling)',

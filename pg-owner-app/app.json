@@ -3,14 +3,14 @@
     "extra": {
       "trustedApiHosts": ["hostelbites-backend-jwmt.onrender.com"]
     },
-    "name": "ZENV PG Partner",
+    "name": "ZenWe PG Partner",
     "slug": "zcs-pg-partner",
     "version": "1.0.5",
     "orientation": "portrait",
-    "icon": "./assets/zenv-pg-partner-icon-2026-11-04.png",
+    "icon": "./assets/zenwe-pg-partner-icon-2026-11-04.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/zenv-splash-badge-2026-11-04.png",
+      "image": "./assets/zenwe-splash-badge-2026-11-04.png",
       "resizeMode": "contain",
       "backgroundColor": "#0B0A1E"
     },
@@ -24,9 +24,9 @@
       "allowBackup": false,
       "adaptiveIcon": {
         "backgroundColor": "#FAE04B",
-        "foregroundImage": "./assets/zenv-pg-partner-adaptive-foreground-2026-11-04.png",
+        "foregroundImage": "./assets/zenwe-pg-partner-adaptive-foreground-2026-11-04.png",
         "backgroundImage": "./assets/zenv-adaptive-backdrop-2026-11-04.png",
-        "monochromeImage": "./assets/zenv-pg-partner-adaptive-monochrome-2026-11-04.png"
+        "monochromeImage": "./assets/zenwe-pg-partner-adaptive-monochrome-2026-11-04.png"
       },
       "blockedPermissions": [
         "android.permission.ACCESS_FINE_LOCATION",
@@ -45,15 +45,15 @@
         "./plugins/withReleaseSigning",
         {
           "prefix": "ZENVY_PGOWNER_UPLOAD",
-          "appLabel": "ZENV PG Partner",
+          "appLabel": "ZenWe PG Partner",
           "readme": "pg-owner-app/README.md"
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "ZENV PG Partner uses your photos to add pictures of your PG (rooms, bathrooms, mess, building).",
-          "cameraPermission": "ZENV PG Partner uses the camera to take pictures of your PG for the listing.",
+          "photosPermission": "ZenWe PG Partner uses your photos to add pictures of your PG (rooms, bathrooms, mess, building).",
+          "cameraPermission": "ZenWe PG Partner uses the camera to take pictures of your PG for the listing.",
           "microphonePermission": false
         }
       ],

@@ -146,7 +146,7 @@ export default function RentalsAdminPage() {
     <div className="text-fg">
       <PageHeader
         title="Rentals"
-        description="Students rent (commercial plate) or borrow (private plate) bikes, scooters and cars from each other. Review listings and their RC and insurance, verify driving licences, and handle reports and extra-charge disputes. Students pay each other in cash; ZENV does not hold the money."
+        description="Students rent (commercial plate) or borrow (private plate) bikes, scooters and cars from each other. Review listings and their RC and insurance, verify driving licences, and handle reports and extra-charge disputes. Students pay each other in cash; ZenWe does not hold the money."
         meta={summary ? <Badge tone={summary.enabled ? 'success' : 'neutral'} dot>{summary.enabled ? `On · ${summary.liveListings} live vehicles` : 'Paused for students'}</Badge> : undefined}
         actions={summary ? (
           <Button variant={summary.enabled ? 'secondary' : 'primary'} onClick={toggle} title={summary.enabled ? 'Students can no longer browse, list or request; existing trips keep working.' : 'Students can browse, list and request vehicles again.'}>

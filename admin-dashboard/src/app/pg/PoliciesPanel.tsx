@@ -133,7 +133,7 @@ export function PoliciesPanel({ pg, onSaved }: { pg: PGHostel; onSaved: (pg: Par
 
       <fieldset className={g('rent')}>
         <legend className={LEGEND}>Rent payment</legend>
-        <p className="text-xs text-fg-muted">ZENV does not collect rent. This is shown to students for information.</p>
+        <p className="text-xs text-fg-muted">ZenWe does not collect rent. This is shown to students for information.</p>
         <div className="grid gap-3 md:grid-cols-3">
           <label className={LABEL}>Due on day (1–28)<input inputMode="numeric" className={FIELD} placeholder="e.g. 5" value={d.rent.dueDay} onChange={e => set('rent', { dueDay: e.target.value })} /></label>
           <label className={LABEL}>Late fee (₹)<input inputMode="numeric" className={FIELD} placeholder="Blank = none" value={d.rent.lateFee} onChange={e => set('rent', { lateFee: e.target.value })} /></label>
@@ -246,7 +246,7 @@ export function PoliciesPanel({ pg, onSaved }: { pg: PGHostel; onSaved: (pg: Par
           {v.rent.lateFee ? <Row label="Late fee" value={`${inr(v.rent.lateFee)} ${v.rent.lateFeeUnit === 'day' ? 'per day late' : 'once'}`} /> : null}
           {v.rent.methods?.length ? <Row label="Paid by" value={joinOr(v.rent.methods.map(m => PAYMENT_METHOD_LABEL[m]))} /> : null}
           {v.rent.notes && <Row label="Notes" value={v.rent.notes} />}
-          <p className="text-xs text-fg-muted">Rent is paid to the PG. ZENV does not collect rent.</p>
+          <p className="text-xs text-fg-muted">Rent is paid to the PG. ZenWe does not collect rent.</p>
         </div>}
         {v?.deposit && <div><p className="font-semibold text-fg">Security deposit</p>
           {depositAmount !== undefined && <Row label="Amount" value={depositAmount ? inr(depositAmount) : 'None'} />}

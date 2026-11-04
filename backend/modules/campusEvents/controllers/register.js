@@ -345,7 +345,7 @@ const createOrder = async (req, res) => {
     if (order.amount !== amountPaise) throw fail(502, 'PAYMENT_PROVIDER_ERROR', 'The payment amount did not match. Please try again.');
     pay = await Pay.create({ registrationId: reg.id, eventId: reg.eventId, userId: reg.userId, provider: E.PAYMENT_PROVIDER.RAZORPAY, amountPaise, currency: 'INR', status: E.PAY_ROW_STATUS.CREATED, providerOrderId: order.id });
   }
-  res.json({ provider: 'RAZORPAY', keyId: payments.razorpay.keys().keyId, orderId: pay.providerOrderId, amountPaise: pay.amountPaise, currency: pay.currency, payBy: iso(reg.paymentExpiresAt), registrationId: reg.id, note: 'The registration is confirmed only after Razorpay tells ZENV the payment was captured.' });
+  res.json({ provider: 'RAZORPAY', keyId: payments.razorpay.keys().keyId, orderId: pay.providerOrderId, amountPaise: pay.amountPaise, currency: pay.currency, payBy: iso(reg.paymentExpiresAt), registrationId: reg.id, note: 'The registration is confirmed only after Razorpay tells ZenWe the payment was captured.' });
 };
 
 // GET /registrations/:id/payment   (status poll; the app's success screen is never proof)

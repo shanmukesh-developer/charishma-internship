@@ -323,8 +323,8 @@ export const readJson = async (res: Response): Promise<any | null> => {
   }
 };
 
-export const SERVER_BUSY_MESSAGE = 'ZENV is waking up. Please try again in a few seconds.';
-export const NETWORK_ERROR_MESSAGE = "Can't reach ZENV right now. Check your internet and try again.";
+export const SERVER_BUSY_MESSAGE = 'ZenWe is waking up. Please try again in a few seconds.';
+export const NETWORK_ERROR_MESSAGE = "Can't reach ZenWe right now. Check your internet and try again.";
 
 /** Error thrown by postAuth when the request never reached the server (offline / timeout). */
 export class NetworkError extends Error {

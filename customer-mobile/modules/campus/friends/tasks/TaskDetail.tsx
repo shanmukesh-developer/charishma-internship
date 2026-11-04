@@ -566,7 +566,7 @@ export const TaskDetail: React.FC<{ id: string; initial?: Task | null }> = ({ id
           </Text>
           <View style={styles.rewardRow} accessible accessibilityLabel={t.rewardInr > 0 ? `Reward ${t.rewardInr} rupees, paid directly between students` : 'No payment offered'}>
             <Text style={[styles.reward, t.rewardInr > 0 ? null : { color: FriendsColors.muted }]}>{formatInr(t.rewardInr)}</Text>
-            <Text style={FT.small}>{t.rewardInr > 0 ? 'paid directly, outside ZENV' : 'a favour'}</Text>
+            <Text style={FT.small}>{t.rewardInr > 0 ? 'paid directly, outside ZenWe' : 'a favour'}</Text>
           </View>
           <View style={styles.facts}>
             <Fact icon={<Clock size={14} color={dl?.urgent ? FriendsColors.warn : FriendsColors.muted} />} text={`${formatDeadline(t.deadlineAt)}${dl ? ` · ${dl.text}` : ''}`} warn={!!dl?.urgent} label="Deadline" />

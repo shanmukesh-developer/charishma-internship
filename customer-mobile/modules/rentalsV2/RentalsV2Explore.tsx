@@ -25,7 +25,7 @@ const WHY = [
   { Icon: IBadge, label: 'Reviewed listings', note: 'Each vehicle is checked' },
   { Icon: IKey, label: 'PIN handover', note: 'Pickup and return' },
   { Icon: IReceipt, label: 'Pay at pickup', note: 'Nothing paid online' },
-  { Icon: IChat, label: 'Support', note: 'Help from ZENV' },
+  { Icon: IChat, label: 'Support', note: 'Help from ZenWe' },
 ];
 
 function WideCard({ kind, index }: { kind: Category; index: number }) {

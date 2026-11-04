@@ -66,7 +66,7 @@ test('setup: refused while email is not set up; the emailed code confirms the ad
   assert.strictEqual(s.body.sentTo, `${email.slice(0, 2)}***@example.com`);
   assert.strictEqual(outbox.length, 1);
   assert.strictEqual(outbox[0].to, email, 'address trimmed and lower-cased');
-  assert.strictEqual(outbox[0].subject, 'Your ZENV Admin verification code');
+  assert.strictEqual(outbox[0].subject, 'Your ZenWe Admin verification code');
   const code = lastCode(email);
   assert.match(code, /^\d{6}$/);
   const r = await row(admin);

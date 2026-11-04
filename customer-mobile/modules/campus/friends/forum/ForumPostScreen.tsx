@@ -297,7 +297,7 @@ export const ForumPostScreen: React.FC<{ id: string; initial?: ForumPost | null 
   };
 
   const openLink = (url: string, host: string) =>
-    Alert.alert('Open link?', `This opens ${host} outside ZENV.`, [
+    Alert.alert('Open link?', `This opens ${host} outside ZenWe.`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Open', onPress: () => Linking.openURL(url).catch(() => Alert.alert("Couldn't open the link")) },
     ]);

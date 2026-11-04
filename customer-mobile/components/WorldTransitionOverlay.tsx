@@ -339,10 +339,10 @@ export default function WorldTransitionOverlay() {
           },
         ]}
       >
-        {/* Crest: the ZENV badge (brand, 4 Nov 2026) */}
+        {/* Crest: the ZenWe badge (brand, 4 Nov 2026) */}
         <ZenvBadge size={72} style={s.crest} />
 
-        <Text style={s.gatewayLabel}>ZENV</Text>
+        <Text style={s.gatewayLabel}>ZenWe</Text>
         <Text style={s.worldTitle}>{theme.label}</Text>
 
         {/* Gold Line Divider */}

@@ -27,13 +27,13 @@ const checkSpinEntry = async (req, res) => {
 // Same 8 sectors (and order) as the wheel in the app, so the app can animate to prizeIndex.
 const SPIN_PRIZES = [
   { label: 'FREE DEL', value: 'FREEDEL', type: 'coupon', display: 'Free Delivery 🚚' },
-  { label: '10 ZEN', value: 10, type: 'points', display: '10 ZENV Points 💎' },
-  { label: '20 ZEN', value: 20, type: 'points', display: '20 ZENV Points 💎' },
-  { label: '5 ZEN', value: 5, type: 'points', display: '5 ZENV Points 💎' },
-  { label: '50 ZEN', value: 50, type: 'points', display: '50 ZENV Points 💎' },
-  { label: '100 ZEN', value: 100, type: 'points', display: '100 ZENV Points 💎' },
-  { label: '5 ZEN', value: 5, type: 'points', display: '5 ZENV Points 💎' },
-  { label: '2 ZEN', value: 2, type: 'points', display: '2 ZENV Points 💎' },
+  { label: '10 ZEN', value: 10, type: 'points', display: '10 ZenWe Points 💎' },
+  { label: '20 ZEN', value: 20, type: 'points', display: '20 ZenWe Points 💎' },
+  { label: '5 ZEN', value: 5, type: 'points', display: '5 ZenWe Points 💎' },
+  { label: '50 ZEN', value: 50, type: 'points', display: '50 ZenWe Points 💎' },
+  { label: '100 ZEN', value: 100, type: 'points', display: '100 ZenWe Points 💎' },
+  { label: '5 ZEN', value: 5, type: 'points', display: '5 ZenWe Points 💎' },
+  { label: '2 ZEN', value: 2, type: 'points', display: '2 ZenWe Points 💎' },
 ];
 const FREE_DELIVERY_EVERY = 15; // every 15th spin is Free Delivery
 const SPIN_COUPON_DAYS = 7;

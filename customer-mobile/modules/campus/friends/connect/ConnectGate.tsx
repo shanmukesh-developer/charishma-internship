@@ -83,7 +83,7 @@ export const AgeGate: React.FC<{ status: ConnectStatus; onChanged: () => void }>
       <GateFrame>
         <Hero title="Connect is for 18+" subtitle="Connect is only open to students who are 18 or older. Everything else in Friends stays open to you." icon={<Lock size={24} color={FriendsColors.accent} />} />
         {status.dob.locked ? (
-          <Notice tone="muted" text="Your date of birth is locked. If it is wrong, contact ZENV support from Me › Help." />
+          <Notice tone="muted" text="Your date of birth is locked. If it is wrong, contact ZenWe support from Me › Help." />
         ) : (
           <GhostButton label="My date of birth is wrong" onPress={() => setEditing(true)} icon={<CalendarDays size={16} color={FriendsColors.ink} />} />
         )}

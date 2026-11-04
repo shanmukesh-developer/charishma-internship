@@ -148,11 +148,11 @@ export default function SecurityPage() {
   };
   const downloadCodes = () => {
     if (!codes) return;
-    const text = `ZENV Admin recovery codes (${user?.name || 'admin'})\nEach code works once. Keep them somewhere safe.\n\n${codes.join('\n')}\n`;
+    const text = `ZenWe Admin recovery codes (${user?.name || 'admin'})\nEach code works once. Keep them somewhere safe.\n\n${codes.join('\n')}\n`;
     const url = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'zenv-admin-recovery-codes.txt';
+    a.download = 'zenwe-admin-recovery-codes.txt';
     a.click();
     URL.revokeObjectURL(url);
   };

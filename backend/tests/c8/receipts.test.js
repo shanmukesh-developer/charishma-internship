@@ -205,7 +205,7 @@ test('tax display: breakdown refused without GSTIN + rate; with both, GST contai
   let res = await H.api('PUT', '/api/admin/receipt-settings', admin.token, { taxDisplayMode: 'breakdown' });
   assert.strictEqual(res.status, 400);
   assert.strictEqual(res.body.code, 'INVALID_RECEIPT_SETTINGS');
-  res = await H.api('PUT', '/api/admin/receipt-settings', admin.token, { platformGstin: '37ABCDE1234F1Z5', gstRatePercent: 5, taxDisplayMode: 'breakdown', footerNote: 'Thank you for ordering on ZENV.' });
+  res = await H.api('PUT', '/api/admin/receipt-settings', admin.token, { platformGstin: '37ABCDE1234F1Z5', gstRatePercent: 5, taxDisplayMode: 'breakdown', footerNote: 'Thank you for ordering on ZenWe.' });
   assert.strictEqual(res.status, 200, JSON.stringify(res.body));
   assert.strictEqual(res.body.effectiveTaxDisplayMode, 'breakdown');
   const { order } = await delivered();
@@ -216,6 +216,6 @@ test('tax display: breakdown refused without GSTIN + rate; with both, GST contai
   assert.strictEqual(rc.platform.gstin, '37ABCDE1234F1Z5');
   assert.strictEqual(Math.round((rc.tax.taxableValue + rc.tax.gstIncluded) * 100), Math.round(row.finalPrice * 100));
   assert.strictEqual(Math.round((rc.tax.cgst + rc.tax.sgst) * 100), Math.round(rc.tax.gstIncluded * 100));
-  assert.strictEqual(rc.footerNote, 'Thank you for ordering on ZENV.');
+  assert.strictEqual(rc.footerNote, 'Thank you for ordering on ZenWe.');
   await H.resetSettings();
 });

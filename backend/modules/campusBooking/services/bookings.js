@@ -77,7 +77,7 @@ const createBooking = async ({ userId, stallId, items, note, documents, idempote
     const prior = await Booking().findOne({ where: { userId, idempotencyKey: key } });
     if (prior) return { booking: prior, store: await Restaurant.findByPk(prior.restaurantId, { attributes: ['id', 'name', 'location', 'imageUrl'] }), created: false };
   }
-  if (!isUuid(String(stallId || ''))) throw fail(404, 'STALL_NOT_FOUND', 'This stall is not taking bookings on ZENV.');
+  if (!isUuid(String(stallId || ''))) throw fail(404, 'STALL_NOT_FOUND', 'This stall is not taking bookings on ZenWe.');
   parseLines(items, LIMITS.maxQtyPerLineStationery); // shape first; the stall decides the per-line cap below
   const store = await Restaurant.findByPk(stallId, { attributes: [...stalls.STORE_ATTRS, 'imageUrl'] });
   if (!stalls.takesBookings(store)) throw fail(409, 'NOT_TAKING_BOOKINGS', `${store ? store.name : 'This stall'} is not taking In-Campus Bookings right now.`);

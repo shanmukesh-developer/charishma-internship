@@ -282,7 +282,7 @@ export default function CbStall({ id }: { id: string }) {
                 ...(stall.location ? [['location-outline', stall.location]] : []),
                 ['hourglass-outline', `Usually ready in about ${stall.prepMinutes} minutes after the stall accepts`],
                 ['storefront-outline', 'Pickup only. Collect at the counter with your pickup code.'],
-                ...(sample ? [] : [['qr-code-outline', 'You pay the stall directly by UPI. ZENV does not take or hold the money.']]),
+                ...(sample ? [] : [['qr-code-outline', 'You pay the stall directly by UPI. ZenWe does not take or hold the money.']]),
                 ['pricetag-outline', `${stall.categoryLabel}${stall.itemCount ? ` · ${stall.itemCount} items` : ''}`],
               ].map(([icon, text]) => (
                 <View key={text} style={st.aboutRow}>

@@ -29,11 +29,11 @@ const formatOrderMessage = (order, type = 'CUSTOMER_CONFIRMATION') => {
     }
   }
   const items = parsedItems.map(i => `• ${i.name || 'Item'} x${i.quantity || 1}`).join('\n');
-  const restaurant = order.restaurant?.name || 'ZENV Partner';
+  const restaurant = order.restaurant?.name || 'ZenWe Partner';
   const trackUrl = require('./publicUrl').orderTrackingUrl(order._id || order.id || '');
 
   if (type === 'CUSTOMER_CONFIRMATION') {
-    return `🛍️ *Order Confirmed!* #${orderId}\n\nHi! Your order from *${restaurant}* is now being prepared.\n\n*Items:*\n${items}\n\n*Total:* ₹${order.finalPrice || order.totalPrice}\n\n📍 *Tracking:* ${trackUrl}\n\n_Thank you for choosing ZENV!_`;
+    return `🛍️ *Order Confirmed!* #${orderId}\n\nHi! Your order from *${restaurant}* is now being prepared.\n\n*Items:*\n${items}\n\n*Total:* ₹${order.finalPrice || order.totalPrice}\n\n📍 *Tracking:* ${trackUrl}\n\n_Thank you for choosing ZenWe!_`;
   }
 
   if (type === 'STATUS_UPDATE') {
@@ -48,10 +48,10 @@ const formatOrderMessage = (order, type = 'CUSTOMER_CONFIRMATION') => {
   }
 
   if (type === 'RIDER_ALERT') {
-    return `🛵 *New Delivery Request!* #${orderId}\n\nPickup: *${restaurant}*\nDrop: *${order.deliveryAddress}*\n\n💰 *Earnings:* ₹${order.deliveryFee}\n\n_Open ZENV Rider app to accept immediately!_`;
+    return `🛵 *New Delivery Request!* #${orderId}\n\nPickup: *${restaurant}*\nDrop: *${order.deliveryAddress}*\n\n💰 *Earnings:* ₹${order.deliveryFee}\n\n_Open ZenWe Rider app to accept immediately!_`;
   }
 
-  return `🔔 *ZENV Alert:* Order #${orderId} - ${order.status}`;
+  return `🔔 *ZenWe Alert:* Order #${orderId} - ${order.status}`;
 };
 
 /**

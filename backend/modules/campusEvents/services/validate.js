@@ -17,7 +17,7 @@ const cleanQuestions = (raw) => {
     if (!q || typeof q !== 'object') throw fail(400, 'INVALID_INPUT', 'Each question needs a label and a type.', { field });
     const label = cleanText(q.label, L.QUESTION_LABEL);
     if (!label) throw fail(400, 'INVALID_INPUT', 'Each question needs a label.', { field });
-    if (FORBIDDEN_QUESTION_RE.test(label)) throw fail(400, 'QUESTION_NOT_ALLOWED', 'Questions may not ask for ID numbers, phone numbers, bank or payment details. ZENV already verified the student.', { field });
+    if (FORBIDDEN_QUESTION_RE.test(label)) throw fail(400, 'QUESTION_NOT_ALLOWED', 'Questions may not ask for ID numbers, phone numbers, bank or payment details. ZenWe already verified the student.', { field });
     const type = String(q.type || 'TEXT').toUpperCase();
     if (!E.QUESTION_TYPES.includes(type)) throw fail(400, 'INVALID_INPUT', `Question type must be one of ${E.QUESTION_TYPES.join(', ')}.`, { field });
     let id = cleanText(q.id, 24).replace(/[^A-Za-z0-9_-]/g, '') || `q${i + 1}`;

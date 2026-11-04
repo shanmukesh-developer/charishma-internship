@@ -135,7 +135,7 @@ const submit = async (req, res) => {
   if (missing.length) throw fail(409, 'INCOMPLETE', `Add these first: ${missing.join(', ')}.`, { missing });
   await d.update({ status: D.PENDING_REVIEW, submittedAt: clock.now(), rejectionReason: null });
   notify.admin('auto_driver', 'updated', d.id);
-  res.json({ driver: S.driverSelf(req, d), message: 'Sent for review. ZENV checks your documents before you can take bookings.' });
+  res.json({ driver: S.driverSelf(req, d), message: 'Sent for review. ZenWe checks your documents before you can take bookings.' });
 };
 
 // POST /api/auto-ride/driver/online { online }
@@ -190,12 +190,12 @@ const createVehicle = async (req, res) => {
   if (count >= MAX_VEHICLES) throw fail(409, 'TOO_MANY_VEHICLES', `You can register up to ${MAX_VEHICLES} autos.`);
   const data = await vehicleInput(req.driver.id, req.body || {});
   const clash = await Vehicle.findOne({ where: { registrationNumber: data.registrationNumber, status: { [Op.in]: E.VEHICLE_LIVE_STATUSES } }, attributes: ['id'] });
-  if (clash) throw fail(409, 'REGISTRATION_TAKEN', 'This registration number is already registered on ZENV. Contact support if it is your auto.');
+  if (clash) throw fail(409, 'REGISTRATION_TAKEN', 'This registration number is already registered on ZenWe. Contact support if it is your auto.');
   let v;
   try {
     v = await Vehicle.create({ ...data, driverId: req.driver.id, status: V.PENDING_REVIEW });
   } catch (err) {
-    if (isUniqueError(err)) throw fail(409, 'REGISTRATION_TAKEN', 'This registration number is already registered on ZENV.');
+    if (isUniqueError(err)) throw fail(409, 'REGISTRATION_TAKEN', 'This registration number is already registered on ZenWe.');
     throw err;
   }
   notify.admin('auto_vehicle', 'created', v.id);
@@ -207,13 +207,13 @@ const updateVehicle = async (req, res) => {
   const id = String(req.params.id || '');
   const v = isUuid(id) ? await Vehicle.findByPk(id) : null;
   if (!v || String(v.driverId) !== String(req.driver.id)) throw fail(404, 'NOT_FOUND', 'Vehicle not found.');
-  if (v.status === V.SUSPENDED) throw fail(409, 'VEHICLE_SUSPENDED', 'This auto is suspended. Contact ZENV support.');
+  if (v.status === V.SUSPENDED) throw fail(409, 'VEHICLE_SUSPENDED', 'This auto is suspended. Contact ZenWe support.');
   const active = await Trip.findOne({ where: { vehicleId: v.id, status: { [Op.in]: E.ACTIVE_TRIP_STATUSES } }, attributes: ['id'] });
   if (active) throw fail(409, 'ACTIVE_TRIP_EXISTS', 'Finish or cancel the current trip before editing this auto.');
   const data = await vehicleInput(req.driver.id, req.body || {}, v);
   if (data.registrationNumber !== v.registrationNumber) {
     const clash = await Vehicle.findOne({ where: { registrationNumber: data.registrationNumber, status: { [Op.in]: E.VEHICLE_LIVE_STATUSES }, id: { [Op.ne]: v.id } }, attributes: ['id'] });
-    if (clash) throw fail(409, 'REGISTRATION_TAKEN', 'This registration number is already registered on ZENV.');
+    if (clash) throw fail(409, 'REGISTRATION_TAKEN', 'This registration number is already registered on ZenWe.');
   }
   // Any change goes back to review; the admin sets the approved capacity again.
   await v.update({ ...data, status: V.PENDING_REVIEW, approvedCapacity: null, rejectionReason: null });
@@ -273,7 +273,7 @@ const reportIncident = async (req, res) => {
   const priority = E.HIGH_PRIORITY_CATEGORIES.includes(category) ? E.INCIDENT_PRIORITY.HIGH : E.INCIDENT_PRIORITY.NORMAL;
   const row = await Incident.create({ tripId, bookingId, reporterType: 'DRIVER', reporterId: req.driver.id, category, priority, description });
   notify.admin('auto_incident', 'created', row.id);
-  res.status(201).json({ incident: S.incident(row), message: category === 'SAFETY' ? 'Reported. If anyone is in danger call 112 now.' : 'Reported to the ZENV team.' });
+  res.status(201).json({ incident: S.incident(row), message: category === 'SAFETY' ? 'Reported. If anyone is in danger call 112 now.' : 'Reported to the ZenWe team.' });
 };
 
 // POST /api/auto-ride/driver/sos { tripId?, note?, lat?, lon? }
@@ -314,7 +314,7 @@ const sos = async (req, res) => {
       }
     } catch { /* the SOS itself must never fail on this */ }
   }
-  const description = `SOS from the ZENV Auto Driver app${note ? `: ${note}` : '.'}${where}`.slice(0, 2000);
+  const description = `SOS from the ZenWe Auto Driver app${note ? `: ${note}` : '.'}${where}`.slice(0, 2000);
   const row = await Incident.create({
     tripId: trip ? trip.id : null, bookingId: null, reporterType: 'DRIVER', reporterId: req.driver.id,
     category: 'SAFETY', priority: E.INCIDENT_PRIORITY.HIGH, description,
@@ -331,7 +331,7 @@ const sos = async (req, res) => {
   )).catch(() => {});
   res.status(201).json({
     incident: S.incident(row), emergencyNumber: '112', locationSource,
-    message: 'ZENV has been alerted and will call you back. If anyone is in danger call 112 now.',
+    message: 'ZenWe has been alerted and will call you back. If anyone is in danger call 112 now.',
   });
 };
 

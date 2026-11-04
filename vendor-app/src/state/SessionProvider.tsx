@@ -111,7 +111,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         if (t && isLocalVendorAccount(r) === false) {
           // A restaurant (rider-delivered) session: its orders cannot be handled with this app's flow.
           clearSession();
-          setNotice('This is a restaurant account. Please use the ZENV Restaurant app.');
+          setNotice('This is a restaurant account. Please use the ZenWe Restaurant app.');
           return;
         }
         tokenRef.current = t;

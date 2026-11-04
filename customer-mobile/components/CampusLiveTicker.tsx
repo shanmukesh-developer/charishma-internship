@@ -18,8 +18,8 @@ const DEFAULT_TICKER_ITEMS: TickerItem[] = [
   { id: '1', icon: '🍛', tag: 'TOP PICK', tagColor: '#F59E0B', text: 'Tap a cuisine below to see campus dishes' },
   { id: '2', icon: '🛵', tag: 'TRACKING', tagColor: '#10B981', text: 'Track your rider live from the Orders tab' },
   { id: '3', icon: '⏰', tag: 'HOURS', tagColor: '#8B5CF6', text: 'Delivered daily at 12:30 PM, 4:30 PM and 8:30 PM' },
-  { id: '4', icon: '💵', tag: 'PAYMENTS', tagColor: '#3B82F6', text: 'Pay with Cash on Delivery or your ZENV Wallet' },
-  { id: '5', icon: '🎉', tag: 'SAVER', tagColor: '#EF4444', text: 'Free delivery with 200+ ZENV Points or a Platinum+ badge' },
+  { id: '4', icon: '💵', tag: 'PAYMENTS', tagColor: '#3B82F6', text: 'Pay with Cash on Delivery or your ZenWe Wallet' },
+  { id: '5', icon: '🎉', tag: 'SAVER', tagColor: '#EF4444', text: 'Free delivery with 200+ ZenWe Points or a Platinum+ badge' },
 ];
 
 export default function CampusLiveTicker() {

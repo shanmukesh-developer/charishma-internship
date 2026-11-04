@@ -34,7 +34,7 @@ const PUSH_TEXT: Record<PushState, string> = {
 export default function StallSettingsScreen({ pushState }: { pushState: PushState }) {
   const { restaurant, signOut } = useSession();
   const [confirmOut, setConfirmOut] = useState(false);
-  const wa = () => Linking.openURL(`https://wa.me/${SUPPORT_PHONE}?text=${encodeURIComponent(`Hi ZENV, ${restaurant?.name || 'my stall'} needs help with In-Campus Booking.`)}`).catch(() => {});
+  const wa = () => Linking.openURL(`https://wa.me/${SUPPORT_PHONE}?text=${encodeURIComponent(`Hi ZenWe, ${restaurant?.name || 'my stall'} needs help with In-Campus Booking.`)}`).catch(() => {});
 
   const footer = (
     <View style={{ gap: space.md, marginTop: space.md }}>
@@ -46,7 +46,7 @@ export default function StallSettingsScreen({ pushState }: { pushState: PushStat
 
       <Text style={[font.label, { color: color.textMuted }]}>SUPPORT</Text>
       <Card style={{ paddingVertical: 0 }}>
-        <LinkRow icon="call" label="Call ZENV support" sub={SUPPORT_PHONE_DISPLAY} onPress={() => Linking.openURL(`tel:+${SUPPORT_PHONE}`).catch(() => {})} />
+        <LinkRow icon="call" label="Call ZenWe support" sub={SUPPORT_PHONE_DISPLAY} onPress={() => Linking.openURL(`tel:+${SUPPORT_PHONE}`).catch(() => {})} />
         <LinkRow icon="logo-whatsapp" label="WhatsApp support" sub="Bookings, UPI, menu, anything else" onPress={wa} />
       </Card>
 
@@ -55,10 +55,10 @@ export default function StallSettingsScreen({ pushState }: { pushState: PushStat
         {SETTINGS_PAGES.map((p) => <LinkRow key={p} icon="document-text-outline" label={LEGAL_LABELS[p]} onPress={() => openLegal(p)} />)}
       </Card>
 
-      <Text style={[font.small, { color: color.textMuted, textAlign: 'center' }]}>{restaurant?.name || ''} · ZENV Campus Stall 1.0.0</Text>
+      <Text style={[font.small, { color: color.textMuted, textAlign: 'center' }]}>{restaurant?.name || ''} · ZenWe Campus Stall 1.0.0</Text>
       <Button label="Log out" variant="rejectOutline" icon="log-out-outline" onPress={() => setConfirmOut(true)} />
       {confirmOut ? (
-        <Sheet visible onClose={() => setConfirmOut(false)} title="Log out of ZENV Campus Stall?">
+        <Sheet visible onClose={() => setConfirmOut(false)} title="Log out of ZenWe Campus Stall?">
           <View style={{ gap: space.sm }}>
             <Text style={[font.body, { color: color.textSecondary }]}>New bookings will not reach this phone until you log in again. Students can still book while your stall is open.</Text>
             <Button label="Log out" variant="reject" onPress={() => { setConfirmOut(false); signOut(); }} />

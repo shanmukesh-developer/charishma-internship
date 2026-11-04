@@ -3,7 +3,7 @@ import { Platform, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
 
 /**
- * The ZENV badge (owner, 4 Nov 2026): a yellow disc (#FAE04B) with the scooter rider holding a box and "ZENV" in
+ * The ZenWe badge (owner, 4 Nov 2026): a yellow disc (#FAE04B) with the scooter rider holding a box and "ZenWe" in
  * navy (#0F3960) under him. One 512 px source whose disc fills the whole square (transparent corners only).
  *
  * One treatment everywhere (headers, onboarding, sign-in, About, the world transition, the intro fallback): the disc
@@ -11,7 +11,7 @@ import { Image } from 'expo-image';
  * is the same yellow, so the round edge never shows a dark fringe. `lift` adds a soft shadow on light backgrounds.
  * Keep `size` a whole number so the disc lands on whole pixels.
  */
-export const ZENV_BADGE = require('../assets/zenv-brand-badge-2026-11-04.webp');
+export const ZENV_BADGE = require('../assets/zenwe-brand-badge-2026-11-04.webp');
 export const ZENV_YELLOW = '#FAE04B';
 export const ZENV_NAVY = '#0F3960';
 
@@ -19,7 +19,7 @@ export default function ZenvBadge({ size, lift, label, style }: {
   size: number;
   /** Soft drop shadow, for light backgrounds where yellow on white needs a little depth. */
   lift?: boolean;
-  /** Spoken label. Leave it out where the word "ZENV" is already next to the badge (it is then decorative). */
+  /** Spoken label. Leave it out where the word "ZenWe" is already next to the badge (it is then decorative). */
   label?: string;
   style?: StyleProp<ViewStyle>;
 }) {

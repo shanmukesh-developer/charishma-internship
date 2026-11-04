@@ -28,7 +28,7 @@ import { setCollege, isCollegeKey } from '../utils/college';
 import { writeCache } from '../utils/swrCache';
 
 // First-run onboarding (shown once after install; app/index.tsx decides), redesigned 31 Oct 2026 (owner: "work on
-// this section also", right after the new intro): it continues the intro. The ZENV badge in the header; a
+// this section also", right after the new intro): it continues the intro. The ZenWe badge in the header; a
 // full-bleed photo per page that cross-fades and drifts as the pages slide; editorial two-line titles with the second
 // line in gold; one gold accent throughout. Its own photos, one per topic (owner: "not the same images as the other
 // sections", "relevant images"): Unsplash, free licence, bundled in assets/onboarding (sources:
@@ -439,12 +439,12 @@ export default function OnboardingScreen() {
       </View>
 
       <SafeAreaView style={s.safe} edges={['top', 'bottom', 'left', 'right']}>
-        {/* Header: the ZENV badge + Skip (always visible) */}
+        {/* Header: the ZenWe badge + Skip (always visible) */}
         <View style={s.header} onLayout={(e) => setHeaderH(Math.round(e.nativeEvent.layout.height))}>
-          <View style={s.brandRow} accessible accessibilityLabel="ZENV">
+          <View style={s.brandRow} accessible accessibilityLabel="ZenWe">
             <ZenvBadge size={36} />
             <View style={s.brandText}>
-              <Text allowFontScaling={false} style={s.brand}>ZENV</Text>
+              <Text allowFontScaling={false} style={s.brand}>ZenWe</Text>
             </View>
           </View>
           <TouchableOpacity

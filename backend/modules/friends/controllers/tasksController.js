@@ -657,7 +657,7 @@ const meta = async (req, res) => {
     reviewWindowDays: T.REVIEW_WINDOW_DAYS,
     integrity: integrity.GUIDANCE,
     paymentNotice: T.PAYMENT_NOTICE,
-    upi: { clientOnly: true, note: 'The UPI link is built on your phone from the UPI id you type. ZENV never stores it and never marks a task as paid.' },
+    upi: { clientOnly: true, note: 'The UPI link is built on your phone from the UPI id you type. ZenWe never stores it and never marks a task as paid.' },
     limits,
   });
 };

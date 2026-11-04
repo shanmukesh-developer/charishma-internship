@@ -153,18 +153,18 @@ const restaurantLogin = async (req, res) => {
     // so the status is never revealed to someone guessing. Drafts and the partner's own "closed" /
     // offline switches (isOpenNow / isOffline) never block the login.
     if (isSuspendedStore(restaurant)) {
-      return res.status(403).json({ code: 'ACCOUNT_SUSPENDED', message: 'This store has been suspended by ZENV. Please contact ZENV support to reactivate it.' });
+      return res.status(403).json({ code: 'ACCOUNT_SUSPENDED', message: 'This store has been suspended by ZenWe. Please contact ZenWe support to reactivate it.' });
     }
 
     if (appKind === 'vendor' && !isLocalVendorStore(restaurant)) {
-      return res.status(403).json({ code: 'NOT_A_VENDOR_ACCOUNT', message: 'This is a restaurant account. Use the ZENV Restaurant app.' });
+      return res.status(403).json({ code: 'NOT_A_VENDOR_ACCOUNT', message: 'This is a restaurant account. Use the ZenWe Restaurant app.' });
     }
     // Stalls use their own partner app (the restaurant app has no stall flow): In-Campus Booking stalls (pickup only)
     // ZCS Campus Stall, the others ZCS Vendor.
     if (appKind === 'restaurant' && isLocalVendorStore(restaurant)) {
       const message = restaurant.campusBookingEnabled === true
-        ? 'This stall takes In-Campus Bookings. Use the ZENV Campus Stall app.'
-        : 'This is a stall account. Use the ZENV Vendor app.';
+        ? 'This stall takes In-Campus Bookings. Use the ZenWe Campus Stall app.'
+        : 'This is a stall account. Use the ZenWe Vendor app.';
       return res.status(403).json({ code: 'USE_VENDOR_APP', message });
     }
 
@@ -197,7 +197,7 @@ const refreshStoreToken = async (req, res) => {
     const store = await Restaurant.findByPk(req.user.id, { attributes: ['id', 'tokenVersion', 'isActive', 'suspendedAt'] });
     if (!store) return res.status(401).json({ message: 'Restaurant not found' });
     if (isSuspendedStore(store)) {
-      return res.status(403).json({ code: 'ACCOUNT_SUSPENDED', message: 'This store has been suspended by ZENV. Please contact ZENV support to reactivate it.' });
+      return res.status(403).json({ code: 'ACCOUNT_SUSPENDED', message: 'This store has been suspended by ZenWe. Please contact ZenWe support to reactivate it.' });
     }
     const secret = process.env.JWT_SECRET;
     if (!secret) return res.status(500).json({ message: 'Server configuration error' });
@@ -833,7 +833,7 @@ const getLocalVendors = async (req, res) => {
       vJson.opensAt = open.opensAt || null;
       vJson.closesAt = vJson.isOpen ? (open.closesAt || null) : null;
       vJson.hoursToday = todayHoursText(v);
-      vJson.closedReason = vJson.isOpen ? null : (open.message || `${v.name} is not taking orders on ZENV right now.`);
+      vJson.closedReason = vJson.isOpen ? null : (open.message || `${v.name} is not taking orders on ZenWe right now.`);
       Object.assign(vJson, require('../utils/deliverySlots').slotListingFields(v, { skip: !!v.isOffline }));
       vJson.fulfilment = 'VENDOR';
       vJson.paymentMethods = ['COD'];

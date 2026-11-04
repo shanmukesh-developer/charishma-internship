@@ -124,7 +124,7 @@ router.get('/home', responseCache.cacheGet('pg_home', { ttlMs: 60 * 1000 }), asy
     const rails = [
       rail('near', 'Near campus', items.filter((x) => Number(x.distanceFromCollege) <= 2)),
       rail('verified', 'Verified', items.filter((x) => x.isVerified)),
-      rail('new', 'New on ZENV', items.filter((x) => x.createdAt && now - new Date(x.createdAt).getTime() <= NEW_DAYS * 86400000)
+      rail('new', 'New on ZenWe', items.filter((x) => x.createdAt && now - new Date(x.createdAt).getTime() <= NEW_DAYS * 86400000)
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))),
       // "Up to": the rail includes ₹6,000 itself (same words as the app's budget filter).
       rail('budget', 'Up to ₹6,000', items.filter((x) => rent(x) <= 6000).sort((a, b) => rent(a) - rent(b))),
@@ -212,7 +212,7 @@ router.post('/:roomId/book', protect, async (req, res) => {
       // eslint-disable-next-line no-control-regex
       const clean = req.body.note.replace(/[\u0000-\u001F\u007F<>]/g, ' ').replace(/\s+/g, ' ').trim();
       if (clean.length > 300) return res.status(400).json({ code: 'INVALID_NOTE', field: 'note', message: 'The note must be at most 300 characters.' });
-      if (pgContent.PHONE_RE.test(clean)) return res.status(400).json({ code: 'INVALID_NOTE', field: 'note', message: 'Please leave out phone numbers. The ZENV housing desk connects you with the PG.' });
+      if (pgContent.PHONE_RE.test(clean)) return res.status(400).json({ code: 'INVALID_NOTE', field: 'note', message: 'Please leave out phone numbers. The ZenWe housing desk connects you with the PG.' });
       note = clean || null;
     }
 
@@ -241,7 +241,7 @@ router.post('/:roomId/book', protect, async (req, res) => {
     if (lastDay >= PG_DAILY_REQUESTS) {
       return res.status(429).json({
         code: 'BOOKING_LIMIT',
-        message: 'You have sent a lot of booking requests today. Please try again tomorrow, or talk to the ZENV housing team.',
+        message: 'You have sent a lot of booking requests today. Please try again tomorrow, or talk to the ZenWe housing team.',
       });
     }
 
@@ -272,7 +272,7 @@ router.post('/:roomId/book', protect, async (req, res) => {
       pgBookingInFlight.delete(pgKey);
     }
 
-    const userName = user?.name || req.user.name || 'ZENV Student';
+    const userName = user?.name || req.user.name || 'ZenWe Student';
     const userPhone = user?.phone || user?.mobile || req.user.phone || 'Not Provided';
     const userEmail = user?.email || req.user.email || 'Not Provided';
     const userHostel = user?.hostelBlock ? `${user.hostelBlock}, Room ${user.roomNumber || user.roomNo || ''}` : user?.address || 'SRM Campus';
@@ -294,7 +294,7 @@ router.post('/:roomId/book', protect, async (req, res) => {
       `• Rent per Bed: *₹${rentAmount}/mo*\n` +
       `• Scheduled Check-In: *${checkIn}*\n` +
       `• Booking ID: #${(booking.id || '').substring(0, 8).toUpperCase()}\n\n` +
-      `⚡ _Sent automatically via ZENV Super Ecosystem._`;
+      `⚡ _Sent automatically via ZenWe Super Ecosystem._`;
 
     // Real notifications: admin push + live dashboard alert. WhatsApp only when a provider is configured.
     // Once per student and residence in PG_NOTIFY_ONCE_MS: a request withdrawn and sent again is still listed in
@@ -324,7 +324,7 @@ router.post('/:roomId/book', protect, async (req, res) => {
     const whatsappUrl = `https://wa.me/91${PG_DESK_WHATSAPP}?text=${encodeURIComponent(whatsappMessage)}`;
 
     res.status(201).json({
-      message: 'Booking request received. The ZENV housing team will confirm it with you.',
+      message: 'Booking request received. The ZenWe housing team will confirm it with you.',
       booking,
       whatsappSent,
       whatsappUrl,
@@ -933,7 +933,7 @@ router.post('/reviews/:reviewId/report', protect, async (req, res) => {
     reports.push({ userId: req.user.id, reason, at: new Date().toISOString() });
     await review.update({ reports: reports.slice(-100), reportCount: reports.length });
     realtime.notifyAdmin('pg', 'updated', review.hostelId, { scope: 'reviews' });
-    res.json({ message: 'Thanks. The ZENV team will review it.' });
+    res.json({ message: 'Thanks. The ZenWe team will review it.' });
   } catch (err) {
     sendServerError(res, err, '[PG_REVIEW_REPORT_ERROR]');
   }

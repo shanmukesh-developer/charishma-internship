@@ -34,7 +34,7 @@ export default function AdminAlerts() {
   useEffect(() => {
     if (!socket) return;
     const onAlert = (a: AlertPayload) => {
-      const title = String(a?.title || 'ZENV alert').slice(0, 120);
+      const title = String(a?.title || 'ZenWe alert').slice(0, 120);
       const body = String(a?.body || '').slice(0, 400);
       const shown: ShownAlert = {
         key: `${a?.type || 'alert'}-${a?.orderId || ''}-${a?.at || Date.now()}`,

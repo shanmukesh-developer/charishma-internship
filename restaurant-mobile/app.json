@@ -3,11 +3,11 @@
     "extra": {
       "trustedApiHosts": ["hostelbites-backend-jwmt.onrender.com"]
     },
-    "name": "ZENV Restaurant",
+    "name": "ZenWe Restaurant",
     "slug": "restaurant-mobile",
     "version": "1.0.7",
     "orientation": "portrait",
-    "icon": "./assets/zenv-restaurant-icon-2026-11-04.png",
+    "icon": "./assets/zenwe-restaurant-icon-2026-11-04.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
@@ -16,9 +16,9 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#FAE04B",
-        "foregroundImage": "./assets/zenv-restaurant-adaptive-foreground-2026-11-04.png",
+        "foregroundImage": "./assets/zenwe-restaurant-adaptive-foreground-2026-11-04.png",
         "backgroundImage": "./assets/zenv-adaptive-backdrop-2026-11-04.png",
-        "monochromeImage": "./assets/zenv-restaurant-adaptive-monochrome-2026-11-04.png"
+        "monochromeImage": "./assets/zenwe-restaurant-adaptive-monochrome-2026-11-04.png"
       },
       "package": "com.zenvy.restaurant",
       "versionCode": 8,
@@ -47,8 +47,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "ZENV Restaurant uses your photos to add pictures of your dishes.",
-          "cameraPermission": "ZENV Restaurant uses the camera to take pictures of your dishes.",
+          "photosPermission": "ZenWe Restaurant uses your photos to add pictures of your dishes.",
+          "cameraPermission": "ZenWe Restaurant uses the camera to take pictures of your dishes.",
           "microphonePermission": false
         }
       ],

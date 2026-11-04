@@ -41,12 +41,12 @@ export default function DealsV2Refer() {
   };
   const share = async () => {
     try {
-      await Share.share({ message: `${name} invited you to ZENV: campus food and essentials delivered to your hostel. Sign up with code ${code} and you both get 50 ZENV Points.` });
+      await Share.share({ message: `${name} invited you to ZenWe: campus food and essentials delivered to your hostel. Sign up with code ${code} and you both get 50 ZenWe Points.` });
     } catch {}
   };
   return (
     <View style={{ flex: 1 }}>
-      <PageHeader title="Invite friends" sub="50 ZENV Points for you and your friend" />
+      <PageHeader title="Invite friends" sub="50 ZenWe Points for you and your friend" />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 60 }}>
         {!d.signedIn ? <StateBlock kind="signin" body="Sign in to get your own invite code." action="Sign in" onAction={() => nav.go('/login')} style={{ marginHorizontal: 0 }} /> : !code ? (
           <StateBlock kind="empty" title="Your invite code is on its way" body="Pull down on the Deals page to refresh, then come back." style={{ marginHorizontal: 0 }} />
@@ -59,8 +59,8 @@ export default function DealsV2Refer() {
                 <IconPlate size={64} radius={20}><IUserPlus size={30} color="#FFFFFF" strokeWidth={1.5} /></IconPlate>
                 <Coin size={52} />
               </View>
-              <Text style={s.heroTitle}>50 ZENV Points each</Text>
-              <Text style={s.heroSub}>When a friend signs up with your code, you and your friend each get 50 ZENV Points.</Text>
+              <Text style={s.heroTitle}>50 ZenWe Points each</Text>
+              <Text style={s.heroSub}>When a friend signs up with your code, you and your friend each get 50 ZenWe Points.</Text>
             </View>
             <Press onPress={copy} label={copied ? 'Code copied' : `Copy invite code ${code}`} style={s.code}>
               <View style={{ flex: 1, minWidth: 0 }}>
@@ -78,7 +78,7 @@ export default function DealsV2Refer() {
               </View>
             ) : null}
             <Text style={s.h2}>How it works</Text>
-            {['Share your code with a friend who is not on ZENV yet.', 'They enter it when they sign up.', 'You and your friend each get 50 ZENV Points.'].map((t, i) => (
+            {['Share your code with a friend who is not on ZenWe yet.', 'They enter it when they sign up.', 'You and your friend each get 50 ZenWe Points.'].map((t, i) => (
               <View key={i} style={s.step}>
                 <View style={s.num}><Text style={s.numText}>{i + 1}</Text></View>
                 <Text style={s.stepText}>{t}</Text>

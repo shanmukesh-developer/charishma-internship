@@ -77,7 +77,7 @@ export const LivenessPanel: React.FC<{
           Selfie in review
         </Text>
         <Text style={[FT.muted, { textAlign: 'center' }]}>
-          A ZENV moderator is comparing your selfie with your Connect photos{liveness.submittedAt ? ` (sent ${formatRelative(liveness.submittedAt)})` : ''}. You'll get a notification. The selfie is deleted as soon as they decide.
+          A ZenWe moderator is comparing your selfie with your Connect photos{liveness.submittedAt ? ` (sent ${formatRelative(liveness.submittedAt)})` : ''}. You'll get a notification. The selfie is deleted as soon as they decide.
         </Text>
         <GhostButton label="Refresh" onPress={() => onChanged()} icon={<RefreshCw size={16} color={FriendsColors.ink} />} style={{ alignSelf: 'stretch', marginTop: FS.md }} />
       </View>
@@ -170,7 +170,7 @@ export const LivenessPanel: React.FC<{
           Quick selfie check
         </Text>
         <Text style={[FT.muted, { textAlign: 'center' }]}>
-          One selfie doing a random gesture shows you're a real person and match your photos. Only a ZENV moderator sees it, and it's deleted once they decide.
+          One selfie doing a random gesture shows you're a real person and match your photos. Only a ZenWe moderator sees it, and it's deleted once they decide.
         </Text>
       </View>
       {liveness.status === 'failed' ? (
@@ -181,7 +181,7 @@ export const LivenessPanel: React.FC<{
       ) : null}
       {expired ? <Notice tone="muted" text="Your last prompt expired. Start again for a new one." /> : null}
       <View style={fui.cardPad}>
-        <Checkbox checked={consent} onToggle={() => setConsent((v) => !v)} label="I agree to a one-time selfie check. ZENV keeps the selfie only until a moderator reviews it." />
+        <Checkbox checked={consent} onToggle={() => setConsent((v) => !v)} label="I agree to a one-time selfie check. ZenWe keeps the selfie only until a moderator reviews it." />
       </View>
       {error ? <Text style={styles.error} accessibilityRole="alert">{error}</Text> : null}
       <PrimaryButton label="Start selfie check" onPress={start} busy={busy === 'start'} disabled={!hasPhotos} a11yHint="Shows a gesture to do in your selfie" />

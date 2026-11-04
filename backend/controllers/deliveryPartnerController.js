@@ -245,7 +245,7 @@ const authPartner = async (req, res) => {
     // Deactivated by Zenvy (C1-7: an approved rider the admin switched off). New sign-ups waiting for
     // approval (never approved, no suspendedAt) still log in and see "waiting for approval".
     if (partner.suspendedAt && partner.isApproved !== true) {
-      return res.status(403).json({ code: 'ACCOUNT_SUSPENDED', message: 'Your ZENV rider account has been deactivated. Please contact ZENV support.' });
+      return res.status(403).json({ code: 'ACCOUNT_SUSPENDED', message: 'Your ZenWe rider account has been deactivated. Please contact ZenWe support.' });
     }
 
     // ── 3. Return partner data and JWT token ────────────────────────────────
@@ -304,7 +304,7 @@ const refreshPartnerToken = async (req, res) => {
     const partner = await getDeliveryPartnerModel().findByPk(req.user.id, { attributes: ['id', 'tokenVersion', 'isApproved', 'suspendedAt', 'accountDeletedAt'] });
     if (!partner || partner.accountDeletedAt) return res.status(401).json({ code: 'ACCOUNT_NOT_FOUND', message: 'Please sign in again.' });
     if (partner.suspendedAt && partner.isApproved !== true) {
-      return res.status(403).json({ code: 'ACCOUNT_SUSPENDED', message: 'Your ZENV rider account has been deactivated. Please contact ZENV support.' });
+      return res.status(403).json({ code: 'ACCOUNT_SUSPENDED', message: 'Your ZenWe rider account has been deactivated. Please contact ZenWe support.' });
     }
     const claims = require('../middleware/authMiddleware').presentedTokenClaims(req) || {};
     if ((Number(claims.tv) || 0) !== (Number(partner.tokenVersion) || 0)) {
@@ -497,7 +497,7 @@ const acceptOrderLocked = async (req, res) => {
       const customerTokenList = rawCustomerTokens.map(t => typeof t === 'string' ? t : t?.token).filter(Boolean);
       if (customer) {
         // Claimed, not yet picked up: "on the way" is sent at pickup (it used to say so here, before the food was ready).
-        const riderFirst = String((partner && partner.name) || '').trim().split(/\s+/)[0] || 'A ZENV rider';
+        const riderFirst = String((partner && partner.name) || '').trim().split(/\s+/)[0] || 'A ZenWe rider';
         await sendPushToTokens(customerTokenList, 'Rider assigned 🛵', `${riderFirst} will pick up your order from the store.`, { orderId: updatedOrder.id, type: 'ORDER_UPDATE' }, { recipients: [customer.id] });
       }
     } catch (e) {
@@ -674,7 +674,7 @@ const updateOrderStatus = async (req, res) => {
         if (claimed === 0) {
           return res.status(429).json({
             code: 'PIN_LOCKED',
-            message: 'Too many wrong PINs for this order. Please contact ZENV support to complete the handover.'
+            message: 'Too many wrong PINs for this order. Please contact ZenWe support to complete the handover.'
           });
         }
         if (pin && pin === order.deliveryPin) {
@@ -698,8 +698,8 @@ const updateOrderStatus = async (req, res) => {
             code: 'INVALID_PIN',
             attemptsLeft: left,
             message: left > 0
-              ? `That PIN doesn't match. Ask the customer for the 4-digit PIN shown in their ZENV app (${left} ${left === 1 ? 'try' : 'tries'} left).`
-              : 'Too many wrong PINs for this order. Please contact ZENV support to complete the handover.'
+              ? `That PIN doesn't match. Ask the customer for the 4-digit PIN shown in their ZenWe app (${left} ${left === 1 ? 'try' : 'tries'} left).`
+              : 'Too many wrong PINs for this order. Please contact ZenWe support to complete the handover.'
           });
         }
       }
@@ -818,7 +818,7 @@ const updateOrderStatus = async (req, res) => {
           PickedUp: 'Rider is on the way!',
           ArrivedAtGate: 'Rider is waiting at your gate.',
           // A store order (groceries, pickles...) is not a meal.
-          Delivered: require('../utils/vendorTypes').isStoreVendorType(order.category) ? 'Thanks for ordering with ZENV.' : 'Enjoy your meal!'
+          Delivered: require('../utils/vendorTypes').isStoreVendorType(order.category) ? 'Thanks for ordering with ZenWe.' : 'Enjoy your meal!'
         };
         if (titles[status]) {
           await sendPushToTokens(customerTokenList, titles[status], bodies[status], { orderId: order.id, type: 'ORDER_UPDATE' }, { recipients: [customer.id] });
@@ -1566,7 +1566,7 @@ const notifyArrivalAtGate = async (req, res) => {
       if (customer && customer.phone) {
         await sendWhatsAppMessage(
           customer.phone,
-          `🛎️ *Rider Arrived at Gate!*\n\nYour ZENV rider is waiting at your hostel gate. Keep your 4-digit Delivery PIN from the ZENV app ready.\n\n📍 *Tracking:* ${require('../utils/publicUrl').orderTrackingUrl(order.id)}`,
+          `🛎️ *Rider Arrived at Gate!*\n\nYour ZenWe rider is waiting at your hostel gate. Keep your 4-digit Delivery PIN from the ZenWe app ready.\n\n📍 *Tracking:* ${require('../utils/publicUrl').orderTrackingUrl(order.id)}`,
           'GATE_ARRIVAL'
         );
       }

@@ -40,16 +40,16 @@ export default function PublishScreen({ navigation, route: nav }: ScreenProps<'P
 
   if (q.loading || !me) return <Screen title="New auto trip" onBack={() => navigation.goBack()}><SkeletonCard lines={4} /><SkeletonCard /></Screen>;
   if (q.error && !q.data) return <Screen title="New auto trip" onBack={() => navigation.goBack()}><ErrorStrip text={q.error} onRetry={q.refresh} busy={q.refreshing} /></Screen>;
-  if (me.driver.status !== 'VERIFIED') return <Screen title="New auto trip" onBack={() => navigation.goBack()}><EmptyState icon="shield-checkmark" title="Verification needed" body="ZENV must verify your account before you can publish trips." /></Screen>;
+  if (me.driver.status !== 'VERIFIED') return <Screen title="New auto trip" onBack={() => navigation.goBack()}><EmptyState icon="shield-checkmark" title="Verification needed" body="ZenWe must verify your account before you can publish trips." /></Screen>;
   if (!vehicles.length) {
     return (
       <Screen title="New auto trip" onBack={() => navigation.goBack()}>
-        <EmptyState icon="car" title="No approved auto" body="ZENV has to approve your auto (and its passenger capacity) before you can publish a trip." />
+        <EmptyState icon="car" title="No approved auto" body="ZenWe has to approve your auto (and its passenger capacity) before you can publish a trip." />
         <Button label="Your autos" icon="car" variant="secondary" onPress={() => navigation.navigate('Vehicles')} />
       </Screen>
     );
   }
-  if (!q.data!.routes.length) return <Screen title="New auto trip" onBack={() => navigation.goBack()}><EmptyState icon="map" title="No routes yet" body="ZENV has not set up any auto routes yet. Please check again later." action={{ label: 'Refresh', onPress: q.refresh, loading: q.refreshing }} /></Screen>;
+  if (!q.data!.routes.length) return <Screen title="New auto trip" onBack={() => navigation.goBack()}><EmptyState icon="map" title="No routes yet" body="ZenWe has not set up any auto routes yet. Please check again later." action={{ label: 'Refresh', onPress: q.refresh, loading: q.refreshing }} /></Screen>;
   return (
     <PublishForm
       key={draft?.id || 'new'}
@@ -191,7 +191,7 @@ function PublishForm({ routes, vehicles, drafts, settings, draft, isOnline, feat
   return (
     <Screen title={savedDraft ? 'Draft trip' : 'New auto trip'} onBack={onBack} stationary
       footer={<Button label={savedDraft ? 'Save and publish' : 'Publish trip'} icon="megaphone" variant="accept" size="huge" onPress={confirmPublish} loading={busy} disabled={!featureEnabled} />}>
-      {!featureEnabled ? <Banner tone="warn" text="Auto-Ride is switched off by ZENV right now. You can come back and publish when it opens." /> : null}
+      {!featureEnabled ? <Banner tone="warn" text="Auto-Ride is switched off by ZenWe right now. You can come back and publish when it opens." /> : null}
       {!isOnline ? <Banner tone="info" text="You are offline. You will be asked to go online when you publish." /> : null}
       {serverErr ? <Banner tone="error" text={serverErr} /> : null}
       {otherDrafts.length ? (
@@ -274,7 +274,7 @@ function PublishForm({ routes, vehicles, drafts, settings, draft, isOnline, feat
           ) : null}
 
           <SectionTitle text="6. Seats" />
-          <Stepper label="Seats for passengers" value={capacity} min={1} max={maxCap} onChange={setCapacity} error={errors.capacity} hint={`ZENV approved ${maxCap} for this auto.`} />
+          <Stepper label="Seats for passengers" value={capacity} min={1} max={maxCap} onChange={setCapacity} error={errors.capacity} hint={`ZenWe approved ${maxCap} for this auto.`} />
           <SwitchRow label="Passengers pick their seats" sub="Off = seats are given automatically." value={seatSel} onChange={setSeatSel} />
           <Stepper label="Leave early with at least" value={minSeats} min={1} max={capacity} onChange={setMinSeats} format={(v) => `${v} passenger${v === 1 ? '' : 's'}`}
             error={errors.minSeatsToDepart} hint="When this many seats are confirmed you can confirm departure before the auto is full." />
@@ -295,7 +295,7 @@ function PublishForm({ routes, vehicles, drafts, settings, draft, isOnline, feat
             <Text style={[font.h3, { color: color.text }]}>Summary</Text>
             <KeyValue k="Departure" v={`${dayIst(new Date(departureMs).toISOString())}, ${fmt12(minutes)}`} />
             <KeyValue k="If every seat fills" v={rupees(seatFare * capacity)} />
-            <Text style={[font.small, { color: color.textMuted }]}>ZENV gives your queue number when you publish. Passengers pay you in cash at boarding.</Text>
+            <Text style={[font.small, { color: color.textMuted }]}>ZenWe gives your queue number when you publish. Passengers pay you in cash at boarding.</Text>
           </Card>
         </>
       ) : null}

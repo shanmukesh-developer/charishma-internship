@@ -75,7 +75,7 @@ export default function CoRideV2RideDetail() {
   const vehicleText = maskVehicle(ride.vehicleInfo, confirmed || mine);
   const stops: string[] = Array.isArray(ride.stopovers) ? ride.stopovers.filter(Boolean) : [];
   const vibe = vibeLabel(ride.rideVibe);
-  const share = () => Share.share({ message: `My ZENV Co-Ride: ${ride.origin} to ${ride.destination}, ${w.label}, with ${firstName(ride.creator?.name)} (${poolTag(ride)}).` }).catch(() => {});
+  const share = () => Share.share({ message: `My ZenWe Co-Ride: ${ride.origin} to ${ride.destination}, ${w.label}, with ${firstName(ride.creator?.name)} (${poolTag(ride)}).` }).catch(() => {});
   const sos = () => openSheet({ kind: 'sos', rideId: mine || confirmed ? String(ride.id) : undefined });
   const statusPill = mine ? <Pill text="Your ride" tone="blue" />
     : status === 'Pending' ? <Pill text="Request pending" tone="amber" />

@@ -213,7 +213,7 @@ export const NewChatSheet: React.FC<NewChatSheetProps> = ({
           <ListRow
             left={<View style={styles.actionIcon}><UserPlus size={18} color={CampusColors.accentDeep} /></View>}
             title="Add friend by code"
-            subtitle="Use the friend code from their ZENV profile"
+            subtitle="Use the friend code from their ZenWe profile"
             onPress={onAddFriendByCode}
             last
           />

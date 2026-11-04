@@ -110,11 +110,11 @@ router.get('/open-preview', (req, res) => {
   const code = String(req.query.code || '').slice(0, 2000);
   res.set('Cache-Control', 'private, no-store');
   res.set('Referrer-Policy', 'no-referrer');
-  res.type('html').send(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ZENV ad preview</title>
+  res.type('html').send(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ZenWe ad preview</title>
 <style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0a0a0b;color:#f5f5f7;font:16px system-ui,sans-serif;text-align:center;padding:24px;box-sizing:border-box}
 a{display:inline-block;margin-top:18px;background:#f4c430;color:#2a1c00;font-weight:700;text-decoration:none;padding:14px 28px;border-radius:99px}p{color:#a1a1aa;font-size:14px;max-width:320px;margin:10px auto 0}</style></head>
-<body><div><h1 style="font-size:22px;margin:0">Sponsored ad preview</h1><p>Opens this ad in the ZENV app on this phone, exactly as students will see it. The link works for 15 minutes.</p>
-<a href="zenvy://ad-preview?code=${escAttr(encodeURIComponent(code))}">Open in ZENV</a></div></body></html>`);
+<body><div><h1 style="font-size:22px;margin:0">Sponsored ad preview</h1><p>Opens this ad in the ZenWe app on this phone, exactly as students will see it. The link works for 15 minutes.</p>
+<a href="zenvy://ad-preview?code=${escAttr(encodeURIComponent(code))}">Open in ZenWe</a></div></body></html>`);
 });
 
 router.get('/preview', async (req, res) => {

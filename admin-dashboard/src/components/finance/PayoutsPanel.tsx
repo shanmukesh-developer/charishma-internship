@@ -107,7 +107,7 @@ export default function PayoutsPanel() {
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
     const a = document.createElement('a');
     a.href = url;
-    a.download = `zenv_payouts_${ptype}_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `zenwe_payouts_${ptype}_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
   };
 
@@ -164,7 +164,7 @@ export default function PayoutsPanel() {
           title="Not yet on a statement"
           description={ptype === 'rider'
             ? 'Earnings (delivery fee, ₹30 when the fee is 0) plus tips. Cash the rider holds is not deducted: collect it under Rider cash.'
-            : 'Item subtotal minus the commission fixed when each order was placed' + (ptype === 'vendor' ? ', minus the cash the stall collected itself (negative means the stall owes ZENV).' : '.')}
+            : 'Item subtotal minus the commission fixed when each order was placed' + (ptype === 'vendor' ? ', minus the cash the stall collected itself (negative means the stall owes ZenWe).' : '.')}
           actions={<Button leftIcon={<IconRefresh size={14} />} onClick={loadPending} loading={loading}>Refresh</Button>}
         />
         <DataTable
@@ -211,7 +211,7 @@ export default function PayoutsPanel() {
         onClose={() => setPaying(null)}
         size="sm"
         title={paying ? `Mark ${rs(paying.netPaise)} to ${paying.partnerName} as ${paying.netPaise < 0 ? 'settled' : 'paid'}?` : 'Mark paid'}
-        description={paying && paying.netPaise < 0 ? 'This partner owed ZENV; record the money you received from them.' : 'Record this after the money has moved.'}
+        description={paying && paying.netPaise < 0 ? 'This partner owed ZenWe; record the money you received from them.' : 'Record this after the money has moved.'}
         footer={<><Button onClick={() => setPaying(null)}>Cancel</Button><Button variant="primary" disabled={payUtr.trim().length < 3} onClick={submitPaid}>Mark paid</Button></>}
       >
         <div className="grid gap-4 sm:grid-cols-[1fr_140px]">
@@ -304,7 +304,7 @@ function StatementModal({ partner, onClose, onSaved }: { partner: PendingRow; on
             {partner.partnerType !== 'rider' && <p className="flex justify-between"><span className="text-fg-muted">Commission (fixed per order)</span><span className="tabular-nums">−{rs(preview.commissionPaise)}</span></p>}
             {preview.adjustmentsPaise !== 0 && <p className="flex justify-between"><span className="text-fg-muted">Cash the stall collected itself</span><span className="tabular-nums">{rs(preview.adjustmentsPaise)}</span></p>}
             {partner.partnerType === 'rider' && <p className="flex justify-between"><span className="text-fg-muted">Tips</span><span className="tabular-nums">{rs(preview.tipsPaise)}</span></p>}
-            <p className="flex justify-between border-t border-line pt-2 font-semibold"><span>{preview.netPaise < 0 ? 'Partner owes ZENV' : 'Pay'}</span><span className={`tabular-nums ${preview.netPaise < 0 ? 'text-danger-text' : ''}`}>{rs(preview.netPaise)}</span></p>
+            <p className="flex justify-between border-t border-line pt-2 font-semibold"><span>{preview.netPaise < 0 ? 'Partner owes ZenWe' : 'Pay'}</span><span className={`tabular-nums ${preview.netPaise < 0 ? 'text-danger-text' : ''}`}>{rs(preview.netPaise)}</span></p>
             {partner.partnerType === 'rider' && (preview.cashHeldPaise || 0) > 0 && <p className="pt-1 text-xs text-warning-text">This rider also holds {rs(preview.cashHeldPaise || 0)} of cash-on-delivery money. It is not deducted here: record it as a deposit under Rider cash.</p>}
           </div>
         )}

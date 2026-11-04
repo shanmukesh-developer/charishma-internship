@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { appSoundsTurnedOff } from '../../utils/sounds';
 
 // The intro's sound: the soundtrack of the owner's intro clip (4 Nov 2026), the same AAC audio copied out of
-// assets/zenv-intro-delivery-rider-2026-11-04.mp4 without re-encoding (3.35 s, 48 kHz stereo). The clip itself always
+// assets/zenwe-intro-delivery-rider-owner-2026-11-04.mp4 without re-encoding (3.43 s, 48 kHz stereo). The clip itself always
 // plays muted; this player gives it its sound, started in the same frame as the clip's first frame, so every rule
 // below still applies. It starts with the clip on a cold start and stays silent when:
 //   - the phone's ringer is on silent or vibrate (expo-audio playsInSilentMode: false checks the ringer mode),
@@ -13,8 +13,8 @@ import { appSoundsTurnedOff } from '../../utils/sounds';
 // It never takes audio focus from music. The player is released as soon as the sound ends, the intro is skipped or the
 // app leaves the foreground: on Android every expo-audio player owns a MediaSession, and one left alive shows an
 // "Unknown song" card (utils/sounds.ts).
-const FILE = require('../../assets/sounds/intro/zenv-intro-delivery-rider-sound-2026-11-04.aac');
-const LENGTH_MS = 3350;
+const FILE = require('../../assets/sounds/intro/zenwe-intro-delivery-rider-sound-owner-2026-11-04.aac');
+const LENGTH_MS = 3430;
 const VOLUME = 0.8;
 const LATE_LIMIT_S = 1; // ready later than this after the clip started: stay silent rather than play out of step
 const REMOTE_KEY = 'zcs_intro_sound_remote_v1';

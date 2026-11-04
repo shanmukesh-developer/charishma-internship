@@ -102,7 +102,7 @@ export default function ServicesV2Search() {
       </TopBar>
       <ScrollView contentContainerStyle={{ paddingBottom: (basket.count > 0 ? 110 : 40) + insets.bottom }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         {!q.trim() && nothingListed ? (
-          <StateBlock kind="empty" title="Coming soon to ZENV" body="Repairs, tailoring, laundry and gadgets will be bookable here as partners join." style={{ marginTop: 18 }} />
+          <StateBlock kind="empty" title="Coming soon to ZenWe" body="Repairs, tailoring, laundry and gadgets will be bookable here as partners join." style={{ marginTop: 18 }} />
         ) : !q.trim() && suggest.length > 0 ? (
           <View style={{ paddingHorizontal: 16, marginTop: 18 }}>
             <Text style={s.hint}>Try</Text>

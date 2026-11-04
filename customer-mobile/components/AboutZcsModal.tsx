@@ -1,5 +1,5 @@
 /**
- * "About ZENV" sheet (opened from Profile). The ZENV badge and name, one
+ * "About ZenWe" sheet (opened from Profile). The ZenWe badge and name, one
  * readable line about the app, real info rows (version and build from the app config, platform, the
  * campus chosen for checkout) and the credit line. Follows light / dark mode; Android back closes it.
  */
@@ -53,9 +53,9 @@ export default function AboutZcsModal({ visible, onClose }: { visible: boolean; 
           </TouchableOpacity>
 
           {/* Brand */}
-          <View style={st.brand} accessible accessibilityLabel="ZENV">
+          <View style={st.brand} accessible accessibilityLabel="ZenWe">
             <ZenvBadge size={76} lift={!isDark} />
-            <Text allowFontScaling={false} style={[st.wordmark, { color: gold }]}>ZENV</Text>
+            <Text allowFontScaling={false} style={[st.wordmark, { color: gold }]}>ZenWe</Text>
           </View>
           <Text style={[st.tagline, { color: colors.text }]}>Food, groceries and campus services, delivered to your hostel.</Text>
 

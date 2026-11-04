@@ -5,14 +5,14 @@
         "hostelbites-backend-jwmt.onrender.com"
       ]
     },
-    "name": "ZENV",
+    "name": "ZenWe",
     "slug": "zenvy-customer",
-    "version": "1.0.60",
+    "version": "1.0.61",
     "runtimeVersion": {
       "policy": "appVersion"
     },
     "orientation": "portrait",
-    "icon": "./assets/zenv-icon-2026-11-04.png",
+    "icon": "./assets/zenwe-icon-2026-11-04.png",
     "userInterfaceStyle": "light",
     "scheme": "zenvy",
     "splash": {
@@ -28,21 +28,21 @@
       "bundleIdentifier": "com.srm.hostelbites",
       "buildNumber": "7",
       "infoPlist": {
-        "NSCameraUsageDescription": "ZENV uses the camera for campus video calls and ID verification.",
-        "NSMicrophoneUsageDescription": "ZENV uses the microphone for campus voice and video calls.",
-        "NSPhotoLibraryUsageDescription": "Allow ZENV to access your photos to attach pictures to orders, lost & found posts and chats."
+        "NSCameraUsageDescription": "ZenWe uses the camera for campus video calls and ID verification.",
+        "NSMicrophoneUsageDescription": "ZenWe uses the microphone for campus voice and video calls.",
+        "NSPhotoLibraryUsageDescription": "Allow ZenWe to access your photos to attach pictures to orders, lost & found posts and chats."
       }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/zenv-adaptive-foreground-2026-11-04.png",
+        "foregroundImage": "./assets/zenwe-adaptive-foreground-2026-11-04.png",
         "backgroundColor": "#FAE04B",
         "backgroundImage": "./assets/zenv-adaptive-backdrop-2026-11-04.png",
-        "monochromeImage": "./assets/zenv-adaptive-monochrome-2026-11-04.png"
+        "monochromeImage": "./assets/zenwe-adaptive-monochrome-2026-11-04.png"
       },
       "package": "com.srm.hostelbites",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 61,
+      "versionCode": 62,
       "compileSdkVersion": 36,
       "targetSdkVersion": 36,
       "minSdkVersion": 24,
@@ -78,9 +78,9 @@
       "allowBackup": false
     },
     "web": {
-      "name": "ZENV",
-      "shortName": "ZENV",
-      "favicon": "./assets/zenv-favicon-2026-11-04.png",
+      "name": "ZenWe",
+      "shortName": "ZenWe",
+      "favicon": "./assets/zenwe-favicon-2026-11-04.png",
       "bundler": "metro"
     },
     "plugins": [
@@ -98,9 +98,9 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow ZENV to access your photos to attach pictures to orders, lost & found posts and chats.",
-          "cameraPermission": "Allow ZENV to use the camera to take photos and for campus video calls.",
-          "microphonePermission": "Allow ZENV to use the microphone for campus voice calls and Spaces."
+          "photosPermission": "Allow ZenWe to access your photos to attach pictures to orders, lost & found posts and chats.",
+          "cameraPermission": "Allow ZenWe to use the camera to take photos and for campus video calls.",
+          "microphonePermission": "Allow ZenWe to use the microphone for campus voice calls and Spaces."
         }
       ],
       [

@@ -428,7 +428,7 @@ export default function ProductDetailScreen() {
       Alert.alert('Review posted', 'Thanks for your review.');
       loadReviews(product.id);
     } catch (e) {
-      if (mountedRef.current) Alert.alert('No connection', 'Could not reach ZENV. Check your internet and try again.');
+      if (mountedRef.current) Alert.alert('No connection', 'Could not reach ZenWe. Check your internet and try again.');
     } finally {
       submittingRef.current = false;
       if (mountedRef.current) setSubmittingReview(false);
@@ -506,7 +506,7 @@ export default function ProductDetailScreen() {
     : product.isVaultItem
     ? 'Daily deal — claim it from Home'
     : eliteLocked
-      ? 'For ZENV Elite members only'
+      ? 'For ZenWe Elite members only'
       : product.bookingOnly
       ? 'This is a doorstep service — book a pickup instead'
       : !product.isAvailable
@@ -556,7 +556,7 @@ export default function ProductDetailScreen() {
     try {
       await Share.share({
         // No zenvy:// link: it opens nothing for friends who don't have the app yet.
-        message: `Check out ${product.name}${product.restaurantName ? ` from ${product.restaurantName}` : ''} on ZENV.`,
+        message: `Check out ${product.name}${product.restaurantName ? ` from ${product.restaurantName}` : ''} on ZenWe.`,
       });
     } catch (e) {
       // user dismissed the share sheet
@@ -1000,7 +1000,7 @@ export default function ProductDetailScreen() {
                 <View style={styles.reviewUserRow}>
                   <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                      <Text style={[styles.reviewUserName, { color: isDark ? '#FFF' : COLORS.ink }]}>{rev.name || 'ZENV customer'}</Text>
+                      <Text style={[styles.reviewUserName, { color: isDark ? '#FFF' : COLORS.ink }]}>{rev.name || 'ZenWe customer'}</Text>
                       {rev.verified ? (
                         <View style={styles.verifiedBadge}>
                           <Text style={styles.verifiedBadgeText}>Ordered</Text>

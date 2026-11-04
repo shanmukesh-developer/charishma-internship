@@ -10,7 +10,7 @@ import type { Category } from './rentalsV2Theme';
 /* eslint-disable @typescript-eslint/no-require-imports */
 /** Dusk skyline, brightened and warmed locally (brightness, saturation, pink horizon glow) for the owner's "bright, colourful" note. */
 export const HERO_DUSK: ImageSourcePropType = require('./assets/rv2-home-hero-city-dusk-vivid-hd-2026-10-26.webp');
-export const ZCS_EMBLEM: ImageSourcePropType = require('../../assets/zenv-brand-badge-2026-11-04.webp');
+export const ZCS_EMBLEM: ImageSourcePropType = require('../../assets/zenwe-brand-badge-2026-11-04.webp');
 
 /** Home (night) category cards, round 3 (owner, 26 Oct): a premium scooter with its full handlebar and mirrors,
  * the white SUV, a real cosy bedroom photo framed in the card, and a bright mid-rise block with balconies

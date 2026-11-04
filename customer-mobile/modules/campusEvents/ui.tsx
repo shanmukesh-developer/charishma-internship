@@ -372,7 +372,7 @@ export function CardSkeleton({ width, height = 260 }: { width?: number; height?:
   return <View style={{ width, height, borderRadius: 18, backgroundColor: p.card2, marginBottom: 12 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />;
 }
 
-export function Hero({ title, subtitle, kicker = 'ZENV Campus Events', right }: { title: string; subtitle: string; kicker?: string; right?: React.ReactNode }) {
+export function Hero({ title, subtitle, kicker = 'ZenWe Campus Events', right }: { title: string; subtitle: string; kicker?: string; right?: React.ReactNode }) {
   return (
     <LinearGradient colors={CE_GRAD} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={st.hero}>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>

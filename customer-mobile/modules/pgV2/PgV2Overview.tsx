@@ -240,7 +240,7 @@ export default function PgV2Overview() {
         </View>
       </ScrollView>
       <View style={[st.bar, { paddingBottom: insets.bottom + 14 }]}>
-        <OutlineButton label="Call ZENV" icon={IPhone} onPress={() => dial(`+${ZENVY_SUPPORT_WHATSAPP}`, 'ZENV support')} style={{ flex: 1, height: 54 }} />
+        <OutlineButton label="Call ZenWe" icon={IPhone} onPress={() => dial(`+${ZENVY_SUPPORT_WHATSAPP}`, 'ZenWe support')} style={{ flex: 1, height: 54 }} />
         <PrimaryButton label="Book Now" icon={ICalendarCheck} onPress={() => nav.push({ name: 'booking', pgId: pg.id })} style={{ flex: 1.15 }} disabled={!pg.roomTypes.some((t) => t.bookRoomId)} />
       </View>
       {viewer !== null ? <PhotoViewer photos={photos} index={viewer} onClose={() => setViewer(null)} /> : null}

@@ -96,7 +96,7 @@ export default function PaymentsTab(_props: TabProps) {
           </View>
         </Card>
       ) : null}
-      <Banner tone="info" text="A record only. Rent is paid at the PG; ZENV takes no online payments and no money moves here." />
+      <Banner tone="info" text="A record only. Rent is paid at the PG; ZenWe takes no online payments and no money moves here." />
 
       {data && !data.rows.length ? (
         <EmptyState icon="wallet-outline" title="No tenants this month" body="Accepted tenants who stayed in this month show here." />

@@ -195,8 +195,8 @@ export function useMyBookings(enabled: boolean) {
   return { items, state, reload: load };
 }
 
-/** Server copy may still say "Zenvy" or "ZCS" in places; the app brand is ZENV (4 Nov 2026). */
-const brand = (m: string) => m.replace(/\bZenvy\b|\bZCS\b/g, 'ZENV');
+/** Server copy may still say "Zenvy" or "ZCS" in places; the app brand is ZenWe (4 Nov 2026). */
+const brand = (m: string) => m.replace(/\bZenvy\b|\bZCS\b/g, 'ZenWe');
 
 export type SendResult = { ok: true; message: string; whatsappUrl?: string } | { ok: false; status: number; code?: string; message: string };
 
@@ -205,7 +205,7 @@ export const sendBookingRequest = async (roomId: string, checkInDate: string): P
   try {
     const res = await apiFetch(ENDPOINTS.pgBook(roomId), { method: 'POST', body: JSON.stringify({ checkInDate }) });
     const data = await readJson(res);
-    if (res.ok) return { ok: true, message: brand(data?.message || 'Request sent. The ZENV housing team will confirm it with you.'), whatsappUrl: data?.whatsappUrl };
+    if (res.ok) return { ok: true, message: brand(data?.message || 'Request sent. The ZenWe housing team will confirm it with you.'), whatsappUrl: data?.whatsappUrl };
     return { ok: false, status: res.status, code: data?.code, message: brand(data?.message || 'Please try again.') };
   } catch {
     return { ok: false, status: 0, message: 'Check your internet and try again.' };

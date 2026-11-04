@@ -144,7 +144,7 @@ export const DisputeSheet: React.FC<{ visible: boolean; onClose: () => void; onS
   };
 
   return (
-    <FriendsSheet visible={visible} onClose={onClose} title="Open a dispute" subtitle="A moderator reviews it. ZENV can't move or refund money." icon={<Gavel size={18} color={FriendsColors.danger} />}>
+    <FriendsSheet visible={visible} onClose={onClose} title="Open a dispute" subtitle="A moderator reviews it. ZenWe can't move or refund money." icon={<Gavel size={18} color={FriendsColors.danger} />}>
       <Text style={FT.muted}>Try the task chat first. A dispute pauses the task until a moderator decides to complete, cancel or reopen it.</Text>
       <Text style={taskUi.label}>What went wrong?</Text>
       <View style={fui.card} accessibilityRole="radiogroup">

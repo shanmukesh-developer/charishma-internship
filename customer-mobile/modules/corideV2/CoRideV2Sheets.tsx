@@ -53,13 +53,13 @@ function SosSheet({ rideId, onClose }: { rideId?: string; onClose: () => void })
     if (!rideId || state.busy) return;
     setState({ busy: true, done: null, error: null });
     const r = await coRideApi.sos(rideId);
-    setState({ busy: false, done: r.ok ? (r.data.message || 'ZENV support has your SOS and will call you now.') : null, error: r.ok ? null : r.message });
+    setState({ busy: false, done: r.ok ? (r.data.message || 'ZenWe support has your SOS and will call you now.') : null, error: r.ok ? null : r.message });
   };
   return (
     <Sheet visible onClose={onClose} title="Need help?">
       {rideId ? (
         <View style={{ marginBottom: 6 }}>
-          <PrimaryButton label={state.done ? 'SOS sent to ZENV' : 'Alert ZENV support about this ride'} icon={ISiren} onPress={alertZcs} busy={state.busy} disabled={!!state.done} style={{ backgroundColor: CR.red }} />
+          <PrimaryButton label={state.done ? 'SOS sent to ZenWe' : 'Alert ZenWe support about this ride'} icon={ISiren} onPress={alertZcs} busy={state.busy} disabled={!!state.done} style={{ backgroundColor: CR.red }} />
           {state.done ? <Text style={[st.note, { color: CR.green }]}>{state.done}</Text> : null}
           {state.error ? <Text style={[st.note, { color: CR.red }]}>{state.error}</Text> : null}
         </View>
@@ -67,7 +67,7 @@ function SosSheet({ rideId, onClose }: { rideId?: string; onClose: () => void })
       {[
         { n: '112', t: 'Call 112 · Emergency (police, ambulance, fire)', red: true },
         { n: '181', t: 'Women helpline', red: true },
-        { n: `+${ZENVY_SUPPORT_PHONE}`, t: 'ZENV support desk', red: false },
+        { n: `+${ZENVY_SUPPORT_PHONE}`, t: 'ZenWe support desk', red: false },
       ].map((x) => (
         <Tap key={x.n} onPress={() => call(x.n, x.t)} label={`Call ${x.t}, ${x.n}`} style={st.sosRow}>
           <View style={[st.sosIcon, { backgroundColor: x.red ? CR.redSoft : CR.tint }]}><IPhone size={18} color={x.red ? CR.red : CR.primary} strokeWidth={STROKE} /></View>
@@ -99,7 +99,7 @@ export default function CoRideV2Sheets() {
       <Sheet visible onClose={closeSheet} title={offer ? (ride.autoApprove ? 'Join this ride?' : 'Request a seat?') : 'Ride together?'}
         footer={<PrimaryButton label={ride.autoApprove ? 'Join ride' : 'Send request'} onPress={send} busy={d.busy === String(ride.id)} />}>
         <RideSummary ride={ride} />
-        <Text style={st.note}>One seat per request. {ride.autoApprove ? 'This host lets riders join straight away.' : 'The host approves who rides with them.'} You settle your fuel share with the host when you meet; ZENV takes no payment for pool rides.</Text>
+        <Text style={st.note}>One seat per request. {ride.autoApprove ? 'This host lets riders join straight away.' : 'The host approves who rides with them.'} You settle your fuel share with the host when you meet; ZenWe takes no payment for pool rides.</Text>
       </Sheet>
     );
   }

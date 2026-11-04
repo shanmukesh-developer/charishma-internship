@@ -239,7 +239,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const body = await response.clone().json().catch(() => null);
           if (body && body.code === 'ACCOUNT_SUSPENDED' && !suspendedNoticeShown) {
             suspendedNoticeShown = true;
-            Alert.alert('Account suspended', `${body.message || 'Your ZENV account is suspended.'} Until then you can browse, but orders and bookings are paused.`);
+            Alert.alert('Account suspended', `${body.message || 'Your ZenWe account is suspended.'} Until then you can browse, but orders and bookings are paused.`);
           }
         }
         // Fallback to local storage if API call fails due to other reasons (e.g. network offline)

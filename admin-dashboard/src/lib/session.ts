@@ -232,7 +232,7 @@ async function runVerify(): Promise<AuthState> {
     setState({
       status: 'error',
       user: null,
-      message: 'Could not reach the ZENV server. Check your connection and retry.',
+      message: 'Could not reach the ZenWe server. Check your connection and retry.',
     });
     return state;
   }

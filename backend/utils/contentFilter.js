@@ -27,7 +27,7 @@ const LEET = { 0: 'o', 1: 'i', 3: 'e', 4: 'a', 5: 's', 7: 't', 8: 'b', '@': 'a',
 const TOKEN_RE = /[\p{L}\p{M}\p{N}@$!|]+/gu;
 const ZERO_WIDTH_RE = /[\u200B-\u200D\u2060\uFEFF\u00AD]/g;
 
-const BLOCK_MESSAGE = "That has words that aren't allowed on ZENV (slurs, threats or telling someone to hurt themselves). Please rephrase it and try again.";
+const BLOCK_MESSAGE = "That has words that aren't allowed on ZenWe (slurs, threats or telling someone to hurt themselves). Please rephrase it and try again.";
 
 const enabled = () => !['off', 'false', '0'].includes(String(process.env.CONTENT_FILTER || '').trim().toLowerCase());
 

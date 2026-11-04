@@ -135,7 +135,7 @@ export default function LiveOrderCockpit({
     : 'Waiting for the store ⏳';
 
   const subtitle =
-    isVendor ? (status >= 6 ? 'Thanks for ordering with ZENV' : `Pay ${stallName} in cash when it arrives`)
+    isVendor ? (status >= 6 ? 'Thanks for ordering with ZenWe' : `Pay ${stallName} in cash when it arrives`)
     : status === 5 ? 'Share your Delivery PIN at handover'
     : [restaurantName, hostelAddress].filter(Boolean).join(' ➔ ');
 
@@ -195,7 +195,7 @@ export default function LiveOrderCockpit({
             <View style={{ flex: 1, paddingHorizontal: 12 }}>
               <Text style={[styles.riderName, { color: txt }]} numberOfLines={1}>Delivered by {stallName}</Text>
               <Text style={[styles.vehicleText, { color: txtSec }]}>
-                {status >= 6 ? 'Thanks for ordering with ZENV' : 'No ZENV rider or PIN — the stall brings it to you'}
+                {status >= 6 ? 'Thanks for ordering with ZenWe' : 'No ZenWe rider or PIN — the stall brings it to you'}
               </Text>
             </View>
             {!!vendor?.onCall && status < 6 && (
@@ -256,7 +256,7 @@ export default function LiveOrderCockpit({
                 {status >= 6 ? 'Delivered' : 'Assigning a delivery partner'}
               </Text>
               <Text style={[styles.vehicleText, { color: txtSec }]}>
-                {status >= 6 ? 'Thanks for ordering with ZENV' : "We'll show your rider here as soon as one accepts"}
+                {status >= 6 ? 'Thanks for ordering with ZenWe' : "We'll show your rider here as soon as one accepts"}
               </Text>
             </View>
           </>

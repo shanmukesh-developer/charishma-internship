@@ -192,7 +192,7 @@ export default function CbHome() {
           </StaggeredSection>
         ))}
 
-        {allStalls.length > 0 ? <Text style={[st.disclaimer, { color: p.txtSec }]}>You pay the stall directly by UPI. ZENV does not take or hold the money.</Text> : null}
+        {allStalls.length > 0 ? <Text style={[st.disclaimer, { color: p.txtSec }]}>You pay the stall directly by UPI. ZenWe does not take or hold the money.</Text> : null}
       </ScrollView>
 
       {latest && latestTotals && latestTotals.count > 0 ? (

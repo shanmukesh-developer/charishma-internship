@@ -18,7 +18,7 @@ export function plainDiscountLabel(label: any): string {
   const m = raw.match(/^(.+?) (delivery )?perk$/i);
   if (!m) return raw;
   const who = m[1].toLowerCase();
-  if (who === 'zen champion') return m[2] ? '200+ ZENV Points: free delivery' : 'Member: order discount';
+  if (who === 'zen champion') return m[2] ? '200+ ZenWe Points: free delivery' : 'Member: order discount';
   const tier = NICKNAME_TIER[who];
   const name = tier ? `${tier} member` : 'Member';
   return `${name}: ${m[2] ? 'delivery' : 'order'} discount`;

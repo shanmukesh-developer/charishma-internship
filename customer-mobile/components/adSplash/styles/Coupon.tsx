@@ -118,7 +118,7 @@ function Coupon() {
   // ── text (the design's .pre column and the .ok face) ──
   const T = useMemo(() => {
     const red = '#b3261e'; const ink = '#3a1a0a';
-    const brand = para(fm, `ZENV · ${ad.store.name}`.toUpperCase(), IN_W, { family: FONT.body, size: 10, weight: 700, color: red, lh: 1.5, ls: 1.4 });
+    const brand = para(fm, `ZenWe · ${ad.store.name}`.toUpperCase(), IN_W, { family: FONT.body, size: 10, weight: 700, color: red, lh: 1.5, ls: 1.4 });
     const head = para(fm, ad.headline.replace(/\s*\n\s*/g, ' '), IN_W, { family: FONT.display, size: 30, weight: 700, color: red, lh: 1 });
     const off = para(fm, ad.offerText, IN_W, { family: FONT.display, size: 26, weight: 700, color: red, lh: 1 });
     const sub = para(fm, ad.subline || '', SMALL_W, { family: FONT.body, size: 11, weight: 400, color: ink, lh: 1.5 });

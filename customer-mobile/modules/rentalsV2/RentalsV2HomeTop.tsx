@@ -45,7 +45,7 @@ export function HomeTop({ sections, active = 'rentals' }: { sections?: { key: st
       <View style={s.brandRow}>
         <ZenvBadge size={36} />
         <View style={{ flex: 1, marginLeft: 9 }}>
-          <Text style={s.brand}>ZENV</Text>
+          <Text style={s.brand}>ZenWe</Text>
           <Text style={s.tagline} numberOfLines={1}>Rentals</Text>
         </View>
         <Press onPress={() => router.push('/notifications' as any)} label={unread ? 'Notifications, unread' : 'Notifications'} style={s.bell}>

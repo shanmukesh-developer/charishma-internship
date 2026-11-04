@@ -316,10 +316,10 @@ export default function LoginScreen() {
           keyboardDismissMode="interactive"
           showsVerticalScrollIndicator={false}
         >
-          {/* Top Brand Header — Stable, never cut off. The ZENV badge (brand, 4 Nov 2026). */}
-          <View style={s.brandHeaderWrap} accessible accessibilityRole="header" accessibilityLabel="ZENV">
+          {/* Top Brand Header — Stable, never cut off. The ZenWe badge (brand, 4 Nov 2026). */}
+          <View style={s.brandHeaderWrap} accessible accessibilityRole="header" accessibilityLabel="ZenWe">
             <ZenvBadge size={56} lift />
-            <Text style={[s.brandTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>ZENV</Text>
+            <Text style={[s.brandTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>ZenWe</Text>
           </View>
 
           {/* Clean Card Surface */}

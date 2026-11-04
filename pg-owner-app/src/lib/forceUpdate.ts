@@ -28,7 +28,7 @@ export type UpdateState = { status: UpdateStatus; policy: VersionPolicy | null; 
 export type FetchFn = (input: any, init?: any) => Promise<any>;
 
 export const APP_KEYS: AppKey[] = ['customer', 'rider', 'restaurant', 'vendor', 'autodriver'];
-export const DEFAULT_UPDATE_MESSAGE = 'This version of the app is no longer supported. Please update to keep using ZENV.';
+export const DEFAULT_UPDATE_MESSAGE = 'This version of the app is no longer supported. Please update to keep using ZenWe.';
 const DISMISS_KEY_PREFIX = 'zenvy_update_prompt_dismissed_';
 const CHECK_TIMEOUT_MS = 10000;
 
@@ -76,7 +76,7 @@ export function policyFromBody(body: any, fallbackApp: AppKey | null = null): Ve
   const str = (x: unknown) => (typeof x === 'string' && x.trim() ? x.trim() : null);
   return {
     app,
-    appName: str(body.appName) || 'ZENV',
+    appName: str(body.appName) || 'ZenWe',
     minSupportedVersion: parseVersion(body.minSupportedVersion) ? String(body.minSupportedVersion) : null,
     latestVersion: parseVersion(body.latestVersion) ? String(body.latestVersion) : null,
     minSupportedBuild: toBuild(body.minSupportedBuild),

@@ -19,10 +19,10 @@ export default function WakeBanner() {
   if (!shown) return null;
   return (
     <View pointerEvents="none" style={[st.wrap, { top: insets.top + 8 }]}>
-      <View style={st.inner} accessibilityRole="alert" accessibilityLabel="ZENV is waking up. Your data will load in a moment.">
+      <View style={st.inner} accessibilityRole="alert" accessibilityLabel="ZenWe is waking up. Your data will load in a moment.">
         <ActivityIndicator size="small" color="#C9A84C" />
         <View style={{ flex: 1 }}>
-          <Text style={st.title}>ZENV is waking up…</Text>
+          <Text style={st.title}>ZenWe is waking up…</Text>
           <Text style={st.sub}>This can take a minute or two. Everything loads as soon as it's ready.</Text>
         </View>
       </View>

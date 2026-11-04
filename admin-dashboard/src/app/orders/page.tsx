@@ -114,7 +114,7 @@ const STATUS_LABELS: Record<string, string> = {
 type FulfilmentFilter = 'All' | 'ZENVY' | 'VENDOR';
 const FULFILMENT_FILTERS: { value: FulfilmentFilter; label: string }[] = [
   { value: 'All', label: 'All deliveries' },
-  { value: 'ZENVY', label: 'ZENV riders' },
+  { value: 'ZENVY', label: 'ZenWe riders' },
   { value: 'VENDOR', label: 'Stall delivers' },
 ];
 /** Stall (CampusBites) order: the stall delivers it, cash to the stall, no rider and no PIN. */
@@ -579,7 +579,7 @@ export default function OrdersPage() {
         <div className="min-w-0 max-w-[280px]">
           <p className="truncate text-fg">{o.restaurant?.name || '–'}</p>
           <p className="truncate text-xs text-fg-muted">{(o.items || []).map(i => { const pk = picksText(i.customizations); return `${i.name || 'Item'}${pk ? ` (${pk})` : ''} ×${i.quantity}`; }).join(', ') || '–'}</p>
-          {isVendorOrder(o) && <p className="text-xs text-warning-text" title="The stall delivers this order itself and collects cash. No ZENV rider, no delivery PIN.">Stall delivers, cash to stall</p>}
+          {isVendorOrder(o) && <p className="text-xs text-warning-text" title="The stall delivers this order itself and collects cash. No ZenWe rider, no delivery PIN.">Stall delivers, cash to stall</p>}
         </div>
       ),
     },
@@ -623,9 +623,9 @@ export default function OrdersPage() {
             <Button
               leftIcon={<IconDownload size={14} />}
               disabled={visibleOrders.length === 0}
-              onClick={() => downloadCsv(`zenv_orders_page${currentPage}_${new Date().toISOString().slice(0, 10)}.csv`,
+              onClick={() => downloadCsv(`zenwe_orders_page${currentPage}_${new Date().toISOString().slice(0, 10)}.csv`,
                 ['Order ID', 'Placed (IST)', 'Customer', 'Phone', 'Store', 'Delivery slot', 'Status', 'Payment', 'Payment status', 'Total (INR)', 'Delivered by'],
-                visibleOrders.map(o => [orderId(o), formatDateTime(o.createdAt), o.user?.name || '', o.user?.phone || '', o.restaurant?.name || '', slotText(o) || '', statusLabel(o.status), o.paymentMethod || '', o.paymentStatus || '', grandTotal(o), isVendorOrder(o) ? 'Stall' : 'ZENV rider']))}
+                visibleOrders.map(o => [orderId(o), formatDateTime(o.createdAt), o.user?.name || '', o.user?.phone || '', o.restaurant?.name || '', slotText(o) || '', statusLabel(o.status), o.paymentMethod || '', o.paymentStatus || '', grandTotal(o), isVendorOrder(o) ? 'Stall' : 'ZenWe rider']))}
             >
               Export page (CSV)
             </Button>
@@ -705,7 +705,7 @@ export default function OrdersPage() {
         headerActions={selectedOrder ? <OrderStatus status={selectedOrder.status} /> : undefined}
         footer={selectedOrder && selectedOpen && !isLegacyUpiPending(selectedOrder) ? (
           <div className="flex w-full flex-wrap items-center gap-2">
-            <span className="mr-auto text-xs text-fg-muted">{selectedVendor ? 'The customer and ZENV Vendor apps update automatically.' : 'The customer, store and rider apps update automatically.'}</span>
+            <span className="mr-auto text-xs text-fg-muted">{selectedVendor ? 'The customer and ZenWe Vendor apps update automatically.' : 'The customer, store and rider apps update automatically.'}</span>
             <Button variant="destructive" disabled={selectedBusy} onClick={() => cancelOrder(selectedOrder)}>Cancel order</Button>
             {selectedVendor && ['Accepted', 'Preparing', 'ReadyForPickup'].includes(selectedOrder.status) && (
               <Button disabled={selectedBusy} onClick={() => setStatus(selectedOrder, 'OutForDelivery')}>Out for delivery</Button>
@@ -781,7 +781,7 @@ export default function OrdersPage() {
             {/* Who delivers */}
             {selectedVendor ? (
               <NoticeBox tone="neutral" title="Delivered by the stall">
-                {stallName(selectedOrder)} delivers this order itself and collects the cash. No ZENV rider, no delivery PIN.
+                {stallName(selectedOrder)} delivers this order itself and collects the cash. No ZenWe rider, no delivery PIN.
                 {selectedOrder.outForDeliveryAt && <span className="block">Left the stall {formatDateTime(selectedOrder.outForDeliveryAt, { short: true })}.</span>}
                 {stallWa && (
                   <a href={`https://wa.me/${stallWa.length === 10 ? `91${stallWa}` : stallWa}`} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-accent-text underline">WhatsApp the stall <IconExternal size={12} /></a>

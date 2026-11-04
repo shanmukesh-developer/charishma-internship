@@ -269,7 +269,7 @@ export default function PGAdminPage() {
     <div className="text-fg">
       <PageHeader
         title="PG and hostels"
-        description="PG listings and their rooms, photos and rules; promotions; students’ booking requests; and PG owner accounts for the ZENV PG Partner app."
+        description="PG listings and their rooms, photos and rules; promotions; students’ booking requests; and PG owner accounts for the ZenWe PG Partner app."
         actions={view === 'listings' ? (
           <>
             <Button leftIcon={<IconRefresh size={14} />} loading={loading} onClick={() => loadPgs()}>Refresh</Button>

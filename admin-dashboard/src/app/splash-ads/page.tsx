@@ -598,7 +598,7 @@ export default function SplashAdsPage() {
           <div className="flex flex-col items-center gap-3 text-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={preview.qr} alt="QR code for the preview link" width={220} height={220} className="rounded-md bg-white p-2" />
-            <p className="text-sm text-fg-muted">Scan with the phone camera, or send yourself the link and tap it. It opens the ZENV app and plays this ad once. The link works for 15 minutes.</p>
+            <p className="text-sm text-fg-muted">Scan with the phone camera, or send yourself the link and tap it. It opens the ZenWe app and plays this ad once. The link works for 15 minutes.</p>
             <div className="flex w-full gap-2">
               <Input readOnly value={preview.webLink} aria-label="Preview link" onFocus={e => e.currentTarget.select()} />
               <Button variant="secondary" onClick={() => { navigator.clipboard?.writeText(preview.webLink).then(() => setNotice({ kind: 'success', text: 'Preview link copied.' })).catch(() => {}); }}>Copy</Button>

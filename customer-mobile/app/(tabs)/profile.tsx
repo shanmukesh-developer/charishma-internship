@@ -337,7 +337,7 @@ export default function ProfileScreen() {
         finalStatus = status;
       }
       if (finalStatus !== 'granted') {
-        if (!silent) Alert.alert('Notifications are off', 'Turn on notifications for ZENV in your phone settings to get order updates.');
+        if (!silent) Alert.alert('Notifications are off', 'Turn on notifications for ZenWe in your phone settings to get order updates.');
         return;
       }
 
@@ -614,7 +614,7 @@ export default function ProfileScreen() {
       Alert.alert('That’s you!', 'Enter a friend’s number to send a gift.');
       return;
     }
-    Alert.alert('Send this gift?', `₹${amt} from your ZENV Wallet to +91 ${phone}.`, [
+    Alert.alert('Send this gift?', `₹${amt} from your ZenWe Wallet to +91 ${phone}.`, [
       { text: 'Cancel', style: 'cancel' },
       { text: `Send ₹${amt}`, onPress: () => sendGift(amt, phone) },
     ]);
@@ -733,7 +733,7 @@ export default function ProfileScreen() {
 
               <View style={s.headerBadges}>
                 <View style={[s.zenvyBadge, { backgroundColor: goldColor }]}>
-                  <Text style={s.zenvyBadgeText}>ZENV</Text>
+                  <Text style={s.zenvyBadgeText}>ZenWe</Text>
                   <View style={s.zenvyDots}>
                     <View style={s.zenvyDot} />
                     <View style={s.zenvyDot} />
@@ -747,9 +747,9 @@ export default function ProfileScreen() {
             </View>
 
             {/* Name & tier */}
-            <Text style={[s.name, { color: txt }]}>{user?.name || 'ZENV member'}</Text>
+            <Text style={[s.name, { color: txt }]}>{user?.name || 'ZenWe member'}</Text>
             <Text style={[s.tierText, { color: goldColor }]}>
-              {user?.isElite ? 'Elite member' : 'ZENV member'}
+              {user?.isElite ? 'Elite member' : 'ZenWe member'}
               {user?.createdAt && !Number.isNaN(new Date(user.createdAt).getTime()) ? ` · since ${new Date(user.createdAt).getFullYear()}` : ''}
             </Text>
 
@@ -811,7 +811,7 @@ export default function ProfileScreen() {
                   <Text style={[s.telemetryVal, { color: txt }]}>{completedOrders}</Text>
                 </View>
                 <View style={[s.telemetryItem, s.telemetryBorder]}>
-                  <Text style={s.telemetryLabel}>ZENV Points</Text>
+                  <Text style={s.telemetryLabel}>ZenWe Points</Text>
                   <Text style={[s.telemetryVal, { color: goldColor }]}>{formatCount(user?.zenPoints)}</Text>
                 </View>
                 <TouchableOpacity
@@ -1018,8 +1018,8 @@ export default function ProfileScreen() {
 
             <View style={s.achievementsFooter}>
               <View style={s.footerLeft}>
-                <Text style={[s.footerLabel, { color: txtSec }]}>ZENV Points</Text>
-                <Text style={[s.footerVal, { color: goldColor }]}>{formatCount(user?.zenPoints)} ZENV Points</Text>
+                <Text style={[s.footerLabel, { color: txtSec }]}>ZenWe Points</Text>
+                <Text style={[s.footerVal, { color: goldColor }]}>{formatCount(user?.zenPoints)} ZenWe Points</Text>
               </View>
               <View style={s.verticalDivider} />
               <View style={s.footerRight}>
@@ -1087,9 +1087,9 @@ export default function ProfileScreen() {
                   <Ionicons name="link-outline" size={22} color={goldColor} />
                 </View>
                 <View style={s.buddyLinkHeaderText}>
-                  <Text style={[s.buddyLinkTitle, { color: isDark ? '#FFF' : '#111' }]}>Invite friends to ZENV</Text>
+                  <Text style={[s.buddyLinkTitle, { color: isDark ? '#FFF' : '#111' }]}>Invite friends to ZenWe</Text>
                   <Text style={[s.buddyLinkSubtitle, { color: txtSec }]}>
-                    When a friend signs up with your code, you both get <Text style={{ color: goldColor, fontWeight: '700' }}>50 ZENV Points</Text>
+                    When a friend signs up with your code, you both get <Text style={{ color: goldColor, fontWeight: '700' }}>50 ZenWe Points</Text>
                   </Text>
                 </View>
               </View>
@@ -1115,8 +1115,8 @@ export default function ProfileScreen() {
                   const name = user?.name?.split(' ')[0] || 'Your friend';
                   try {
                     await Share.share({
-                      title: 'Join me on ZENV',
-                      message: `${name} invited you to ZENV: campus food and essentials delivered to your hostel. Sign up with code ${referralCode} and you both get 50 ZENV Points.`,
+                      title: 'Join me on ZenWe',
+                      message: `${name} invited you to ZenWe: campus food and essentials delivered to your hostel. Sign up with code ${referralCode} and you both get 50 ZenWe Points.`,
                     });
                   } catch (e) {
                     // share sheet dismissed
@@ -1284,7 +1284,7 @@ export default function ProfileScreen() {
 
             <TouchableOpacity style={[s.supportBtn, { backgroundColor: cardBg, borderColor: border }, lift]} onPress={() => setShowAbout(true)}>
               <Ionicons name="information-circle-outline" size={20} color={goldColor} />
-              <Text style={[s.supportBtnTitle, { color: txt }]}>About ZENV</Text>
+              <Text style={[s.supportBtnTitle, { color: txt }]}>About ZenWe</Text>
               <Text style={[s.supportBtnDesc, { color: txtSec }]}>Version & info</Text>
             </TouchableOpacity>
           </View>

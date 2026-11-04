@@ -46,7 +46,7 @@ test('a rider holding the student items cannot cancel: 403 PARTNER_CANNOT_CANCEL
   assert.equal((await D.api('PATCH', `/api/services/${id}/status`, rider.token, { status: 'COMPLETED' })).status, 200);
 });
 
-test('ZENV support still cancels a collected pickup; the student still cancels before collection', async () => {
+test('ZenWe support still cancels a collected pickup; the student still cancels before collection', async () => {
   const admin = await H.mkUser({ role: 'admin' });
   const a = await claimed();
   assert.equal((await D.api('PATCH', `/api/services/${a.id}/status`, a.rider.token, { status: 'IN_PROGRESS' })).status, 200);

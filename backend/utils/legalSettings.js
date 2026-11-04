@@ -14,7 +14,7 @@ const KEY = 'LEGAL_SETTINGS';
 
 // Defaults = what the original /legal/privacy page already said (operator + contact). No other facts.
 const DEFAULTS = Object.freeze({
-  businessName: 'ZENV',
+  businessName: 'ZenWe',
   operatorName: 'Shanmukesh Kunjam',
   contactEmail: 'projectshanmukh@gmail.com',
   registeredAddress: '',

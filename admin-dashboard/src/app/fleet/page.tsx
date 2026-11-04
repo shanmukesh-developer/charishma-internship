@@ -418,7 +418,7 @@ export default function FleetManagement() {
       hideBelow: 'lg',
       sortValue: p => Number(p.cashHeld) || 0,
       cell: p => ((Number(p.cashHeld) || 0) > 0
-        ? <span className="tabular-nums text-warning-text" title="COD cash the rider holds for ZENV. It is not deducted from the payout; collect it on Payments and payouts, Rider cash.">{formatINR(p.cashHeld)}</span>
+        ? <span className="tabular-nums text-warning-text" title="COD cash the rider holds for ZenWe. It is not deducted from the payout; collect it on Payments and payouts, Rider cash.">{formatINR(p.cashHeld)}</span>
         : <span className="text-fg-subtle">–</span>),
     },
     {

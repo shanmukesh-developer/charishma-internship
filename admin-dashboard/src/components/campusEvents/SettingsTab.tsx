@@ -85,8 +85,8 @@ export default function SettingsTab({ tick, onChanged }: { tick: number; onChang
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-lg border border-line bg-surface p-4 shadow-xs">
-          <h3 className="font-semibold">ZENV Wallet payments: {data.walletEnabled ? 'ON' : 'OFF'}</h3>
-          <p className="mt-1 text-sm text-warning-text">Keep off until RBI / payment-aggregator and legal review is done. ZENV would collect event fees on behalf of clubs; the wallet is non-transferable refund credit. Pay at the venue is always available.</p>
+          <h3 className="font-semibold">ZenWe Wallet payments: {data.walletEnabled ? 'ON' : 'OFF'}</h3>
+          <p className="mt-1 text-sm text-warning-text">Keep off until RBI / payment-aggregator and legal review is done. ZenWe would collect event fees on behalf of clubs; the wallet is non-transferable refund credit. Pay at the venue is always available.</p>
           <div className="mt-3"><Btn tone={data.walletEnabled ? 'bad' : 'plain'} onClick={() => setSwitchTo({ key: 'walletEnabled', value: !data.walletEnabled })}>{data.walletEnabled ? 'Turn wallet off' : 'Turn wallet on'}</Btn></div>
         </div>
         <div className="rounded-lg border border-line bg-surface p-4 shadow-xs">
@@ -128,7 +128,7 @@ export default function SettingsTab({ tick, onChanged }: { tick: number; onChang
             enabled: switchTo.value
               ? <><p className="font-semibold text-warning-text">Confirm CAMPUS_EVENTS_TICKET_SECRET is set on Render and the pilot organizers / venue staff are ready.</p><p>Students immediately see Campus Events in the app and can register for published events.</p></>
               : <p>Browsing, registration, slot booking, teams and organizer submissions stop immediately. Existing registrations and tickets stay valid; check-in keeps working.</p>,
-            walletEnabled: switchTo.value ? <p className="font-semibold text-warning-text">Only after RBI / payment and legal review. Students will be able to pay event fees from their ZENV Wallet.</p> : <p>New registrations can no longer pay by wallet. Existing wallet payments and refunds are unaffected.</p>,
+            walletEnabled: switchTo.value ? <p className="font-semibold text-warning-text">Only after RBI / payment and legal review. Students will be able to pay event fees from their ZenWe Wallet.</p> : <p>New registrations can no longer pay by wallet. Existing wallet payments and refunds are unaffected.</p>,
             onlinePayEnabled: switchTo.value ? <p>Students can pay by Razorpay where organizers allow it. Registrations confirm only after the verified webhook.</p> : <p>New registrations can no longer pay online. Payments already in progress still complete or expire normally.</p>,
           }[switchTo.key]}
           onCancel={() => setSwitchTo(null)}

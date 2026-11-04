@@ -189,7 +189,7 @@ export default function CbCartScreen({ stallId }: { stallId: string }) {
                 <Ionicons name="qr-code-outline" size={22} color={COLORS.red} />
                 <View style={{ flex: 1 }}>
                   <Text style={[s.payCardTitle, { color: COLORS.red }]}>Pay the stall by UPI</Text>
-                  <Text style={[s.payCardDesc, { color: p.txtSec }]}>You will pay to {stallName}'s own UPI ID on the next screen. ZENV does not take or hold your money.</Text>
+                  <Text style={[s.payCardDesc, { color: p.txtSec }]}>You will pay to {stallName}'s own UPI ID on the next screen. ZenWe does not take or hold your money.</Text>
                 </View>
                 <View style={[s.radioOuter, { borderColor: COLORS.red }]}><View style={[s.radioInner, { backgroundColor: COLORS.red }]} /></View>
               </View>
@@ -223,7 +223,7 @@ export default function CbCartScreen({ stallId }: { stallId: string }) {
                       <Ionicons name="cloud-upload-outline" size={20} color={COLORS.red} />
                       <View style={{ flex: 1 }}>
                         <Text style={[s.payCardTitle, { color: COLORS.red }]}>{docs.length ? 'Add another PDF' : 'Add a PDF'}</Text>
-                        <Text style={[s.payCardDesc, { color: p.txtSec }]}>Up to {MAX_DOCS} files, 5 MB each. Only the stall and ZENV support can open them.</Text>
+                        <Text style={[s.payCardDesc, { color: p.txtSec }]}>Up to {MAX_DOCS} files, 5 MB each. Only the stall and ZenWe support can open them.</Text>
                       </View>
                     </TouchableOpacity>
                   ) : null}

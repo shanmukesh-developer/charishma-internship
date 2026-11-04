@@ -325,7 +325,7 @@ const renderHtml = (rc) => {
   ].map(([label, v]) => `<tr><td>${esc(label)}</td><td class="n">${v < 0 ? `− ${rupees(-v)}` : rupees(v)}</td></tr>`).join('');
   const pay = rc.payment;
   const payRows = [
-    ...(pay.walletUsed ? [['Paid from ZENV Wallet', pay.walletUsed]] : []),
+    ...(pay.walletUsed ? [['Paid from ZenWe Wallet', pay.walletUsed]] : []),
     ...(pay.cashCollected ? [[`Cash${pay.collectedBy === 'store' ? ' paid to the store' : ' collected on delivery'}`, pay.cashCollected]] : []),
     ...(pay.paidOnline ? [['Paid online', pay.paidOnline]] : []),
   ].map(([label, v]) => `<tr><td>${esc(label)}</td><td class="n">${rupees(v)}</td></tr>`).join('');
@@ -334,7 +334,7 @@ const renderHtml = (rc) => {
     : `<p>${esc(rc.tax.note)}.</p>`;
   const body = `
 <h1>Receipt</h1>
-<p class="muted">${esc(p.name || 'ZENV')}</p>
+<p class="muted">${esc(p.name || 'ZenWe')}</p>
 <div class="box" style="margin-top:10px">
   <p><strong>Receipt no.</strong> ${esc(rc.receiptNumber)}</p>
   <p><strong>Order</strong> #${esc(rc.orderRef)} · placed ${esc(fmtWhen(rc.placedAt))}</p>
@@ -352,7 +352,7 @@ const renderHtml = (rc) => {
   </div>
   <div>
     <h2>Platform</h2>
-    <p><strong>${esc(p.name || 'ZENV')}</strong></p>
+    <p><strong>${esc(p.name || 'ZenWe')}</strong></p>
     ${p.operatorName ? `<p class="muted">Operated by ${esc(p.operatorName)}</p>` : ''}
     ${p.address ? `<p class="muted">${esc(p.address).replace(/\r?\n/g, '<br>')}</p>` : ''}
     ${p.contactEmail ? `<p class="muted">${esc(p.contactEmail)}</p>` : ''}

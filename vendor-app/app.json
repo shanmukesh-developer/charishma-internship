@@ -3,11 +3,11 @@
     "extra": {
       "trustedApiHosts": ["hostelbites-backend-jwmt.onrender.com"]
     },
-    "name": "ZENV Vendor",
+    "name": "ZenWe Vendor",
     "slug": "zenvy-vendor",
     "version": "1.0.8",
     "orientation": "portrait",
-    "icon": "./assets/zenv-vendor-icon-2026-11-04.png",
+    "icon": "./assets/zenwe-vendor-icon-2026-11-04.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
@@ -16,9 +16,9 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#FAE04B",
-        "foregroundImage": "./assets/zenv-vendor-adaptive-foreground-2026-11-04.png",
+        "foregroundImage": "./assets/zenwe-vendor-adaptive-foreground-2026-11-04.png",
         "backgroundImage": "./assets/zenv-adaptive-backdrop-2026-11-04.png",
-        "monochromeImage": "./assets/zenv-vendor-adaptive-monochrome-2026-11-04.png"
+        "monochromeImage": "./assets/zenwe-vendor-adaptive-monochrome-2026-11-04.png"
       },
       "package": "com.srm.zenvyvendor",
       "versionCode": 9,
@@ -47,8 +47,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "ZENV Vendor uses your photos to add pictures of your items.",
-          "cameraPermission": "ZENV Vendor uses the camera to take pictures of your items.",
+          "photosPermission": "ZenWe Vendor uses your photos to add pictures of your items.",
+          "cameraPermission": "ZenWe Vendor uses the camera to take pictures of your items.",
           "microphonePermission": false
         }
       ],

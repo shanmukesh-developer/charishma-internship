@@ -9,23 +9,23 @@ import { createIntroSound, type IntroSound } from './intro/introSound';
 import { useReduceMotion } from '../utils/reduceMotion';
 import { markIntroDone } from '../utils/introGate';
 
-// ZENV cold-start intro (owner, 4 Nov 2026: "THIS IS MY INTRO BUDDY FOR THIS APPLICATION"): the owner's own 3.35 s
-// clip, assets/zenv-intro-delivery-rider-2026-11-04.mp4 (1920x1080, 24 fps, white background). The rider rides in
-// from the left edge into the yellow disc and ZENV appears under him (about 1.5 s), then the logo holds.
+// ZenWe cold-start intro (owner, 4 Nov 2026: "THIS IS MY INTRO BUDDY FOR THIS APPLICATION"): the owner's own 3.48 s
+// clip, assets/zenwe-intro-delivery-rider-owner-2026-11-04.mp4 (1920x1080, 24 fps, white background). The rider rides in
+// from the left edge into the yellow disc and ZenWe appears under him (about 2 s), then the logo holds.
 //   - Whole clip, centred (contain): the rider crosses the frame, so cover would cut his entry off on a portrait phone.
 //   - White stage: every edge pixel of the clip is pure white, so the clip on a white stage reads as full screen. The
 //     stage fades in from the splash's dark colour once the first frame is on screen (never a black frame).
 //   - Always muted, never takes audio focus. Its own soundtrack (the same audio, copied out of the clip) plays through
 //     components/intro/introSound with the existing rules: silent ringer, Profile > App sounds, the admins' switch.
-//   - The video has 1.5 s after the app is ready for it. If it errors or has not started by then, the ZENV badge pops
+//   - The video has 1.5 s after the app is ready for it. If it errors or has not started by then, the ZenWe badge pops
 //     in on the dark background instead (soft spring, a faint glow), holds, then hands over to Home the same way.
 //   - Reduce motion: no clip, the still badge and a short fade.
 // Skip, the hand-over to Home (wait for the app, settle two frames, push-in and fade) and the caps are as before.
 
 const ND = Platform.OS !== 'web'; // native driver on phones; the web preview animates in JS
 
-const INTRO_VIDEO = require('../assets/zenv-intro-delivery-rider-2026-11-04.mp4');
-const INTRO_LAST_FRAME = require('../assets/zenv-intro-last-frame-2026-11-04.png');
+const INTRO_VIDEO = require('../assets/zenwe-intro-delivery-rider-owner-2026-11-04.mp4');
+const INTRO_LAST_FRAME = require('../assets/zenwe-intro-last-frame-owner-2026-11-04.png');
 
 // Splash backgroundColor in app.json: now #FFFFFF (white), matching the video stage — zero visual jump at any point.
 // The launch screen is plain white, so every mode of the intro (clip, fallback badge, reduce motion) is on white too:
@@ -35,7 +35,7 @@ const BG = '#FFFFFF';
 const STAGE = '#FFFFFF';
 
 // ── Timeline (ms) ── the clock starts with the clip's first frame and plays the same on every phone.
-const SEQ_END = 3330;   // the clip is 3.33 s (80 frames @ 24fps) and holds its last frame (the logo)
+const SEQ_END = 3450;   // the clip is 3.46 s (83 frames @ 24fps) and holds its last frame (the logo)
 const EXIT_MS = 500;    // smooth dissolve into the app
 const START_CAP = 2200; // from mount: the clip is started by now even if the app never reports it has settled
 const HOLD_CAP = 5200;  // from the start: exit starts by now whatever happens (app not ready, slow start)
@@ -303,7 +303,7 @@ export default function IntroOverlay({ onComplete, ready = true, start = true }:
     sound.current?.start();
   }, [t, handOver]);
 
-  // The fallback: the ZENV badge on the dark background, a soft spring and a faint glow, then the same hand-over.
+  // The fallback: the ZenWe badge on the dark background, a soft spring and a faint glow, then the same hand-over.
   const showBadge = useCallback(() => {
     if (begun.current || phase.current !== 'intro') return;
     phase.current = 'badge';
@@ -430,7 +430,7 @@ export default function IntroOverlay({ onComplete, ready = true, start = true }:
       // responder still swallows touches so nothing underneath reacts during the intro.
       onResponderRelease={tapToStart && !tapped ? () => setTapped(true) : undefined}
       // No button role here: the Skip pill inside is the accessible button (a role here nests buttons on web).
-      accessibilityLabel="ZENV intro"
+      accessibilityLabel="ZenWe intro"
     >
       {tapToStart && !tapped && (
         <View style={styles.tapHint} pointerEvents="none">
@@ -474,7 +474,7 @@ export default function IntroOverlay({ onComplete, ready = true, start = true }:
         </View>
       )}
 
-      {/* ── Fallback (and reduce motion): the ZENV badge on the dark background ── */}
+      {/* ── Fallback (and reduce motion): the ZenWe badge on the dark background ── */}
       {mode !== 'video' && (
         <Animated.View
           style={[styles.badgeStage, { opacity: a.stageOpacity, transform: still ? [] : [{ scale: a.badgeExitScale }] }]}

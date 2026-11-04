@@ -47,7 +47,7 @@ test('GET /api/orders/:id/messages: customer, current rider and admin only; olde
   assert.strictEqual(m1.sender, user.name);
   assert.strictEqual(m2.message.length, 500, 'capped at 500 characters');
   assert.strictEqual(m2.sender, rider.name);
-  assert.strictEqual(m3.sender, 'ZENV Support');
+  assert.strictEqual(m3.sender, 'ZenWe Support');
 
   // not a party
   assert.strictEqual((await H.api('GET', url, other.token)).status, 403);
@@ -160,7 +160,7 @@ test('legal delete-account page covers riders, auto drivers and stores', async (
   const r = await H.api('GET', '/legal/delete-account');
   assert.strictEqual(r.status, 200);
   const t = r.text;
-  for (const s of ['id="riders"', 'id="stores"', 'ZENV Rider', 'ZENV Auto Driver', 'com.zenvy.restaurant', 'com.srm.zenvyvendor', 'Delete account', 'Order chat is deleted after 90 days']) {
+  for (const s of ['id="riders"', 'id="stores"', 'ZenWe Rider', 'ZenWe Auto Driver', 'com.zenvy.restaurant', 'com.srm.zenvyvendor', 'Delete account', 'Order chat is deleted after 90 days']) {
     assert.ok(t.includes(s), s);
   }
   const p = await H.api('GET', '/legal/privacy');

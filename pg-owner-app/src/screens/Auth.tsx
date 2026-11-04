@@ -17,7 +17,7 @@ import { loadSavedPhone, setSavedPhone } from '../lib/storage';
 import { LegalLine } from '../lib/legal';
 import { SUPPORT_PHONE, SUPPORT_PHONE_DISPLAY } from '../config';
 
-const logo = require('../../assets/zenv-brand-badge-2026-11-04.png');
+const logo = require('../../assets/zenwe-brand-badge-2026-11-04.png');
 
 const digits = (v: string) => {
   let d = v.replace(/\D/g, '');
@@ -33,7 +33,7 @@ function Shell({ children, title, subtitle }: { children: React.ReactNode; title
     <View style={{ flex: 1, backgroundColor: color.bg }}>
       <KeyboardAwareScrollView contentContainerStyle={[st.wrap, { paddingTop: insets.top + space.xl, paddingBottom: insets.bottom + space.xl }]}>
         <View style={st.brand}>
-          <Image source={logo} style={st.logo} accessibilityLabel="ZENV PG Partner" />
+          <Image source={logo} style={st.logo} accessibilityLabel="ZenWe PG Partner" />
           <Text style={[font.h1, { color: color.text, textAlign: 'center' }]}>{title}</Text>
           <Text style={[font.body, { color: color.textMuted, textAlign: 'center' }]}>{subtitle}</Text>
         </View>
@@ -64,7 +64,7 @@ export function LoginScreen() {
       await setSavedPhone(p);
       await signIn(r.token, r.owner);
     } catch (e) {
-      if (e instanceof NetworkError) setError('No internet, or ZENV is waking up. Try again in a moment.');
+      if (e instanceof NetworkError) setError('No internet, or ZenWe is waking up. Try again in a moment.');
       else setError(errorMessage(e));
     } finally {
       setBusy(false);
@@ -72,18 +72,18 @@ export function LoginScreen() {
   };
 
   return (
-    <Shell title="ZENV PG Partner" subtitle="Manage your PG: booking requests, rooms, mess and rent.">
+    <Shell title="ZenWe PG Partner" subtitle="Manage your PG: booking requests, rooms, mess and rent.">
       <Card style={{ gap: space.md }}>
         {notice ? <Banner tone="warn" text={notice} /> : null}
         <Field label="Mobile number" prefix="+91" value={phone} onChangeText={(v) => { setPhone(digits(v)); setError(null); }}
           keyboardType="phone-pad" autoComplete="tel" placeholder="10-digit mobile" maxLength={14} />
         <PasswordField label="Password" value={password} onChange={(v) => { setPassword(v); setError(null); }} onSubmit={submit}
-          hint="First time? Use the temporary password from the ZENV team." />
+          hint="First time? Use the temporary password from the ZenWe team." />
         {error ? <Banner tone="error" text={error} /> : null}
         <Button label="Sign in" icon="log-in-outline" onPress={submit} loading={busy} disabled={!valid} />
       </Card>
       <Text style={[font.small, { color: color.textMuted, textAlign: 'center' }]}>
-        No account yet? PG owner accounts are set up by the ZENV housing team for listed PGs.
+        No account yet? PG owner accounts are set up by the ZenWe housing team for listed PGs.
       </Text>
       <Button label={`Forgot password? Call ${SUPPORT_PHONE_DISPLAY}`} icon="call-outline" variant="ghost" size="secondary" onPress={callSupport} />
       <LegalLine />
@@ -113,7 +113,7 @@ export function FirstPasswordScreen() {
       const r = await ownerApi.changePassword(current, next, true);
       await replaceSession(r.token, r.owner);
     } catch (e) {
-      if (e instanceof ApiError && e.code === 'INVALID_CREDENTIALS') setError('The temporary password is wrong. Check the one the ZENV team gave you.');
+      if (e instanceof ApiError && e.code === 'INVALID_CREDENTIALS') setError('The temporary password is wrong. Check the one the ZenWe team gave you.');
       else setError(errorMessage(e));
       setBusy(false);
     }
@@ -122,7 +122,7 @@ export function FirstPasswordScreen() {
   return (
     <Shell title={`Welcome${owner?.name ? `, ${owner.name.split(' ')[0]}` : ''}`} subtitle="Set your own password to start. Only you will know it.">
       <Card style={{ gap: space.md }}>
-        <PasswordField label="Temporary password" value={current} onChange={(v) => { setCurrent(v); setError(null); }} placeholder="From the ZENV team" />
+        <PasswordField label="Temporary password" value={current} onChange={(v) => { setCurrent(v); setError(null); }} placeholder="From the ZenWe team" />
         <PasswordField label="New password" value={next} onChange={(v) => { setNext(v); setError(null); }} autoComplete="new-password"
           placeholder="8+ characters, letters and numbers" error={problem || (same ? 'Choose a password different from the temporary one.' : null)} />
         <PasswordField label="Confirm new password" value={confirm} onChange={(v) => { setConfirm(v); setError(null); }} onSubmit={submit}
@@ -139,7 +139,7 @@ export function SuspendedScreen({ message, onSignOut }: { message: string; onSig
   return (
     <Shell title="Account suspended" subtitle="Your PG listing is not affected by this screen.">
       <Banner tone="error" text={message} />
-      <Button label={`Call ZENV support (${SUPPORT_PHONE_DISPLAY})`} icon="call-outline" onPress={callSupport} />
+      <Button label={`Call ZenWe support (${SUPPORT_PHONE_DISPLAY})`} icon="call-outline" onPress={callSupport} />
       <Button label="Sign out" variant="secondary" onPress={onSignOut} />
     </Shell>
   );

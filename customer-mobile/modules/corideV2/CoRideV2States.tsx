@@ -88,7 +88,7 @@ export function NetState({ connection, error, onRetry, what = 'rides' }: { conne
     return <StateCard icon={IWifiOff} title="You are offline" body={`Connect to the internet to see ${what}. Anything you had open stays here.`} action="Try again" onAction={onRetry} />;
   }
   if (connection === 'waking') {
-    return <StateCard icon={IHourglass} title="ZENV is waking up" body="The server is starting. This takes a few seconds the first time." action="Try again" onAction={onRetry} />;
+    return <StateCard icon={IHourglass} title="ZenWe is waking up" body="The server is starting. This takes a few seconds the first time." action="Try again" onAction={onRetry} />;
   }
   if (error) return <StateCard icon={ICloudOff} title={`Could not load ${what}`} body={error} action="Try again" onAction={onRetry} />;
   return null;

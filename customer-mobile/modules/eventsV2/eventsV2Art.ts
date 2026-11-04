@@ -9,7 +9,7 @@ import type { ImageSourcePropType } from 'react-native';
 
 /* eslint-disable @typescript-eslint/no-require-imports */
 export const HERO_CAMPUS_DUSK: ImageSourcePropType = require('./assets/ev2-home-hero-campus-dusk-hd-2026-10-26.webp');
-export const ZCS_EMBLEM: ImageSourcePropType = require('../../assets/zenv-brand-badge-2026-11-04.webp');
+export const ZCS_EMBLEM: ImageSourcePropType = require('../../assets/zenwe-brand-badge-2026-11-04.webp');
 
 /**
  * Category tiles (owner, 26 Oct 2026: photo tiles instead of the 3D emoji icons). Free photos under the Unsplash

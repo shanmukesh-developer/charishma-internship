@@ -29,9 +29,9 @@ const PACKAGES = {
   // ZCS Campus Stall (In-Campus Booking, campus-stall-app)
   campusstall: 'com.srm.zcscampusstall',
 };
-const APP_LABELS = { customer: 'ZENV', rider: 'ZENV Rider', restaurant: 'ZENV Restaurant', vendor: 'ZENV Vendor', autodriver: 'ZENV Auto Driver', pgowner: 'ZENV PG Partner', campusstall: 'ZENV Campus Stall' };
+const APP_LABELS = { customer: 'ZenWe', rider: 'ZenWe Rider', restaurant: 'ZenWe Restaurant', vendor: 'ZenWe Vendor', autodriver: 'ZenWe Auto Driver', pgowner: 'ZenWe PG Partner', campusstall: 'ZenWe Campus Stall' };
 const playUrl = (pkg) => `https://play.google.com/store/apps/details?id=${pkg}`;
-const DEFAULT_MESSAGE = 'This version of the app is no longer supported. Please update to keep using ZENV.';
+const DEFAULT_MESSAGE = 'This version of the app is no longer supported. Please update to keep using ZenWe.';
 const MAX_MESSAGE = 300;
 const MAX_URL = 500;
 const MAX_BUILD = 2100000000; // Play Store versionCode ceiling
@@ -314,7 +314,7 @@ const gate = async (req, res, next) => {
         code: 'UPGRADE_REQUIRED',
         app: null,
         storeUrl: null,
-        message: 'This version of the ZENV app is no longer supported. Please update it from the Play Store.',
+        message: 'This version of the ZenWe app is no longer supported. Please update it from the Play Store.',
       });
     }
     const app = normalizeApp(rawName);

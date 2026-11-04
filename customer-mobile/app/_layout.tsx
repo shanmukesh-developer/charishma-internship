@@ -129,7 +129,7 @@ const AppTree = React.memo(function AppTree({ isDark, onSettled }: { isDark: boo
 
 function AppContainer() {
   const { isDark, isThemeReady } = useTheme();
-  // The ZENV intro plays on every app start (cold launch). It is dark on its own, so it shows from the
+  // The ZenWe intro plays on every app start (cold launch). It is dark on its own, so it shows from the
   // first frame without waiting for the saved theme to load.
   const [showIntro, setShowIntro] = React.useState(true);
 
@@ -212,11 +212,11 @@ function AppContainer() {
   );
 }
 
-/** Web only: the browser tab reads "ZENV" (the brand), whatever a screen or the app name sets. */
+/** Web only: the browser tab reads "ZenWe" (the brand), whatever a screen or the app name sets. */
 function useWebTitle() {
   React.useEffect(() => {
     if (Platform.OS !== 'web' || typeof document === 'undefined') return;
-    const want = 'ZENV';
+    const want = 'ZenWe';
     if (document.title !== want) document.title = want;
     const el = document.querySelector('title');
     if (!el || typeof MutationObserver === 'undefined') return;

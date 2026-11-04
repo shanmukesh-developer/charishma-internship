@@ -101,7 +101,7 @@ export default function RequestsScreen({ navigation, route }: ScreenProps<'Reque
         <RequestCard key={b.id} b={b} onAccept={() => setAccepting(b)} onReject={() => setRejecting(b)} />
       ))}
       <Text style={[font.small, { color: color.textMuted, textAlign: 'center' }]}>
-        Students' phone numbers are never shown. The ZENV housing desk connects you once a bed is accepted.
+        Students' phone numbers are never shown. The ZenWe housing desk connects you once a bed is accepted.
       </Text>
 
       <AcceptSheet booking={accepting} rooms={detail?.rooms || []} onClose={() => setAccepting(null)}
@@ -232,7 +232,7 @@ function RejectSheet({ booking, onClose, onDone }: { booking: Booking | null; on
           {QUICK_REASONS.map((q) => <Chip key={q} label={q} selected={reason === q} onPress={() => setReason(q)} />)}
         </View>
         <Field label="Reason" value={reason} onChangeText={(v) => setReason(v.slice(0, LIMITS.REASON_MAX))} placeholder="Write a short, polite reason" multiline
-          hint="No phone numbers: students reach you through the ZENV housing desk." />
+          hint="No phone numbers: students reach you through the ZenWe housing desk." />
         {error ? <Banner tone="error" text={error} /> : null}
         <Button label="Decline request" variant="danger" onPress={submit} loading={busy} disabled={!ok} />
       </View>

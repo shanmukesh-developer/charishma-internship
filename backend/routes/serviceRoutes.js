@@ -243,7 +243,7 @@ const SERVICE_STATUS_COPY = {
   CONFIRMED: (n) => ({ title: 'Booking confirmed', body: `Your ${n} booking is confirmed.` }),
   IN_PROGRESS: (n) => ({ title: 'Picked up', body: `Your ${n} is with the partner now.` }),
   READY_FOR_DELIVERY: (n) => ({ title: 'Ready', body: `Your ${n} is ready and on its way back to you.` }),
-  COMPLETED: (n) => ({ title: 'Service completed', body: `Your ${n} is done. Thank you for using ZENV!` }),
+  COMPLETED: (n) => ({ title: 'Service completed', body: `Your ${n} is done. Thank you for using ZenWe!` }),
   CANCELLED: (n) => ({ title: 'Booking cancelled', body: `Your ${n} booking was cancelled.` }),
 };
 const serviceStatusData = (booking) => ({ type: 'SERVICE_STATUS', bookingId: String(booking.id), screen: 'service-booking', status: booking.status });
@@ -603,7 +603,7 @@ router.post('/:id/claim', protect, approvedRider, async (req, res) => {
     const rider = await require('../models/DeliveryPartner').getDeliveryPartnerModel().findByPk(req.user.id, { attributes: ['id', 'name', 'phone', 'vehicleNumber', 'vehicleType'] });
     const driverDetails = cleanDriverDetails({ name: rider && rider.name, phone: rider && rider.phone, vehicleNumber: rider && rider.vehicleNumber, vehicleType: rider && rider.vehicleType });
     const history = Array.isArray(booking.trackingHistory) ? [...booking.trackingHistory] : [];
-    history.push({ stage: booking.status, timestamp: new Date().toISOString(), note: `${firstWord(rider && rider.name)} (ZENV rider) will collect it${booking.pickupSlot ? ` (${booking.pickupSlot})` : ''}.` });
+    history.push({ stage: booking.status, timestamp: new Date().toISOString(), note: `${firstWord(rider && rider.name)} (ZenWe rider) will collect it${booking.pickupSlot ? ` (${booking.pickupSlot})` : ''}.` });
     // Count + claim under the rider's row lock (utils/riderLoad.lockRider): parallel taps on an order, a pickup
     // and a shopping list each saw the same count and all succeeded, past the 3-at-a-time limit.
     // IMMEDIATE: SQLite (tests, local) takes the write lock up front so parallel claims queue instead of failing
@@ -642,7 +642,7 @@ router.post('/:id/release', protect, approvedRider, async (req, res) => {
     const booking = await ServiceBooking.findByPk(req.params.id);
     if (!booking || booking.assignedPartnerId !== req.user.id) return res.status(404).json({ success: false, message: 'Booking not found' });
     if (!RIDER_POOL_STATUSES.includes(booking.status)) {
-      return res.status(409).json({ success: false, code: 'ALREADY_PICKED_UP', message: 'You already collected the items. Finish this pickup or contact ZENV support.' });
+      return res.status(409).json({ success: false, code: 'ALREADY_PICKED_UP', message: 'You already collected the items. Finish this pickup or contact ZenWe support.' });
     }
     const history = Array.isArray(booking.trackingHistory) ? [...booking.trackingHistory] : [];
     history.push({ stage: booking.status, timestamp: new Date().toISOString(), note: 'Rider changed. Finding another rider.' });
@@ -814,7 +814,7 @@ router.patch('/:id/status', protect, async (req, res) => {
     const isAdmin = isAdminUser(req.user);
     const isAssignedPartner = !!(booking.assignedPartnerId && booking.assignedPartnerId === req.user.id);
     if (!isAdmin && !isAssignedPartner) {
-      return res.status(403).json({ success: false, message: 'Only the ZENV team or the assigned partner can update this booking.' });
+      return res.status(403).json({ success: false, message: 'Only the ZenWe team or the assigned partner can update this booking.' });
     }
 
     const { status, quotedAmount, finalAmount, driverDetails, assignedPartnerId } = req.body || {};
@@ -860,8 +860,8 @@ router.patch('/:id/status', protect, async (req, res) => {
         success: false,
         code: collected ? 'PARTNER_CANNOT_CANCEL_COLLECTED' : 'PARTNER_CANNOT_CANCEL',
         message: collected
-          ? 'You already collected the items. Return them to the student, or contact ZENV support if there is a problem.'
-          : 'Hand this pickup back instead, so another rider can take it. Only the student or ZENV support can cancel a booking.',
+          ? 'You already collected the items. Return them to the student, or contact ZenWe support if there is a problem.'
+          : 'Hand this pickup back instead, so another rider can take it. Only the student or ZenWe support can cancel a booking.',
       });
     }
 
@@ -880,7 +880,7 @@ router.patch('/:id/status', protect, async (req, res) => {
     // CONFIRMED / IN_PROGRESS / READY with a higher price), which used to skip the student's approval.
     if (raises && (PRICE_LOCKED_AFTER_APPROVAL.includes(current) || PRICE_LOCKED_AFTER_APPROVAL.includes(nextStatus))) {
       if (current === 'READY_FOR_DELIVERY') {
-        return res.status(400).json({ success: false, code: 'PRICE_LOCKED', message: 'The price cannot be raised after the job is ready. Contact ZENV support.' });
+        return res.status(400).json({ success: false, code: 'PRICE_LOCKED', message: 'The price cannot be raised after the job is ready. Contact ZenWe support.' });
       }
       nextStatus = 'DIAGNOSED_QUOTED';
       needsReapproval = true;
@@ -930,13 +930,13 @@ router.patch('/:id/status', protect, async (req, res) => {
     // notice back. Cancelled while unassigned -> the pool drops it.
     if (changes.assignedPartnerId && changes.assignedPartnerId !== before.assignedPartnerId) {
       riderJobs.jobGone('service', booking.id);
-      riderJobs.tellJobRider({ kind: 'service', id: booking.id, riderId: changes.assignedPartnerId, title: '🧺 Pickup assigned to you', body: `${serviceLabel(booking)}${booking.hostelBlock ? ` from ${booking.hostelBlock}` : ''}. Open ZENV Rider for the details.` });
+      riderJobs.tellJobRider({ kind: 'service', id: booking.id, riderId: changes.assignedPartnerId, title: '🧺 Pickup assigned to you', body: `${serviceLabel(booking)}${booking.hostelBlock ? ` from ${booking.hostelBlock}` : ''}. Open ZenWe Rider for the details.` });
       if (before.assignedPartnerId) riderJobs.tellJobRider({ kind: 'service', id: booking.id, riderId: before.assignedPartnerId });
     } else if (booking.assignedPartnerId && !isRiderUser(req.user) && Object.keys(changes).length) {
       const cancelled = booking.status === 'CANCELLED';
       riderJobs.tellJobRider({ kind: 'service', id: booking.id, riderId: booking.assignedPartnerId,
         title: cancelled ? 'Booking cancelled' : null,
-        body: cancelled ? `ZENV support cancelled ${serviceLabel(booking)}. Do not collect it.` : '' });
+        body: cancelled ? `ZenWe support cancelled ${serviceLabel(booking)}. Do not collect it.` : '' });
     } else if (!booking.assignedPartnerId && booking.status === 'CANCELLED') riderJobs.jobGone('service', booking.id);
 
     // Socket notification

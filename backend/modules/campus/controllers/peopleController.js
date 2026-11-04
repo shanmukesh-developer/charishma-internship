@@ -154,7 +154,7 @@ const openDm = async (req, res) => {
 
     const User = getUserModel();
     const other = await User.findByPk(otherId, { attributes: ['id', 'name', 'profileImage', 'isActive'] });
-    if (!other || other.isActive === false) return res.status(404).json({ message: 'This student is not on ZENV.' });
+    if (!other || other.isActive === false) return res.status(404).json({ message: 'This student is not on ZenWe.' });
     if (await isBlockedBetween(me, otherId)) return res.status(403).json({ code: 'BLOCKED', message: 'You cannot message this person.' });
 
     let conversation = await findDm(me, otherId);

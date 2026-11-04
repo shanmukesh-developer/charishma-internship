@@ -80,7 +80,7 @@ export default function RewardsAnalytics() {
   const header = (
     <PageHeader
       title="Rewards"
-      description="ZENV Points, spin-wheel use, loyalty tiers and badges across all students."
+      description="ZenWe Points, spin-wheel use, loyalty tiers and badges across all students."
       breadcrumbs={[{ label: 'Analytics', href: '/analytics' }, { label: 'Rewards' }]}
       actions={<Button leftIcon={<IconRefresh size={14} />} loading={loading} onClick={load}>Refresh</Button>}
     />
@@ -104,7 +104,7 @@ export default function RewardsAnalytics() {
     { key: 'rank', header: '#', width: '48px', sortValue: u => u.rank, cell: u => <span className="tabular-nums text-fg-muted">{u.rank}</span> },
     { key: 'name', header: 'Student', sortValue: u => u.name || '', cell: u => <span className="font-medium text-fg">{u.name || 'Student'}</span> },
     { key: 'orders', header: 'Orders', align: 'right', sortValue: u => u.completedOrders || 0, cell: u => <span className="tabular-nums">{formatNumber(u.completedOrders || 0)}</span> },
-    { key: 'points', header: 'ZENV Points', align: 'right', sortValue: u => u.zenPoints || 0, cell: u => <span className="tabular-nums">{formatNumber(u.zenPoints || 0)}</span> },
+    { key: 'points', header: 'ZenWe Points', align: 'right', sortValue: u => u.zenPoints || 0, cell: u => <span className="tabular-nums">{formatNumber(u.zenPoints || 0)}</span> },
     { key: 'tier', header: 'Tier', sortValue: u => u.tier, cell: u => (u.tier && u.tier !== 'None' ? <Badge tone={tierTone(u.tier)}>{u.tier}</Badge> : <span className="text-fg-subtle">–</span>) },
   ];
 
@@ -114,7 +114,7 @@ export default function RewardsAnalytics() {
       {error && <Notice tone="danger" className="mb-4">{error} Showing the last loaded numbers.</Notice>}
 
       <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile label="ZENV Points held" value={formatNumber(data.totalZenPoints)} />
+        <StatTile label="ZenWe Points held" value={formatNumber(data.totalZenPoints)} />
         <StatTile label="Spins used" value={`${formatNumber(data.totalSpinsUsed)} of ${formatNumber(data.totalSpinsEarned)}`} hint="Used of earned" />
         <StatTile label="Spin redemption" value={`${data.redemptionRate}%`} />
         <StatTile label="Students with orders" value={formatNumber(data.activeRewardUsers)} />

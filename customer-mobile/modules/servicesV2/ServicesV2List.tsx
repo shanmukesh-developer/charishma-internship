@@ -78,7 +78,7 @@ export default function ServicesV2List({ shelf }: { shelf: ServiceShelf }) {
         ) : status !== 'ready' && !items.length ? (
           <StateBlock kind={status === 'offline' ? 'offline' : status === 'waking' ? 'waking' : 'error'} action="Try again" onAction={retry} style={{ marginTop: 16 }} />
         ) : !items.length ? (
-          <StateBlock kind="empty" title="Coming soon to ZENV" body="Partners add their services here as they join. Pull down to refresh." style={{ marginTop: 16 }} />
+          <StateBlock kind="empty" title="Coming soon to ZenWe" body="Partners add their services here as they join. Pull down to refresh." style={{ marginTop: 16 }} />
         ) : !shown.length ? (
           <StateBlock kind="search" title={q ? `No results for “${q.trim()}”` : 'Nothing in this filter'} body={q ? 'Check the spelling or try a shorter word.' : 'Pick another filter to see more.'} action={q ? 'Clear search' : 'Show all'} onAction={() => (q ? setQ('') : setChip('all'))} style={{ marginTop: 16 }} />
         ) : (

@@ -71,7 +71,7 @@ const login = async (req, res) => {
   const ok = driver ? await bcrypt.compare(password, driver.password) : await bcrypt.compare(password, dummyHash());
   if (!driver || !ok) throw fail(401, 'INVALID_CREDENTIALS', 'Wrong mobile number or password.');
   if (driver.status === E.DRIVER_STATUS.SUSPENDED) {
-    throw fail(403, 'DRIVER_SUSPENDED', driver.suspendedReason ? `Your driver account is suspended: ${driver.suspendedReason}` : 'Your driver account is suspended. Please contact ZENV support.');
+    throw fail(403, 'DRIVER_SUSPENDED', driver.suspendedReason ? `Your driver account is suspended: ${driver.suspendedReason}` : 'Your driver account is suspended. Please contact ZenWe support.');
   }
   await driver.update({ lastLoginAt: clock.now() });
   res.json({ token: signDriverToken(driver), driver: S.driverSelf(req, driver) });

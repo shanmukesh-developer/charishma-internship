@@ -38,7 +38,7 @@ const ownerText = (v, max, label, field, { multiline = false, min = 0 } = {}) =>
   const s = cleanText(v, max + 1, { multiline });
   if (s.length > max) throw fail(400, 'INVALID_INPUT', `${label} must be at most ${max} characters.`, { field });
   if (s.length < min) throw fail(400, 'INVALID_INPUT', min > 1 ? `${label} needs at least ${min} characters.` : `Enter ${label.toLowerCase()}.`, { field });
-  if (s && PHONE_RE.test(s)) throw fail(400, 'PHONE_NOT_ALLOWED', 'Phone numbers are not allowed here. Students reach you through the ZENV housing desk.', { field });
+  if (s && PHONE_RE.test(s)) throw fail(400, 'PHONE_NOT_ALLOWED', 'Phone numbers are not allowed here. Students reach you through the ZenWe housing desk.', { field });
   return s;
 };
 
@@ -47,7 +47,7 @@ const LIMITS = {
   owner_write: { max: 300, windowMs: 60 * 60 * 1000, message: 'Too many changes. Please slow down and try again in a while.' },
   owner_upload: { max: 60, windowMs: 60 * 60 * 1000, message: 'Too many photo uploads. Please try again in a while.' },
   complaint: { max: 5, windowMs: 24 * 60 * 60 * 1000, message: 'You have raised several complaints today. The PG will reply to those first.' },
-  deletion_request: { max: 3, windowMs: 24 * 60 * 60 * 1000, message: 'Your request was already sent. The ZENV team will contact you.' },
+  deletion_request: { max: 3, windowMs: 24 * 60 * 60 * 1000, message: 'Your request was already sent. The ZenWe team will contact you.' },
 };
 const buckets = new Map();
 setInterval(() => {

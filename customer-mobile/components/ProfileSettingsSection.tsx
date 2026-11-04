@@ -108,9 +108,9 @@ export default function ProfileSettingsSection({
         {onOpenAbout ? (
           <>
             <Divider />
-            <TouchableOpacity style={st.row} onPress={onOpenAbout} activeOpacity={0.6} accessibilityRole="button" accessibilityLabel="About ZENV">
+            <TouchableOpacity style={st.row} onPress={onOpenAbout} activeOpacity={0.6} accessibilityRole="button" accessibilityLabel="About ZenWe">
               <Icon name="information-circle-outline" />
-              <Text style={[st.title, st.rowText, { color: colors.text }]}>About ZENV</Text>
+              <Text style={[st.title, st.rowText, { color: colors.text }]}>About ZenWe</Text>
               <Chevron />
             </TouchableOpacity>
           </>
@@ -139,7 +139,7 @@ export default function ProfileSettingsSection({
         </TouchableOpacity>
       ) : null}
 
-      <Text style={[st.version, { color: colors.textMuted }]} accessibilityLabel={`ZENV version ${appVersionText()}`}>ZENV · Version {appVersionText()}</Text>
+      <Text style={[st.version, { color: colors.textMuted }]} accessibilityLabel={`ZenWe version ${appVersionText()}`}>ZenWe · Version {appVersionText()}</Text>
     </View>
   );
 }

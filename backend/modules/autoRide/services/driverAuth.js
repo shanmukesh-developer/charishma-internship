@@ -26,7 +26,7 @@ const readToken = (req) => {
 const protectDriver = async (req, res, next) => {
   try {
     const token = readToken(req);
-    if (!token) throw fail(401, 'NOT_AUTHORISED', 'Please sign in to the ZENV Auto Driver app.');
+    if (!token) throw fail(401, 'NOT_AUTHORISED', 'Please sign in to the ZenWe Auto Driver app.');
     const secret = process.env.JWT_SECRET;
     if (!secret) throw fail(500, 'SERVER_CONFIG', 'Server configuration error. Please try again later.');
     let decoded;
@@ -43,7 +43,7 @@ const protectDriver = async (req, res, next) => {
       throw fail(401, 'SESSION_REVOKED', 'Your password was changed. Please sign in again.');
     }
     if (driver.status === DRIVER_STATUS.SUSPENDED) {
-      throw fail(403, 'DRIVER_SUSPENDED', driver.suspendedReason ? `Your driver account is suspended: ${driver.suspendedReason}` : 'Your driver account is suspended. Please contact ZENV support.');
+      throw fail(403, 'DRIVER_SUSPENDED', driver.suspendedReason ? `Your driver account is suspended: ${driver.suspendedReason}` : 'Your driver account is suspended. Please contact ZenWe support.');
     }
     req.driver = driver;
     req.user = { id: driver.id, role: ROLE, name: driver.name };

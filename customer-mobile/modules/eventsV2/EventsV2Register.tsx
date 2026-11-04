@@ -64,12 +64,12 @@ function Flow() {
             {f.step === 'profile' ? (
               <>
                 <Text style={s.h}>Is this you?</Text>
-                <Text style={s.sub}>ZENV uses your verified student account. Nothing to type again.</Text>
+                <Text style={s.sub}>ZenWe uses your verified student account. Nothing to type again.</Text>
                 <Summary ev={ev} slotLabel={slotLabel} />
                 <Glass style={{ padding: 14, marginBottom: 12 }}>
                   <Row label="Name" value={String((user as any)?.name || 'Your account')} />
                   {(user as any)?.email ? <Row label="Email" value={String((user as any).email)} /> : null}
-                  <Row label="Account" value="Verified ZENV student" />
+                  <Row label="Account" value="Verified ZenWe student" />
                 </Glass>
                 <Notice icon={<IShield size={16} color={NIGHT.violet} strokeWidth={1.8} />}>The organiser sees your name, your registration code and your answers only. Never your phone, email or payment details.</Notice>
                 {f.wantWaitlist || f.slotId ? <Notice>This {f.slotId ? 'slot' : 'event'} is full. You will join the waitlist and be moved in automatically (or offered the place) when someone cancels.</Notice> : null}

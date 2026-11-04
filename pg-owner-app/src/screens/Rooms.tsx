@@ -90,7 +90,7 @@ export default function RoomsTab({ open }: TabProps) {
       {saveError ? <Banner tone="error" text={saveError} /> : null}
 
       {detail && !rooms.length ? (
-        <EmptyState icon="bed-outline" title="No rooms listed yet" body="The ZENV housing team adds your rooms and rents. Call support to set them up." />
+        <EmptyState icon="bed-outline" title="No rooms listed yet" body="The ZenWe housing team adds your rooms and rents. Call support to set them up." />
       ) : null}
 
       {detail && rooms.length ? (
@@ -138,7 +138,7 @@ export default function RoomsTab({ open }: TabProps) {
         );
       })}
       {detail && rooms.length ? (
-        <Text style={[font.small, { color: color.textMuted, textAlign: 'center' }]}>To change rents, beds or add rooms, ask the ZENV housing team.</Text>
+        <Text style={[font.small, { color: color.textMuted, textAlign: 'center' }]}>To change rents, beds or add rooms, ask the ZenWe housing team.</Text>
       ) : null}
     </Screen>
   );

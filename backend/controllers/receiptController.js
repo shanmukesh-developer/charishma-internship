@@ -61,7 +61,7 @@ exports.renderReceiptPage = async (req, res) => {
   res.type('html');
   try {
     const v = receipts.verifyLink(req.params.token);
-    if (v.error === 'expired') return res.status(410).send(receipts.renderMessage('Link expired', 'This receipt link has expired. Open the receipt again from the ZENV app.'));
+    if (v.error === 'expired') return res.status(410).send(receipts.renderMessage('Link expired', 'This receipt link has expired. Open the receipt again from the ZenWe app.'));
     if (v.error || !UUID_RE.test(v.orderId)) return res.status(404).send(receipts.renderMessage('Receipt not found', 'This receipt link is not valid.'));
     const order = await loadReceipt(v.orderId);
     if (!order || order.status !== 'Delivered' || !order.receiptNumber) return res.status(404).send(receipts.renderMessage('Receipt not found', 'This receipt is not available.'));

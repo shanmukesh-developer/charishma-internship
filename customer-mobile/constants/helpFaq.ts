@@ -31,10 +31,10 @@ export const HELP_FAQ: FaqSection[] = [
     items: [
       {
         q: 'How can I pay?',
-        a: 'Food and grocery orders: cash on delivery or your ZENV Wallet (no card or UPI checkout). In-Campus Booking is different: you pay the stall directly by UPI and send the payment screenshot and transaction ID.',
+        a: 'Food and grocery orders: cash on delivery or your ZenWe Wallet (no card or UPI checkout). In-Campus Booking is different: you pay the stall directly by UPI and send the payment screenshot and transaction ID.',
       },
       {
-        q: 'What is the ZENV Wallet?',
+        q: 'What is the ZenWe Wallet?',
         a: 'Your Wallet holds refunds, rewards and credits. You can use the balance at checkout. Profile shows your balance and Wallet history.',
       },
     ],
@@ -44,7 +44,7 @@ export const HELP_FAQ: FaqSection[] = [
     items: [
       {
         q: 'What is the Delivery PIN?',
-        a: 'Orders delivered by a ZENV rider have a 4-digit Delivery PIN on the tracking screen and in Orders. Share it only when you have the order in your hands. Stall orders have no PIN. After 5 wrong tries the PIN is locked and ZENV support completes the handover: contact support from the order page.',
+        a: 'Orders delivered by a ZenWe rider have a 4-digit Delivery PIN on the tracking screen and in Orders. Share it only when you have the order in your hands. Stall orders have no PIN. After 5 wrong tries the PIN is locked and ZenWe support completes the handover: contact support from the order page.',
       },
       {
         q: 'Where is my order delivered?',
@@ -87,7 +87,7 @@ export const HELP_FAQ: FaqSection[] = [
     items: [
       {
         q: 'What is Campus?',
-        a: 'Campus is the student side of ZENV, opened from the Campus button on Home. It has Chats, Friends (Pulse, Spaces, Forum, Tasks and Connect), Around campus (Lost and found, rides and rooms) and Me.',
+        a: 'Campus is the student side of ZenWe, opened from the Campus button on Home. It has Chats, Friends (Pulse, Spaces, Forum, Tasks and Connect), Around campus (Lost and found, rides and rooms) and Me.',
       },
     ],
   },
@@ -112,8 +112,8 @@ export const HELP_FAQ: FaqSection[] = [
     title: 'Contact us',
     items: [
       {
-        q: 'How do I reach ZENV support?',
-        a: 'Raise a ticket in the Support centre and reply there when support answers. For a live order that needs help now, call or message the ZENV helpline from the Support centre.',
+        q: 'How do I reach ZenWe support?',
+        a: 'Raise a ticket in the Support centre and reply there when support answers. For a live order that needs help now, call or message the ZenWe helpline from the Support centre.',
       },
     ],
   },

@@ -24,7 +24,7 @@ test.after(async () => { push._setMessaging(null); await T.teardown(); });
 
 const settle = async () => { await notify.idle(); await push._flushCleanups(); await new Promise((r) => setTimeout(r, 50)); };
 
-test('booking pushes go to ZENV Campus Stall devices only; delivery pushes skip them', async () => {
+test('booking pushes go to ZenWe Campus Stall devices only; delivery pushes skip them', async () => {
   const s = await T.mkStall();
   await s.store.update({ fcmTokens: [{ token: tok('vendor'), app: 'vendor' }, { token: tok('stall'), app: 'campusstall' }] }, { hooks: false });
   const u = await T.mkUser({ fcmTokens: [tok('student')] });

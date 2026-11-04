@@ -388,7 +388,7 @@ const handover = (req, res) => pinStep(req, res, {
   gate: (b, settings) => {
     const W = Wb(b);
     if (b.termsPending) {
-      throw fail(409, 'TERMS_PENDING', `The ${W.taker} has not accepted the booking terms yet. Ask them to open this booking in the ZENV app (update the app if needed) and accept the terms before pickup.`);
+      throw fail(409, 'TERMS_PENDING', `The ${W.taker} has not accepted the booking terms yet. Ask them to open this booking in the ZenWe app (update the app if needed) and accept the terms before pickup.`);
     }
     if (settings.conditionPhotosRequired && !ownerSide(b.pickupCondition)) {
       throw fail(409, 'CONDITION_REQUIRED', `Add ${E.LIMITS.MIN_CONDITION_PHOTOS}-${E.LIMITS.MAX_CONDITION_PHOTOS} pickup photos of the vehicle and the odometer reading before starting the trip.`, { stage: 'PICKUP' });
@@ -554,8 +554,8 @@ const respondCharges = async (req, res) => {
   if (row.chargesStatus === CH.ACCEPTED) {
     notify.booking(row, { to: 'owner', title: 'Extra charges accepted ✅', body: `The ${W.taker} accepted ₹${row.chargesClaimed} of extra charges for ${row.vehicleTitle}. Settle them in cash between you.`, type: 'RENTAL_CHARGES' });
   } else {
-    notify.booking(row, { to: 'owner', title: 'Extra charges disputed', body: `The ${W.taker} disputed the ₹${row.chargesClaimed} extra charges for ${row.vehicleTitle}. The ZENV team will review both sides.`, type: 'RENTAL_CHARGES' });
-    notify.push(row.renterId, 'Dispute received', `The ZENV team will review the extra charges for ${row.vehicleTitle} and tell you both the outcome.`, { type: 'RENTAL_CHARGES', bookingId: row.id, screen: 'rental_booking' });
+    notify.booking(row, { to: 'owner', title: 'Extra charges disputed', body: `The ${W.taker} disputed the ₹${row.chargesClaimed} extra charges for ${row.vehicleTitle}. The ZenWe team will review both sides.`, type: 'RENTAL_CHARGES' });
+    notify.push(row.renterId, 'Dispute received', `The ZenWe team will review the extra charges for ${row.vehicleTitle} and tell you both the outcome.`, { type: 'RENTAL_CHARGES', bookingId: row.id, screen: 'rental_booking' });
     notify.admin('rental_dispute', 'created', row.id);
   }
   res.json({ booking: await present(req, row, req.user.id) });
@@ -685,7 +685,7 @@ const report = async (req, res) => {
     status: 'OPEN',
   });
   notify.admin('rental_report', 'created', row.id);
-  res.status(201).json({ report: { id: row.id, category, status: row.status, createdAt: row.createdAt }, message: 'Reported. The ZENV team will look into it and contact you.' });
+  res.status(201).json({ report: { id: row.id, category, status: row.status, createdAt: row.createdAt }, message: 'Reported. The ZenWe team will look into it and contact you.' });
 };
 
 module.exports = {

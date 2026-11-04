@@ -22,7 +22,7 @@ const studentCopy = (b, stallName) => {
     case 'ACCEPTED': return { title: 'Order accepted', body: `${s} verified your payment and accepted booking ${b.ref}.` };
     case 'PREPARING': return { title: 'Preparing your order', body: `${s} is preparing booking ${b.ref}.` };
     case 'READY': return { title: 'Order ready for pickup', body: `Booking ${b.ref} is ready at ${s}. Show your pickup code at the counter.` };
-    case 'COLLECTED': return { title: 'Order collected', body: `Booking ${b.ref} was collected from ${s}. Thanks for using ZENV.` };
+    case 'COLLECTED': return { title: 'Order collected', body: `Booking ${b.ref} was collected from ${s}. Thanks for using ZenWe.` };
     case 'REJECTED': return { title: 'Payment not verified', body: `${s} could not verify the payment for booking ${b.ref}. Send the proof again or cancel.` };
     case 'CANCELLED':
       if (b.cancelledBy === 'system') return { title: 'Booking cancelled', body: `Booking ${b.ref} was cancelled because no payment proof arrived in time.` };

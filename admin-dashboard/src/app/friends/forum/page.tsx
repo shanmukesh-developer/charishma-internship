@@ -761,7 +761,7 @@ function GuideDrawer({ c, guide, onClose, busy, act, post, reload }: { c: Commun
       </div>
       <div className="flex items-center gap-3">
         <Toggle checked={official} onChange={setOfficial} labelText="Official label" />
-        <span className="text-xs text-fg-muted">{official ? 'Labelled Official (from the ZENV team / campus)' : 'Labelled Student advice'}</span>
+        <span className="text-xs text-fg-muted">{official ? 'Labelled Official (from the ZenWe team / campus)' : 'Labelled Student advice'}</span>
       </div>
       {errs.length > 0 && <ul className="text-xs text-danger-text font-semibold space-y-0.5">{errs.map((e) => <li key={e}>{e}</li>)}</ul>}
       <div className="flex justify-end gap-2">
@@ -1072,8 +1072,8 @@ function ReviewsTab({ items, loading, error, status, setStatus, reload, busy, ac
       </div>
 
       {replyFor?.review && (
-        <Drawer title="Reply as the ZENV Friends team" onClose={() => setReplyFor(null)}>
-          <p className="text-xs text-fg-muted">Shown under the review, labelled “ZENV Friends team”. One reply per review. Faculty can reply themselves if their account is linked to the review page.</p>
+        <Drawer title="Reply as the ZenWe Friends team" onClose={() => setReplyFor(null)}>
+          <p className="text-xs text-fg-muted">Shown under the review, labelled “ZenWe Friends team”. One reply per review. Faculty can reply themselves if their account is linked to the review page.</p>
           <blockquote className="rounded-xl border border-line bg-surface-2/60 p-3 text-xs text-fg-muted whitespace-pre-line">{replyFor.title}{replyFor.body ? `\n${replyFor.body}` : ''}</blockquote>
           <div>
             <span className={label}>Reply ({reply.length}/1500)</span>

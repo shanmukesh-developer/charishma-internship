@@ -55,7 +55,7 @@ export function HomeTop({ sections, onSaved }: { sections?: { key: string; label
         </Press>
         <ZenvBadge size={36} />
         <View style={{ flex: 1, marginLeft: 10, minWidth: 0 }}>
-          <Text style={s.brand} accessibilityRole="header">ZENV</Text>
+          <Text style={s.brand} accessibilityRole="header">ZenWe</Text>
           <Text style={s.brandSub} numberOfLines={1}>Deals & Spin</Text>
         </View>
         <Press onPress={onSaved || (() => nav.onSection?.('food'))} label="Saved items in Food & groceries" style={s.iconBtn} scaleTo={0.9}>

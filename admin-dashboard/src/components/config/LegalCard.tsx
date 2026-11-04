@@ -142,7 +142,7 @@ export default function LegalCard() {
             <FormSection title="Business">
               <div className="space-y-3">
                 <div className="grid gap-3 md:grid-cols-3">
-                  {field('Business or brand name', form.businessName, v => set('businessName', v), 'ZENV')}
+                  {field('Business or brand name', form.businessName, v => set('businessName', v), 'ZenWe')}
                   {field('Operated by (legal name)', form.operatorName, v => set('operatorName', v), 'Person or registered company')}
                   {field('Contact email', form.contactEmail, v => set('contactEmail', v), '', 'email')}
                 </div>

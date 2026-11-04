@@ -384,7 +384,7 @@ exports.getMenuItemById = async (req, res) => {
         image: v.imageUrl || v.image,
         isVaultItem: true,
         orderable: false,
-        restaurantName: 'ZENV Daily Deals',
+        restaurantName: 'ZenWe Daily Deals',
         restaurantId: null
       });
     }
@@ -2127,7 +2127,7 @@ exports.batchUpdateOrders = async (req, res) => {
           }
         } else {
           const { cancelAndRefund } = require('./orderController');
-          const { cancelled, refunded } = await cancelAndRefund(order, { reason: 'Cancelled by ZENV support', onlyFromStatuses: [targetStatus], by: 'support' });
+          const { cancelled, refunded } = await cancelAndRefund(order, { reason: 'Cancelled by ZenWe support', onlyFromStatuses: [targetStatus], by: 'support' });
           if (!cancelled) continue;
           updatedCount++;
           emitStatus(order, { id: order.id, status: 'Cancelled', reason: 'ADMIN_CANCELLED', refundedToWallet: refunded });
@@ -2141,15 +2141,15 @@ exports.batchUpdateOrders = async (req, res) => {
             if (order.deliveryPartnerId) io.to(`rider_${order.deliveryPartnerId}`).emit('orderCancelled', { orderId: order.id });
             if (order.deliveryPartnerId) {
               const rd = require('../utils/riderDispatch');
-              rd.pushAssignedRider(order.deliveryPartnerId, 'Order cancelled', `Order #${rd.shortRef(order.id)} was cancelled by ZENV support. Do not pick it up.`, { orderId: order.id, type: 'ORDER_CANCELLED' });
+              rd.pushAssignedRider(order.deliveryPartnerId, 'Order cancelled', `Order #${rd.shortRef(order.id)} was cancelled by ZenWe support. Do not pick it up.`, { orderId: order.id, type: 'ORDER_CANCELLED' });
             }
           }
           realtime.notifyAdmin('order', 'updated', order.id);
           const oc = require('./orderController');
-          if (order.restaurantId) oc.pushStoreCancelled(order.restaurantId, order, 'An order was cancelled by ZENV support.');
+          if (order.restaurantId) oc.pushStoreCancelled(order.restaurantId, order, 'An order was cancelled by ZenWe support.');
           oc.pushCustomer(order, 'Order cancelled', refunded > 0
-            ? `ZENV support cancelled your order. ₹${refunded} is back in your Wallet.`
-            : 'ZENV support cancelled your order. You have not been charged.');
+            ? `ZenWe support cancelled your order. ₹${refunded} is back in your Wallet.`
+            : 'ZenWe support cancelled your order. You have not been charged.');
         }
       } catch (e) {
         console.error('[BATCH_ORDER_UPDATE_ERROR]', order.id, e.message);
@@ -3082,7 +3082,7 @@ const ADMIN_ASSIGNABLE = ['Accepted', 'Preparing', 'ReadyForPickup', 'Picking'];
  * cancel / other change landed first (nothing done), true when the rider was removed.
  * opts: { io, reason, extraWhere }
  */
-const releaseOrderRider = async (order, { io = null, reason = 'Removed by ZENV support', extraWhere = null } = {}) => {
+const releaseOrderRider = async (order, { io = null, reason = 'Removed by ZenWe support', extraWhere = null } = {}) => {
   const Order = getOrderModel();
   const oldRiderId = order.deliveryPartnerId || null;
   if (!oldRiderId) return false;
@@ -3102,7 +3102,7 @@ const releaseOrderRider = async (order, { io = null, reason = 'Removed by ZENV s
   if (io) io.to(`rider_${oldRiderId}`).emit('statusUpdated', { id: order.id, status: order.status, reassigned: true });
   if (oldRiderId) {
     const rd = require('../utils/riderDispatch');
-    rd.pushAssignedRider(oldRiderId, 'Order given to another rider', `ZENV support gave order #${rd.shortRef(order.id)} to another rider. You do not need to pick it up.`, { orderId: order.id, type: 'ORDER_REASSIGNED' });
+    rd.pushAssignedRider(oldRiderId, 'Order given to another rider', `ZenWe support gave order #${rd.shortRef(order.id)} to another rider. You do not need to pick it up.`, { orderId: order.id, type: 'ORDER_REASSIGNED' });
   }
   realtime.deliveryRequest(order.id); // back in the pool for every online rider
   if (io) {
@@ -3167,7 +3167,7 @@ exports.assignOrderRider = async (req, res) => {
     }
     if (!newRiderId) {
       // Remove the rider: shared with the pickup-timeout job (same write, sockets and pushes).
-      const released = await releaseOrderRider(order, { io: req.app.get('io'), reason: 'Removed by ZENV support' });
+      const released = await releaseOrderRider(order, { io: req.app.get('io'), reason: 'Removed by ZenWe support' });
       if (!released) return res.status(409).json({ message: 'This order was just updated (claimed, picked up or cancelled). Refresh and try again.', code: 'ORDER_CHANGED' });
       await logAuditAction(req, order.id, 'ORDER_RIDER_UNASSIGNED', { from: oldRiderId, to: null });
       return res.json({ message: 'Rider removed. The order is back with the riders.', orderId: order.id, status: order.status, riderId: null });
@@ -3190,7 +3190,7 @@ exports.assignOrderRider = async (req, res) => {
       if (io) io.to(`rider_${oldRiderId}`).emit('statusUpdated', { id: order.id, status: order.status, reassigned: true });
       if (oldRiderId) {
         const rd = require('../utils/riderDispatch');
-        rd.pushAssignedRider(oldRiderId, 'Order given to another rider', `ZENV support took order #${rd.shortRef(order.id)} off you. You do not need to pick it up.`, { orderId: order.id, type: 'ORDER_REASSIGNED' });
+        rd.pushAssignedRider(oldRiderId, 'Order given to another rider', `ZenWe support took order #${rd.shortRef(order.id)} off you. You do not need to pick it up.`, { orderId: order.id, type: 'ORDER_REASSIGNED' });
       }
     }
     if (newRiderId) {
@@ -3208,7 +3208,7 @@ exports.assignOrderRider = async (req, res) => {
       // The new rider is not in the order room yet: tell their own room, so the app refetches its active
       // orders now instead of on the next poll (or never, with no working push token).
       if (newRiderId) io.to(`rider_${newRiderId}`).emit('statusUpdated', payload);
-      if (!newRiderId) io.to('admin-room').emit('order_unassigned', { orderId: order.id, reason: 'Removed by ZENV support' });
+      if (!newRiderId) io.to('admin-room').emit('order_unassigned', { orderId: order.id, reason: 'Removed by ZenWe support' });
     }
     realtime.notifyAdmin('order', 'updated', order.id);
     const restaurant = order.restaurantId ? await getRestaurantModel().findByPk(order.restaurantId, { attributes: ['id', 'name', 'location'] }) : null;
@@ -3216,7 +3216,7 @@ exports.assignOrderRider = async (req, res) => {
       if (newRiderId) {
         const tokens = (Array.isArray(rider.fcmTokens) ? rider.fcmTokens : []).map((t) => (typeof t === 'string' ? t : t && t.token)).filter(Boolean);
         if (tokens.length) {
-          await require('../utils/push').sendPushToTokens(tokens, '🛵 Order assigned to you', `ZENV support gave you an order from ${restaurant?.name || 'a store'}.`, { orderId: String(order.id), type: 'ORDER_ASSIGNED' }, {
+          await require('../utils/push').sendPushToTokens(tokens, '🛵 Order assigned to you', `ZenWe support gave you an order from ${restaurant?.name || 'a store'}.`, { orderId: String(order.id), type: 'ORDER_ASSIGNED' }, {
             persist: false,
             android: { priority: 'high', notification: { sound: 'alert', channelId: require('../utils/riderDispatch').RIDER_NEW_ORDER_CHANNEL } },
           });

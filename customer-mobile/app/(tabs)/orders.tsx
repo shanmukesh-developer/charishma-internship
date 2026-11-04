@@ -94,7 +94,7 @@ const callerLine = (b: any): string => {
   const onMine = mine.length === 10 ? ` on ${mine.slice(0, 5)} ${mine.slice(5)}` : '';
   if (name && phone.length === 10) return `${name} (${phone.slice(0, 5)} ${phone.slice(5)}) will call you${onMine}.`;
   if (name) return `${name} will call you${onMine}.`;
-  return `The partner or the ZENV team will call you${onMine} to confirm the details.`;
+  return `The partner or the ZenWe team will call you${onMine} to confirm the details.`;
 };
 
 /** One short reference for orders and bookings: the last 6 characters of the id. */
@@ -148,7 +148,7 @@ const formatWhen = (iso?: string) => formatISTDateTime(iso);
 
 const amountCharged = (o: any) => Number(o.finalPrice ?? o.priceBreakdown?.finalPrice ?? o.totalPrice ?? 0) || 0;
 
-const STORE_GONE_TEXT = 'This store is no longer on ZENV.';
+const STORE_GONE_TEXT = 'This store is no longer on ZenWe.';
 /** The order's store was deleted: the server then clears restaurantId on its orders and the joined store comes back null. */
 const storeGoneFromOrder = (o: any) => !(o?.restaurantId || o?.restaurant?.id) || o?.restaurant === null;
 const storeIdOf = (o: any) => String(o?.restaurantId || o?.restaurant?.id || '');
@@ -788,7 +788,7 @@ export default function OrdersScreen() {
                   </View>
                 ))}
                 <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600', marginTop: 6 }}>
-                  {b.paymentMethod === 'Wallet' ? 'Pay from ZENV Wallet' : 'Pay in cash when the job is done'}
+                  {b.paymentMethod === 'Wallet' ? 'Pay from ZenWe Wallet' : 'Pay in cash when the job is done'}
                 </Text>
                 {b.status === 'DIAGNOSED_QUOTED' && (
                   <ActionPressable style={{ borderRadius: 16, overflow: 'hidden', marginTop: 12 }} onPress={() => { if (!busy) acceptQuote(b); }} sound="click">
@@ -979,7 +979,7 @@ export default function OrdersScreen() {
           const orderItems: any[] = parseItems(o.items);
           const breakdown = parseBreakdown(o.priceBreakdown);
           const charged = amountCharged(o);
-          const restaurantName = o.restaurantName || o.restaurant?.name || (o.category === 'Mega Basket' ? 'Shopping list' : 'ZENV order');
+          const restaurantName = o.restaurantName || o.restaurant?.name || (o.category === 'Mega Basket' ? 'Shopping list' : 'ZenWe order');
           const needsRating = o.status === 'Delivered' && o.rating == null;
           // Customer cancels carry no reason (or the default one); store / system cancels explain themselves.
           const cancelReason = o.status === 'Cancelled' && typeof o.cancellationReason === 'string'
@@ -996,7 +996,7 @@ export default function OrdersScreen() {
                 ...(Number(o.batchDiscount) > 0 ? [{ label: 'Shared delivery discount', amount: Number(o.batchDiscount) }] : []),
                 ...(Number(o.gateDiscount) > 0 ? [{ label: 'Member discount', amount: Number(o.gateDiscount) }] : []),
               ];
-          const paymentLabel = o.paymentMethod === 'Wallet' ? 'Paid from ZENV Wallet' : o.paymentMethod === 'COD' ? 'Cash on Delivery' : null;
+          const paymentLabel = o.paymentMethod === 'Wallet' ? 'Paid from ZenWe Wallet' : o.paymentMethod === 'COD' ? 'Cash on Delivery' : null;
 
           // Entry delay capped: cards that mount later (paging, "Load older", a filter) waited idx x 80 ms invisible.
           return (

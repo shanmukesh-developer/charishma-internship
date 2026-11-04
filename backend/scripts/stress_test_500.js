@@ -222,7 +222,7 @@ async function orderBurst(tokens, restaurantId, menuItems) {
 // ── Main Execution ──────────────────────────────────────────
 async function main() {
   console.log('╔══════════════════════════════════════════════════════╗');
-  console.log('║      🚀 ZENV 500+ USER STRESS TEST                 ║');
+  console.log('║      🚀 ZenWe 500+ USER STRESS TEST                 ║');
   console.log('╠══════════════════════════════════════════════════════╣');
   console.log(`║  Target:     ${API_URL.padEnd(39)}║`);
   console.log(`║  Users:      ${String(TOTAL_USERS).padEnd(39)}║`);

@@ -99,7 +99,7 @@ test('fetch hook: headers only on API calls, existing headers win, 426 -> blocke
   assert.ok(seen[3].init.headers.some(([k]) => k === 'X-App-Name'));
   const states = [];
   const unsub = fu.subscribeUpdateState((s) => states.push(s.status));
-  answer = res(426, { success: false, code: 'UPGRADE_REQUIRED', app: 'customer', appName: 'ZENV', minSupportedVersion: '1.0.6', storeUrl: 'https://play.google.com/store/apps/details?id=com.srm.hostelbites', message: 'Please update' });
+  answer = res(426, { success: false, code: 'UPGRADE_REQUIRED', app: 'customer', appName: 'ZenWe', minSupportedVersion: '1.0.6', storeUrl: 'https://play.google.com/store/apps/details?id=com.srm.hostelbites', message: 'Please update' });
   await wrapped(`${API}/api/orders`, {});
   assert.equal(fu.getUpdateState().status, 'blocked');
   assert.equal(fu.getUpdateState().policy.message, 'Please update');
@@ -126,7 +126,7 @@ test('installFetchHook wraps the global fetch once', { skip }, async () => {
 test('checkForUpdate: blocked / soft / ok from the server answer; offline keeps state; Retry clears a block', { skip }, async () => {
   fu.resetForceUpdateForTests();
   fu.configureForceUpdate({ app: 'customer', apiBase: API, info: CLIENT('1.0.5', 6), hookFetch: false });
-  let answer = { app: 'customer', appName: 'ZENV', minSupportedVersion: '1.0.6', latestVersion: '1.0.7', storeUrl: 'https://play.google.com/store/apps/details?id=com.srm.hostelbites', message: 'm', softPromptEnabled: true };
+  let answer = { app: 'customer', appName: 'ZenWe', minSupportedVersion: '1.0.6', latestVersion: '1.0.7', storeUrl: 'https://play.google.com/store/apps/details?id=com.srm.hostelbites', message: 'm', softPromptEnabled: true };
   const urls = [];
   const f = async (url, init) => { urls.push({ url, init }); return res(200, { success: true, ...answer }); };
   assert.equal((await fu.checkForUpdate({ fetchImpl: f })).status, 'blocked');

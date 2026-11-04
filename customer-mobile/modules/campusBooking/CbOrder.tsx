@@ -87,7 +87,7 @@ export default function CbOrder({ id }: { id: string }) {
         {b.status === 'CANCELLED' ? (
           <NoticeBar icon="close-circle-outline" tone="red" text={`${cancelReason}${cancelAfterPay ? ` Your payment was verified, so ${stallName} returns the amount to you directly.` : cancelInReview ? ` If you paid, ${stallName} returns the amount to you directly.` : ''}`} style={{ marginBottom: 16 }} />
         ) : null}
-        {b.status === 'COLLECTED' ? <NoticeBar icon="checkmark-circle-outline" tone="green" text={`Collected ${whenIST(b.collectedAt)}. Thank you for using ZENV.`} style={{ marginBottom: 16 }} /> : null}
+        {b.status === 'COLLECTED' ? <NoticeBar icon="checkmark-circle-outline" tone="green" text={`Collected ${whenIST(b.collectedAt)}. Thank you for using ZenWe.`} style={{ marginBottom: 16 }} /> : null}
 
         {(b.status === 'PAYMENT_PENDING' || b.status === 'REJECTED') && b.canSubmitProof ? (
           <View style={{ marginBottom: 12 }}>
@@ -263,7 +263,7 @@ const updatesOf = (b: CbBooking): Update[] => {
   const prep = b.timeline.find((x) => x.key === 'PREPARING');
   if (prep?.at) out.push({ title: 'Preparing your order', body: `${s} is preparing it.`, at: prep.at, icon: 'flame-outline', tone: 'gold' });
   if (b.readyAt) out.push({ title: 'Ready for pickup', body: 'Show your pickup code at the counter.', at: b.readyAt, icon: 'storefront-outline', tone: 'gold' });
-  if (b.collectedAt) out.push({ title: 'Order completed', body: 'Collected at the stall. Thank you for using ZENV.', at: b.collectedAt, icon: 'checkmark-circle-outline', tone: 'gold' });
+  if (b.collectedAt) out.push({ title: 'Order completed', body: 'Collected at the stall. Thank you for using ZenWe.', at: b.collectedAt, icon: 'checkmark-circle-outline', tone: 'gold' });
   if (b.cancelledAt) out.push({ title: 'Booking cancelled', body: b.cancellation?.reason || 'This booking was cancelled.', at: b.cancelledAt, icon: 'close-circle-outline', tone: 'red' });
   return out.sort((x, y) => new Date(y.at).getTime() - new Date(x.at).getTime());
 };

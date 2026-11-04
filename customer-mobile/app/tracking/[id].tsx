@@ -195,7 +195,7 @@ export default function TrackingScreen() {
       }
       await Linking.openURL(data.url);
     } catch {
-      Alert.alert('Receipt', "Can't reach ZENV right now. Check your internet and try again.");
+      Alert.alert('Receipt', "Can't reach ZenWe right now. Check your internet and try again.");
     } finally {
       setReceiptLoading(false);
     }
@@ -243,8 +243,8 @@ export default function TrackingScreen() {
     const stageText = status === 1 ? 'waiting for the store to confirm' : status === 2 ? 'confirmed' : status === 3 ? 'being prepared' : status === 4 ? (isVendorOrder ? `on the way from ${stallLabel}` : 'out for delivery') : status === 5 ? 'at the gate' : 'delivered';
     try {
       await Share.share({
-        message: `My ZENV order${storeName ? ` from ${storeName}` : ''} is ${stageText}.${estMinutes && status >= 2 && status <= 4 ? ` The store estimated about ${estMinutes} min.` : ''}`,
-        title: 'ZENV order status'
+        message: `My ZenWe order${storeName ? ` from ${storeName}` : ''} is ${stageText}.${estMinutes && status >= 2 && status <= 4 ? ` The store estimated about ${estMinutes} min.` : ''}`,
+        title: 'ZenWe order status'
       });
     } catch {
       // Share sheet dismissed / unavailable: nothing to do.
@@ -310,7 +310,7 @@ export default function TrackingScreen() {
     } catch (e) {
       if (mountedRef.current) {
         setOrderErrorRetryable(true);
-        setOrderError("Can't reach ZENV right now. Check your internet and try again.");
+        setOrderError("Can't reach ZenWe right now. Check your internet and try again.");
       }
     } finally {
       fetchingRef.current = false;
@@ -562,7 +562,7 @@ export default function TrackingScreen() {
           Alert.alert('Thanks for rating', `${data.tipError}`);
         } else {
           const points = Number(data.zenPointsEarned) || 0;
-          Alert.alert('Thanks for rating', `${data.message || 'Your rating was saved.'}${points ? ` You earned ${points} ZENV Points.` : ''}`);
+          Alert.alert('Thanks for rating', `${data.message || 'Your rating was saved.'}${points ? ` You earned ${points} ZenWe Points.` : ''}`);
         }
       } else if (data.code === 'ALREADY_RATED') {
         setShowRatingModal(false);
@@ -664,7 +664,7 @@ export default function TrackingScreen() {
     const refundAmount = Number.isFinite(refunded) && refunded > 0 ? refunded : charged;
     const refundLine = cancelMessage
       || (orderInfo?.paymentMethod === 'Wallet'
-        ? `${formatINR(refundAmount)} was refunded to your ZENV Wallet.`
+        ? `${formatINR(refundAmount)} was refunded to your ZenWe Wallet.`
         : 'No payment was taken for this Cash on Delivery order.');
     // Store / system cancels explain why; the customer's own cancel needs no reason line.
     const reasonText = orderInfo?.cancellationReason && !/by customer|by user/i.test(orderInfo.cancellationReason)
@@ -958,7 +958,7 @@ export default function TrackingScreen() {
                           </TouchableOpacity>
                           <Text style={{ fontSize: 12, color: txtSec, marginTop: 6, textAlign: 'center' }}>
                             {orderInfo.paymentMethod === 'Wallet'
-                              ? 'The difference is adjusted in your ZENV Wallet.'
+                              ? 'The difference is adjusted in your ZenWe Wallet.'
                               : 'You pay the new total in cash at delivery.'}
                           </Text>
                         </>
@@ -1118,7 +1118,7 @@ export default function TrackingScreen() {
               <View style={s.summaryRow}>
                 <Text style={[s.summaryTotalLabel, { color: txt }]}>
                   {orderInfo.paymentMethod === 'Wallet' && !isVendorOrder
-                    ? 'Paid from ZENV Wallet'
+                    ? 'Paid from ZenWe Wallet'
                     : status >= 6
                       ? (isVendorOrder ? `Paid to ${stallLabel} in cash` : 'Paid in cash')
                       : isVendorOrder ? stallPayCopy(stallLabel) : 'To pay (Cash on Delivery)'}
@@ -1172,7 +1172,7 @@ export default function TrackingScreen() {
             <Text style={[s.cancelModalTitle, { color: txt }]}>Cancel this order?</Text>
             <Text style={[s.cancelModalDesc, { color: txtSec }]}>
               {orderInfo?.paymentMethod === 'Wallet'
-                ? `${formatINR(Number(orderInfo?.finalPrice ?? orderInfo?.totalPrice ?? 0) || 0)} will go straight back to your ZENV Wallet.`
+                ? `${formatINR(Number(orderInfo?.finalPrice ?? orderInfo?.totalPrice ?? 0) || 0)} will go straight back to your ZenWe Wallet.`
                 : 'No payment has been taken for this Cash on Delivery order.'}
             </Text>
             <TouchableOpacity

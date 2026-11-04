@@ -40,7 +40,7 @@ function HomeTop({ sections, onSection }: { sections?: Sections; onSection?: (k:
         </Press>
         <ZenvBadge size={36} />
         <View style={{ flex: 1, marginLeft: 10, minWidth: 0 }}>
-          <Text style={h.brand} accessibilityRole="header">ZENV</Text>
+          <Text style={h.brand} accessibilityRole="header">ZenWe</Text>
           <Text style={h.brandSub} numberOfLines={1}>Tech & repairs</Text>
         </View>
         <Press onPress={() => openMyBookings(router)} label="My service bookings" style={h.iconBtn} scaleTo={0.9}>

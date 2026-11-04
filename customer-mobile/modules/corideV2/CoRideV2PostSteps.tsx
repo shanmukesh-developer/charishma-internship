@@ -151,7 +151,7 @@ export function StepPrice({ dr, set, suggest, errors }: { dr: Draft; set: (p: Pa
         <TextInput value={dr.fuel === '0' ? '' : dr.fuel} onChangeText={(v) => set({ fuel: v.replace(/[^0-9]/g, '') || '0' })} placeholder="0" placeholderTextColor={CR.faint} keyboardType="number-pad" maxLength={4} style={st.inputText} accessibilityLabel="Fuel cost to split, in rupees" />
       </View>
       <Err msg={errors.fuel} />
-      <Label text="Suggested" hint={suggest.length ? 'From similar rides posted on ZENV' : undefined} />
+      <Label text="Suggested" hint={suggest.length ? 'From similar rides posted on ZenWe' : undefined} />
       {suggest.length ? (
         <View style={[st.grid, { marginTop: 2 }]}>
           {suggest.map((v) => <Chip key={v} label={inr(v)} on={fuel === v} onPress={() => set({ fuel: String(v) })} />)}

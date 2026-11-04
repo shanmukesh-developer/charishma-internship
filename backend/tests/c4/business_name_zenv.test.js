@@ -40,7 +40,7 @@ test('a saved name of exactly ZCS becomes ZENV, nothing else changes, and every 
   assert.deepStrictEqual(await mig.runLegalBusinessNameZenv(), { businessName: 'ZCS -> ZENV' });
   assert.deepStrictEqual(await saved(), { ...SAVED, businessName: 'ZENV' });
   assert.strictEqual(await markers(), 1);
-  assert.strictEqual(H.r('utils/legalSettings').defaults().businessName, 'ZENV', 'the code default too');
+  assert.strictEqual(H.r('utils/legalSettings').defaults().businessName, 'ZenWe', 'the code default is the newer name (ZenWe)');
   for (const p of PAGES) {
     const res = await H.api('GET', p);
     assert.strictEqual(res.status, 200, p);

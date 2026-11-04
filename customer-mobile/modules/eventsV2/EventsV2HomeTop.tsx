@@ -42,7 +42,7 @@ export function HomeTop({ sections, active = 'events' }: { sections?: { key: str
       <View style={s.brandRow}>
         <ZenvBadge size={36} />
         <View style={{ flex: 1, marginLeft: 9 }}>
-          <Text style={s.brand}>ZENV</Text>
+          <Text style={s.brand}>ZenWe</Text>
           <Text style={s.tagline} numberOfLines={1}>Campus events</Text>
         </View>
         <Press onPress={() => router.push('/notifications' as any)} label={unread ? 'Notifications, unread' : 'Notifications'} style={s.bell} scaleTo={0.9}>

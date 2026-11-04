@@ -94,7 +94,7 @@ const verify = (key, code, { ms = nowMs(), window = WINDOW, lastUsedStep = null 
 const newSecret = () => crypto.randomBytes(20); // 160-bit, RFC 4226 recommendation
 
 /** otpauth:// URI for authenticator apps (Google Authenticator, Authy, 1Password, ...). */
-const otpauthUri = ({ secretB32, account, issuer = 'ZENV Admin' }) => {
+const otpauthUri = ({ secretB32, account, issuer = 'ZenWe Admin' }) => {
   const label = encodeURIComponent(`${issuer}:${account}`);
   const q = new (require('url').URLSearchParams)({ secret: secretB32, issuer, algorithm: 'SHA1', digits: String(DIGITS), period: String(STEP_SECONDS) });
   return `otpauth://totp/${label}?${q.toString()}`;

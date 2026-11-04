@@ -58,7 +58,7 @@ export function SafetyPanel({ pg, onSaved }: { pg: PGHostel; onSaved: (pg: Parti
   return (
     <div className="space-y-5">
       <p className="text-xs text-fg-muted">Shown under Safety and staff on the PG page. Leave blank to hide.</p>
-      <p role="note" className="rounded-lg border border-warning/30 bg-warning-soft p-3 text-sm text-warning-text">Do not add phone numbers. Students reach the warden through the ZENV housing desk.</p>
+      <p role="note" className="rounded-lg border border-warning/30 bg-warning-soft p-3 text-sm text-warning-text">Do not add phone numbers. Students reach the warden through the ZenWe housing desk.</p>
 
       <fieldset className="space-y-3 rounded-xl border border-line p-4">
         <legend className="px-1 text-sm font-semibold text-info-text">Security</legend>

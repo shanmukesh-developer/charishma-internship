@@ -753,7 +753,7 @@ export const REG_STATE_META: Record<RegistrationState, { label: string; color: s
   COMPLETED: { label: 'Event over', color: '#64748B', icon: 'flag-outline' },
 };
 
-export const PAYMENT_MODE_LABEL: Record<PaymentMode, string> = { NONE: 'Free', VENUE: 'Pay at the venue', WALLET: 'ZENV Wallet', ONLINE: 'Pay online (UPI / card)' };
+export const PAYMENT_MODE_LABEL: Record<PaymentMode, string> = { NONE: 'Free', VENUE: 'Pay at the venue', WALLET: 'ZenWe Wallet', ONLINE: 'Pay online (UPI / card)' };
 export const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
   NONE: 'Nothing to pay',
   DUE_AT_VENUE: 'Pay at the venue desk',

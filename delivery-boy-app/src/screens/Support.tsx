@@ -45,7 +45,7 @@ export function SupportScreen({ prefill, onBack }: { prefill?: string; onBack: (
     try {
       const urgent = /PIN locked|cancel/i.test(text);
       await api.createTicket(topic, text.trim(), urgent ? 'High' : 'Medium');
-      r.showToast('Sent. ZENV support will reply here.', 'success');
+      r.showToast('Sent. ZenWe support will reply here.', 'success');
       setText('');
       setTopic('');
       load();
@@ -83,7 +83,7 @@ export function SupportScreen({ prefill, onBack }: { prefill?: string; onBack: (
             icon="whatsapp"
             variant="green"
             size="mid"
-            onPress={() => links.whatsapp(phone10, `Hi ZENV, I'm rider ${r.profile?.name ?? ''}. ${text.trim()}`.trim())}
+            onPress={() => links.whatsapp(phone10, `Hi ZenWe, I'm rider ${r.profile?.name ?? ''}. ${text.trim()}`.trim())}
             style={{ flex: 1 }}
           />
         </View>
@@ -134,7 +134,7 @@ export function SupportScreen({ prefill, onBack }: { prefill?: string; onBack: (
               </Text>
               {t.adminResponse ? (
                 <View style={styles.reply}>
-                  <Label color={C.blue}>ZENV REPLIED</Label>
+                  <Label color={C.blue}>ZenWe REPLIED</Label>
                   <Text style={[T.body, { color: C.ink }]}>{t.adminResponse}</Text>
                 </View>
               ) : null}

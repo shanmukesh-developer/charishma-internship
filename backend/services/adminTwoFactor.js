@@ -73,7 +73,7 @@ const RESEND_S = Math.ceil(EMAIL_RESEND_MS / 1000);
 // Clears the email method (authenticator enabled, 2-step turned off). The hourly send count stays.
 const NO_EMAIL = { email: null, pendingEmail: null, emailCodeHash: null, emailCodeExpiresAt: null };
 
-const PURPOSE_TEXT = { login: 'sign in to ZENV Admin', setup: 'turn on email codes for ZENV Admin', manage: 'change 2-step sign-in for ZENV Admin' };
+const PURPOSE_TEXT = { login: 'sign in to ZenWe Admin', setup: 'turn on email codes for ZenWe Admin', manage: 'change 2-step sign-in for ZenWe Admin' };
 const sendCodeEmail = (to, code, purpose) => {
   const what = PURPOSE_TEXT[purpose] || PURPOSE_TEXT.login;
   const when = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' });
@@ -83,17 +83,17 @@ const sendCodeEmail = (to, code, purpose) => {
     `It expires in 10 minutes and works once. Asked for on ${when} IST.`,
     'If this was not you, someone knows your admin password: change it now. Never share this code.',
     '',
-    'ZENV',
+    'ZenWe',
   ].join('\n');
   const html = `<!doctype html><html><body style="margin:0;padding:0;background:#f4f4f7;font-family:Arial,Helvetica,sans-serif;color:#1d1d1f">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f7;padding:24px 12px"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:460px;background:#ffffff;border-radius:16px;padding:28px">
-<tr><td style="font-size:20px;font-weight:bold;padding-bottom:16px">ZENV Admin</td></tr>
+<tr><td style="font-size:20px;font-weight:bold;padding-bottom:16px">ZenWe Admin</td></tr>
 <tr><td style="font-size:15px;line-height:22px;padding-bottom:20px">Your code to ${what}:</td></tr>
 <tr><td align="center" style="padding-bottom:20px"><div style="display:inline-block;font-size:32px;letter-spacing:8px;font-weight:bold;background:#f1f2f5;border-radius:12px;padding:14px 22px">${code}</div></td></tr>
 <tr><td style="font-size:13px;line-height:20px;color:#555">It expires in 10 minutes and works once. Asked for on ${when} IST. If this was not you, someone knows your admin password: change it now. Never share this code.</td></tr>
 </table></td></tr></table></body></html>`;
-  return mailer().sendMail({ to, subject: 'Your ZENV Admin verification code', text, html });
+  return mailer().sendMail({ to, subject: 'Your ZenWe Admin verification code', text, html });
 };
 
 /**
@@ -380,7 +380,7 @@ const readChallenge = async (mfaToken) => {
   const { getUserModel } = require('../models/User');
   const user = await getUserModel().findByPk(decoded.sub);
   if (!user || !isAdminRole(user.role) || (Number(user.tokenVersion) || 0) !== (Number(decoded.tv) || 0)) return again;
-  if (user.isActive === false) return { ok: false, status: 403, body: { code: 'ACCOUNT_SUSPENDED', message: 'This account has been suspended. Please contact ZENV support.' } };
+  if (user.isActive === false) return { ok: false, status: 403, body: { code: 'ACCOUNT_SUSPENDED', message: 'This account has been suspended. Please contact ZenWe support.' } };
   const row = await getRow(user.id);
   if (!row || !row.enabled) return again;
   if (row.mfaJti !== decoded.jti) return { ok: false, status: 401, body: { code: 'MFA_TOKEN_USED', message: 'This sign-in step was already used. Sign in again.' } };
@@ -479,7 +479,7 @@ const setup = async (req, res) => {
   const account = `${String(req.user.name || 'admin').replace(/[:]/g, ' ').trim().slice(0, 30) || 'admin'}${phone ? ` (${phone.slice(-4)})` : ''}`;
   await audit(req.user.id, 'ADMIN_2FA_SETUP_STARTED', {}, req);
   res.set('Cache-Control', 'no-store');
-  res.json({ otpauthUri: T.otpauthUri({ secretB32, account }), secret: secretB32.replace(/(.{4})/g, '$1 ').trim(), issuer: 'ZENV Admin', account, digits: T.DIGITS, period: T.STEP_SECONDS, expiresInMinutes: PENDING_TTL_MS / 60000 });
+  res.json({ otpauthUri: T.otpauthUri({ secretB32, account }), secret: secretB32.replace(/(.{4})/g, '$1 ').trim(), issuer: 'ZenWe Admin', account, digits: T.DIGITS, period: T.STEP_SECONDS, expiresInMinutes: PENDING_TTL_MS / 60000 });
 };
 
 const enable = async (req, res) => {

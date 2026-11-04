@@ -83,7 +83,7 @@ export function DeleteAccountScreen({ navigation }: ScreenProps<'DeleteAccount'>
       }
       await driverApi.deleteAccount(input);
       await signOutFirebase();
-      await signOut('Your ZENV Auto Driver account has been deleted.');
+      await signOut('Your ZenWe Auto Driver account has been deleted.');
     } catch (e) {
       if (e instanceof ApiError || !(e instanceof Error) || !e.message) setError(errorMessage(e));
       else setError(e.message);

@@ -55,7 +55,7 @@ export const multiLine = (s: string) => String(s ?? '').replace(EMOJI_RE, '').re
 /** Length and phone-number check for already cleaned text. Same messages as the backend. */
 export const textError = (s: string, max: number, field: string): string | null => {
   if (s.length > max) return `${field} must be at most ${max} characters.`;
-  if (s && PHONE_RE.test(s)) return `${field}: phone numbers are not shown on listings. Students contact staff through the ZENV housing desk.`;
+  if (s && PHONE_RE.test(s)) return `${field}: phone numbers are not shown on listings. Students contact staff through the ZenWe housing desk.`;
   return null;
 };
 export const isBlank = (raw: string) => String(raw ?? '').trim() === '';

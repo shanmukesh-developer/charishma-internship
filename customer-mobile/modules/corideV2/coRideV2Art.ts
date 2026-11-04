@@ -12,7 +12,7 @@ export const ART = {
   hero: require('./assets/coride-v2-owner-hero-students-scooter-car-campus-2026-10-24.webp'),
   auto: require('./assets/coride-v2-owner-tile-auto-rickshaw-2026-10-24.webp'),
   /** The ZCS emblem (navy disc, gold Z) shared with the Food v2 header. */
-  emblem: require('../../assets/zenv-brand-badge-2026-11-04.webp'),
+  emblem: require('../../assets/zenwe-brand-badge-2026-11-04.webp'),
 } as const;
 
 /** Pixel aspect (w / h) of each piece, so boxes keep the art's shape at every width. */

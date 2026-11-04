@@ -229,8 +229,8 @@ export function MenuManager({ store }: { store: Store }) {
   return (
     <div className="space-y-4">
       {local && (isBookingStall(store)
-        ? <Callout tone="amber">In-Campus Booking menu: students pre-book these in ZENV, pay the stall by UPI and collect at the counter. The stall can also mark items in or out of stock from the ZENV Campus Stall app.</Callout>
-        : <Callout tone="amber">Stall menu: customers order these in ZENV and pay the stall cash on delivery. The stall can also mark items in or out of stock from ZENV Vendor.</Callout>)}
+        ? <Callout tone="amber">In-Campus Booking menu: students pre-book these in ZenWe, pay the stall by UPI and collect at the counter. The stall can also mark items in or out of stock from the ZenWe Campus Stall app.</Callout>
+        : <Callout tone="amber">Stall menu: customers order these in ZenWe and pay the stall cash on delivery. The stall can also mark items in or out of stock from ZenWe Vendor.</Callout>)}
       {bookingOnly && <Callout tone="sky">Booking-only service: these prices are what service bookings are charged (print jobs use the per-page and binding rows).</Callout>}
 
       {/* Toolbar */}
@@ -666,7 +666,7 @@ function ItemEditor({ initial, storeName, vendorType, categories, bookingOnly, n
           </Field>
           <div className="grid gap-4 rounded-xl border border-line p-4 sm:grid-cols-2">
             <Toggle checked={form.isAvailable} onChange={isAvailable => set({ isAvailable })} label="In stock" description="Off shows SOLD OUT in the app." />
-            <Toggle tone="amber" checked={form.isEliteOnly} onChange={isEliteOnly => set({ isEliteOnly })} label="Elite members only" description="Only ZENV Elite customers can add it." />
+            <Toggle tone="amber" checked={form.isEliteOnly} onChange={isEliteOnly => set({ isEliteOnly })} label="Elite members only" description="Only ZenWe Elite customers can add it." />
             <Toggle tone="amber" checked={form.isSpecializedCake} onChange={isSpecializedCake => set({ isSpecializedCake })} label="Specialized cake" description="Custom or designer cake: orders close 2½ hours before the delivery slot (normal cakes 2 hours)." />
           </div>
           <AutoWeightsNote usingAuto={choice.usingAuto} autoOff={choice.autoOff} packLabel={choice.packLabel} onUseAutomatic={choice.useAutomatic} />
@@ -886,7 +886,7 @@ function CsvImportModal({ storeId: sid, existing, allowFree, onClose, onImported
           <div className="flex flex-wrap items-center gap-2 text-xs text-fg-muted">
             <span>Columns: <b className="text-fg">name, price</b> (required), mrp, category, veg (yes / no / egg), in_stock (yes/no), weight, description, image (link).</span>
             <button type="button" className="font-semibold text-success-text hover:underline" onClick={() => setText(CSV_TEMPLATE)}>Insert example</button>
-            <a className="font-semibold text-success-text hover:underline" download="zenv-menu-template.csv" href={`data:text/csv;charset=utf-8,${encodeURIComponent(CSV_TEMPLATE)}`}>Download template</a>
+            <a className="font-semibold text-success-text hover:underline" download="zenwe-menu-template.csv" href={`data:text/csv;charset=utf-8,${encodeURIComponent(CSV_TEMPLATE)}`}>Download template</a>
           </div>
           <textarea
             data-autofocus

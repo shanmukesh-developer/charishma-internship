@@ -304,7 +304,7 @@ export default function RestaurantDetail() {
       }
     } catch {
       if (mountedRef.current && mode !== 'silent') {
-        setLoadError({ notFound: false, message: "Can't reach ZENV right now. Check your internet and try again." });
+        setLoadError({ notFound: false, message: "Can't reach ZenWe right now. Check your internet and try again." });
       }
     } finally {
       if (mountedRef.current) {
@@ -462,9 +462,9 @@ export default function RestaurantDetail() {
 
   const blockedReason = (item: any): string | null => {
     if (!orderable) return closedText;
-    if (stallOffline) return `${restaurant.name} is not taking orders on ZENV right now.`;
+    if (stallOffline) return `${restaurant.name} is not taking orders on ZenWe right now.`;
     if (item.isAvailable === false) return `${item.name} is sold out right now.`;
-    if (item.isEliteOnly && !isUserElite) return `${item.name} is for ZENV Elite members.`;
+    if (item.isEliteOnly && !isUserElite) return `${item.name} is for ZenWe Elite members.`;
     return null;
   };
 

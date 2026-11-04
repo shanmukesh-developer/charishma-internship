@@ -81,7 +81,7 @@ export default function CampusScreen({ onSummary, onOpenTab }: { onSummary?: (s:
         <Card style={{ gap: space.xs, backgroundColor: color.warningTint, borderColor: color.warning }}>
           <Text style={[font.h3, { color: color.warning }]}>{s.enabled ? 'Add your UPI ID to take bookings' : 'Bookings are off for your stall'}</Text>
           <Text style={[font.body, { color: color.textSecondary }]}>
-            {s.enabled ? 'Students pay you on your UPI ID. Add it in Settings.' : 'ZENV switches In-Campus Booking on for your stall. You can add your UPI ID and QR now.'}
+            {s.enabled ? 'Students pay you on your UPI ID. Add it in Settings.' : 'ZenWe switches In-Campus Booking on for your stall. You can add your UPI ID and QR now.'}
           </Text>
           <Button label="UPI and pickup settings" variant="secondary" size="secondary" icon="settings-outline" onPress={() => onOpenTab?.('settings')} />
         </Card>

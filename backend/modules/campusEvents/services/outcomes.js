@@ -73,7 +73,7 @@ const ended = (reg, event, { by = 'user', reason } = {}) => {
 const refundNow = (reg) => {
   notify.track(Promise.resolve().then(async () => {
     const amt = await payments.processRefund(reg.id);
-    if (amt > 0) notify.toUsers([reg.userId], 'Refund done', `₹${amt} was refunded${reg.paymentMode === E.PAYMENT_MODE.WALLET ? ' to your ZENV Wallet' : ' to your payment method'}.`, { type: N.REFUND_DONE, registrationId: reg.id, eventId: reg.eventId });
+    if (amt > 0) notify.toUsers([reg.userId], 'Refund done', `₹${amt} was refunded${reg.paymentMode === E.PAYMENT_MODE.WALLET ? ' to your ZenWe Wallet' : ' to your payment method'}.`, { type: N.REFUND_DONE, registrationId: reg.id, eventId: reg.eventId });
   }).catch((err) => console.warn('[CAMPUS_EVENTS_REFUND_WARN]', err.message)));
 };
 

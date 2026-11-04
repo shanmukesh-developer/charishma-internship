@@ -120,7 +120,7 @@ function Portal() {
   });
 
   // ZCS mark (the design's leaf, 46 x 46) over the name, a column with a 4 px gap centred on the portal
-  const name = useMemo(() => makePara(fm, 'ZENV', 600, { family: FONT.display, size: 24, weight: 700, color: '#ffffff', letterSpacing: -0.24 }), [fm]);
+  const name = useMemo(() => makePara(fm, 'ZenWe', 600, { family: FONT.display, size: 24, weight: 700, color: '#ffffff', letterSpacing: -0.24 }), [fm]);
   const label = useMemo(() => makePara(fm, 'Swipe to unlock', 600, { family: FONT.body, size: 12, weight: 400, color: '#ffffff' }), [fm]);
   const nameH = name ? name.getHeight() : 30;
   const logoTop = CY - (46 + 4 + nameH) / 2;

@@ -31,11 +31,11 @@ export default function CoRideV2Auto() {
 
   const body = () => {
     if (d.autoOn === false) {
-      return <StateCard title="ZENV Auto is opening soon" body="Shared autos on fixed campus routes, run by verified drivers. Book a seat, board with a PIN and pay the driver in cash." action="Find a co-ride instead" onAction={() => push({ name: 'find' })} />;
+      return <StateCard title="ZenWe Auto is opening soon" body="Shared autos on fixed campus routes, run by verified drivers. Book a seat, board with a PIN and pay the driver in cash." action="Find a co-ride instead" onAction={() => push({ name: 'find' })} />;
     }
     if (d.autoOn === null && (d.autoError || d.connection !== 'online')) return <NetState connection={d.connection} error={d.autoError} onRetry={d.reloadAuto} what="the autos" />;
     if (d.autoLines === null) return <BoardSkeleton />;
-    if (!lines.length) return <StateCard title="No stands yet" body="ZENV Auto stands show up here once they are set up." action="Find a co-ride instead" onAction={() => push({ name: 'find' })} />;
+    if (!lines.length) return <StateCard title="No stands yet" body="ZenWe Auto stands show up here once they are set up." action="Find a co-ride instead" onAction={() => push({ name: 'find' })} />;
     return (
       <>
         {d.autoError ? <StaleBanner text={`${d.autoError} Showing the last update.`} onRetry={d.reloadAuto} /> : null}
@@ -51,7 +51,7 @@ export default function CoRideV2Auto() {
 
   return (
     <View style={{ flex: 1 }}>
-      <ScreenHeader title="Shared auto" sub="ZENV Auto · union queue" onBack={back} />
+      <ScreenHeader title="Shared auto" sub="ZenWe Auto · union queue" onBack={back} />
       <ScrollView contentContainerStyle={{ paddingHorizontal: GUTTER, paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
         <View style={st.intro}>
           <Image source={ART.auto} style={{ width: artW, height: artW / ART_RATIO.auto }} contentFit="contain" accessibilityElementsHidden />

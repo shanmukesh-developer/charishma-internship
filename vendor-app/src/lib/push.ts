@@ -12,7 +12,7 @@ import { registerPushToken, removePushToken } from './api';
 import { safeGet, safeSet } from './storage';
 
 const APP: 'restaurant' | 'vendor' = 'vendor';
-const APP_TITLE = 'ZENV Vendor';
+const APP_TITLE = 'ZenWe Vendor';
 const REGISTERED_KEY = '@zenvy_vendor_push_registered';
 /** The registered token is re-sent to the server at most this often (see registerStorePush). */
 const REREGISTER_MS = 24 * 60 * 60 * 1000;

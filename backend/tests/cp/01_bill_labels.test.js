@@ -33,12 +33,12 @@ test('quote: a Gold member sees "Gold member: delivery discount" and "Gold membe
   assert.ok(!ls.some((l) => /Grafter|perk/i.test(l)), ls.join(' | '));
 });
 
-test('quote: 200+ ZENV Points shows "200+ ZENV Points: free delivery"', async () => {
+test('quote: 200+ ZenWe Points shows "200+ ZenWe Points: free delivery"', async () => {
   const { item } = await H.mkStore({ price: 200 });
   const u = await H.mkUser({ zenPoints: 250 });
   const q = await H.api('POST', '/api/orders/quote', u.token, H.orderBody(item.id, 'COD'));
   assert.equal(q.status, 200, JSON.stringify(q.body));
   const ls = labels(q.body);
   assert.ok(!ls.some((l) => /Zen Champion|perk/i.test(l)), ls.join(' | '));
-  if (ls.some((l) => /delivery/.test(l))) assert.ok(ls.includes('200+ ZENV Points: free delivery'), ls.join(' | '));
+  if (ls.some((l) => /delivery/.test(l))) assert.ok(ls.includes('200+ ZenWe Points: free delivery'), ls.join(' | '));
 });

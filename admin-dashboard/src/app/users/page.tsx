@@ -260,8 +260,8 @@ export default function UserManagement() {
       return;
     }
     if (!(await confirm(suspend
-      ? { title: `Suspend ${user.name || user.phone || 'this user'}?`, description: 'They will not be able to use ZENV until they are reactivated.', confirmLabel: 'Suspend', tone: 'danger' }
-      : { title: `Reactivate ${user.name || user.phone || 'this user'}?`, description: 'They can use ZENV again straight away.', confirmLabel: 'Reactivate' }))) return;
+      ? { title: `Suspend ${user.name || user.phone || 'this user'}?`, description: 'They will not be able to use ZenWe until they are reactivated.', confirmLabel: 'Suspend', tone: 'danger' }
+      : { title: `Reactivate ${user.name || user.phone || 'this user'}?`, description: 'They can use ZenWe again straight away.', confirmLabel: 'Reactivate' }))) return;
     runAction(
       user,
       () => fetch(`${API_URL}/api/admin/users/${user._id}/ban`, {
@@ -383,7 +383,7 @@ export default function UserManagement() {
               <Button
                 leftIcon={<IconDownload size={14} />}
                 disabled={filteredUsers.length === 0}
-                onClick={() => downloadCsv(`zenv_customers_page${userPage}_${new Date().toISOString().slice(0, 10)}.csv`,
+                onClick={() => downloadCsv(`zenwe_customers_page${userPage}_${new Date().toISOString().slice(0, 10)}.csv`,
                   ['Customer ID', 'Name', 'Phone', 'Email', 'Hostel block', 'Account', 'Elite', 'Status', 'Wallet (INR)'],
                   filteredUsers.map(u => [u._id, u.name || '', u.phone || '', u.email || '', u.hostelBlock || '', u.role || 'student', u.isElite ? 'Yes' : 'No', u.isActive ? 'Active' : 'Suspended', Number(u.walletBalance || 0)]))}
               >
@@ -475,7 +475,7 @@ export default function UserManagement() {
                   <p className="text-xs text-fg-muted">
                     {detailProtected
                       ? (detailIsSelf ? 'You cannot suspend your own account.' : 'Admin accounts cannot be suspended from the dashboard.')
-                      : detail.isActive ? 'Suspending stops them from using ZENV until reactivated.' : 'Reactivating lets them use ZENV again.'}
+                      : detail.isActive ? 'Suspending stops them from using ZenWe until reactivated.' : 'Reactivating lets them use ZenWe again.'}
                   </p>
                 </div>
                 {!detailProtected && (

@@ -69,7 +69,7 @@ const STEP_META: Record<StepKey, { title: string; sub: string }> = {
   branding: { title: 'Branding', sub: 'Cover photo, logo, colours' },
   hours: { title: 'Hours & delivery', sub: 'Weekly hours, delivery time' },
   login: { title: 'Partner login', sub: 'App sign-in: phone + password' },
-  commission: { title: 'Commission & payouts', sub: 'What ZENV keeps' },
+  commission: { title: 'Commission & payouts', sub: 'What ZenWe keeps' },
   review: { title: 'Review & publish', sub: 'Preview and go live' },
 };
 
@@ -177,9 +177,9 @@ function validateStep(step: StepKey, s: WizardState, mode: 'create' | 'edit'): E
     if (s.loginPhone.trim() && !isValidIndianMobile(s.loginPhone)) e.loginPhone = 'Use a 10-digit Indian mobile number starting with 6–9.';
     if (pw && pw.length < 6) e.password = 'At least 6 characters (12+ recommended).';
     else if (mode === 'create' && local && !pw) e.password = s.campusBooking
-      ? 'Generate a password so the stall can sign in to the ZENV Campus Stall app and take bookings.'
-      : 'Generate a password so the stall can sign in to the ZENV Vendor app and take orders.';
-    else if (mode === 'create' && !local && !s.managedByZenvy && !pw) e.password = 'Generate a password so the partner can sign in, or switch on "Managed by ZENV".';
+      ? 'Generate a password so the stall can sign in to the ZenWe Campus Stall app and take bookings.'
+      : 'Generate a password so the stall can sign in to the ZenWe Vendor app and take orders.';
+    else if (mode === 'create' && !local && !s.managedByZenvy && !pw) e.password = 'Generate a password so the partner can sign in, or switch on "Managed by ZenWe".';
   }
   if (step === 'commission' && !local) {
     const n = Number(s.commissionRate);
@@ -443,7 +443,7 @@ export function StoreWizard({ mode, initial, startStep, preset, stores, onClose,
                 })}
               </ol>
               {local && <p className="mt-4 px-2 text-xs leading-relaxed text-fg-muted">{campus
-                ? 'No delivery: students pre-book in ZENV, pay the stall by UPI and collect at the counter.'
+                ? 'No delivery: students pre-book in ZenWe, pay the stall by UPI and collect at the counter.'
                 : 'Commission is skipped: customers pay the stall cash on delivery and the stall delivers itself.'}</p>}
             </nav>
 
@@ -514,12 +514,12 @@ export function StoreWizard({ mode, initial, startStep, preset, stores, onClose,
 
 const STEP_HELP: Record<StepKey, string> = {
   basics: 'Who is this partner? The type decides how customers buy from them.',
-  location: 'Where riders pick up (or the stall sets off from), and how customers or ZENV reach the store.',
-  booking: 'Students pre-book this stall in the ZENV app and collect at the counter: no delivery. They pay the stall directly by UPI.',
+  location: 'Where riders pick up (or the stall sets off from), and how customers or ZenWe reach the store.',
+  booking: 'Students pre-book this stall in the ZenWe app and collect at the counter: no delivery. They pay the stall directly by UPI.',
   branding: 'Photos sell. A clear cover photo is the single biggest boost to orders.',
   hours: 'When customers can order, and the bill rules. Outside these hours the app shows "Closed — opens at …".',
-  login: 'How the partner signs in to accept orders: the ZENV Restaurant app, or ZENV Vendor for stalls.',
-  commission: 'What ZENV keeps from each order. Payouts are settled from the Finance page.',
+  login: 'How the partner signs in to accept orders: the ZenWe Restaurant app, or ZenWe Vendor for stalls.',
+  commission: 'What ZenWe keeps from each order. Payouts are settled from the Finance page.',
   review: 'Check everything once. Save as a draft to add the menu first, or publish straight away.',
 };
 
@@ -531,7 +531,7 @@ function BookingStep({ s, set, errors }: StepProps) {
   return (
     <div className="space-y-5">
       <Callout tone="sky" title="How In-Campus Booking works">
-        The student picks items and pays the stall directly by UPI, then sends the payment screenshot and the transaction ID in ZENV. The stall checks the payment in the ZENV Campus Stall app, accepts, prepares and marks it ready; the student tracks it and collects it at the counter with a pickup code. No delivery. ZENV never holds the money.
+        The student picks items and pays the stall directly by UPI, then sends the payment screenshot and the transaction ID in ZenWe. The stall checks the payment in the ZenWe Campus Stall app, accepts, prepares and marks it ready; the student tracks it and collects it at the counter with a pickup code. No delivery. ZenWe never holds the money.
       </Callout>
       <Field label="Stall UPI ID" required error={errors.upiId} help="Students pay this UPI ID directly, e.g. stallname@okaxis.">
         {({ id, msgId, invalid }) => (
@@ -606,9 +606,9 @@ function BasicsStep({ s, set, errors, stores, editingId }: StepProps & { stores:
       </fieldset>
 
       {isLocalVendorType(s.vendorType) && (s.campusBooking ? (
-        <Callout tone="amber" title="In-Campus Booking stall">Students pre-book in ZENV and collect at the stall: no delivery. They pay the stall by UPI and send the payment screenshot and transaction ID; the stall checks the payment in the ZENV Campus Stall app, accepts, prepares and marks the order ready, and the student tracks it and collects it with a pickup code.</Callout>
+        <Callout tone="amber" title="In-Campus Booking stall">Students pre-book in ZenWe and collect at the stall: no delivery. They pay the stall by UPI and send the payment screenshot and transaction ID; the stall checks the payment in the ZenWe Campus Stall app, accepts, prepares and marks the order ready, and the student tracks it and collects it with a pickup code.</Callout>
       ) : (
-        <Callout tone="amber" title="Stall orders in ZENV">Customers order the stall&apos;s items in ZENV and pay the stall cash on delivery. The stall gets the order (customer name, phone and room) in the ZENV Vendor app and delivers it itself. No ZENV rider, no delivery PIN, no coupons.</Callout>
+        <Callout tone="amber" title="Stall orders in ZenWe">Customers order the stall&apos;s items in ZenWe and pay the stall cash on delivery. The stall gets the order (customer name, phone and room) in the ZenWe Vendor app and delivers it itself. No ZenWe rider, no delivery PIN, no coupons.</Callout>
       ))}
       {isBookingOnlyStore(s.vendorType) && (
         <Callout tone="sky" title="Booking-only service">Customers book this service from the app; it is never added to the basket.</Callout>
@@ -740,9 +740,9 @@ function LocationStep({ s, set, errors, stores }: StepProps & { stores: Store[] 
         error={errors.whatsapp}
         help={isLocalVendorType(s.vendorType)
           ? s.campusBooking
-            ? 'Students can call or WhatsApp the stall about their booking. The stall can also sign in to ZENV Campus Stall with this number.'
-            : 'Customers can WhatsApp or call the stall about their order. The vendor can also sign in to ZENV Vendor with this number.'
-          : 'ZENV support and riders use it to reach the store. Not shown to customers for regular stores.'}
+            ? 'Students can call or WhatsApp the stall about their booking. The stall can also sign in to ZenWe Campus Stall with this number.'
+            : 'Customers can WhatsApp or call the stall about their order. The vendor can also sign in to ZenWe Vendor with this number.'
+          : 'ZenWe support and riders use it to reach the store. Not shown to customers for regular stores.'}
         aside={wa.length === 10 && isValidIndianMobile(wa) ? <a className="text-xs font-semibold text-success-text hover:underline" href={`https://wa.me/91${wa}`} target="_blank" rel="noreferrer">Test on WhatsApp ↗</a> : null}
       >
         {({ id, msgId, invalid }) => (
@@ -776,7 +776,7 @@ function BrandingStep({ s, set, errors, onPhotoBusy }: StepProps & { onPhotoBusy
           checked={s.brandOn}
           onChange={brandOn => set({ brandOn })}
           label="Use brand colours"
-          description="For chains and well-known brands. The store page in the app switches to the brand's colours. Leave off for a standard ZENV-styled page."
+          description="For chains and well-known brands. The store page in the app switches to the brand's colours. Leave off for a standard ZenWe-styled page."
         />
         {s.brandOn && (
           <div>
@@ -854,7 +854,7 @@ function LoginStep({ s, set, errors, mode, initial }: StepProps & { mode: 'creat
   const strength = passwordStrength(s.password);
   const id = initial ? storeId(initial) : null;
   const local = isLocalVendorType(s.vendorType);
-  const app = local ? (s.campusBooking ? 'ZENV Campus Stall' : 'ZENV Vendor') : 'ZENV Restaurant';
+  const app = local ? (s.campusBooking ? 'ZenWe Campus Stall' : 'ZenWe Vendor') : 'ZenWe Restaurant';
   const effectivePhone = s.loginPhone.trim() ? tenDigits(s.loginPhone) : local ? tenDigits(s.whatsapp) : '';
   const phoneOk = !!effectivePhone && isValidIndianMobile(effectivePhone);
   return (
@@ -864,8 +864,8 @@ function LoginStep({ s, set, errors, mode, initial }: StepProps & { mode: 'creat
           <Toggle
             checked={s.managedByZenvy}
             onChange={managedByZenvy => set({ managedByZenvy })}
-            label="Managed by ZENV (no partner app)"
-            description="For shops without a smartphone. Orders skip the kitchen-accept step and the ZENV team / rider handles them. You can still set a password later."
+            label="Managed by ZenWe (no partner app)"
+            description="For shops without a smartphone. Orders skip the kitchen-accept step and the ZenWe team / rider handles them. You can still set a password later."
           />
         </section>
       )}
@@ -903,7 +903,7 @@ function LoginStep({ s, set, errors, mode, initial }: StepProps & { mode: 'creat
             error={errors.password}
             help={mode === 'edit'
               ? `Leave empty to keep the current password${initial?.hasPassword === false ? ' (none is set yet)' : ''}. A new one works immediately, the old one stops working, and phones already signed in are signed out.`
-              : 'Generate a strong one. It is shown once after saving so you can share it; ZENV only stores a hash.'}
+              : 'Generate a strong one. It is shown once after saving so you can share it; ZenWe only stores a hash.'}
             aside={s.password ? <span className={cx('text-xs font-semibold', strength.score >= 3 ? 'text-success-text' : strength.score === 2 ? 'text-warning-text' : 'text-danger-text')}>{strength.label}</span> : null}
           >
             {({ id: fid, msgId, invalid }) => (
@@ -951,7 +951,7 @@ function CommissionStep({ s, set, errors }: StepProps) {
           { value: 'flat', label: '₹ fixed per order' },
         ]} />
       </div>
-      <Field label={s.commissionType === 'flat' ? 'Amount per order (₹)' : 'Commission (%)'} required error={errors.commissionRate} help="Charged on the item subtotal only. The rider fee and ZENV coupons never reduce the partner's share.">
+      <Field label={s.commissionType === 'flat' ? 'Amount per order (₹)' : 'Commission (%)'} required error={errors.commissionRate} help="Charged on the item subtotal only. The rider fee and ZenWe coupons never reduce the partner's share.">
         {({ id, msgId, invalid }) => (
           <div className="flex flex-wrap items-center gap-2">
             <input id={id} aria-describedby={msgId} aria-invalid={invalid} inputMode="decimal" className={cx(INPUT, 'max-w-[140px]')} value={s.commissionRate} onChange={e => set({ commissionRate: e.target.value })} />
@@ -970,10 +970,10 @@ function CommissionStep({ s, set, errors }: StepProps) {
         </div>
         <dl className="mt-4 grid gap-3 sm:grid-cols-3">
           <div className="rounded-lg bg-surface-2/60 p-3"><dt className="text-xs text-fg-muted">Customer pays (items)</dt><dd className="mt-1 text-lg font-semibold">{formatINR(order)}</dd></div>
-          <div className="rounded-lg bg-surface-2/60 p-3"><dt className="text-xs text-fg-muted">ZENV keeps</dt><dd className="mt-1 text-lg font-semibold text-warning-text">{formatINR(commission)}</dd></div>
+          <div className="rounded-lg bg-surface-2/60 p-3"><dt className="text-xs text-fg-muted">ZenWe keeps</dt><dd className="mt-1 text-lg font-semibold text-warning-text">{formatINR(commission)}</dd></div>
           <div className="rounded-lg bg-success-soft p-3"><dt className="text-xs text-success-text">Partner receives</dt><dd className="mt-1 text-lg font-semibold text-success-text">{formatINR(order - commission)}</dd></div>
         </dl>
-        <p className="mt-3 text-xs text-fg-muted">Payments are Cash on Delivery or ZENV Wallet. Delivered orders are settled to the partner from Finance → Payouts.</p>
+        <p className="mt-3 text-xs text-fg-muted">Payments are Cash on Delivery or ZenWe Wallet. Delivered orders are settled to the partner from Finance → Payouts.</p>
       </section>
     </div>
   );
@@ -985,7 +985,7 @@ function ReviewStep({ s, issues, goto, mode, initial, preview }: {
   const local = isLocalVendorType(s.vendorType);
   const bookingStall = local && s.campusBooking;
   const campus = bookingStall && mode === 'create';
-  const app = bookingStall ? 'ZENV Campus Stall' : 'ZENV Vendor';
+  const app = bookingStall ? 'ZenWe Campus Stall' : 'ZenWe Vendor';
   const checks: { ok: boolean; text: string; step: StepKey; optional?: boolean }[] = [
     ...(campus ? [{ ok: UPI_RE.test(s.upiId.trim().toLowerCase()), text: 'UPI ID for student payments', step: 'booking' as StepKey }] : []),
     { ok: !!s.imageUrl, text: 'Cover photo added', step: 'branding', optional: true },
@@ -994,7 +994,7 @@ function ReviewStep({ s, issues, goto, mode, initial, preview }: {
     { ok: !!s.lat && !!s.lon, text: bookingStall ? 'Map pin' : 'Map pin for riders', step: 'location', optional: true },
     local
       ? { ok: !!s.password || (mode === 'edit' && !!initial?.hasPassword), text: `Stall can sign in to ${app}`, step: 'login' as StepKey }
-      : { ok: s.managedByZenvy || !!s.password || (mode === 'edit' && !!initial?.hasPassword), text: 'Partner can sign in (or managed by ZENV)', step: 'login' as StepKey },
+      : { ok: s.managedByZenvy || !!s.password || (mode === 'edit' && !!initial?.hasPassword), text: 'Partner can sign in (or managed by ZenWe)', step: 'login' as StepKey },
   ];
   const loginPhone = s.loginPhone.trim() ? `+91 ${formatWhatsapp(s.loginPhone)}` : local && s.whatsapp ? `WhatsApp number (+91 ${formatWhatsapp(s.whatsapp)})` : 'Not set';
   const password = s.password ? 'Will be set (shown once after saving)' : mode === 'edit' ? (initial?.hasPassword ? 'Unchanged' : 'Not set') : 'Not set';
@@ -1010,7 +1010,7 @@ function ReviewStep({ s, issues, goto, mode, initial, preview }: {
     { step: 'hours', items: [['Hours', summarizeWeekly(s.weekly)], ['Accepting orders', s.isOpenNow ? 'Yes' : 'Paused'], ...(local ? [] : [['Delivery time', s.deliveryTime ? `${s.deliveryTime} min` : 'Hidden'] as [string, ReactNode]]), ...fees] },
     { step: 'login', items: local
       ? [['App', app], ['Login phone', loginPhone], ['Password', password], ['Payment', bookingStall ? 'UPI to the stall, collected at the counter' : 'Cash on delivery to the stall']]
-      : [['Mode', s.managedByZenvy ? 'Managed by ZENV' : 'ZENV Restaurant app'], ['Login phone', loginPhone], ['Password', password]] },
+      : [['Mode', s.managedByZenvy ? 'Managed by ZenWe' : 'ZenWe Restaurant app'], ['Login phone', loginPhone], ['Password', password]] },
     ...(local ? [] : [
       { step: 'commission' as StepKey, items: [['Commission', s.commissionType === 'flat' ? `₹${s.commissionRate} per order` : `${s.commissionRate}% of order`]] as [string, ReactNode][] },
     ]),
@@ -1059,7 +1059,7 @@ function ReviewStep({ s, issues, goto, mode, initial, preview }: {
           </section>
         ))}
         {mode === 'create' ? (
-          <Callout tone="sky"><b>Save as draft</b> keeps the store hidden while you add the menu. <b>Publish now</b> makes it visible to customers immediately and it starts taking orders during its hours{campus ? ' (students book it under In-Campus Booking; the stall manages bookings in ZENV Campus Stall)' : local ? ' (the stall accepts and delivers them in ZENV Vendor)' : ''}.</Callout>
+          <Callout tone="sky"><b>Save as draft</b> keeps the store hidden while you add the menu. <b>Publish now</b> makes it visible to customers immediately and it starts taking orders during its hours{campus ? ' (students book it under In-Campus Booking; the stall manages bookings in ZenWe Campus Stall)' : local ? ' (the stall accepts and delivers them in ZenWe Vendor)' : ''}.</Callout>
         ) : (
           <p className="text-xs text-fg-muted">Saving keeps the store {initial?.isActive ? 'live' : 'hidden'}; switch it on or off from the store list or the store page.</p>
         )}
@@ -1075,7 +1075,7 @@ function SuccessPanel({ result, mode, onOpenStore, onClose }: { result: WizardRe
   const local = isLocalVendorType(result.store.vendorType);
   // A new campus stall, or an existing In-Campus stall whose password was just reset: its login is for ZCS Campus Stall.
   const campus = !!result.booking || isBookingStall(result.store);
-  const app = local ? (campus ? 'ZENV Campus Stall' : 'ZENV Vendor') : 'ZENV Restaurant';
+  const app = local ? (campus ? 'ZenWe Campus Stall' : 'ZenWe Vendor') : 'ZenWe Restaurant';
   const phone = tenDigits(result.store.partnerPhone || result.store.phone || (local ? result.store.whatsappNumber : '') || '');
   // WhatsApp link text never carries the password: a wa.me URL lands in browser history and link logs.
   const waText = `${app} app login\nStore: ${result.store.name}${phone ? `\nPhone: ${phone}` : ''}\nStore ID: ${id}\nOpen the ${app} app and sign in with ${phone ? 'your phone number' : 'the Store ID'}. Your password follows in a separate message.`;

@@ -156,7 +156,7 @@ export function PgForm({ initial, onCancel, onSave }: {
       </label>
       <label className="flex items-center gap-3 text-sm text-fg-muted">
         <input type="checkbox" checked={form.isVerified} onChange={e => set({ isVerified: e.target.checked })} className="h-4 w-4 accent-[rgb(var(--accent))]" />
-        Verified by the ZENV housing team (site visit done; shows a Verified mark)
+        Verified by the ZenWe housing team (site visit done; shows a Verified mark)
       </label>
       {initial ? <p className="text-xs text-fg-muted">Rooms, photos, videos, mess timetable, timings, overview highlights, house rules, policies, safety, move-in, location and nearby, FAQ and reviews have their own tabs above.</p> : <p className="text-xs text-fg-muted">After creating the PG, add rooms, photos, videos, the mess timetable, timings, highlights, house rules, policies, safety, move-in details, the location guide and FAQ from its tabs.</p>}
 

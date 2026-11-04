@@ -336,7 +336,7 @@ export default function RegisterScreen() {
       <ServerWakeupOverlay
         visible={showWakeup}
         onWakeupComplete={() => setShowWakeup(false)}
-        offlineText="Still can't reach ZENV. Check your internet and try again."
+        offlineText="Still can't reach ZenWe. Check your internet and try again."
       />
 
       {/* Background Slideshow with Parallax Shift */}
@@ -377,10 +377,10 @@ export default function RegisterScreen() {
           showsVerticalScrollIndicator={false}
         >
 
-          {/* Clean Brand Header: the ZENV badge (brand, 4 Nov 2026) */}
-          <View style={s.brandHeaderWrap} accessible accessibilityRole="header" accessibilityLabel="ZENV">
+          {/* Clean Brand Header: the ZenWe badge (brand, 4 Nov 2026) */}
+          <View style={s.brandHeaderWrap} accessible accessibilityRole="header" accessibilityLabel="ZenWe">
             <ZenvBadge size={56} lift />
-            <Text style={s.brandTitle}>ZENV</Text>
+            <Text style={s.brandTitle}>ZenWe</Text>
           </View>
 
           {/* Registration Form Sheet */}

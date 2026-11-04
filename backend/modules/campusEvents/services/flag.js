@@ -71,9 +71,9 @@ const writeRow = async (key, value, description) => {
   try { require('../../../utils/realtime').publish('config', 'updated', key, { scope: 'global' }); } catch { /* cache just expires */ }
 };
 
-const writeFlag = async (on) => { await writeRow(FLAG_KEY, !!on, 'ZENV Campus Events (Others > Campus Events): browse, register, teams, organizer submit'); return readFlag({ fresh: true }); };
-const writeWalletFlag = async (on) => { await writeRow(WALLET_KEY, !!on, 'ZENV Campus Events: allow ZENV Wallet payments'); return readWalletFlag({ fresh: true }); };
-const writeOnlineFlag = async (on) => { await writeRow(ONLINE_KEY, !!on, 'ZENV Campus Events: allow Razorpay online payments (needs RAZORPAY_* env)'); return readOnlineFlag({ fresh: true }); };
+const writeFlag = async (on) => { await writeRow(FLAG_KEY, !!on, 'ZenWe Campus Events (Others > Campus Events): browse, register, teams, organizer submit'); return readFlag({ fresh: true }); };
+const writeWalletFlag = async (on) => { await writeRow(WALLET_KEY, !!on, 'ZenWe Campus Events: allow ZenWe Wallet payments'); return readWalletFlag({ fresh: true }); };
+const writeOnlineFlag = async (on) => { await writeRow(ONLINE_KEY, !!on, 'ZenWe Campus Events: allow Razorpay online payments (needs RAZORPAY_* env)'); return readOnlineFlag({ fresh: true }); };
 
 const RANGES = {
   holdMinutes: [1, 30], paymentMinutes: [5, 60], waitlistOfferMinutes: [10, 1440], maxUnpaidVenueReservations: [1, 20],
@@ -103,7 +103,7 @@ const writeSettings = async (patch) => {
     if (!Number.isInteger(n) || n < min || n > max) throw fail(400, 'INVALID_INPUT', `${k} must be a whole number between ${min} and ${max}.`, { field: k });
     next[k] = n;
   }
-  await writeRow(SETTINGS_KEY, next, 'ZENV Campus Events settings (holds, payments, waitlist, limits, retention)');
+  await writeRow(SETTINGS_KEY, next, 'ZenWe Campus Events settings (holds, payments, waitlist, limits, retention)');
   return readSettings({ fresh: true });
 };
 
@@ -113,7 +113,7 @@ const clearCache = () => cache.clear();
 const requireOn = (opts = {}) => async (req, res, next) => {
   try {
     if (!req.user || !req.user.id || ['auto_driver', 'rider', 'restaurant'].includes(String(req.user.role || '').toLowerCase())) {
-      throw fail(401, 'NOT_AUTHORISED', 'Sign in with your ZENV student account.');
+      throw fail(401, 'NOT_AUTHORISED', 'Sign in with your ZenWe student account.');
     }
     if (!opts.allowWhenOff && !(await readFlag())) {
       throw fail(403, 'FEATURE_OFF', 'Campus Events is not open yet. Please check back soon.');

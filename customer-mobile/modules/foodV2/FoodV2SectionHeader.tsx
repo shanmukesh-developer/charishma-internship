@@ -1,6 +1,6 @@
 /**
  * The one Others header (Food & groceries v2 style), shared by every Others section:
- * back arrow, the ZENV badge + "ZENV" and the section line, plain header icons, a white search pill with
+ * back arrow, the ZenWe badge + "ZenWe" and the section line, plain header icons, a white search pill with
  * rotating section hints, and the section pills. Each section passes only its own accent colours.
  * Used by Food & groceries (FoodV2HomeTop) and by the other sections in app/(tabs)/others.tsx.
  */
@@ -87,7 +87,7 @@ export default function SectionHeader({ topPad, pageW, compact, colors, subtitle
         <View style={st.brandBlock}>
           <ZenvBadge size={34} />
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={st.brandWord} accessibilityRole="header">ZENV</Text>
+            <Text style={st.brandWord} accessibilityRole="header">ZenWe</Text>
             <Text style={[st.brandSub, { fontSize: compact ? 12 : 12.5 }]} numberOfLines={1}>{subtitle}</Text>
           </View>
         </View>

@@ -136,11 +136,11 @@ export default function PutOnChargeScreen({ navigation }: ScreenProps<'PutOnChar
           />
         </Card>
       ) : null}
-      {me && !me.featureEnabled ? <Banner tone="info" text="ZENV Auto bookings are switched off right now. You can put your auto on charge once they open." /> : null}
+      {me && !me.featureEnabled ? <Banner tone="info" text="ZenWe Auto bookings are switched off right now. You can put your auto on charge once they open." /> : null}
 
       <SectionTitle text="Where is your auto?" />
       {!stands.length ? (
-        <EmptyState icon="location" title="No stands yet" body="ZENV has not added a stand and destination yet. Please ask the ZENV team." />
+        <EmptyState icon="location" title="No stands yet" body="ZenWe has not added a stand and destination yet. Please ask the ZenWe team." />
       ) : byPickup.map(([pickupName, list]) => (
         <View key={pickupName} style={{ gap: space.xs }}>
           <Text style={[font.small, { color: color.textMuted }]}>{pickupName}</Text>
@@ -149,7 +149,7 @@ export default function PutOnChargeScreen({ navigation }: ScreenProps<'PutOnChar
             return (
               <Pressable
                 key={standKey(s)}
-                onPress={() => (s.fareSet ? setStandId(standKey(s)) : toast.show('ZENV has not set the seat fare for this destination yet.', 'info'))}
+                onPress={() => (s.fareSet ? setStandId(standKey(s)) : toast.show('ZenWe has not set the seat fare for this destination yet.', 'info'))}
                 accessibilityRole="radio"
                 accessibilityState={{ selected, disabled: !s.fareSet }}
                 accessibilityLabel={`To ${s.destination}, ${s.seatFare ? `${rupees(s.seatFare)} a seat` : 'fare not set'}, ${lineText(s)}`}
@@ -171,7 +171,7 @@ export default function PutOnChargeScreen({ navigation }: ScreenProps<'PutOnChar
       <SectionTitle text="Your auto" />
       {!vehicles.length ? (
         <Card style={{ gap: space.sm }}>
-          <Text style={[font.body, { color: color.textSecondary }]}>None of your autos is approved yet. ZENV checks the papers and approves the seats.</Text>
+          <Text style={[font.body, { color: color.textSecondary }]}>None of your autos is approved yet. ZenWe checks the papers and approves the seats.</Text>
           <Button label="My autos" icon="car" variant="secondary" onPress={() => navigation.navigate('Vehicles')} />
         </Card>
       ) : (

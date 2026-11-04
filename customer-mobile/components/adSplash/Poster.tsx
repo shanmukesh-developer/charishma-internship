@@ -24,7 +24,7 @@ function useGrain() {
 export function StickerArt({ colors = ['#e23a3a', '#a11319'] }: { colors?: [string, string] }) {
   const { ad, fm } = useAd();
   const head = useMemo(() => makePara(fm, ad.headline, 256, { family: FONT.display, size: 34, weight: 700, color: '#fff', lineHeight: 1.02, shadow: { color: 'rgba(0,0,0,0.4)', blur: 5, dy: 2 } }), [fm, ad.headline]);
-  const brand = useMemo(() => makePara(fm, 'ZENV', 120, { family: FONT.display, size: 15, weight: 700, color: '#fff', align: 'left' }), [fm]);
+  const brand = useMemo(() => makePara(fm, 'ZenWe', 120, { family: FONT.display, size: 15, weight: 700, color: '#fff', align: 'left' }), [fm]);
   const sub = useMemo(() => makePara(fm, ad.subline || '', 256, { family: FONT.body, size: 11, weight: 400, color: 'rgba(255,255,255,0.9)' }), [fm, ad.subline]);
   const [o1, o2] = useMemo(() => { const w = ad.offerText.split(' OFF'); return [w[0] || ad.offerText, w.length > 1 ? 'OFF' : '']; }, [ad.offerText]);
   const s1 = useMemo(() => makePara(fm, o1, 64, { family: FONT.body, size: 13, weight: 700, color: '#2a1c00', lineHeight: 1.05 }), [fm, o1]);
@@ -61,7 +61,7 @@ export function PosterArt({ bg = 'radial' }: { bg?: 'radial' | [string, string] 
     const w = p ? Math.ceil(p.getLongestLine()) + 2 : 260;
     return { p: makePara(fm, ad.headline, w, { family: FONT.display, size: 44, weight: 700, color: '#fff', lineHeight: 48 / 44, shadow: { color: 'rgba(0,0,0,0.55)', blur: 11 } }), w };
   }, [fm, ad.headline]);
-  const brand = useMemo(() => makePara(fm, 'ZENV', 120, { family: FONT.display, size: 20, weight: 700, color: '#fff', align: 'left' }), [fm]);
+  const brand = useMemo(() => makePara(fm, 'ZenWe', 120, { family: FONT.display, size: 20, weight: 700, color: '#fff', align: 'left' }), [fm]);
   const spons = useMemo(() => makePara(fm, 'SPONSORED', 120, { family: FONT.body, size: 11, weight: 500, color: 'rgba(255,255,255,0.8)', align: 'right', letterSpacing: 0.6 }), [fm]);
   // Under the photo, left of the stamp: clear of the bottom hint (the design had them on top of each other).
   const sub = useMemo(() => makePara(fm, ad.subline || '', 176, { family: FONT.body, size: 13, weight: 500, color: 'rgba(255,255,255,0.92)', align: 'left', lineHeight: 1.3 }), [fm, ad.subline]);

@@ -80,11 +80,11 @@ const riderPrecheck = async (sequelize, partner) => {
   }
   const cash = Number(partner.cashHeldPaise) || 0;
   if (cash > 0) {
-    blockers.push({ code: 'CASH_TO_DEPOSIT', message: `You still hold ₹${(cash / 100).toFixed(2)} cash collected for ZENV. Deposit it with the ZENV team first.` });
+    blockers.push({ code: 'CASH_TO_DEPOSIT', message: `You still hold ₹${(cash / 100).toFixed(2)} cash collected for ZenWe. Deposit it with the ZenWe team first.` });
   }
   const wallet = Number(partner.walletBalance) || 0;
   if (wallet >= 0.01) {
-    blockers.push({ code: 'BALANCE_TO_PAY_OUT', message: `ZENV still owes you ₹${wallet.toFixed(2)}. Contact ZENV support to receive it before you delete your account.` });
+    blockers.push({ code: 'BALANCE_TO_PAY_OUT', message: `ZenWe still owes you ₹${wallet.toFixed(2)}. Contact ZenWe support to receive it before you delete your account.` });
   }
   const Payout = model(sequelize, 'Payout');
   if (Payout) {

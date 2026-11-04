@@ -447,7 +447,7 @@ export default function HighClassPromoCarousel({
         tagline: '🎡 Rewards',
         title1: 'Every 2 orders',
         title2: '= 1 spin.',
-        description: 'Win ZENV Points or free delivery.',
+        description: 'Win ZenWe Points or free delivery.',
         buttonText: 'See rewards',
         accentColor: '#F43F5E',
         redirectAction: () => router.push('/rewards' as any),
@@ -462,7 +462,7 @@ export default function HighClassPromoCarousel({
         const id = String(r._id || r.id);
         const rating = Number(r.rating);
         const dt = storeEtaMins(r) || 0;
-        const promo = typeof r.promoOffer === 'string' && r.promoOffer.trim() ? r.promoOffer.trim() : 'On ZENV now.';
+        const promo = typeof r.promoOffer === 'string' && r.promoOffer.trim() ? r.promoOffer.trim() : 'On ZenWe now.';
         return {
           id: `feat-${id}`,
           type: 'featured_restaurant' as const,
@@ -675,7 +675,7 @@ export default function HighClassPromoCarousel({
       accessibilityRole={n > 1 ? 'adjustable' : undefined}
       accessibilityLabel={
         n > 1
-          ? `ZENV highlights, slide ${realActive + 1} of ${n}: ${slides[realActive]?.title1 ?? ''} ${slides[realActive]?.title2 ?? ''}. ${(slides[realActive]?.buttonText ?? '').replace('→', '').trim()}`
+          ? `ZenWe highlights, slide ${realActive + 1} of ${n}: ${slides[realActive]?.title1 ?? ''} ${slides[realActive]?.title2 ?? ''}. ${(slides[realActive]?.buttonText ?? '').replace('→', '').trim()}`
           : undefined
       }
       accessibilityHint={n > 1 ? 'Swipe up or down to change slide. Double tap to open.' : undefined}

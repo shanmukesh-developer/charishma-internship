@@ -192,7 +192,7 @@ export default function NotificationsPage() {
                 <div className="mb-2 flex items-center justify-between">
                   <span className="flex items-center gap-2 text-xs font-medium text-fg">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/zenv-favicon-2026-11-04.png" alt="" width={20} height={20} className="h-5 w-5 rounded-full" aria-hidden />ZENV
+                    <img src="/zenwe-favicon-2026-11-04.png" alt="" width={20} height={20} className="h-5 w-5 rounded-full" aria-hidden />ZenWe
                   </span>
                   <span className="text-xs text-fg-subtle">now</span>
                 </div>

@@ -712,7 +712,7 @@ router.post('/posts/:id/sos', protect, sosParticipant, sosLimiter, async (req, r
     )).catch(() => {});
     return res.status(201).json({
       ok: true, ticketId: ticket.id, emergencyNumber: '112', locationShared: located,
-      message: 'ZENV has been alerted and will call you back. If anyone is in danger call 112 now.',
+      message: 'ZenWe has been alerted and will call you back. If anyone is in danger call 112 now.',
     });
   } catch (err) {
     return sendServerError(res, err, '[BIKEPOOL_SOS_ERROR]');

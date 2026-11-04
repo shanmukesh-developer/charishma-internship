@@ -123,7 +123,7 @@ export default function CampusBookingPage() {
     },
     {
       key: 'amount', header: 'Amount / commission', align: 'right', sortValue: (b) => b.amount,
-      cell: (b) => <div className="tabular-nums"><p className="text-fg">{formatINR(b.amount)}</p><p className="text-xs text-fg-muted">{formatINR(b.commission)} ZENV</p></div>,
+      cell: (b) => <div className="tabular-nums"><p className="text-fg">{formatINR(b.amount)}</p><p className="text-xs text-fg-muted">{formatINR(b.commission)} ZenWe</p></div>,
     },
     { key: 'created', header: 'Booked', align: 'right', sortValue: (b) => (b.createdAt ? new Date(b.createdAt) : 0), cell: (b) => <span className="whitespace-nowrap text-xs text-fg-muted">{formatDateTime(b.createdAt, { short: true })}</span> },
   ], []);
@@ -152,7 +152,7 @@ export default function CampusBookingPage() {
     <div>
       <PageHeader
         title="In-Campus Booking"
-        description={`Pickup bookings at campus stalls. Students pay the stall directly by UPI (ZENV never holds the money); the stall checks the payment, prepares the order and hands it over with the student's pickup code. ZENV commission ${data?.commissionPct ?? 1.5}% is recorded on each booking.`}
+        description={`Pickup bookings at campus stalls. Students pay the stall directly by UPI (ZenWe never holds the money); the stall checks the payment, prepares the order and hands it over with the student's pickup code. ZenWe commission ${data?.commissionPct ?? 1.5}% is recorded on each booking.`}
         actions={<>
           <Button leftIcon={<IconRefresh size={14} />} onClick={load} loading={loading}>Refresh</Button>
           <Link href={ADD_STALL_HREF} className={buttonClass('primary', 'md', 'inline-flex items-center gap-1.5')}><IconPlus size={14} />Add campus stall</Link>
@@ -163,7 +163,7 @@ export default function CampusBookingPage() {
         <StatTile label="Open bookings" value={st ? st.open : '–'} loading={!st && loading} />
         <StatTile label="Payments to review" value={st ? review : '–'} tone={review ? 'warning' : 'neutral'} loading={!st && loading} />
         <StatTile label="Paid to stalls" value={st ? formatINR(st.paidAmount) : '–'} hint="Accepted and collected bookings" loading={!st && loading} />
-        <StatTile label={`ZENV commission ${data?.commissionPct ?? 1.5}%`} value={st ? formatINR(st.commission) : '–'} hint="Recorded, not collected by ZENV at payment" loading={!st && loading} />
+        <StatTile label={`ZenWe commission ${data?.commissionPct ?? 1.5}%`} value={st ? formatINR(st.commission) : '–'} hint="Recorded, not collected by ZenWe at payment" loading={!st && loading} />
       </div>
 
       <Tabs
@@ -248,7 +248,7 @@ function BookingDetail({ b }: { b: Booking }) {
           { label: 'Student', value: [b.customer.name, b.customer.phone].filter(Boolean).join(' · ') || b.customer.id },
           { label: 'Stall', value: b.stall?.name || '–' },
           { label: 'Amount paid to the stall', value: formatINR(b.amount) },
-          { label: `ZENV commission ${b.commissionPct}%`, value: `${formatINR(b.commission)} (stall keeps ${formatINR(b.net)})` },
+          { label: `ZenWe commission ${b.commissionPct}%`, value: `${formatINR(b.commission)} (stall keeps ${formatINR(b.net)})` },
           { label: 'Paid to UPI ID', value: <span className="font-mono">{b.payeeUpiId || '–'}</span> },
           { label: 'UPI reference', value: <span className="font-mono">{b.proof.ref || 'Not given'}</span> },
           { label: 'Proof sent', value: b.proof.submittedAt ? formatDateTime(b.proof.submittedAt) : 'Not yet' },

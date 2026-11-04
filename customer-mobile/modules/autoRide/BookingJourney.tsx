@@ -61,7 +61,7 @@ function nowCopy(b: Booking, step: StepKey, now: number) {
     };
     case 'in': return { title: 'You are checked in', line: `${seats}. The trip starts when the driver leaves the stand.`, pin: false, tone: 'success' as const };
     case 'way': return { title: 'On the way', line: `${seats}. You are checked in. Use Report a problem below if anything feels wrong.`, pin: false, tone: 'success' as const };
-    default: return { title: 'Reached', line: `${t?.destination ? `You reached ${t.destination}. ` : ''}Thanks for riding with ZENV Auto.`, pin: false, tone: 'success' as const };
+    default: return { title: 'Reached', line: `${t?.destination ? `You reached ${t.destination}. ` : ''}Thanks for riding with ZenWe Auto.`, pin: false, tone: 'success' as const };
   }
 }
 

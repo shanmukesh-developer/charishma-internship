@@ -17,7 +17,7 @@ const checkAfterDarkHours = async (req, res, next) => {
   const status = afterDarkStatus();
   return res.status(403).json({
     code: 'AFTER_DARK_CLOSED',
-    message: `ZENV After Dark opens at ${status.opensAt} IST. See you tonight!`,
+    message: `ZenWe After Dark opens at ${status.opensAt} IST. See you tonight!`,
     ...status,
   });
 };

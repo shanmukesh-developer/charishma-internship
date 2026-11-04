@@ -150,7 +150,7 @@ export default function BikePoolAdmin() {
     <div className="text-fg">
       <PageHeader
         title="Co-ride"
-        description="Every co-ride listing, newest first. ZENV does not collect ride money; co-riders settle directly."
+        description="Every co-ride listing, newest first. ZenWe does not collect ride money; co-riders settle directly."
         actions={<Button leftIcon={<IconRefresh size={14} />} loading={loading} onClick={fetchPools}>Refresh</Button>}
       />
 

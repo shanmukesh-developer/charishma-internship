@@ -36,7 +36,7 @@ import type { ShelfId } from './servicesV2Data';
 import { resolveServiceForm } from '../services/serviceForms';
 
 /* eslint-disable @typescript-eslint/no-require-imports */
-export const ZCS_EMBLEM: ImageSourcePropType = require('../../assets/zenv-brand-badge-2026-11-04.webp');
+export const ZCS_EMBLEM: ImageSourcePropType = require('../../assets/zenwe-brand-badge-2026-11-04.webp');
 
 /** The home hero (Laptop and phone repairs). */
 export const HOME_HERO: ImageSourcePropType = require('./assets/sv2-home-hero-laptop-repair-hands-2026-10-26.webp');

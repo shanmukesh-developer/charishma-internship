@@ -39,7 +39,7 @@ export default function MoreTab({ open, go }: TabProps) {
       <MenuGroup>
         <MenuRow icon="notifications-outline" title="Notifications" onPress={() => open('Notifications')} />
         <MenuRow icon="settings-outline" title="Settings" sub="Profile, password, alerts, delete account" onPress={() => open('Settings')} />
-        <MenuRow icon="call-outline" title="Call ZENV support" sub={SUPPORT_PHONE_DISPLAY} onPress={call} last />
+        <MenuRow icon="call-outline" title="Call ZenWe support" sub={SUPPORT_PHONE_DISPLAY} onPress={call} last />
       </MenuGroup>
     </Screen>
   );
@@ -87,7 +87,7 @@ export function NotificationsScreen({ navigation }: ScreenProps<'Notifications'>
 
 const PUSH_TEXT: Record<string, { tone: 'ok' | 'warn' | 'info'; text: string }> = {
   ok: { tone: 'ok', text: 'On. Your phone rings for new booking requests and complaints.' },
-  blocked: { tone: 'warn', text: 'Notifications are off for ZENV PG Partner. Turn them on in phone Settings so you never miss a request.' },
+  blocked: { tone: 'warn', text: 'Notifications are off for ZenWe PG Partner. Turn them on in phone Settings so you never miss a request.' },
   unavailable: { tone: 'info', text: 'Push alerts are not set up on this build yet. Requests and complaints still show in the app (Home badges and Notifications).' },
   unknown: { tone: 'info', text: 'Checking notifications…' },
 };
@@ -105,7 +105,7 @@ export function SettingsScreen({ navigation }: ScreenProps<'Settings'>) {
         <KeyValue k="Name" v={owner?.name || ''} strong />
         <KeyValue k="Mobile" v={owner?.phone ? `+91 ${owner.phone}` : ''} />
         <KeyValue k="PGs" v={String(owner?.listings.length || 0)} />
-        <Text style={[font.small, { color: color.textMuted, marginTop: space.xs }]}>To change your name or number, call ZENV support.</Text>
+        <Text style={[font.small, { color: color.textMuted, marginTop: space.xs }]}>To change your name or number, call ZenWe support.</Text>
       </Card>
 
       <SectionTitle text="Security" />
@@ -124,11 +124,11 @@ export function SettingsScreen({ navigation }: ScreenProps<'Settings'>) {
 
       <SectionTitle text="Account" />
       <MenuGroup>
-        <MenuRow icon="help-buoy-outline" title="Email ZENV support" sub={SUPPORT_EMAIL} onPress={() => email(`ZENV PG Partner help (${owner?.name || ''})`)} />
-        <MenuRow icon="trash-outline" title="Delete account" sub="Ask ZENV to close this account" onPress={() => navigation.navigate('DeleteAccount')} danger last />
+        <MenuRow icon="help-buoy-outline" title="Email ZenWe support" sub={SUPPORT_EMAIL} onPress={() => email(`ZenWe PG Partner help (${owner?.name || ''})`)} />
+        <MenuRow icon="trash-outline" title="Delete account" sub="Ask ZenWe to close this account" onPress={() => navigation.navigate('DeleteAccount')} danger last />
       </MenuGroup>
       <Button label="Sign out" icon="log-out-outline" variant="dangerOutline" onPress={() => setConfirmOut(true)} />
-      <Text style={[font.small, { color: color.textMuted, textAlign: 'center' }]}>ZENV PG Partner {version}</Text>
+      <Text style={[font.small, { color: color.textMuted, textAlign: 'center' }]}>ZenWe PG Partner {version}</Text>
 
       <Sheet visible={confirmOut} onClose={() => setConfirmOut(false)} title="Sign out?">
         <Text style={[font.body, { color: color.textSecondary, marginBottom: space.md }]}>New booking requests will not ring on this phone until you sign in again.</Text>
@@ -217,17 +217,17 @@ export function DeleteAccountScreen({ navigation }: ScreenProps<'DeleteAccount'>
       <Card style={{ gap: space.xs }}>
         <Text style={[font.h3, { color: color.text }]}>How it works</Text>
         <Text style={[font.body, { color: color.textSecondary }]}>
-          PG owner accounts are set up by ZENV, so the ZENV team closes them. We confirm the request with you and close the account
+          PG owner accounts are set up by ZenWe, so the ZenWe team closes them. We confirm the request with you and close the account
           within 7 days: your name, number, password, push tokens and notifications are deleted and you are signed out everywhere.
         </Text>
         <Text style={[font.h3, { color: color.text, marginTop: space.xs }]}>What is kept</Text>
         <Text style={[font.body, { color: color.textSecondary }]}>
-          Your PG listing stays with ZENV (it can be hidden on request). Booking and rent records are kept without your personal details, as the law requires.
+          Your PG listing stays with ZenWe (it can be hidden on request). Booking and rent records are kept without your personal details, as the law requires.
         </Text>
         <Text style={[font.body, { color: color.primary, fontWeight: '700' }]} onPress={() => openLegal('deleteAccount')} accessibilityRole="link">Read the full details</Text>
       </Card>
       {requestedAt ? (
-        <Banner tone="ok" title="Request received" text={`Sent on ${dateLabel(requestedAt.slice(0, 10))}. The ZENV team will contact you on +91 ${owner?.phone || ''}.`} />
+        <Banner tone="ok" title="Request received" text={`Sent on ${dateLabel(requestedAt.slice(0, 10))}. The ZenWe team will contact you on +91 ${owner?.phone || ''}.`} />
       ) : (
         <Card style={{ gap: space.md }}>
           <PasswordField label="Your password" value={password} onChange={(v) => { setPassword(v); setError(null); }} />
@@ -238,8 +238,8 @@ export function DeleteAccountScreen({ navigation }: ScreenProps<'DeleteAccount'>
         </Card>
       )}
       <View style={{ gap: space.xs }}>
-        <Button label="Email ZENV instead" icon="mail-outline" variant="secondary" size="secondary" onPress={() => email(`Close my ZENV PG Partner account (${owner?.name || ''})`)} />
-        <Button label={`Call ZENV support (${SUPPORT_PHONE_DISPLAY})`} icon="call-outline" variant="secondary" size="secondary" onPress={call} />
+        <Button label="Email ZenWe instead" icon="mail-outline" variant="secondary" size="secondary" onPress={() => email(`Close my ZenWe PG Partner account (${owner?.name || ''})`)} />
+        <Button label={`Call ZenWe support (${SUPPORT_PHONE_DISPLAY})`} icon="call-outline" variant="secondary" size="secondary" onPress={call} />
       </View>
     </Screen>
   );

@@ -98,7 +98,7 @@ export const PhotoGrid: React.FC<{
   };
 
   const remove = (photo: ConnectMyPhoto) => {
-    Alert.alert('Remove this photo?', 'It is deleted from ZENV straight away.', [
+    Alert.alert('Remove this photo?', 'It is deleted from ZenWe straight away.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Remove',

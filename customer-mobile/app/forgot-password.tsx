@@ -166,10 +166,10 @@ export default function ForgotPasswordScreen() {
           </Text>
         </TouchableOpacity>
 
-        {/* Clean Brand Header: the ZENV badge (brand, 4 Nov 2026) */}
-        <View style={s.brandHeaderWrap} accessible accessibilityRole="header" accessibilityLabel="ZENV, Account Recovery">
+        {/* Clean Brand Header: the ZenWe badge (brand, 4 Nov 2026) */}
+        <View style={s.brandHeaderWrap} accessible accessibilityRole="header" accessibilityLabel="ZenWe, Account Recovery">
           <ZenvBadge size={56} lift />
-          <Text style={[s.brandTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>ZENV</Text>
+          <Text style={[s.brandTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>ZenWe</Text>
           <Text style={[s.brandSubtitle, { color: isDark ? '#94A3B8' : '#64748B' }]}>Account Recovery</Text>
         </View>
 

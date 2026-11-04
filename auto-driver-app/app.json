@@ -3,11 +3,11 @@
     "extra": {
       "trustedApiHosts": ["hostelbites-backend-jwmt.onrender.com"]
     },
-    "name": "ZENV Auto Driver",
+    "name": "ZenWe Auto Driver",
     "slug": "zenvy-auto-driver",
     "version": "1.0.10",
     "orientation": "portrait",
-    "icon": "./assets/zenv-auto-icon-2026-11-04.png",
+    "icon": "./assets/zenwe-auto-icon-2026-11-04.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": false,
@@ -19,9 +19,9 @@
       "allowBackup": false,
       "adaptiveIcon": {
         "backgroundColor": "#FAE04B",
-        "foregroundImage": "./assets/zenv-auto-adaptive-foreground-2026-11-04.png",
+        "foregroundImage": "./assets/zenwe-auto-adaptive-foreground-2026-11-04.png",
         "backgroundImage": "./assets/zenv-adaptive-backdrop-2026-11-04.png",
-        "monochromeImage": "./assets/zenv-auto-adaptive-monochrome-2026-11-04.png"
+        "monochromeImage": "./assets/zenwe-auto-adaptive-monochrome-2026-11-04.png"
       },
       "blockedPermissions": [
         "android.permission.ACCESS_FINE_LOCATION",
@@ -49,8 +49,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "ZENV Auto Driver uses your photos to upload your licence, vehicle papers and auto photos for verification.",
-          "cameraPermission": "ZENV Auto Driver uses the camera to photograph your licence, vehicle papers and auto for verification.",
+          "photosPermission": "ZenWe Auto Driver uses your photos to upload your licence, vehicle papers and auto photos for verification.",
+          "cameraPermission": "ZenWe Auto Driver uses the camera to photograph your licence, vehicle papers and auto for verification.",
           "microphonePermission": false
         }
       ],

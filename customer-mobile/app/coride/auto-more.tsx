@@ -9,7 +9,7 @@ import AutoRideSection from '../../modules/autoRide/AutoRideSection';
 import { ScreenHeader } from '../../modules/corideV2/CoRideV2Kit';
 import { CR, GUTTER } from '../../modules/corideV2/coRideV2Theme';
 
-const TITLES: Record<string, string> = { bookings: 'My auto bookings', shared: 'Scheduled autos', full: 'Full auto', pickups: 'Pickup points', charge: 'ZENV Auto' };
+const TITLES: Record<string, string> = { bookings: 'My auto bookings', shared: 'Scheduled autos', full: 'Full auto', pickups: 'Pickup points', charge: 'ZenWe Auto' };
 
 export default function CoRideAutoMoreRoute() {
   const router = useRouter();
@@ -17,7 +17,7 @@ export default function CoRideAutoMoreRoute() {
   const back = () => (router.canGoBack() ? router.back() : router.replace('/coride/auto' as any));
   return (
     <View style={{ flex: 1, backgroundColor: CR.page }}>
-      <ScreenHeader title={TITLES[String(seg || '')] || 'ZENV Auto'} sub="ZENV Auto" onBack={back} />
+      <ScreenHeader title={TITLES[String(seg || '')] || 'ZenWe Auto'} sub="ZenWe Auto" onBack={back} />
       <ScrollView contentContainerStyle={{ paddingHorizontal: GUTTER, paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
         <AutoRideSection />
       </ScrollView>

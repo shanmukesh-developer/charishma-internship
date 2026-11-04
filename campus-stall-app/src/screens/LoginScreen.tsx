@@ -26,16 +26,16 @@ const isLocalVendor = (r: any) => !!r && (typeof r.isLocalVendor === 'boolean' ?
 function friendly(e: unknown, serverWaking: boolean): string {
   if (e instanceof ApiError) {
     if (e.status === 401) {
-      if (/no password/i.test(e.message)) return 'Your password is not set yet. Call ZENV support to set it.';
+      if (/no password/i.test(e.message)) return 'Your password is not set yet. Call ZenWe support to set it.';
       return 'Wrong phone number or password. Check and try again.';
     }
-    if (e.status === 403) return e.message || 'This account is not allowed to log in here. Call ZENV support.';
+    if (e.status === 403) return e.message || 'This account is not allowed to log in here. Call ZenWe support.';
     // The account lock lasts 15 minutes (the server says so); the network limiter is shorter.
     if (e.status === 423 || e.status === 429) return /minutes/i.test(e.message) ? e.message : 'Too many tries. Please wait a minute and try again.';
     if (e.status === 400) return 'Enter your phone number and password.';
     return e.message;
   }
-  if (e instanceof NetworkError) return serverWaking ? 'ZENV is waking up. Please try again in a few seconds.' : e.message;
+  if (e instanceof NetworkError) return serverWaking ? 'ZenWe is waking up. Please try again in a few seconds.' : e.message;
   return 'Something went wrong. Please try again.';
 }
 
@@ -92,7 +92,7 @@ export default function LoginScreen() {
       const data = await login(id, password);
       if (!data?.token || !data?.restaurant) throw new Error('bad response');
       if (!isLocalVendor(data.restaurant)) {
-        setError('This is a restaurant account. Please use the ZENV Restaurant app.');
+        setError('This is a restaurant account. Please use the ZenWe Restaurant app.');
         return;
       }
       // Saved as 10 digits: the field already shows +91 in front ("+91 +91 98765…" otherwise).
@@ -111,7 +111,7 @@ export default function LoginScreen() {
   };
 
   const call = () => Linking.openURL(`tel:+${SUPPORT_PHONE}`).catch(() => {});
-  const wa = () => Linking.openURL(`https://wa.me/${SUPPORT_PHONE}?text=${encodeURIComponent('Hi ZENV, I need help logging in to the ZENV Campus Stall app.')}`).catch(() => {});
+  const wa = () => Linking.openURL(`https://wa.me/${SUPPORT_PHONE}?text=${encodeURIComponent('Hi ZenWe, I need help logging in to the ZenWe Campus Stall app.')}`).catch(() => {});
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: color.bg }}>
@@ -120,9 +120,9 @@ export default function LoginScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.brand}>
-          <Image source={require('../../assets/zenv-brand-badge-2026-11-04.png')} style={styles.logo} accessibilityIgnoresInvertColors />
-          <Text style={[font.h1, { color: color.text }]}>ZENV Campus Stall</Text>
-          <Text style={[font.body, { color: color.textSecondary, textAlign: 'center' }]}>In-Campus Booking for your stall. Log in with your stall&apos;s phone number and the password from ZENV.</Text>
+          <Image source={require('../../assets/zenwe-brand-badge-2026-11-04.png')} style={styles.logo} accessibilityIgnoresInvertColors />
+          <Text style={[font.h1, { color: color.text }]}>ZenWe Campus Stall</Text>
+          <Text style={[font.body, { color: color.textSecondary, textAlign: 'center' }]}>In-Campus Booking for your stall. Log in with your stall&apos;s phone number and the password from ZenWe.</Text>
         </View>
 
         {notice ? (
@@ -208,12 +208,12 @@ export default function LoginScreen() {
             <View style={[styles.dot, { backgroundColor: server === 'up' ? color.open : color.warning }]} />
           )}
           <Text style={[font.small, { color: color.textMuted }]}>
-            {server === 'checking' ? 'Checking ZENV…' : server === 'up' ? 'ZENV is online' : 'ZENV is waking up — first login can take ~30 s'}
+            {server === 'checking' ? 'Checking ZENWE…' : server === 'up' ? 'ZenWe is online' : 'ZenWe is waking up — first login can take ~30 s'}
           </Text>
         </View>
 
         <View style={styles.help}>
-          <Text style={[font.body, { color: color.textSecondary, textAlign: 'center' }]}>Forgot password or want to join ZENV?</Text>
+          <Text style={[font.body, { color: color.textSecondary, textAlign: 'center' }]}>Forgot password or want to join ZenWe?</Text>
           <View style={{ flexDirection: 'row', gap: space.sm }}>
             <Button label="Call" icon="call" variant="secondary" size="secondary" onPress={call} style={{ flex: 1 }} />
             <Button label="WhatsApp" icon="logo-whatsapp" variant="secondary" size="secondary" onPress={wa} style={{ flex: 1 }} />

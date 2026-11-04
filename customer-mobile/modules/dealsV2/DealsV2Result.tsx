@@ -36,7 +36,7 @@ export function ResultBody({ result, spinsLeft, onAgain, onDone, onCoupons }: { 
       </View>
       <Text style={s.sub}>You won</Text>
       <Text style={s.title} accessibilityRole="header">{prize}</Text>
-      <Text style={s.note}>{coupon ? 'The coupon is in Your coupons, ready for checkout.' : 'Added to your ZENV Points balance.'}</Text>
+      <Text style={s.note}>{coupon ? 'The coupon is in Your coupons, ready for checkout.' : 'Added to your ZenWe Points balance.'}</Text>
       {coupon ? (
         <Press onPress={copy} label={copied ? 'Code copied' : `Copy code ${coupon.code}`} style={s.code} scaleTo={0.97}>
           <View style={{ flex: 1, minWidth: 0 }}>

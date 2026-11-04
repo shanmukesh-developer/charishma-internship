@@ -11,8 +11,8 @@ import { Glass, IconSquare, Press } from './EventsV2Kit';
 import { IArmchair, IBadgeCheck, IBanknote, ICalendar, IClock, IMegaphone, INavigation, IPin, IUsers, IWallet } from './EventsV2Icons';
 import type { EvEvent } from './eventsV2Demo';
 
-export const PAY_LABEL: Record<PaymentMode, string> = { NONE: 'Free', VENUE: 'Pay at the venue', WALLET: 'ZENV Wallet', ONLINE: 'Pay online' };
-export const PAY_HINT: Record<PaymentMode, string> = { NONE: '', VENUE: 'Cash or UPI at the desk before entry', WALLET: 'Paid now from your ZENV Wallet', ONLINE: 'Secure online checkout' };
+export const PAY_LABEL: Record<PaymentMode, string> = { NONE: 'Free', VENUE: 'Pay at the venue', WALLET: 'ZenWe Wallet', ONLINE: 'Pay online' };
+export const PAY_HINT: Record<PaymentMode, string> = { NONE: '', VENUE: 'Cash or UPI at the desk before entry', WALLET: 'Paid now from your ZenWe Wallet', ONLINE: 'Secure online checkout' };
 
 export function Organiser({ ev }: { ev: EvEvent }) {
   const name = ev.organizer?.name || 'Campus organiser';

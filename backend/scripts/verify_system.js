@@ -38,7 +38,7 @@ async function checkUrl(name, url) {
 }
 
 async function verify() {
-  console.log('\n--- 🛰️  ZENV System Health Scan ---');
+  console.log('\n--- 🛰️  ZenWe System Health Scan ---');
   
   // 1. Check Services
   console.log('\n[1/3] Checking Portals & API...');

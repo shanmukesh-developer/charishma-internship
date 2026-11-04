@@ -148,7 +148,7 @@ export const CampusWhispersModal: React.FC<CampusWhispersModalProps> = ({
       if (!mountedRef.current) return;
       const msg = typeof e?.message === 'string' ? e.message : '';
       if (e?.code === 'CONTENT_BLOCKED') {
-        Alert.alert('Please rephrase', msg || "That has words that aren't allowed on ZENV. Please rephrase it and try again.");
+        Alert.alert('Please rephrase', msg || "That has words that aren't allowed on ZenWe. Please rephrase it and try again.");
       } else if (e?.code === 'RATE_LIMITED') {
         Alert.alert('Slow down a little', msg || 'You have posted a lot of whispers. Please try again later.');
       } else {

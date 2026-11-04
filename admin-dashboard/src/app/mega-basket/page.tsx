@@ -94,7 +94,7 @@ export default function MegaBasketAdminPage() {
       const response = await fetch(`${API_URL}/api/mega-basket/${encodeURIComponent(basket.id)}/cancel`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: 'Cancelled by ZENV support' }),
+        body: JSON.stringify({ reason: 'Cancelled by ZenWe support' }),
         credentials: 'include',
       });
       const data = await response.json().catch(() => ({}));

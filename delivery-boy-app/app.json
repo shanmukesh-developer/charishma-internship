@@ -5,18 +5,18 @@
         "hostelbites-backend-jwmt.onrender.com"
       ]
     },
-    "name": "ZENV Rider",
+    "name": "ZenWe Rider",
     "slug": "zenvy-rider",
     "version": "1.0.16",
     "runtimeVersion": {
       "policy": "appVersion"
     },
     "orientation": "portrait",
-    "icon": "./assets/zenv-rider-icon-2026-11-04.png",
+    "icon": "./assets/zenwe-rider-icon-2026-11-04.png",
     "userInterfaceStyle": "dark",
     "scheme": "zenvy",
     "splash": {
-      "image": "./assets/zenv-splash-badge-2026-11-04.png",
+      "image": "./assets/zenwe-splash-badge-2026-11-04.png",
       "resizeMode": "contain",
       "backgroundColor": "#0A0A0B"
     },
@@ -35,7 +35,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/zenv-rider-adaptive-foreground-2026-11-04.png",
+        "foregroundImage": "./assets/zenwe-rider-adaptive-foreground-2026-11-04.png",
         "backgroundColor": "#FAE04B"
       },
       "package": "com.srm.hostelbitesdelivery",
@@ -82,8 +82,8 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "ZENV Rider uses your location to show the customer where their order is and to measure distance to the store.",
-          "locationAlwaysAndWhenInUsePermission": "While you are on duty or delivering, ZENV Rider keeps sharing your location when you switch to Google Maps, so the customer's live map keeps moving.",
+          "locationWhenInUsePermission": "ZenWe Rider uses your location to show the customer where their order is and to measure distance to the store.",
+          "locationAlwaysAndWhenInUsePermission": "While you are on duty or delivering, ZenWe Rider keeps sharing your location when you switch to Google Maps, so the customer's live map keeps moving.",
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true
         }

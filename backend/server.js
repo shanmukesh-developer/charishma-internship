@@ -247,7 +247,7 @@ app.use(cors({
       callback(null, true);
     } else {
       // 403 (not a 500 "server error") for a refused browser origin.
-      const err = new Error('This origin is not allowed to call the ZENV API.');
+      const err = new Error('This origin is not allowed to call the ZenWe API.');
       err.status = 403;
       err.code = 'CORS_REFUSED';
       callback(err);
@@ -858,7 +858,7 @@ const initializeApp = async () => {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ZENV Secure Auth Gateway</title>
+  <title>ZenWe Secure Auth Gateway</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -1056,7 +1056,7 @@ const initializeApp = async () => {
       <div class="logo-container">
         ✨
       </div>
-      <h1>ZENV <span>SECURE</span></h1>
+      <h1>ZenWe <span>SECURE</span></h1>
       <p id="subtitle" class="subtitle">Authenticating session...</p>
     </div>
 
@@ -1404,6 +1404,13 @@ const initializeApp = async () => {
     inBootQueue(() => require('./scripts/legal_business_name_zenv_v1').runLegalBusinessNameZenv())
       .then((r) => console.log('🏷️ [LEGAL_BUSINESS_NAME_ZENV]', JSON.stringify(r)))
       .catch((err) => console.warn('⚠️ [LEGAL_BUSINESS_NAME_ZENV] failed:', err.message));
+    // 🏷️ Company renamed ZENV -> ZenWe (owner, 4 Nov 2026), once (LEGAL_BUSINESS_NAME_ZENWE_V1_DONE): saved legal
+    // settings whose business name is exactly 'ZENV' get 'ZenWe' (the /legal pages, receipts and the apps read it);
+    // nothing else in them changes. Queued after the ZCS -> ZENV job above, so a 'ZCS' row ends as 'ZenWe' too.
+    // scripts/legal_business_name_zenwe_v1.js; DISABLE_LEGAL_BUSINESS_NAME_ZENWE=true switches it off.
+    inBootQueue(() => require('./scripts/legal_business_name_zenwe_v1').runLegalBusinessNameZenwe())
+      .then((r) => console.log('🏷️ [LEGAL_BUSINESS_NAME_ZENWE]', JSON.stringify(r)))
+      .catch((err) => console.warn('⚠️ [LEGAL_BUSINESS_NAME_ZENWE] failed:', err.message));
 
 
 
@@ -1507,7 +1514,7 @@ const initializeApp = async () => {
         const { getUserModel } = require('./models/User');
         const User = getUserModel();
         if (User && !(await User.findOne({ where: { phone: adminPhone } }))) {
-          await User.create({ name: process.env.ADMIN_NAME || 'ZENV Admin', phone: adminPhone, password: adminPassword, role: 'admin' });
+          await User.create({ name: process.env.ADMIN_NAME || 'ZenWe Admin', phone: adminPhone, password: adminPassword, role: 'admin' });
           console.log('👤 [ADMIN_BOOTSTRAP] Admin account created from ADMIN_PHONE.');
         }
       } else if (process.env.ADMIN_PHONE || process.env.ADMIN_PASSWORD) {
@@ -1684,7 +1691,7 @@ const initializeApp = async () => {
 
     // Basic Health Check
     app.get('/', (req, res) => {
-      res.status(200).json({ status: 'success', message: 'ZENV API (PostgreSQL) is running...', version: '2.0.1' });
+      res.status(200).json({ status: 'success', message: 'ZenWe API (PostgreSQL) is running...', version: '2.0.1' });
     });
 
     // Unknown API routes get a JSON 404 (never an HTML error page), then the global error handler
@@ -1759,7 +1766,7 @@ const initializeApp = async () => {
               if (tokens.length) {
                 const { RIDER_PUSH_ANDROID } = require('./utils/riderDispatch');
                 await require('./utils/push').sendPushToTokens(tokens, "You're off duty now",
-                  'ZENV lost contact with your phone for a while, so you were taken off duty. Open the app and go online to get orders again.',
+                  'ZenWe lost contact with your phone for a while, so you were taken off duty. Open the app and go online to get orders again.',
                   { type: 'OFF_DUTY' }, { persist: false, android: RIDER_PUSH_ANDROID });
               }
             } catch (pushErr) {
@@ -2176,7 +2183,7 @@ const initializeApp = async () => {
         } catch (e) {
           console.warn('[SOCKET_NAME_LOOKUP_WARN]', e.message);
         }
-        socket.data.displayName = name || (socketRole() === 'rider' ? 'Your rider' : socketRole() === 'admin' ? 'ZENV Support' : 'Customer');
+        socket.data.displayName = name || (socketRole() === 'rider' ? 'Your rider' : socketRole() === 'admin' ? 'ZenWe Support' : 'Customer');
         return socket.data.displayName;
       };
 
@@ -2212,12 +2219,12 @@ const initializeApp = async () => {
       const afterDarkClosed = () => {
         // C2: admin kill switch (cached GlobalConfig AFTER_DARK_ENABLED) closes it whatever the hour.
         if (!require('./utils/featureSwitches').peek('afterDark')) {
-          socket.emit('after_dark_closed', { open: false, enabled: false, message: 'ZENV After Dark is paused right now.' });
+          socket.emit('after_dark_closed', { open: false, enabled: false, message: 'ZenWe After Dark is paused right now.' });
           return true;
         }
         if (isAfterDarkNow()) return false;
         const s = afterDarkStatus();
-        socket.emit('after_dark_closed', { ...s, message: `ZENV After Dark opens at ${s.opensAt} IST.` });
+        socket.emit('after_dark_closed', { ...s, message: `ZenWe After Dark opens at ${s.opensAt} IST.` });
         return true;
       };
 
@@ -2389,7 +2396,7 @@ const initializeApp = async () => {
                   const { sendPushToTokens } = require('./utils/push');
                   await sendPushToTokens(
                     receiver.fcmTokens,
-                    `📞 Incoming ZENV Call`,
+                    `📞 Incoming ZenWe Call`,
                     `${userName} is calling you...`,
                     {
                       type: 'call',

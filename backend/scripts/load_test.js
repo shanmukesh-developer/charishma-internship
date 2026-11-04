@@ -107,7 +107,7 @@ const runAutocannon = async () => {
 (async () => {
   if (flag('autocannon', false) && await runAutocannon()) return;
 
-  console.log(`ZENV load test → ${BASE}`);
+  console.log(`ZenWe load test → ${BASE}`);
   console.log(`${USERS} simulated users, ${DURATION_S}s, think time ${THINK_MS} ms (read-only public endpoints)\n`);
   const started = Date.now();
   const deadline = started + DURATION_S * 1000;

@@ -199,7 +199,7 @@ export default function CbPay({ id }: { id: string }) {
               )}
               <View style={{ flex: 1 }}>
                 <Text style={[s.payCardTitle, { color: shot ? COLORS.red : p.txt }]}>{uploading ? 'Uploading…' : shot ? 'Screenshot added' : 'Upload payment screenshot'}</Text>
-                <Text style={[s.payCardDesc, { color: p.txtSec }]}>{shot ? 'Tap to change it' : 'JPG or PNG, max 5 MB. Only the stall and ZENV support see it.'}</Text>
+                <Text style={[s.payCardDesc, { color: p.txtSec }]}>{shot ? 'Tap to change it' : 'JPG or PNG, max 5 MB. Only the stall and ZenWe support see it.'}</Text>
               </View>
               {shot ? <Ionicons name="checkmark-circle" size={20} color={COLORS.emerald} /> : null}
             </View>

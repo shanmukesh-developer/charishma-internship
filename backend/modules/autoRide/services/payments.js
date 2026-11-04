@@ -23,7 +23,7 @@ const enabledMethods = async () => ((await readWalletFlag()) ? [E.PAYMENT_METHOD
 const pickMethod = async (raw) => {
   const m = String(raw || E.PAYMENT_METHODS.CASH).toUpperCase();
   if (!Object.values(E.PAYMENT_METHODS).includes(m)) throw fail(400, 'INVALID_INPUT', 'Payment method must be CASH or WALLET.', { field: 'paymentMethod' });
-  if (!(await enabledMethods()).includes(m)) throw fail(403, 'PAYMENT_METHOD_OFF', 'ZENV Wallet is not available for autos yet. Please pay the driver in cash.', { field: 'paymentMethod' });
+  if (!(await enabledMethods()).includes(m)) throw fail(403, 'PAYMENT_METHOD_OFF', 'ZenWe Wallet is not available for autos yet. Please pay the driver in cash.', { field: 'paymentMethod' });
   return m;
 };
 
@@ -42,7 +42,7 @@ const charge = async ({ userId, amount, method, t, ref = null }) => {
           ref, actor: { type: 'user', id: userId },
         });
       } catch (err) {
-        if (walletLedger.isInsufficient(err)) throw fail(402, 'INSUFFICIENT_WALLET', `Not enough ZENV Wallet balance for ₹${amt}. Pay in cash or add money to your wallet.`);
+        if (walletLedger.isInsufficient(err)) throw fail(402, 'INSUFFICIENT_WALLET', `Not enough ZenWe Wallet balance for ₹${amt}. Pay in cash or add money to your wallet.`);
         throw err;
       }
     }

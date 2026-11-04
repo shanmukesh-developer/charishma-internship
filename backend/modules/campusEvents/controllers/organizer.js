@@ -72,7 +72,7 @@ const apply = async (req, res) => {
     if (!row || !row.verified || String(row.campusId) !== String(ctx.campusId)) throw fail(400, 'INVALID_INPUT', 'Pick a verified club of your campus.', { field: 'entityId' });
   }
   const existing = await M().Organizer.findOne({ where: { userId: req.user.id } });
-  if (existing && [OS.PENDING, OS.ACTIVE, OS.SUSPENDED].includes(existing.status)) throw fail(409, 'ALREADY_APPLIED', existing.status === OS.ACTIVE ? 'You are already an organizer.' : 'Your application is already with the ZENV team.', { status: existing.status });
+  if (existing && [OS.PENDING, OS.ACTIVE, OS.SUSPENDED].includes(existing.status)) throw fail(409, 'ALREADY_APPLIED', existing.status === OS.ACTIVE ? 'You are already an organizer.' : 'Your application is already with the ZenWe team.', { status: existing.status });
   const fields = { campusId: ctx.campusId, entityId, displayName, status: OS.PENDING, applicationNote: cleanText(b.note, 1000, { multiline: true }), proofText: cleanText(b.proofText, 500), reviewNote: null };
   const o = existing ? await existing.update(fields) : await M().Organizer.create({ userId: req.user.id, ...fields });
   await audit.fromReq(req, { action: 'organizer.apply', details: { organizerId: o.id } }, null, 'user');

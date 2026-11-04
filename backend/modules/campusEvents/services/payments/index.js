@@ -47,7 +47,7 @@ const pickMode = async (event, raw, total) => {
   if (!E.PAID_MODES.includes(m)) throw fail(400, 'INVALID_INPUT', 'Payment mode must be VENUE, WALLET or ONLINE.', { field: 'paymentMode' });
   if (!wanted.includes(m)) throw fail(400, 'PAYMENT_MODE_NOT_OFFERED', 'The organizer does not accept that payment mode for this event.', { field: 'paymentMode', offered });
   if (m === M.ONLINE && !offered.includes(M.ONLINE)) await razorpay.assertConfigured();
-  if (m === M.WALLET && !offered.includes(M.WALLET)) throw fail(403, 'PAYMENT_METHOD_OFF', 'ZENV Wallet is not available for events yet.', { field: 'paymentMode' });
+  if (m === M.WALLET && !offered.includes(M.WALLET)) throw fail(403, 'PAYMENT_METHOD_OFF', 'ZenWe Wallet is not available for events yet.', { field: 'paymentMode' });
   return m;
 };
 
@@ -74,7 +74,7 @@ const debitWallet = async (userId, amount, t, ref = null) => {
       ref, actor: { type: 'user', id: userId },
     });
   } catch (err) {
-    if (walletLedger.isInsufficient(err)) throw fail(402, 'INSUFFICIENT_WALLET', `Not enough ZENV Wallet balance for ₹${amt}.`);
+    if (walletLedger.isInsufficient(err)) throw fail(402, 'INSUFFICIENT_WALLET', `Not enough ZenWe Wallet balance for ₹${amt}.`);
     throw err;
   }
   return amt;

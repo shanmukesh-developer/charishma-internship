@@ -663,8 +663,8 @@ export default function CheckoutScreen() {
       const n = snap.orderLines.reduce((a, i) => a + i.quantity, 0);
       lines.push(`${plural(n, 'item')} from ${quote.store?.name || 'your store'} · ${formatINR(quote.finalPrice)}`);
       lines.push(snap.isStallOrder
-        ? `Payment: ${stallPayCopy(stallName)} (${stallName} delivers it, no ZENV rider)`
-        : `Payment: ${snap.paymentMethod === 'Wallet' ? 'ZENV Wallet' : 'Cash on Delivery'}`);
+        ? `Payment: ${stallPayCopy(stallName)} (${stallName} delivers it, no ZenWe rider)`
+        : `Payment: ${snap.paymentMethod === 'Wallet' ? 'ZenWe Wallet' : 'Cash on Delivery'}`);
     }
     if (hasCustom) {
       lines.push(`Shopping list (${customLines.length}) · est. ${formatINR(customEstimate)} + fees, cash on delivery`);
@@ -1250,7 +1250,7 @@ export default function CheckoutScreen() {
             <View style={{ flex: 1 }}>
               <Text style={[s.noticeTitle, { color: txt }]}>{stallName} delivers this order</Text>
               <Text style={[s.noticeSub, { color: txtSec }]}>
-                {stallPayCopy(stallName)}. No ZENV rider and no Delivery PIN. Coupons and add-ons don't apply to stall orders.
+                {stallPayCopy(stallName)}. No ZenWe rider and no Delivery PIN. Coupons and add-ons don't apply to stall orders.
               </Text>
               {addOnLines.length > 0 && (
                 <TouchableOpacity style={[s.smallBtn, { marginTop: 10 }]} onPress={removeAddOns}>
@@ -1326,7 +1326,7 @@ export default function CheckoutScreen() {
               { key: 'COD' as PayMethod, title: 'Cash on Delivery', desc: 'Pay the rider in cash when it arrives', icon: 'cash-outline' as IonName, enabled: true },
               {
                 key: 'Wallet' as PayMethod,
-                title: 'ZENV Wallet',
+                title: 'ZenWe Wallet',
                 desc: storeCodOnly
                   ? 'This store takes cash on delivery only'
                   : walletAllowed

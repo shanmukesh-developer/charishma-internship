@@ -81,7 +81,7 @@ function AddDriverForm({ onCreated }: { onCreated: () => void }) {
     setMsg(null);
     try {
       const r = await autoRideApi.createDriver({ name: name.trim(), phone: digits, password });
-      setMsg({ ok: true, text: `${r.driver.name} can now sign in to ZENV Auto Driver with ${digits} and the temporary password. Ask them to change it in the app under More > Profile and password.` });
+      setMsg({ ok: true, text: `${r.driver.name} can now sign in to ZenWe Auto Driver with ${digits} and the temporary password. Ask them to change it in the app under More > Profile and password.` });
       setName(''); setPhone(''); setPassword(''); setShow(false);
       onCreated();
     } catch (err) {

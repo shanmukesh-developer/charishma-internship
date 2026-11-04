@@ -101,7 +101,7 @@ export const SpaceRoomScreen: React.FC<SpaceRoomScreenProps> = ({ space, visible
     try {
       const r = await requestRecordingPermissionsAsync();
       if (!r.granted) {
-        setMicError('ZENV needs microphone access for you to speak. You can still listen.');
+        setMicError('ZenWe needs microphone access for you to speak. You can still listen.');
         return false;
       }
       setMicError(null);
@@ -311,7 +311,7 @@ export const SpaceRoomScreen: React.FC<SpaceRoomScreenProps> = ({ space, visible
           break;
         case 'mic':
           if (!m.ok) {
-            setMicError('ZENV needs microphone access for you to speak. You can still listen.');
+            setMicError('ZenWe needs microphone access for you to speak. You can still listen.');
             // Be honest with the room: we can't send audio, so show as muted.
             if (isOnStage(roleRef.current) && !mutedRef.current) selfMuteSpace(spaceId, true).catch(() => {});
           } else setMicError(null);
@@ -378,7 +378,7 @@ export const SpaceRoomScreen: React.FC<SpaceRoomScreenProps> = ({ space, visible
     act('mic', async () => {
       const next = !myMuted;
       if (!next && !(await ensureMicPermission())) {
-        Alert.alert('Microphone is off for ZENV', 'Allow microphone access in Settings to speak in Spaces.', [
+        Alert.alert('Microphone is off for ZenWe', 'Allow microphone access in Settings to speak in Spaces.', [
           { text: 'Not now', style: 'cancel' },
           { text: 'Open Settings', onPress: () => Linking.openSettings().catch(() => {}) },
         ]);

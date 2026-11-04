@@ -48,7 +48,7 @@ export default function ReportRental() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: p.bg }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <RHeader title="Report a problem" subtitle="Goes to the ZENV team" />
+      <RHeader title="Report a problem" subtitle="Goes to the ZenWe team" />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
         <Notice tone="warn">In an emergency or accident, call 112 first. Then tell us here so we can help and act on the account.</Notice>
         <Text style={{ fontSize: 12, fontWeight: '800', color: p.sub, marginBottom: 6 }}>What happened?</Text>
