@@ -17,6 +17,7 @@ import { consentFields, openLegal } from '../utils/legal';
 import { getReferrerPromoCode, signupAttributionFields } from '../utils/promoInstall';
 
 import { useTheme } from '../context/ThemeContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
@@ -338,6 +339,7 @@ export default function RegisterScreen() {
     else router.replace('/login' as any);
   };
 
+  const insets = useSafeAreaInsets();
   const busy = loading || phoneOtp.sending;
   const fieldsLocked = isOtpSent || busy;
 
@@ -859,6 +861,13 @@ export default function RegisterScreen() {
 
         </ScrollView>
       </KeyboardAvoidingView>
+      {/* Status-bar backdrop (QA 5 Nov): scrolled form text no longer runs under the clock. */}
+      <LinearGradient
+        pointerEvents="none"
+        colors={['#0A0806', '#0A0806', 'rgba(10,8,6,0)']}
+        locations={[0, 0.72, 1]}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top + 14 }}
+      />
     </View>
   );
 }

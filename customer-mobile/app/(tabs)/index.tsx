@@ -79,10 +79,10 @@ const VaultTimerBadge = ({ pulseAnim }: { pulseAnim: any }) => {
 const SEARCH_PLACEHOLDERS = [
   'Search for biryani…',
   'Search for pizza…',
-  'Search for dosa and chai…',
-  'Search for cold coffee and shakes…',
-  'Search for burgers and fries…',
-];
+  'Search for dosa…',
+  'Search for cold coffee…',
+  'Search for burgers…',
+]; // short enough to fit whole at large phone text (QA 5 Nov, 130%)
 const RotatingSearchInput = React.memo(function RotatingSearchInput({ search, color, placeholderColor, inputStyle }: { search: string; color: string; placeholderColor: string; inputStyle: any }) {
   const isFocused = useIsFocused();
   const [placeholderIndex, setPlaceholderIndex] = useState(0);

@@ -18,6 +18,7 @@ import { PressScale } from '../../modules/others/motion';
 import { FOOD } from './foodV2Theme';
 import { Item, SEARCH, TILES, HEROES, LIST_TITLES, AISLES, aisleOf, GROUP_ORDER, groupOf, BRANDS, LHERO_BG, sentence, shelfItems } from './FoodV2Data';
 import { s } from './FoodV2Styles';
+import { buildQueryPlan, matchesEveryWord, rankItems } from '../../utils/searchMatch';
 import { useFoodV2 } from './useFoodV2';
 import { useFoodV2Ui, Enter, ROW_H, ROW_GAP } from './FoodV2Ui';
 import { useFoodV2States } from './FoodV2States';
@@ -54,7 +55,9 @@ export default function FoodV2Listing({ shelf }: { shelf: string }) {
   const title = isSearch ? 'Search' : TILES.find(t => t.key === shelf)?.label || LIST_TITLES[shelf] || (BRANDS.some(b => b.name === shelf) ? shelf : sentence(shelf));
   const hero = isSearch ? null : HEROES[shelf];
   const q = query.trim().toLowerCase();
-  const queried = base.filter(p => !q || p.name.toLowerCase().includes(q) || (p.brand || '').toLowerCase().includes(q) || (p.category || '').toLowerCase().includes(q));
+  // Spelling-tolerant like the main search (QA 5 Nov): "biscuts", "panner", "chiken" find the real items; name matches first.
+  const plan = buildQueryPlan(query);
+  const queried = !q || !plan.norm ? base : rankItems(base.filter(p => matchesEveryWord({ name: p.name, category: [p.category, p.brand].filter(Boolean).join(' ') }, plan)), plan);
   const groups = GROUP_ORDER.filter(g => queried.some(p => groupOf(p) === g));
 
   // one category navigation only: sidebar (aisles / search groups) or curated chips

@@ -857,6 +857,17 @@ export default function RestaurantDetail() {
                     </View>
                   )}
                   <Text style={[st.menuItemName, { color: txt }]} numberOfLines={2}>{item.name}</Text>
+                  {/* Tags the store/admin set on the item (Admin > Menu > Tags, e.g. "Bestseller", "Spicy"); Rohan, 6 Nov:
+                      they were saved but never shown. Up to 3, short. */}
+                  {Array.isArray(item.tags) && item.tags.some((t: any) => String(t || '').trim()) ? (
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4, marginBottom: 2 }}>
+                      {item.tags.map((t: any) => String(t || '').trim()).filter(Boolean).slice(0, 3).map((t: string) => (
+                        <View key={t} style={{ borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, backgroundColor: isDark ? 'rgba(239,79,95,0.16)' : 'rgba(239,79,95,0.10)' }}>
+                          <Text style={{ fontSize: 11, fontWeight: '800', color: brand ? accent : '#EF4F5F' }} numberOfLines={1} maxFontSizeMultiplier={1.2}>{t.length > 22 ? `${t.slice(0, 21)}…` : t}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginVertical: 2, flexWrap: 'wrap' }}>
                     <Text style={[st.menuItemPrice, { color: brand ? accent : '#EF4F5F' }]}>{formatINR(variantGroup ? (fromPrice(optionGroups) ?? item.price) : item.price)}</Text>
                     {Number.isFinite(kcal) && kcal > 0 && (

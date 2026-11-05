@@ -49,6 +49,27 @@ const ALIAS_GROUPS: { search: string[]; also?: string[] }[] = [
   { search: ['maggi'], also: ['maggie', 'magi'] },
   { search: ['lassi'], also: ['lassie', 'lasi'] },
   { search: ['kheer'], also: ['keer', 'khir'] },
+  // Groceries (QA 5 Nov): common student spellings.
+  { search: ['biscuit'], also: ['biscuits', 'biscut', 'biscuts', 'biskut', 'buiscuit', 'bisket'] },
+  { search: ['chocolate'], also: ['chocolates', 'choclate', 'chocolete', 'choco'] },
+  { search: ['chips'], also: ['chip', 'chipps'] },
+  { search: ['shampoo'], also: ['shampu', 'shampo', 'shampooo'] },
+  { search: ['soap'], also: ['sope', 'soaps'] },
+  { search: ['toothpaste'], also: ['tooth paste', 'toothpast', 'tothpaste'] },
+  { search: ['curd', 'dahi', 'yogurt'], also: ['yoghurt', 'yogourt', 'perugu'] },
+  { search: ['atta'], also: ['ata', 'aata', 'wheat flour'] },
+  { search: ['detergent'], also: ['detergant', 'detergents', 'surf'] },
+  { search: ['sanitary', 'pads'], also: ['sanitory', 'sanitery'] },
+  { search: ['juice'], also: ['juices', 'jucie', 'jues', 'jus'] },
+  { search: ['cold drink', 'soft drink', 'coke', 'pepsi'], also: ['colddrink', 'softdrink', 'cooldrink', 'cool drink'] },
+  { search: ['pickle', 'achar', 'pachadi'], also: ['pikle', 'pickel', 'pickles', 'pikkle', 'achaar', 'aachar', 'oorugaya', 'avakaya'] },
+  { search: ['tomato'], also: ['tomatos', 'tomatoes', 'tamato', 'tomoto', 'tamatar'] },
+  { search: ['potato', 'aloo'], also: ['potatos', 'potatoes', 'alu', 'patato'] },
+  { search: ['onion'], also: ['onions', 'onian', 'onoin', 'pyaz', 'ullipaya'] },
+  { search: ['mango'], also: ['mangoes', 'mangos', 'mamidi'] },
+  { search: ['banana'], also: ['bananas', 'banan', 'arati'] },
+  { search: ['vegetable', 'veggies'], also: ['vegetables', 'vegitable', 'vegtable', 'vegitables', 'veggie'] },
+  { search: ['fruit'], also: ['fruits', 'fruts', 'friut'] },
 ];
 
 /** word -> the spellings to search for it */

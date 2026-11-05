@@ -661,7 +661,7 @@ function ItemEditor({ initial, storeName, vendorType, categories, bookingOnly, n
           <Field label="Description" optional aside={<span className="text-xs text-fg-subtle">{form.description.length}/1000</span>}>
             {({ id, msgId }) => <textarea id={id} aria-describedby={msgId} className={cx(INPUT, 'h-20 resize-none')} maxLength={1000} value={form.description} onChange={e => set({ description: e.target.value })} placeholder="Ingredients, portion, spice level…" />}
           </Field>
-          <Field label="Tags" optional help="Helps search, e.g. spicy, bestseller.">
+          <Field label="Tags" optional help="Shown on the item in the app (first 3) and used for search, e.g. Bestseller, Spicy. Press Enter after each tag.">
             {({ id, msgId }) => <TagInput id={id} describedBy={msgId} value={form.tags} onChange={tags => set({ tags })} />}
           </Field>
           <div className="grid gap-4 rounded-xl border border-line p-4 sm:grid-cols-2">

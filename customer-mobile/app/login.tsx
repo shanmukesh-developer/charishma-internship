@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Platform, ScrollView, Dimensions, ActivityIndicator, Alert, Keyboard } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAvoidingView } from '../components/KeyboardAvoidingView';
 import { useRouter, useIsFocused } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -305,6 +306,7 @@ export default function LoginScreen() {
     changeNumber();
   };
 
+  const insets = useSafeAreaInsets();
   return (
     <View style={[s.container, { backgroundColor: isDark ? '#090D16' : '#F8FAFC' }]}>
       {/* Server wake-up banner */}
@@ -676,6 +678,8 @@ export default function LoginScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      {/* Status-bar backdrop (QA 5 Nov): scrolled form text no longer runs under the clock. */}
+      <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top, backgroundColor: isDark ? '#090D16' : '#F8FAFC' }} />
     </View>
   );
 }

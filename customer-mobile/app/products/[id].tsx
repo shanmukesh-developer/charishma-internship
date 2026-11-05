@@ -702,6 +702,17 @@ export default function ProductDetailScreen() {
             {product.name}
           </Text>
 
+          {/* Item tags from Admin > Menu > Tags (Rohan, 6 Nov: were never shown). */}
+          {Array.isArray(product.tags) && product.tags.some((t: any) => String(t || '').trim()) ? (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6, marginBottom: 2 }}>
+              {product.tags.map((t: any) => String(t || '').trim()).filter(Boolean).slice(0, 4).map((t: string) => (
+                <View key={t} style={{ borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, backgroundColor: isDark ? 'rgba(239,79,95,0.16)' : 'rgba(239,79,95,0.10)' }}>
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: '#EF4F5F' }} numberOfLines={1} maxFontSizeMultiplier={1.2}>{t}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
+
           {product.restaurantName ? (
             <TouchableOpacity
               style={styles.kitchenStoreRow}

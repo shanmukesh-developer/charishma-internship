@@ -21,6 +21,7 @@ import {
   StyleSheet,
   Text,
   View,
+  PixelRatio,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
@@ -279,11 +280,11 @@ const PromoCard = memo(function PromoCard({
             drive ? { opacity: drive.textO, transform: [{ translateX: drive.textX }] } : null,
           ]}
         >
-          <Text numberOfLines={1} style={[styles.tagline, { color: accent }]}>
+          <Text numberOfLines={1} maxFontSizeMultiplier={1.15} style={[styles.tagline, { color: accent }]}>
             {slide.tagline}
           </Text>
           <Animated.Text
-            numberOfLines={1}
+            numberOfLines={1} maxFontSizeMultiplier={1.15}
             adjustsFontSizeToFit
             minimumFontScale={0.78}
             style={[styles.title1, { fontSize: titleFs, lineHeight: titleLh, transform: [{ scale: stamp }] }]}
@@ -291,21 +292,22 @@ const PromoCard = memo(function PromoCard({
             {slide.title1}
           </Animated.Text>
           <Text
-            numberOfLines={1}
+            numberOfLines={1} maxFontSizeMultiplier={1.15}
             adjustsFontSizeToFit
             minimumFontScale={0.78}
             style={[styles.title2, { color: accent, fontSize: titleFs, lineHeight: titleLh }]}
           >
             {slide.title2}
           </Text>
-          <Text numberOfLines={isFeatured ? 1 : 3} style={styles.description}>
+          {/* Large phone text (QA 5 Nov, 130%): capped scale and one line fewer so the text never runs into the button. */}
+          <Text numberOfLines={isFeatured ? 1 : (PixelRatio.getFontScale() > 1.05 ? 2 : 3)} maxFontSizeMultiplier={1.15} style={styles.description}>
             {slide.description}
           </Text>
           {chips.length > 0 ? (
             <View style={styles.chipRow}>
               {chips.map((c) => (
                 <View key={c.label} style={[styles.chip, c.muted && styles.chipMuted]}>
-                  <Text style={[styles.chipText, c.muted && { color: 'rgba(255,255,255,0.6)' }]}>{c.label}</Text>
+                  <Text maxFontSizeMultiplier={1.15} style={[styles.chipText, c.muted && { color: 'rgba(255,255,255,0.6)' }]}>{c.label}</Text>
                 </View>
               ))}
             </View>
@@ -330,7 +332,7 @@ const PromoCard = memo(function PromoCard({
               }}
               style={[styles.cta, { backgroundColor: accent }]}
             >
-              <Text numberOfLines={1} style={styles.ctaText}>
+              <Text numberOfLines={1} maxFontSizeMultiplier={1.15} style={styles.ctaText}>
                 {ctaLabel}
               </Text>
             </Pressable>
