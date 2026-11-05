@@ -4,7 +4,9 @@
 // C8: PAN, payout UPI / bank details and the verifying admin's id are private to the store and admins.
 // In-Campus Booking: the stall's UPI ID / payee name / QR reach a student only on their own booking.
 const STORE_PRIVATE_FIELDS = ['pan', 'payoutUpiId', 'bankAccountHolder', 'bankAccountLast4', 'bankIfsc', 'fssaiVerifiedBy',
-  'campusUpiId', 'campusUpiName', 'campusUpiQrUrl'];
+  'campusUpiId', 'campusUpiName', 'campusUpiQrUrl',
+  // Admin-set special delivery price: customers see only the resulting fee in the bill preview.
+  'deliveryFeeOverride'];
 const STORE_SECRET_FIELDS = ['password', 'commissionRate', 'commissionType', 'phone', 'tokenVersion', 'fcmTokens', ...STORE_PRIVATE_FIELDS];
 const ITEM_SECRET_FIELDS = ['password', 'customCommission', 'ownerName', 'ownerPhone'];
 

@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useIsFocused, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SHADOWS } from '../constants/theme';
-import { ENDPOINTS } from '../constants/api';
+import { ENDPOINTS, API_URL } from '../constants/api';
 import { useAuth } from '../context/AuthContext';
 import { StaggeredSection } from '../components/AnimatedSection';
 import { setToken, postAuth, normalizePhone, isValidIndianMobile, NETWORK_ERROR_MESSAGE } from '../utils/auth';
@@ -14,6 +14,7 @@ import DopaminePressable, { ActionPressable } from '../components/DopaminePressa
 import ServerWakeupOverlay from '../components/ServerWakeupOverlay';
 import ZenvBadge from '../components/ZenvBadge';
 import { consentFields, openLegal } from '../utils/legal';
+import { getReferrerPromoCode, signupAttributionFields } from '../utils/promoInstall';
 
 import { useTheme } from '../context/ThemeContext';
 
@@ -47,6 +48,11 @@ export default function RegisterScreen() {
   const [referralCode, setReferralCode] = useState(typeof params.ref === 'string' ? params.ref.trim().toUpperCase().slice(0, 20) : '');
   const [showReferral, setShowReferral] = useState(typeof params.ref === 'string' && !!params.ref);
   const [referralError, setReferralError] = useState('');
+  // Promoter referral code (optional). Prefilled when the Play install link carried one (utils/promoInstall);
+  // an invalid code is pointed out but never blocks sign-up.
+  const [promoCode, setPromoCode] = useState('');
+  const [promoError, setPromoError] = useState('');
+  const promoTouchedRef = useRef(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
@@ -57,7 +63,7 @@ export default function RegisterScreen() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [focusedField, setFocusedField] = useState<'name' | 'phone' | 'email' | 'password' | 'confirmPassword' | 'referral' | null>(null);
+  const [focusedField, setFocusedField] = useState<'name' | 'phone' | 'email' | 'password' | 'confirmPassword' | 'referral' | 'promo' | null>(null);
 
   const isNameValid = name.trim().length >= 2;
   const isPhoneValid = normalizePhone(phone).length === 10;
@@ -68,6 +74,24 @@ export default function RegisterScreen() {
   const busyRef = useRef(false);
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
+
+  useEffect(() => {
+    getReferrerPromoCode().then((code) => {
+      if (code && mountedRef.current && !promoTouchedRef.current) setPromoCode(code);
+    }).catch(() => {});
+  }, []);
+
+  const PROMO_INVALID = "That referral code isn't valid";
+  const checkPromoCode = async () => {
+    const code = promoCode.trim().toUpperCase();
+    if (!code) { setPromoError(''); return; }
+    if (!/^[A-Z0-9]{4,16}$/.test(code)) { setPromoError(PROMO_INVALID); return; }
+    try {
+      const res = await fetch(`${API_URL}/api/promo/check/${encodeURIComponent(code)}`);
+      const data = await res.json().catch(() => null);
+      if (mountedRef.current && res.ok && data && data.valid === false && promoCode.trim().toUpperCase() === code) setPromoError(PROMO_INVALID);
+    } catch { /* offline: the server checks it at sign-up */ }
+  };
 
   const autoVerifyRef = useRef<(phone10: string, proof: PhoneProof) => void>(() => {});
   const phoneOtp = usePhoneOtp('auth', {
@@ -235,13 +259,15 @@ export default function RegisterScreen() {
     if (password) payload.password = password;
     if (email.trim()) payload.email = email.trim().toLowerCase();
     if (referralCode.trim()) payload.referralCode = referralCode.trim().toUpperCase();
-    Object.assign(payload, await consentFields());
+    if (promoCode.trim()) payload.promoCode = promoCode.trim().toUpperCase();
+    Object.assign(payload, await consentFields(), await signupAttributionFields().catch(() => ({})));
 
     const r = await postAuth(ENDPOINTS.register, payload);
     if (r.ok && r.data?.token) {
       await setToken(r.data.token);
       await setUser(r.data);
       try { require('../utils/sounds').playSound('success'); } catch {}
+      if (r.data?.promo === 'invalid') Alert.alert('Account created', `${PROMO_INVALID}, so it wasn't applied.`);
       return;
     }
 
@@ -692,6 +718,35 @@ export default function RegisterScreen() {
                   </Text>
                 </TouchableOpacity>
               )}
+
+              {/* Promoter referral code (optional) */}
+              <View style={{ marginTop: 12 }}>
+                <Text style={[s.fieldLabel, { color: isDark ? '#E2E8F0' : '#334155' }]}>Referral code (optional)</Text>
+                <View style={[
+                  s.inputWrapper,
+                  {
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
+                    borderColor: promoError ? '#EF4444' : (focusedField === 'promo' ? (isDark ? COLORS.gold : '#0F172A') : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0'))
+                  }
+                ]}>
+                  <Ionicons name="megaphone-outline" size={18} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginLeft: 14, marginRight: 8 }} />
+                  <TextInput
+                    style={[s.inputText, { textTransform: 'uppercase', color: isDark ? '#FFFFFF' : '#0F172A' }]}
+                    value={promoCode}
+                    onChangeText={(t) => { promoTouchedRef.current = true; setPromoCode(t.toUpperCase().replace(/[^A-Za-z0-9]/g, '').slice(0, 16)); if (promoError) setPromoError(''); }}
+                    placeholder="e.g. RAVI10"
+                    placeholderTextColor={isDark ? '#71717A' : '#94A3B8'}
+                    autoCapitalize="characters"
+                    autoCorrect={false}
+                    onFocus={() => setFocusedField('promo')}
+                    onBlur={() => { setFocusedField(null); checkPromoCode(); }}
+                    editable={!busy}
+                  />
+                </View>
+                {promoError ? (
+                  <Text style={{ color: '#EF4444', fontSize: 12, fontWeight: '700', marginTop: 4 }}>{promoError}. You can still sign up.</Text>
+                ) : null}
+              </View>
 
               {/* OTP Verification Box */}
               {isOtpSent && !phoneVerified && (

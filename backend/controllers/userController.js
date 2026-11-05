@@ -7,6 +7,7 @@ const { getAuth } = require('firebase-admin/auth');
 const { normalizePhone } = require('../utils/phoneUtils');
 const pgLock = require('../utils/pgLock');
 const legalSettings = require('../utils/legalSettings');
+const promoAttribution = require('../utils/promoAttribution');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared helpers
@@ -442,9 +443,17 @@ const registerUser = async (req, res) => {
     if (cleanEmail && await User.findOne({ where: { email: cleanEmail } })) {
       return res.status(409).json({ code: 'EMAIL_TAKEN', message: 'This email is already linked to another ZenWe account. Use a different one or leave it blank.' });
     }
-    const cleanReferral = typeof referralCode === 'string' ? referralCode.trim().toUpperCase() : '';
+    let cleanReferral = typeof referralCode === 'string' ? referralCode.trim().toUpperCase() : '';
+    // Promoter code (utils/promoAttribution, 5 Nov 2026): its own optional field (promoCode). An invalid one never
+    // blocks sign-up (the answer says promo: 'invalid'). A promoter code typed into the friend invite field counts
+    // as the promoter code instead of failing as an unknown invite code.
+    let promoCode = typeof req.body.promoCode === 'string' ? req.body.promoCode.trim().slice(0, 32) : '';
     if (cleanReferral && !(await User.findOne({ where: { referralCode: cleanReferral } }))) {
-      return res.status(400).json({ code: 'INVALID_REFERRAL', message: "That referral code doesn't exist. Check it or leave it blank." });
+      if (!(await promoAttribution.activePromoter(cleanReferral))) {
+        return res.status(400).json({ code: 'INVALID_REFERRAL', message: "That referral code doesn't exist. Check it or leave it blank." });
+      }
+      if (!promoCode) promoCode = cleanReferral;
+      cleanReferral = '';
     }
 
     // ── Phone verification (Firebase token, registration token, or SMS OTP; or, when SMS failed, a code
@@ -499,7 +508,9 @@ const registerUser = async (req, res) => {
     const skipCookie = await require('../middleware/authMiddleware').isLiveAdminRequest(req);
 
     console.log(`[REGISTER] New account for ${maskPhone(cleanPhone)} via ${proof.method}`);
-    return sendSession(res, createdUser, 201, { skipCookie });
+    // Promoter credit for this NEW account (install link from this device, else the typed code). Never throws.
+    const credit = skipCookie ? { promo: 'none' } : await promoAttribution.creditNewAccount({ userId: createdUser.id, phone: cleanPhone, installId: req.body.installId, promoCode });
+    return sendSession(res, createdUser, 201, { skipCookie, extra: { promo: credit.promo } });
   } catch (error) {
     if (error.code === 'PHONE_TAKEN') {
       return res.status(409).json({ code: 'PHONE_TAKEN', message: 'This number already has a ZenWe account. Please log in instead.' });
@@ -936,7 +947,8 @@ const googleComplete = async (req, res) => {
       role: 'student'
     });
     console.log(`[GOOGLE_COMPLETE] New account for ${maskPhone(cleanPhone)}`);
-    return sendSession(res, user, 201);
+    const credit = await promoAttribution.creditNewAccount({ userId: user.id, phone: cleanPhone, installId: req.body.installId, promoCode: req.body.promoCode });
+    return sendSession(res, user, 201, { extra: { promo: credit.promo } });
   } catch (error) {
     if (error.name === 'SequelizeUniqueConstraintError') {
       return res.status(409).json({ code: 'ALREADY_EXISTS', message: 'An account with these details already exists. Please log in instead.' });

@@ -67,6 +67,8 @@ export interface Store {
   publishedAt?: string | null;
   packagingFee?: number | null;
   minOrderValue?: number | null;
+  /** Admin-set special delivery price (whole ₹). null = the standard ₹19. Platform fee ₹4 is always added. */
+  deliveryFeeOverride?: number | null;
   logoUrl?: string | null;
   createdAt?: string;
   updatedAt?: string;

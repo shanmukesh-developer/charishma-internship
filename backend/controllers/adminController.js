@@ -520,6 +520,8 @@ const RESTAURANT_FIELDS = [
   'subscriptionTier', 'stallDescription', 'brandTheme',
   // 2026-10-12: partner login phone (alias partnerPhone), per-store fees, logo without brand theme
   'phone', 'packagingFee', 'minOrderValue', 'logoUrl',
+  // 5 Nov 2026: special delivery price for this store (whole rupees 0-200; null = standard ₹19, utils/orderPricing)
+  'deliveryFeeOverride',
   // 31 Oct 2026: the colleges the store serves (utils/campuses; empty = every college)
   'visibleCampuses'
 ];
@@ -583,6 +585,18 @@ const pickRestaurantFields = (body = {}, { creating = false } = {}) => {
     const n = Number(out[key]);
     if (!Number.isFinite(n) || n < 0 || n > max) throw new AdminInputError(`${label} must be between ₹0 and ₹${max}.`);
     out[key] = Math.round(n * 100) / 100;
+  }
+  if (out.deliveryFeeOverride !== undefined) {
+    const raw = out.deliveryFeeOverride;
+    if (raw === null || String(raw).trim() === '') out.deliveryFeeOverride = null; // empty = standard ₹19
+    else {
+      const n = Number(String(raw).trim());
+      const { DELIVERY_FEE_OVERRIDE_MAX } = require('../utils/orderPricing');
+      if (!Number.isInteger(n) || n < 0 || n > DELIVERY_FEE_OVERRIDE_MAX) {
+        throw new AdminInputError(`Special delivery price must be a whole number of rupees between ₹0 and ₹${DELIVERY_FEE_OVERRIDE_MAX}, or empty for the standard ₹19.`);
+      }
+      out.deliveryFeeOverride = n;
+    }
   }
   if (out.logoUrl !== undefined) out.logoUrl = String(out.logoUrl || '').trim() || null;
 
@@ -977,6 +991,7 @@ exports.updateRestaurant = async (req, res) => {
     // A password change bumps tokenVersion (model hook): signed-in partner apps are signed out.
     // So does switching a live store off (C1-7 suspension, model hook sets suspendedAt).
     const tvBefore = Number(restaurant.tokenVersion) || 0;
+    const deliveryFeeBefore = restaurant.deliveryFeeOverride ?? null;
     await restaurant.update(updateData);
     if (updateData.password || stallSwitched || (Number(restaurant.tokenVersion) || 0) !== tvBefore) {
       clearCachedUser(restaurant.id);
@@ -988,6 +1003,10 @@ exports.updateRestaurant = async (req, res) => {
     realtime.publish('store', 'updated', restaurant.id, { storeId: restaurant.id });
     await logAuditAction(req, restaurant.id, 'UPDATE_RESTAURANT', { name: restaurant.name, fields: Object.keys(updateData).filter(k => k !== 'password' && !(k in compPatch)) });
     if (Object.keys(compChanges).length) await logAuditAction(req, restaurant.id, 'STORE_COMPLIANCE_UPDATED', { name: restaurant.name, changes: compChanges });
+    if (updateData.deliveryFeeOverride !== undefined && updateData.deliveryFeeOverride !== deliveryFeeBefore) {
+      // null = the standard ₹19 (utils/orderPricing).
+      await logAuditAction(req, restaurant.id, 'STORE_DELIVERY_FEE_UPDATED', { name: restaurant.name, from: deliveryFeeBefore, to: updateData.deliveryFeeOverride });
+    }
     res.json(publicRestaurant(restaurant));
   } catch (error) {
     sendAdminError(res, error, 'Could not update the store.');

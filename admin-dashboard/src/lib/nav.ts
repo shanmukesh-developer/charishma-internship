@@ -84,6 +84,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: '/notifications', label: 'Push notifications', icon: 'bell', description: 'Send push notifications to customers.', keywords: 'push notification broadcast message send' },
       { href: '/cms', label: 'Home screen layout', icon: 'layout', description: 'Saved Home banners, shortcuts and flags (the current app does not show them yet).', keywords: 'cms banners layout home sections' },
       { href: '/splash-ads', label: 'Splash ads', icon: 'image', description: 'Full-screen store ads shown right after the customer app intro (one per style, up to 8).', keywords: 'splash ads advert sponsored intro full screen promotion store offer' },
+      { href: '/promoters', label: 'Promoters', icon: 'chart', description: 'Promo links and referral codes: verified downloads, ₹100 per 200, payouts due.', keywords: 'promoters promo link referral code downloads installs marketing affiliate payout upi' },
     ],
   },
   {

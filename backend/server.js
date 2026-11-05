@@ -1309,6 +1309,10 @@ const initializeApp = async () => {
     app.use('/legal', require('./routes/legalRoutes'));
     // C8: printable order receipt behind a signed, 15-minute link (opened from the apps / admin).
     app.get('/receipts/:token', require('./controllers/receiptController').renderReceiptPage);
+    // Promoter links (utils/promoAttribution): /p/<CODE> 302s to the Play listing with the install referrer;
+    // the app reports its referrer once (POST /api/promo/attribute).
+    app.get('/p/:code', ...require('./routes/promoRoutes').shortLink);
+    app.use('/api/promo', require('./routes/promoRoutes').publicRouter);
     const ticketRoutes = require('./routes/ticketRoutes');
     const systemRoutes = require('./routes/systemRoutes');
     const appConfigRoutes = require('./routes/appConfigRoutes');
@@ -1562,6 +1566,8 @@ const initializeApp = async () => {
     app.use('/api/admin/campus-booking', campusBookingRoutes.adminRouter);
     // Splash ads (admin): list / create / edit / switch on-off / delete (routes/adRoutes).
     app.use('/api/admin/splash-ads', require('./routes/adRoutes').adminRouter);
+    // Promoters (admin): create / list with stats / deactivate / mark paid (routes/promoRoutes).
+    app.use('/api/admin/promoters', require('./routes/promoRoutes').adminRouter);
     app.use('/api/admin', require('./routes/adminRoutes'));
     app.use('/api/rewards', require('./routes/rewardRoutes'));
     app.use('/api/community', require('./routes/communityRoutes'));

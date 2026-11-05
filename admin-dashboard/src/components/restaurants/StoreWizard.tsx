@@ -43,6 +43,8 @@ export interface WizardState {
   loginPhone: string;
   packagingFee: string;
   minOrderValue: string;
+  /** Special delivery price for this restaurant, whole rupees 0-200. Empty = the standard ₹19 (server bill). */
+  deliveryFeeOverride: string;
   commissionType: 'percentage' | 'flat';
   commissionRate: string;
   /** "Add campus stall": created with In-Campus Booking on (create only; later changes live in the stall's
@@ -80,7 +82,7 @@ const emptyState = (): WizardState => ({
   location: '', zone: '', lat: '', lon: '', whatsapp: '',
   imageUrl: '', brandOn: false, logoUrl: '', primaryColor: '#E23744', secondaryColor: '#111111', accentColor: '#FFC72C',
   weekly: uniformWeekly('09:00', '22:00'), isOpenNow: true, deliveryTime: '30',
-  managedByZenvy: false, password: '', loginPhone: '', packagingFee: '', minOrderValue: '', commissionType: 'percentage', commissionRate: '10',
+  managedByZenvy: false, password: '', loginPhone: '', packagingFee: '', minOrderValue: '', deliveryFeeOverride: '', commissionType: 'percentage', commissionRate: '10',
   campusBooking: false, upiId: '', upiName: '', prepMinutes: '',
 });
 
@@ -112,6 +114,7 @@ export function stateFromStore(s: Store): WizardState {
     loginPhone: tenDigits(s.partnerPhone || s.phone),
     packagingFee: s.packagingFee ? String(s.packagingFee) : '',
     minOrderValue: s.minOrderValue ? String(s.minOrderValue) : '',
+    deliveryFeeOverride: s.deliveryFeeOverride != null ? String(s.deliveryFeeOverride) : '',
     commissionType: s.commissionType === 'flat' ? 'flat' : 'percentage',
     commissionRate: String(s.commissionRate ?? 10),
     // An existing In-Campus stall keeps its wording when edited (its booking settings live in its In-Campus tab).
@@ -171,6 +174,10 @@ function validateStep(step: StepKey, s: WizardState, mode: 'create' | 'edit'): E
     if (pf) e.packagingFee = pf;
     const mo = feeError(s.minOrderValue, 5000, 'Minimum order');
     if (mo) e.minOrderValue = mo;
+    if (!local && s.deliveryFeeOverride.trim() !== '') {
+      const n = Number(s.deliveryFeeOverride);
+      if (!Number.isInteger(n) || n < 0 || n > 200) e.deliveryFeeOverride = 'Whole rupees between ₹0 and ₹200, or leave empty for the standard ₹19.';
+    }
   }
   if (step === 'login') {
     const pw = s.password.trim();
@@ -209,6 +216,8 @@ export function buildPayload(s: WizardState, existing: Store | null): Record<str
     phone: s.loginPhone.trim() ? tenDigits(s.loginPhone) : null,
     packagingFee: s.packagingFee.trim() === '' ? 0 : Math.round(Number(s.packagingFee) * 100) / 100,
     minOrderValue: s.minOrderValue.trim() === '' ? 0 : Math.round(Number(s.minOrderValue) * 100) / 100,
+    // Empty = null = the standard ₹19. Stalls deliver themselves (no ZenWe delivery fee), so never an override.
+    deliveryFeeOverride: local || s.deliveryFeeOverride.trim() === '' ? null : Number(s.deliveryFeeOverride),
     operatingHours: operatingHoursPayload(s.weekly),
     isOpenNow: s.isOpenNow,
     deliveryTime: local || s.deliveryTime.trim() === '' ? null : Number(s.deliveryTime),
@@ -358,6 +367,7 @@ export function StoreWizard({ mode, initial, startStep, preset, stores, onClose,
       else if (/phone number already signs in|^Login phone/i.test(msg)) { goto('login'); setErrors({ loginPhone: msg }); }
       else if (/^Packaging fee/i.test(msg)) { goto('hours'); setErrors({ packagingFee: msg }); }
       else if (/^Minimum order/i.test(msg)) { goto('hours'); setErrors({ minOrderValue: msg }); }
+      else if (/^Special delivery price/i.test(msg)) { goto('hours'); setErrors({ deliveryFeeOverride: msg }); }
       setSaveError(msg);
     } finally {
       setSaving(null);
@@ -843,6 +853,11 @@ function HoursStep({ s, set, errors }: StepProps) {
           <Field label="Minimum order (₹)" optional error={errors.minOrderValue} help="₹0–5,000 item subtotal. Smaller baskets are refused with a clear message.">
             {({ id, msgId, invalid }) => <input id={id} aria-describedby={msgId} aria-invalid={invalid} inputMode="decimal" className={cx(INPUT, 'max-w-[160px]')} value={s.minOrderValue} onChange={e => set({ minOrderValue: e.target.value.replace(/[^\d.]/g, '') })} placeholder="0" />}
           </Field>
+          {!local && (
+            <Field label="Special delivery price (₹)" optional error={errors.deliveryFeeOverride} help="Leave empty to use the standard ₹19. Platform fee ₹4 is always added.">
+              {({ id, msgId, invalid }) => <input id={id} aria-describedby={msgId} aria-invalid={invalid} inputMode="numeric" className={cx(INPUT, 'max-w-[160px]')} value={s.deliveryFeeOverride} onChange={e => set({ deliveryFeeOverride: e.target.value.replace(/\D/g, '').slice(0, 3) })} placeholder="19" />}
+            </Field>
+          )}
         </div>
       </section>
     </div>
@@ -1001,6 +1016,7 @@ function ReviewStep({ s, issues, goto, mode, initial, preview }: {
   const fees: [string, ReactNode][] = [
     ['Packaging fee', Number(s.packagingFee) > 0 ? `₹${s.packagingFee} per order` : 'None'],
     ['Minimum order', Number(s.minOrderValue) > 0 ? `₹${s.minOrderValue}` : 'None'],
+    ...(isLocalVendorType(s.vendorType) ? [] : [['Delivery price', s.deliveryFeeOverride.trim() !== '' ? `₹${Number(s.deliveryFeeOverride)} special + ₹4 platform fee` : 'Standard ₹19 + ₹4 platform fee'] as [string, ReactNode]]),
   ];
   const rows: { step: StepKey; items: [string, ReactNode][] }[] = [
     { step: 'basics', items: [['Name', s.name || '—'], ['Type', vendorLabel(s.vendorType)], ['Colleges', collegesText(s.colleges)], ['Campus label', s.campus || '—'], ['Tags', s.tags.join(', ') || '—']] },

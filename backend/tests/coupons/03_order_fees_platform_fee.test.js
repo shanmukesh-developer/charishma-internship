@@ -1,6 +1,8 @@
 // Order fees (owner, 5 Nov 2026): every restaurant order is its own order with ₹19 delivery + ₹4 platform fee.
 // Through the real quote / order / cancel routes: the platform fee is server-computed, stored on the order, part of
 // the total, never waived by a free-delivery coupon, refunded on cancel, and never charged on stall orders.
+// No global overrides: GlobalConfig delivery_fee / platform_fee are ignored; only a store's admin-set
+// deliveryFeeOverride replaces the ₹19 (stalls stay 0 + 0).
 const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const H = require('../c5/helpers');
@@ -136,24 +138,99 @@ test('two restaurants, two separate orders: each charges its own ₹19 + ₹4', 
   assert.equal(both.body.code, 'MULTIPLE_STORES');
 });
 
-test('admin overrides: delivery_fee and platform_fee config keys change the bill', async () => {
+test('global config delivery_fee / platform_fee are IGNORED: still ₹19 + ₹4 (no global overrides)', async () => {
   const { item } = await H.mkStore({ price: 100 });
   const u = await H.mkUser();
-  await setConfig('delivery_fee', 25);
+  // Live may still hold an old ₹30 delivery_fee key: it must not apply.
+  await setConfig('delivery_fee', 30);
   await setConfig('platform_fee', 6);
   try {
     const q = await quote(u, item.id);
     assert.equal(q.status, 200, JSON.stringify(q.body));
-    assert.equal(q.body.deliveryFee, 25);
-    assert.equal(q.body.platformFee, 6);
-    assert.equal(q.body.finalPrice, 131);
-    await setConfig('platform_fee', 0);
-    const q0 = await quote(u, item.id);
-    assert.equal(q0.body.platformFee, 0, 'the admin can switch the platform fee off');
+    assert.equal(q.body.deliveryFee, 19);
+    assert.equal(q.body.platformFee, 4);
+    assert.equal(q.body.finalPrice, 123);
+    const r = await place(u, item.id, 'COD', { expectedTotal: 123 });
+    assert.equal(r.status, 201, JSON.stringify(r.body));
+    const row = await H.ctx.M('Order').findByPk(r.body.id);
+    assert.equal(Number(row.deliveryFee), 19);
+    assert.equal(Number(row.platformFee), 4);
   } finally {
     await clearConfig('delivery_fee');
     await clearConfig('platform_fee');
   }
+});
+
+test('a store with a special delivery price ₹10 charges 10 + 4 (global ₹30 still ignored)', async () => {
+  const { store, item } = await H.mkStore({ price: 100 });
+  await store.update({ deliveryFeeOverride: 10 });
+  const u = await H.mkUser();
+  await setConfig('delivery_fee', 30);
+  try {
+    const q = await quote(u, item.id);
+    assert.equal(q.status, 200, JSON.stringify(q.body));
+    assert.equal(q.body.deliveryFee, 10);
+    assert.equal(q.body.platformFee, 4);
+    assert.equal(q.body.finalPrice, 114);
+    const r = await place(u, item.id, 'COD', { expectedTotal: 114 });
+    assert.equal(r.status, 201, JSON.stringify(r.body));
+    assert.equal(Number((await H.ctx.M('Order').findByPk(r.body.id)).deliveryFee), 10);
+  } finally {
+    await clearConfig('delivery_fee');
+  }
+});
+
+test('special delivery price ₹0 charges 0 + 4; clearing it (null) goes back to 19 + 4', async () => {
+  const { store, item } = await H.mkStore({ price: 100 });
+  await store.update({ deliveryFeeOverride: 0 });
+  const u = await H.mkUser();
+  const q = await quote(u, item.id);
+  assert.equal(q.status, 200, JSON.stringify(q.body));
+  assert.equal(q.body.deliveryFee, 0);
+  assert.equal(q.body.platformFee, 4);
+  assert.equal(q.body.finalPrice, 104);
+  await store.update({ deliveryFeeOverride: null });
+  const q2 = await quote(u, item.id);
+  assert.equal(q2.body.deliveryFee, 19);
+  assert.equal(q2.body.finalPrice, 123);
+});
+
+test('a stall ignores any special delivery price: 0 + 0', async () => {
+  const st = await H.ctx.M('Restaurant').create({ name: `Fee Stall Ovr ${++seq}`, location: 'SRM AP Food Court', vendorType: 'STALL', password: 'stallpass1', operatingHours: { start: '00:00', end: '00:00' }, isActive: true, isOpenNow: true, lat: 16.4632, lon: 80.5064, whatsappNumber: '9876543211', deliveryFeeOverride: 15 });
+  const it = await H.ctx.M('MenuItem').create({ restaurantId: st.id, name: 'Stall Coffee', price: 25, isAvailable: true });
+  const u = await H.mkUser();
+  const q = await quote(u, it.id);
+  assert.equal(q.status, 200, JSON.stringify(q.body));
+  assert.equal(q.body.deliveryFee, 0);
+  assert.equal(q.body.platformFee, 0);
+  assert.equal(q.body.finalPrice, 25);
+});
+
+test('admin store API: sets, validates, clears and audits the special delivery price', async () => {
+  const { store, item } = await H.mkStore({ price: 100 });
+  const admin = await H.mkUser({ role: 'admin' });
+  const u = await H.mkUser();
+  const put = (body) => api('POST', `/api/admin/restaurants/${store.id}`, admin.token, body);
+  const ok = await put({ deliveryFeeOverride: '12' });
+  assert.equal(ok.status, 200, JSON.stringify(ok.body));
+  assert.equal(ok.body.deliveryFeeOverride, 12);
+  assert.equal((await quote(u, item.id)).body.deliveryFee, 12);
+  for (const bad of [-1, 201, 12.5, 'abc']) {
+    const r = await put({ deliveryFeeOverride: bad });
+    assert.equal(r.status, 400, `${bad}: ${JSON.stringify(r.body)}`);
+  }
+  assert.equal(Number((await H.ctx.M('Restaurant').findByPk(store.id)).deliveryFeeOverride), 12, 'a bad value changes nothing');
+  const audits = await H.ctx.M('VerificationLog').findAll({ where: { action: 'STORE_DELIVERY_FEE_UPDATED', targetId: String(store.id) }, raw: true });
+  assert.equal(audits.length, 1);
+  const cleared = await put({ deliveryFeeOverride: '' });
+  assert.equal(cleared.status, 200, JSON.stringify(cleared.body));
+  assert.equal(cleared.body.deliveryFeeOverride, null);
+  assert.equal((await quote(u, item.id)).body.deliveryFee, 19);
+  // Public helpers never carry the raw admin value.
+  assert.ok(H.r('utils/publicFields').STORE_PRIVATE_FIELDS.includes('deliveryFeeOverride'));
+  // Non-admins cannot set it.
+  const denied = await api('POST', `/api/admin/restaurants/${store.id}`, u.token, { deliveryFeeOverride: 0 });
+  assert.ok(denied.status === 401 || denied.status === 403, String(denied.status));
 });
 
 test('receipt shows the platform fee as its own line and adds up without an adjustment', async () => {

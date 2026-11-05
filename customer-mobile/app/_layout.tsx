@@ -141,6 +141,18 @@ function AppContainer() {
   // Own-domain move: learn / verify / self-heal the API address for the NEXT launch (constants/api.ts).
   React.useEffect(() => { scheduleApiEndpointCheck(); }, []);
 
+  // Promoter links: report the Play install referrer once (utils/promoInstall), well after the first frame.
+  // Silent: offline / errors retry on the next launch.
+  React.useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    const t = setTimeout(() => {
+      InteractionManager.runAfterInteractions(() => {
+        try { require('../utils/promoInstall').reportInstallReferrerOnce().catch(() => {}); } catch {}
+      });
+    }, 4000);
+    return () => clearTimeout(t);
+  }, []);
+
   // Fix status bar blinking: use imperative API to set once, not on every render
   React.useEffect(() => {
     if (Platform.OS === 'android') {

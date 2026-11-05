@@ -202,6 +202,7 @@ function OverviewTab({ store, stats, orders, ordersState, onTab, onEdit, onPubli
               {!local && <DD k="Commission" v={store.commissionType === 'flat' ? `₹${store.commissionRate ?? 0} per order` : `${store.commissionRate ?? 0}% of order`} />}
               <DD k="Packaging fee" v={Number(store.packagingFee) > 0 ? `₹${store.packagingFee} per order` : 'None'} />
               <DD k="Minimum order" v={Number(store.minOrderValue) > 0 ? `₹${store.minOrderValue}` : 'None'} />
+              {!local && <DD k="Delivery price" v={store.deliveryFeeOverride != null ? `₹${store.deliveryFeeOverride} special + ₹4 platform fee` : 'Standard ₹19 + ₹4 platform fee'} />}
               <DD k={local ? 'Vendor app' : 'Partner app'} v={store.isOffline && !local ? 'Managed by ZenWe (no app)' : `${partnerAppName(store)} · ${store.hasPassword ? 'login set' : 'no password yet'} · ${store.pushDevices ? `${store.pushDevices} phone${store.pushDevices === 1 ? '' : 's'}` : 'not signed in on any phone'}`} />
               <DD k="Login phone" v={store.partnerPhone ? `+91 ${formatWhatsapp(store.partnerPhone)}` : local && store.whatsappNumber ? 'WhatsApp number' : 'Not set'} />
               {local && <DD k="Delivery" v={isBookingStall(store) ? 'None: In-Campus Booking, students collect at the stall and pay it by UPI' : 'Stall delivers itself · cash on delivery · no rider or PIN'} />}
@@ -598,7 +599,7 @@ const FIELD_TEXT: Record<string, string> = {
   isFeatured: 'promotion', featuredBadge: 'badge', promoOffer: 'offer', featuredUntil: 'promotion end', whatsappNumber: 'WhatsApp',
   deliveryTime: 'delivery time', commissionRate: 'commission', commissionType: 'commission type', isOffline: 'managed by ZenWe',
   stallDescription: 'description', vendorType: 'type', lat: 'map pin', lon: 'map pin',
-  phone: 'login phone', packagingFee: 'packaging fee', minOrderValue: 'minimum order', logoUrl: 'logo', tags: 'tags',
+  phone: 'login phone', packagingFee: 'packaging fee', minOrderValue: 'minimum order', deliveryFeeOverride: 'special delivery price', logoUrl: 'logo', tags: 'tags',
   location: 'address', campus: 'campus', zone: 'zone', name: 'name',
 };
 

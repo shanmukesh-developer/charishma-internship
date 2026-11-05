@@ -79,6 +79,9 @@ const initRestaurantModel = (sequelize) => {
     // Per-store packaging fee (₹0-500) and minimum order value (₹0-5000), used in the server bill.
     packagingFee: { type: DataTypes.FLOAT, allowNull: true, defaultValue: 0 },
     minOrderValue: { type: DataTypes.FLOAT, allowNull: true, defaultValue: 0 },
+    // Owner, 5 Nov 2026: admin-set special delivery price for this store, whole rupees 0-200. null = the standard ₹19
+    // (utils/orderPricing). Admin-only: never in public store reads (utils/publicFields STORE_PRIVATE_FIELDS).
+    deliveryFeeOverride: { type: DataTypes.INTEGER, allowNull: true, defaultValue: null },
     // Store logo without switching on the branded theme (brandTheme).
     logoUrl: { type: DataTypes.TEXT, allowNull: true },
     isFeatured: { type: DataTypes.BOOLEAN, defaultValue: false },

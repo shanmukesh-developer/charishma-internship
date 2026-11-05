@@ -32,9 +32,12 @@ interface Serviceability {
 
 /** fetch against the one backend; throws an Error carrying the server's friendly `message`. */
 // Keys the backend actually reads. Everything else in GlobalConfig is stored but not enforced.
-const DELIVERY_FEE_KEY = 'delivery_fee';
-const DEFAULT_DELIVERY_FEE = 19; // backend fallback in utils/orderPricing.js
-const MAX_DELIVERY_FEE = 200;
+// Owner, 5 Nov 2026: no global fee overrides. Every restaurant order is ₹19 delivery + ₹4 platform fee
+// (backend utils/orderPricing); only a store's own "Special delivery price" (store edit form) replaces the ₹19.
+// The old GlobalConfig delivery_fee / platform_fee keys are ignored by the server, so they are hidden here.
+const STANDARD_DELIVERY_FEE = 19;
+const PLATFORM_FEE = 4;
+const RETIRED_FEE_KEYS = ['delivery_fee', 'platform_fee'];
 // Retention windows read by backend/cron/retentionCron.js (whole days, minimum 1).
 const RETENTION = [
   { key: 'CHAT_RETENTION_DAYS', label: 'Chat messages', def: 7, hint: 'DMs, groups, task / Connect chats and campus spot rooms. Shown in every chat.' },
@@ -103,11 +106,6 @@ export default function ConfigTerminal() {
     window.history.replaceState(null, '', url.toString());
   };
 
-  const [feeInput, setFeeInput] = useState('');
-  const [savingFee, setSavingFee] = useState(false);
-  const [feeError, setFeeError] = useState<string | null>(null);
-  const [feeNotice, setFeeNotice] = useState<string | null>(null);
-
   const [limitInput, setLimitInput] = useState('');
   const [savingLimit, setSavingLimit] = useState(false);
   const [limitMsg, setLimitMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
@@ -131,8 +129,6 @@ export default function ConfigTerminal() {
       const list = Array.isArray(rows) ? rows : [];
       setConfigs(list);
       setServiceability(svc);
-      const fee = list.find(c => c.key === DELIVERY_FEE_KEY)?.value;
-      setFeeInput(String(fee ?? DEFAULT_DELIVERY_FEE));
       setLimitInput(String(list.find(c => c.key === CASH_LIMIT_KEY)?.value ?? 0));
       setSlotCapInput(String(list.find(c => c.key === SLOT_CAP_KEY)?.value ?? 0));
       const ret: Record<string, string> = {};
@@ -159,10 +155,8 @@ export default function ConfigTerminal() {
     if (r) setRetInputs(prev => ({ ...prev, [savedKey]: String(list.find(c => c.key === savedKey)?.value ?? r.def) }));
   }, []);
 
-  const feeRow = configs.find(c => c.key === DELIVERY_FEE_KEY);
-  const currentFee = Number(feeRow?.value ?? DEFAULT_DELIVERY_FEE);
   // The test data's phone list and markers are edited / shown on the Test data tab.
-  const otherRows = configs.filter(c => c.key !== DELIVERY_FEE_KEY && !MANAGED_KEYS.includes(c.key) && !MANAGED_ELSEWHERE[c.key] && !c.key.startsWith('TEST_DATA_V2_') && c.key !== 'TEST_VIEWER_PHONES');
+  const otherRows = configs.filter(c => !RETIRED_FEE_KEYS.includes(c.key) &&!MANAGED_KEYS.includes(c.key) && !MANAGED_ELSEWHERE[c.key] && !c.key.startsWith('TEST_DATA_V2_') && c.key !== 'TEST_VIEWER_PHONES');
   const elsewhereRows = configs.filter(c => MANAGED_ELSEWHERE[c.key]);
 
   const handleSaveRetention = async (key: string, label: string, def: number) => {
@@ -193,40 +187,6 @@ export default function ConfigTerminal() {
       setRetError(err instanceof Error ? err.message : 'Could not save the retention setting.');
     } finally {
       setSavingRet(null);
-    }
-  };
-
-  const handleSaveFee = async () => {
-    if (savingFee) return;
-    setFeeError(null);
-    setFeeNotice(null);
-    // Number('') is 0: a cleared field must not save a free delivery fee.
-    const fee = feeInput.trim() === '' ? NaN : Number(feeInput);
-    if (!Number.isInteger(fee) || fee < 0 || fee > MAX_DELIVERY_FEE) {
-      setFeeError(`Enter a whole number of rupees from 0 to ${MAX_DELIVERY_FEE}.`);
-      return;
-    }
-    if (fee === currentFee) {
-      setFeeNotice('No change to save.');
-      return;
-    }
-    if (!(await confirm({ title: `Change the delivery fee from ₹${currentFee} to ₹${fee}?`, description: 'It applies to every new order quote immediately.', confirmLabel: 'Change fee' }))) return;
-    setSavingFee(true);
-    try {
-      await apiRequest('/api/admin/config', {
-        method: 'POST',
-        body: JSON.stringify({
-          key: DELIVERY_FEE_KEY,
-          value: fee,
-          description: feeRow?.description || 'Global delivery fee in INR',
-        }),
-      });
-      setFeeNotice(`Delivery fee is now ₹${fee}.`);
-      await fetchAll();
-    } catch (err) {
-      setFeeError(err instanceof Error ? err.message : 'Could not save the delivery fee.');
-    } finally {
-      setSavingFee(false);
     }
   };
 
@@ -299,7 +259,7 @@ export default function ConfigTerminal() {
   const header = (
     <PageHeader
       title="Settings and fees"
-      description="Delivery fee, rider cash limit, feature switches, data retention, app versions, legal pages and receipts."
+      description="Order fees, rider cash limit, feature switches, data retention, app versions, legal pages and receipts."
       actions={<Button leftIcon={<IconRefresh size={14} />} loading={loading} onClick={fetchAll}>Refresh</Button>}
     />
   );
@@ -347,27 +307,14 @@ export default function ConfigTerminal() {
         <div className="space-y-5">
           <div className="grid gap-5 lg:grid-cols-2">
             <Card>
-              <CardHeader title="Delivery fee" description="Used by the server for every new order quote. Member perks may discount it per order." />
-              <CardBody className="space-y-3">
-                <Field
-                  label="Fee per order"
-                  hint={<>Current: {formatINR(currentFee)}{!feeRow && ' (server default, not set in the database yet)'}. Whole rupees, 0 to {MAX_DELIVERY_FEE}.</>}
-                  error={feeError || undefined}
-                >
-                  {saveRow(
-                    <Input
-                      type="number"
-                      prefix="₹"
-                      min={0}
-                      max={MAX_DELIVERY_FEE}
-                      step={1}
-                      value={feeInput}
-                      onChange={(e) => { setFeeInput(e.target.value); setFeeError(null); setFeeNotice(null); }}
-                    />,
-                    <Button variant="primary" loading={savingFee} onClick={handleSaveFee}>Save</Button>,
-                  )}
-                </Field>
-                {feeNotice && <p className="text-sm text-success-text">{feeNotice}</p>}
+              <CardHeader title="Order fees" description="Fixed by the server for every restaurant order. Not editable here." />
+              <CardBody className="space-y-2">
+                <p className="text-sm">
+                  Standard delivery {formatINR(STANDARD_DELIVERY_FEE)} + platform fee {formatINR(PLATFORM_FEE)}; set special prices per store.
+                </p>
+                <p className="text-xs text-fg-muted">
+                  To charge a different delivery price for one restaurant, open it in <Link className="text-accent-text hover:underline" href="/restaurants">Stores</Link> and fill in &quot;Special delivery price&quot;. Stall orders pay neither fee. Member perks and coupons may still discount the delivery part.
+                </p>
               </CardBody>
             </Card>
 

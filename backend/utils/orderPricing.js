@@ -6,7 +6,6 @@ const { getRestaurantModel } = require('../models/Restaurant');
 const { isLocalVendorStore, isServiceVendorType } = require('./vendorTypes');
 const { getOrderModel } = require('../models/Order');
 const { getUserModel } = require('../models/User');
-const { getGlobalConfigModel } = require('../models/GlobalConfig');
 const { calculateBadgePerks } = require('../middleware/rewardEngine');
 const { calculateCustomizationCost } = require('./pricingSchema');
 const { effectiveOptions, priceWithOptions } = require('./productOptions');
@@ -15,8 +14,9 @@ const { getStoreOpenState } = require('./storeHours');
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_QTY = 20;
 const MAX_LINES = 50;
-// Owner, 5 Nov 2026: every restaurant order is its own order with ₹19 delivery + ₹4 platform fee. Both are
-// admin-overridable (GlobalConfig 'delivery_fee' / 'platform_fee'); stalls pay neither.
+// Owner, 5 Nov 2026: every restaurant order is its own order with ₹19 delivery + ₹4 platform fee. No global
+// overrides: the old GlobalConfig 'delivery_fee' / 'platform_fee' keys are ignored on purpose. The only override is a
+// store's own special delivery price (Restaurant.deliveryFeeOverride, admin-set; null = ₹19). Stalls pay neither.
 const DEFAULT_DELIVERY_FEE = 19;
 const DEFAULT_PLATFORM_FEE = 4;
 const ADDON_VENDOR_TYPE = 'EXTRAS';
@@ -67,17 +67,13 @@ class PricingError extends Error {
   }
 }
 
-const readConfigNumber = async (key, fallback) => {
-  try {
-    const GlobalConfig = getGlobalConfigModel();
-    if (!GlobalConfig) return fallback;
-    const row = await GlobalConfig.findOne({ where: { key } });
-    if (!row || row.value === null || row.value === undefined || row.value === '') return fallback;
-    const n = Number(row.value);
-    return Number.isFinite(n) && n >= 0 ? n : fallback;
-  } catch {
-    return fallback;
-  }
+// A store's admin-set special delivery price in whole rupees (0..200). null / empty / invalid = the standard ₹19.
+const DELIVERY_FEE_OVERRIDE_MAX = 200;
+const storeDeliveryFee = (store) => {
+  const raw = store ? store.deliveryFeeOverride : null;
+  if (raw === null || raw === undefined || raw === '') return DEFAULT_DELIVERY_FEE;
+  const n = Number(raw);
+  return Number.isInteger(n) && n >= 0 && n <= DELIVERY_FEE_OVERRIDE_MAX ? n : DEFAULT_DELIVERY_FEE;
 };
 
 // Coupons usable right now: not used, and not expired (null expiry = no expiry).
@@ -336,10 +332,11 @@ const computeOrderQuote = async ({ user, items, couponCode }) => {
 
   // 4. Fees
   // Stalls deliver themselves: no Zenvy delivery fee.
-  const deliveryFee = isStall ? 0 : money(await readConfigNumber('delivery_fee', DEFAULT_DELIVERY_FEE));
-  // ZenWe platform fee per order (never discounted: delivery coupons / perks only touch deliveryFee, item
-  // discounts only the item total). Capped so a typo in the admin value can't make a huge bill.
-  const platformFee = isStall ? 0 : money(Math.min(100, await readConfigNumber('platform_fee', DEFAULT_PLATFORM_FEE)));
+  // Restaurants: the store's special delivery price if an admin set one, else the standard ₹19.
+  const deliveryFee = isStall ? 0 : money(storeDeliveryFee(store));
+  // ZenWe platform fee per order, fixed ₹4 (never discounted: delivery coupons / perks only touch deliveryFee, item
+  // discounts only the item total).
+  const platformFee = isStall ? 0 : DEFAULT_PLATFORM_FEE;
   // Per-store packaging fee and minimum order (admin-set, 0 = none).
   const packagingFee = money(Math.min(500, Math.max(0, Number(store.packagingFee) || 0)));
   const minOrderValue = money(Math.max(0, Number(store.minOrderValue) || 0));
@@ -461,5 +458,7 @@ module.exports = {
   money,
   UUID_RE,
   DEFAULT_DELIVERY_FEE,
-  DEFAULT_PLATFORM_FEE
+  DEFAULT_PLATFORM_FEE,
+  DELIVERY_FEE_OVERRIDE_MAX,
+  storeDeliveryFee
 };

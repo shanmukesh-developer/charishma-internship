@@ -28,6 +28,17 @@ interface AuthResponse {
   data?: any;
 }
 
+// installId + the install link's promoter code for a Google sign-up that creates a new account. Never throws.
+const promoFieldsForGoogle = async (): Promise<Record<string, string>> => {
+  try {
+    const m = require('../utils/promoInstall');
+    const [fields, code] = await Promise.all([m.signupAttributionFields(), m.getReferrerPromoCode()]);
+    return { ...fields, ...(code ? { promoCode: code } : {}) };
+  } catch {
+    return {};
+  }
+};
+
 export default function LoginScreen() {
   const router = useRouter();
   const { user, isLoading, setUser } = useAuth();
@@ -271,6 +282,8 @@ export default function LoginScreen() {
       ...proof,
       ...(googleName.trim() ? { name: googleName.trim() } : {}),
       ...(await consentFields()),
+      // Promoter credit if this creates a new account (utils/promoInstall; ignored for existing accounts).
+      ...(await promoFieldsForGoogle()),
     });
     if (r.ok && r.data?.token) {
       setGooglePending(null);

@@ -29,7 +29,8 @@
     "test:cb": "node tests/cb/run.js",
     "test:ads": "node tests/ads/run.js",
     "test:coupons": "node tests/coupons/run.js",
-    "test:tv": "node tests/tv/run.js"
+    "test:tv": "node tests/tv/run.js",
+    "test:promo": "node tests/promo/run.js"
   },
   "keywords": [],
   "author": "",

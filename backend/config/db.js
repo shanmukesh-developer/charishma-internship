@@ -27,6 +27,7 @@ const { initPGBookingModel } = require('../models/PGBooking');
 const { initPGReviewModel } = require('../models/PGReview');
 const { initPgPromotionModel } = require('../models/PgPromotion');
 const { initSplashAdModel } = require('../models/SplashAd');
+const { initPromoterModels } = require('../models/Promoter');
 const { initMegaBasketModel } = require('../models/MegaBasket');
 const { initMegaBasketItemModel } = require('../models/MegaBasketItem');
 const { initAppConfigModel } = require('../models/AppConfig');
@@ -91,6 +92,8 @@ const initializeAllModels = (instance) => {
   initPgPromotionModel(instance);
   // Splash ads: full-screen store ads after the customer app intro (admin curated, one active per style).
   initSplashAdModel(instance);
+  // Promoter links / codes and their payouts (Promoters, PromoAttributions, PromoPayouts).
+  initPromoterModels(instance);
   initMegaBasketModel(instance);
   initMegaBasketItemModel(instance);
   initBirthdayCelebrationModel(instance);
@@ -533,7 +536,8 @@ const connectDB = async () => {
           { name: 'publishedAt', type: 'DATETIME' },
           { name: 'packagingFee', type: 'FLOAT DEFAULT 0' },
           { name: 'minOrderValue', type: 'FLOAT DEFAULT 0' },
-          { name: 'logoUrl', type: 'TEXT' }
+          { name: 'logoUrl', type: 'TEXT' },
+          { name: 'deliveryFeeOverride', type: 'INTEGER' }
         ];
         for (const col of restCols) {
           try {
@@ -846,6 +850,8 @@ const connectDB = async () => {
         ['MenuItems', 'isSpecializedCake', 'BOOLEAN DEFAULT false'],
         // 2026-11-05 platform fee per order (utils/orderPricing). Nullable, default 0: older rows read as no fee.
         ['Orders', 'platformFee', 'DOUBLE PRECISION DEFAULT 0'],
+        // 2026-11-05 per-store special delivery price (utils/orderPricing). Nullable, no default: null = standard ₹19.
+        ['Restaurants', 'deliveryFeeOverride', 'INTEGER'],
       ];
       for (const [table, col, type] of pgNewCols) {
         try {
