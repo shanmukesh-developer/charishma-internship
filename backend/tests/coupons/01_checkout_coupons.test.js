@@ -33,7 +33,7 @@ test('flat ₹ off: the quote and the order take exactly the coupon value, the b
   const q = await quoteWith(u, item.id, c.code);
   assert.equal(q.status, 200, JSON.stringify(q.body));
   assert.equal(q.body.coupon.discount, 40);
-  assert.equal(q.body.finalPrice, q.body.subtotal + q.body.deliveryFee + q.body.packagingFee + q.body.taxes - q.body.totalDiscount);
+  assert.equal(q.body.finalPrice, q.body.subtotal + q.body.deliveryFee + q.body.platformFee + q.body.packagingFee + q.body.taxes - q.body.totalDiscount);
   assert.equal((await reload(c)).isUsed, false, 'a quote never uses the coupon');
   const r = await placeWith(u, item.id, c.code);
   assert.equal(r.status, 201, JSON.stringify(r.body));
@@ -97,7 +97,7 @@ test('a coupon worth more than the item total takes the items to ₹0, never the
   const q = await quoteWith(u, item.id, c.code);
   assert.equal(q.status, 200, JSON.stringify(q.body));
   assert.equal(q.body.coupon.discount, 100, 'capped at the item total');
-  assert.equal(q.body.finalPrice, q.body.deliveryFee + q.body.packagingFee + q.body.taxes);
+  assert.equal(q.body.finalPrice, q.body.deliveryFee + q.body.platformFee + q.body.packagingFee + q.body.taxes);
   assert.ok(q.body.finalPrice >= 0);
   const r = await placeWith(u, item.id, c.code);
   assert.equal(r.status, 201);
@@ -112,7 +112,9 @@ test('free delivery: takes off exactly the delivery fee; refused (and kept) when
   assert.equal(q.status, 200, JSON.stringify(q.body));
   assert.ok(q.body.deliveryFee > 0);
   assert.equal(q.body.coupon.discount, q.body.deliveryFee);
-  assert.equal(q.body.finalPrice, q.body.subtotal + q.body.packagingFee + q.body.taxes);
+  // The platform fee is never waived by a free-delivery coupon (owner, 5 Nov 2026).
+  assert.ok(q.body.platformFee > 0);
+  assert.equal(q.body.finalPrice, q.body.subtotal + q.body.platformFee + q.body.packagingFee + q.body.taxes);
   // 200+ ZCS Points already give free delivery: the coupon would save nothing, so it is refused, not used up.
   const rich = await H.mkUser({ zenPoints: 250 });
   const c2 = await mkCoupon(rich, { type: 'FREEDEL', value: 0 });
@@ -190,7 +192,7 @@ test('the store never accepts: the auto-cancel job gives the coupon back', async
   const c = await mkCoupon(u, { value: 40 });
   const r = await placeWith(u, item.id, c.code);
   assert.equal(r.status, 201);
-  await backdate(r.body.id, 30);
+  await backdate(r.body.id, 61); // store-accept timeout is 60 min since 5 Nov 2026
   await H.r('controllers/orderController').autoCancelStalePendingOrders({ to: () => ({ emit() {} }), emit() {} });
   assert.equal((await H.ctx.M('Order').findByPk(r.body.id)).status, 'Cancelled');
   assert.equal((await reload(c)).isUsed, false);

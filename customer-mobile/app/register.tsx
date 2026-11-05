@@ -769,7 +769,7 @@ export default function RegisterScreen() {
               <TouchableOpacity
                 style={[
                   s.primaryBtn,
-                  { backgroundColor: isDark ? COLORS.gold : '#0F172A' },
+                  { backgroundColor: COLORS.red },
                   busy && { opacity: 0.7 }
                 ]}
                 onPress={phoneVerified || isOtpSent ? handleRegister : handleSendOtp}
@@ -777,13 +777,13 @@ export default function RegisterScreen() {
                 activeOpacity={0.85}
               >
                 {busy ? (
-                  <ActivityIndicator color={isDark ? '#000000' : '#FFFFFF'} size="small" />
+                  <ActivityIndicator color={'#FFFFFF'} size="small" />
                 ) : (
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                    <Text style={[s.primaryBtnText, { color: isDark ? '#000000' : '#FFFFFF' }]}>
+                    <Text style={[s.primaryBtnText, { color: '#FFFFFF' }]}>
                       {phoneVerified ? 'Create account' : isOtpSent ? 'Verify and create account' : 'Verify phone & continue'}
                     </Text>
-                    <Ionicons name="arrow-forward" size={17} color={isDark ? '#000000' : '#FFFFFF'} />
+                    <Ionicons name="arrow-forward" size={17} color={'#FFFFFF'} />
                   </View>
                 )}
               </TouchableOpacity>

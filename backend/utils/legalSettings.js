@@ -19,7 +19,9 @@ const DEFAULTS = Object.freeze({
   contactEmail: 'projectshanmukh@gmail.com',
   registeredAddress: '',
   jurisdictionCity: '',
-  grievanceOfficer: Object.freeze({ name: '', designation: '', email: '', phone: '', address: '' }),
+  // QA Q30 (5 Nov 2026): the page said "details will be published here". The operator is the grievance officer by
+  // default (name and email are already public on these pages); phone and address stay for the owner to add in Admin.
+  grievanceOfficer: Object.freeze({ name: 'Shanmukesh Kunjam', designation: 'Founder and Grievance Officer', email: 'projectshanmukh@gmail.com', phone: '', address: '' }),
   effectiveDate: '2026-10-18',
   policyVersion: '1.0',
 });
@@ -70,6 +72,8 @@ const parse = (raw) => {
   for (const k of Object.keys(DEFAULTS.grievanceOfficer)) {
     if (typeof go[k] === 'string') out.grievanceOfficer[k] = go[k].trim().slice(0, LIMITS[`grievanceOfficer.${k}`]);
   }
+  // A saved-but-blank officer name / designation / email falls back to the operator (Q30), never to "will be published".
+  for (const k of ['name', 'designation', 'email']) if (!out.grievanceOfficer[k]) out.grievanceOfficer[k] = DEFAULTS.grievanceOfficer[k];
   if (isValidDate(v.effectiveDate)) out.effectiveDate = v.effectiveDate;
   if (typeof v.policyVersion === 'string' && VERSION_RE.test(v.policyVersion.trim())) out.policyVersion = v.policyVersion.trim();
   return out;

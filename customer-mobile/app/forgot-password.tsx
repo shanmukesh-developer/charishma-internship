@@ -248,7 +248,7 @@ export default function ForgotPasswordScreen() {
               <TouchableOpacity
                 style={[
                   s.primaryBtn,
-                  { backgroundColor: isDark ? COLORS.gold : '#0F172A' },
+                  { backgroundColor: COLORS.red },
                   busy && { opacity: 0.7 }
                 ]}
                 onPress={handleSendOtp}
@@ -256,11 +256,11 @@ export default function ForgotPasswordScreen() {
                 activeOpacity={0.85}
               >
                 {busy ? (
-                  <ActivityIndicator size="small" color={isDark ? '#000000' : '#FFFFFF'} />
+                  <ActivityIndicator size="small" color={'#FFFFFF'} />
                 ) : (
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                    <Text style={[s.primaryBtnText, { color: isDark ? '#000000' : '#FFFFFF' }]}>Send verification code</Text>
-                    <Ionicons name="arrow-forward" size={17} color={isDark ? '#000000' : '#FFFFFF'} />
+                    <Text style={[s.primaryBtnText, { color: '#FFFFFF' }]}>Send verification code</Text>
+                    <Ionicons name="arrow-forward" size={17} color={'#FFFFFF'} />
                   </View>
                 )}
               </TouchableOpacity>
@@ -430,7 +430,7 @@ export default function ForgotPasswordScreen() {
               <TouchableOpacity
                 style={[
                   s.primaryBtn,
-                  { backgroundColor: isDark ? COLORS.gold : '#0F172A' },
+                  { backgroundColor: COLORS.red },
                   busy && { opacity: 0.7 }
                 ]}
                 onPress={handleVerifyAndReset}
@@ -438,9 +438,9 @@ export default function ForgotPasswordScreen() {
                 activeOpacity={0.85}
               >
                 {busy ? (
-                  <ActivityIndicator size="small" color={isDark ? '#000000' : '#FFFFFF'} />
+                  <ActivityIndicator size="small" color={'#FFFFFF'} />
                 ) : (
-                  <Text style={[s.primaryBtnText, { color: isDark ? '#000000' : '#FFFFFF' }]}>Reset password</Text>
+                  <Text style={[s.primaryBtnText, { color: '#FFFFFF' }]}>Reset password</Text>
                 )}
               </TouchableOpacity>
             </View>

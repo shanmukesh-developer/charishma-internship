@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { rankRelated } from '../../utils/relatedItems';
 import {
   View,
   Text,
@@ -223,11 +224,9 @@ export default function ProductDetailScreen() {
   const applyStore = useCallback((data: any, productId: string) => {
     setStore(data);
     const menu = Array.isArray(data?.menu) ? data.menu : [];
-    setMoreItems(
-      menu
-        .filter((m: any) => m && (m.id || m._id) && (m.id || m._id) !== productId && m.isAvailable !== false)
-        .slice(0, 10)
-    );
+    // Ranked by how related each dish is to this one (utils/relatedItems), not the first 10 on the menu.
+    const self = menu.find((m: any) => m && String(m.id || m._id) === String(productId)) || { id: productId };
+    setMoreItems(rankRelated(self, menu, { max: 10 }));
   }, []);
 
   const loadStoreAndMore = useCallback(async (restaurantId: string, productId: string) => {

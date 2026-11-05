@@ -171,7 +171,7 @@ const TERMS = (f) => {
 </ul>
 
 <h2>6. Cancellations and refunds</h2>
-<p>You can cancel a food order while the store has not accepted it, or within ${o.customerCancelSeconds / 60} minutes of placing it, as long as no delivery partner has picked it up. The full rules for every feature (orders, Auto-Ride, Campus Events, rentals) are in our <a href="/legal/refunds">Cancellation &amp; Refund Policy</a>.</p>
+<p>You can cancel a food order any time until the store accepts it. For a shop where our delivery partner buys your items at the counter, you can cancel until a delivery partner takes the order. The full rules for every feature (orders, Auto-Ride, Campus Events, rentals) are in our <a href="/legal/refunds">Cancellation &amp; Refund Policy</a>.</p>
 
 <h2>7. Your content</h2>
 <ul>
@@ -403,8 +403,8 @@ const REFUNDS = (f) => {
 <table>
 <tr><th>Situation</th><th>What happens</th></tr>
 <tr><td>You cancel while the store has not accepted the order</td><td>Cancelled. Wallet-paid: full refund to your wallet, and any coupon you used is restored.</td></tr>
-<tr><td>You cancel within ${o.customerCancelSeconds / 60} minutes of placing it, after the store accepted it, before a delivery partner picks it up</td><td>Cancelled, full refund to your wallet (wallet-paid).</td></tr>
-<tr><td>After that, or once a delivery partner is on the order</td><td>You cannot cancel in the app. Contact support from the order page; we decide case by case.</td></tr>
+<tr><td>A shop where our delivery partner buys your items at the counter: you cancel before a delivery partner takes the order</td><td>Cancelled, full refund to your wallet (wallet-paid).</td></tr>
+<tr><td>Once the store has accepted the order, or a delivery partner is on it</td><td>You cannot cancel in the app. Contact support from the order page; we decide case by case.</td></tr>
 <tr><td>The store does not accept within ${plural(o.pendingTimeoutMin, 'minute')}</td><td>Cancelled automatically, full refund to your wallet (wallet-paid).</td></tr>
 <tr><td>No delivery partner takes the order within ${plural(o.unclaimedTimeoutMin, 'minute')}</td><td>Cancelled automatically, full refund to your wallet (wallet-paid).</td></tr>
 <tr><td>The store or we cancel the order</td><td>Full refund to your wallet (wallet-paid).</td></tr>

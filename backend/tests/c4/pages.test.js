@@ -44,10 +44,10 @@ test('canonical link only with PUBLIC_API_URL', async () => {
   } finally { delete process.env.PUBLIC_API_URL; }
 });
 
-test('no fake grievance officer by default: placeholder + contact email', async () => {
+test('grievance officer defaults to the operator (Q30, 5 Nov 2026), with the contact email', async () => {
   for (const p of ['/legal/grievance', '/legal/terms', '/legal/privacy']) {
     const t = H.text((await H.api('GET', p)).text);
-    assert.ok(t.includes('Grievance Officer: details will be published here'), p);
+    assert.ok(t.includes('Shanmukesh Kunjam') && !t.includes('Grievance Officer: details will be published here'), p);
     assert.ok(t.includes('projectshanmukh@gmail.com'), p);
   }
   const t = H.text((await H.api('GET', '/legal/terms')).text);
@@ -114,7 +114,8 @@ test('privacy third parties follow env: Supabase / Render / Redis / Cloudflare /
 
 test('refund page uses the real Auto-Ride and Campus Events settings and order timeouts', async () => {
   let t = H.text((await H.api('GET', '/legal/refunds')).text);
-  assert.ok(t.includes('7 minutes') && t.includes('30 minutes') && t.includes('2 minutes'), 'order windows');
+  // 5 Nov 2026: stores get 60 minutes to accept; customers cancel until the store accepts (no 2-minute window).
+  assert.ok(t.includes('60 minutes') && t.includes('30 minutes') && t.includes('before a delivery partner takes the order') && !t.includes('2 minutes'), 'order windows');
   assert.ok(t.includes('before the trip is confirmed: 100%'), 'auto-ride before-confirm default');
   assert.ok(t.includes('after it is confirmed: 0%'), 'auto-ride after-confirm default');
   assert.ok(t.includes('up to 1 day before the event starts') && t.includes('refund is 100%'), 'events defaults');

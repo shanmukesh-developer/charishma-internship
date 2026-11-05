@@ -125,8 +125,14 @@ test('store-accept timeout: a night order for tomorrow is not cancelled at night
   await Order.update({ slotStart: new Date(Date.now() + 14 * 60 * MIN), slotEnd: new Date(Date.now() + 14.5 * 60 * MIN) }, { where: { id } });
   await autoCancelStalePendingOrders(fakeIo);
   assert.equal((await Order.findByPk(id)).status, 'Pending');
-  // The slot is 50 minutes away: the accept clock started 10 minutes ago (> 7) -> cancelled.
+  // Store-accept timeout is 60 min (5 Nov 2026), counted from when the store could first accept it (an hour
+  // before the slot, or when placed if later). Placed 90 min ago, slot 50 min away: clock started 10 min ago -> kept.
+  await backdate(90);
   await Order.update({ slotStart: new Date(Date.now() + 50 * MIN), slotEnd: new Date(Date.now() + 80 * MIN) }, { where: { id } });
+  await autoCancelStalePendingOrders(fakeIo);
+  assert.equal((await Order.findByPk(id)).status, 'Pending');
+  // Slot started 5 min ago: the clock started 65 min ago (> 60) -> cancelled.
+  await Order.update({ slotStart: new Date(Date.now() - 5 * MIN), slotEnd: new Date(Date.now() + 25 * MIN) }, { where: { id } });
   await autoCancelStalePendingOrders(fakeIo);
   assert.equal((await Order.findByPk(id)).status, 'Cancelled');
 });
@@ -166,7 +172,7 @@ test('store reminders follow the slot accept clock (none at night for tomorrow)'
   await reminder.remindPendingStoreOrders({ push });
   const mine = sent.filter((x) => x.data.orderId === id);
   assert.equal(mine.length, 1);
-  assert.match(mine[0].body, /For .+\. Accept it in the next [1-5] min/);
+  assert.match(mine[0].body, /For .+\. Accept it in the next \d+ min/);
 });
 
 test('shopping lists are removed: a slot list is refused (410) and the rider pool stays empty', async () => {

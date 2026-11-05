@@ -9,7 +9,7 @@ import { KeyboardAvoidingView } from '../../components/KeyboardAvoidingView';
 import { CachedImage as Image } from '../../components/SafeImage';
 import { useLiveSync, hasType } from '../../utils/useLiveSync';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter, useFocusEffect, useIsFocused } from 'expo-router';
+import { useRouter, useFocusEffect, useIsFocused, useScrollToTop } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, SHADOWS, RADIUS, surfaceLift, surfaceShadow, LIGHT_HAIRLINE } from '../../constants/theme';
 import { API_URL, ENDPOINTS } from '../../constants/api';
@@ -117,7 +117,7 @@ const FILTERS: { key: string; label: string; icon: keyof typeof Ionicons.glyphMa
   { key: 'all', label: 'All', icon: 'grid-outline' },
   // Shown only once the user has hearted a store (see the chip row)
   { key: 'favorites', label: 'Favourites', icon: 'heart-outline' },
-  { key: 'veg', label: 'Veg', icon: 'leaf-outline' },
+  { key: 'veg', label: 'Pure veg', icon: 'leaf-outline' },
   { key: 'under99', label: 'Under ₹99', icon: 'cash-outline' },
   { key: 'topRated', label: 'Rated 4.5+', icon: 'star-outline' },
   { key: 'express', label: 'Under 20 min', icon: 'time-outline' },
@@ -247,6 +247,19 @@ const isPureVegRestaurant = (r: any): boolean => {
   return vegKeywords.some(w => name.includes(w) || tags.includes(w) || cuisine.includes(w));
 };
 
+// The Veg toggle (QA 5 Nov 2026): a restaurant shows while it has at least one veg dish it can serve now, not only
+// pure-veg places ("Pure veg" stays as its own chip / Filters option). Same veg rule as the restaurant page.
+const isVegDish = (item: any): boolean => {
+  const d = String(item?.dietType || '').toLowerCase().replace(/[^a-z]/g, '');
+  if (d === 'veg') return true;
+  if (d === 'egg' || d === 'nonveg' || d === 'nonvegetarian') return false;
+  return item?.isVegetarian === true || String(item?.isVegetarian).toLowerCase() === 'true' || Number(item?.isVegetarian) === 1 || item?.isVeg === true;
+};
+const hasVegDish = (r: any): boolean => {
+  const menu = availableMenu(r);
+  return menu.length > 0 ? menu.some(isVegDish) : isPureVegRestaurant(r);
+};
+
 // Restaurant types shown in the Home food list and the Classics explorer
 const HOME_FOOD_TYPES = ['FOOD', 'RESTAURANT', 'CAFE', 'BAKERY', 'SWEETS', 'DESSERT', 'DESSERTS', 'DRINKS', 'MESS'];
 // Stalls near campus are on the Local tab (components/CampusBitesSection: the stall delivers, COD), never in this grid
@@ -326,6 +339,8 @@ export default function HomeScreen() {
   const { isDark, toggleTheme, colors } = useTheme();
   const triggerTransition = useWorldTransitionTrigger();
   const scrollRef = useRef<ScrollView>(null);
+  // Tapping the Home tab while Home is already open scrolls back to the top (QA 5 Nov 2026).
+  useScrollToTop(scrollRef);
   // The promo carousel pauses its auto-advance and card animations once it is scrolled off-screen
   // The carousel sits below the stores: it animates only while some of it is on screen.
   const carouselTop = useRef(0);
@@ -721,7 +736,7 @@ export default function HomeScreen() {
     .filter(isHomeFoodVendor)
     .filter(r => {
       if (vegOnly) {
-        return isPureVegRestaurant(r);
+        return hasVegDish(r);
       }
       return true;
     })
@@ -1140,7 +1155,7 @@ export default function HomeScreen() {
         </View>
         <Text style={[s.sectionSub, { color: txtSec }]}>Fresh from campus kitchens, delivered to your hostel</Text>
         <View style={{ marginTop: -4, marginBottom: 12 }}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: 16, paddingRight: 28, paddingVertical: 4 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: 16, paddingRight: 84, paddingVertical: 4 }}>
             {(noFoodVendors ? [] : FILTERS).filter(f => f.key === filter || chipKeysWithStores.has(f.key)).map(f => {
               const isChipActive = filter === f.key;
               const activeBg = isDark ? goldColor : COLORS.red;
@@ -1571,7 +1586,7 @@ export default function HomeScreen() {
                 <SymbolIcon name="close" style={{ fontSize: 18, color: txtSec, fontWeight: '600' }} />
               </TouchableOpacity>
             </View>
-            <Text style={[s.modalSubtitle, { color: txtSec, marginBottom: 14 }]}>Diet and cuisine shortcuts</Text>
+            <Text style={[s.modalSubtitle, { color: txtSec, marginBottom: 14, textAlign: 'left', alignSelf: 'stretch' }]}>Diet and cuisine shortcuts</Text>
 
             <ScrollView style={{ width: '100%', maxHeight: 360 }} showsVerticalScrollIndicator={false}>
               {/* Dietary Fast Switcher */}
@@ -1605,18 +1620,18 @@ export default function HomeScreen() {
                       paddingVertical: 10,
                       borderRadius: 10,
                       alignItems: 'center',
-                      backgroundColor: vegOnly || filter === 'veg' ? '#10B981' : 'transparent',
+                      backgroundColor: filter === 'veg' ? '#10B981' : 'transparent',
                       borderWidth: 1,
-                      borderColor: vegOnly || filter === 'veg' ? 'transparent' : border,
+                      borderColor: filter === 'veg' ? 'transparent' : border,
                     }}
                     onPress={() => {
-                      // Same switch as the Veg toggle in the search bar, so the two never disagree.
-                      setVegOnly(true);
-                      setDietMode('veg');
+                      // The real pure-veg filter (the "Pure veg" chip); the Veg toggle in the search bar shows every
+                      // restaurant with at least one veg dish.
+                      setFilter('veg');
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
                     }}
                   >
-                    <Text style={{ fontSize: 12, fontWeight: '700', color: vegOnly || filter === 'veg' ? '#FFF' : txt }}>Pure veg only</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: filter === 'veg' ? '#FFF' : txt }}>Pure veg only</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -1843,7 +1858,9 @@ const s = StyleSheet.create({
     marginBottom: 20,
   },
   premiumCatGrid: {
-    paddingHorizontal: 16,
+    paddingLeft: 16,
+    // The last card can scroll clear of the floating basket button (54 wide, 14 from the edge).
+    paddingRight: 84,
     // Room for the cards' shadow inside the scroll row.
     paddingTop: 2,
     paddingBottom: 6,

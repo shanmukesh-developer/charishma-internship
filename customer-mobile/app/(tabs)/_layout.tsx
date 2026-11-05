@@ -52,7 +52,14 @@ const TabIcon = React.memo(function TabIcon({ name, focused, iconName, color, sh
         )}
         {showCartBadge && <CartBadge isDark={onDark} />}
       </View>
-      <Text style={[styles.tabLabel, { color: focused ? COLORS.red : labelColor, fontWeight: focused ? '900' : '700' }]} maxFontSizeMultiplier={1.3}>
+      <Text style={[styles.tabLabel, { color: focused ? COLORS.red : labelColor, fontWeight: focused ? '900' : '700' }]}
+        // QA 5 Nov 2026: at 130% system font "Groceries" / "Services" were cut. Capped growth, one line, and the
+        // label shrinks to fit its slot rather than clipping (5 tabs on a 360dp screen).
+        maxFontSizeMultiplier={1.15}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.75}
+      >
         {name}
       </Text>
     </View>
@@ -149,7 +156,8 @@ const styles = StyleSheet.create({
   tabIconWrap: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 60,
+    // 68: five slots fit a 360dp screen (72 each) and "Groceries" fits without shrinking at normal font size.
+    width: 68,
     paddingTop: 9,
     position: 'relative',
   },
@@ -169,6 +177,8 @@ const styles = StyleSheet.create({
     transform: [{ scale: 1.15 }],
   },
   tabLabel: {
+    alignSelf: 'stretch',
+    textAlign: 'center',
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.2,

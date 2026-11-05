@@ -33,7 +33,8 @@ export interface Customizations {
 
 /**
  * Three baskets live side by side, each with its own checkout (one order is still one store):
- * restaurants (the group basket works on this one), the campus store (Others: groceries, toys, seeds,
+ * restaurants (the group basket works on this one; since 5 Nov 2026 it holds several restaurants at once, grouped by
+ * restaurant, and each restaurant is checked out as its own order — restaurantGroupsOf / linesForStore), the campus store (Others: groceries, toys, seeds,
  * electronics + Mega Basket shopping requests) and local stalls (CampusBites, cash to the stall).
  */
 export type BasketKind = 'restaurant' | 'store' | 'stall';
@@ -82,6 +83,8 @@ export interface CartItem {
   restaurantName: string;
   /** Checkout add-ons (EXTRAS store): they ride along with the main store's order. */
   isAddOn?: boolean;
+  /** Restaurants basket with several restaurants: the restaurant whose order this add-on rides with. */
+  forStoreId?: string;
   /** CampusBites stall item (vendorType LOCAL_VENDOR): the stall delivers it, cash on delivery to the stall. */
   isStall?: boolean;
   isCake?: boolean;
@@ -119,7 +122,8 @@ interface CartContextType {
   cartLoaded: boolean;
   /** Empties one basket only. */
   clearBasket: (kind: BasketKind) => void;
-  /** Adds the item to its basket. Returns false when that basket holds another store's items (a "Replace basket?" prompt is shown instead). */
+  /** Adds the item to its basket. Returns false when the campus store / stall basket holds another store's items (a "Replace basket?"
+   *  prompt is shown instead). The restaurants basket takes several restaurants (one order each at checkout). */
   addToCart: (item: AddableItem) => boolean;
   removeFromCart: (cartKey: string) => void;
   updateQuantity: (cartKey: string, qty: number) => void;
@@ -169,6 +173,49 @@ const storeKeyOf = (item: Pick<CartItem, 'id' | 'restaurantId' | 'isAddOn'>): st
   if (item.isAddOn || isCustomRequest(item)) return null;
   return item.restaurantId ? String(item.restaurantId) : null;
 };
+
+/** One restaurant's part of the restaurants basket: its own order (own delivery + platform fee) at checkout. */
+export interface StoreGroup {
+  storeId: string;
+  storeName: string;
+  lines: CartItem[];
+}
+
+/**
+ * The restaurants basket split by restaurant, in the order the restaurants were first added. Checkout add-ons ride
+ * with the restaurant they were added for (forStoreId), else with the first restaurant. Lines without a store id
+ * (never expected for restaurants) form their own group so they are never lost.
+ */
+export function restaurantGroupsOf(lines: CartItem[]): StoreGroup[] {
+  const groups: StoreGroup[] = [];
+  const byId = new Map<string, StoreGroup>();
+  lines.forEach((l) => {
+    const k = storeKeyOf(l);
+    if (k === null) return;
+    let g = byId.get(k);
+    if (!g) { g = { storeId: k, storeName: l.restaurantName || 'Restaurant', lines: [] }; byId.set(k, g); groups.push(g); }
+    if (!g.storeName && l.restaurantName) g.storeName = l.restaurantName;
+    g.lines.push(l);
+  });
+  lines.forEach((l) => {
+    if (storeKeyOf(l) !== null) return;
+    const target = (l.forStoreId && byId.get(String(l.forStoreId))) || groups[0];
+    if (target) target.lines.push(l);
+    else {
+      const g: StoreGroup = { storeId: '', storeName: '', lines: [l] };
+      groups.push(g);
+      byId.set('', g);
+    }
+  });
+  return groups;
+}
+
+/** The lines of one restaurant's order inside a basket (null / unknown store id: the whole basket). */
+export function linesForStore(lines: CartItem[], storeId?: string | null): CartItem[] {
+  if (!storeId) return lines;
+  const g = restaurantGroupsOf(lines).find((x) => x.storeId === String(storeId));
+  return g ? g.lines : [];
+}
 
 function generateCartKey(id: string, customizations?: Customizations): string {
   if (!customizations || Object.keys(customizations).length === 0) return id;
@@ -521,7 +568,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                 const m = migrated.filter((l) => l.basket === kind);
                 const prevStores = new Set(p.map(storeKeyOf).filter(Boolean));
                 const savedStores = new Set(m.map(storeKeyOf).filter(Boolean));
-                const clash = [...savedStores].some((k) => prevStores.size > 0 && !prevStores.has(k));
+                // The restaurants basket holds several restaurants: never a clash there.
+                const clash = kind !== 'restaurant' && [...savedStores].some((k) => prevStores.size > 0 && !prevStores.has(k));
                 next = next.concat(clash ? p : p.reduce((acc, l) => mergeInto(acc, l), m));
               }
               return next;
@@ -559,6 +607,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [cart, isLoaded]);
 
   const addToCart = useCallback((item: AddableItem): boolean => {
+    // Restaurant add-ons are kept per restaurant (forStoreId): the same extra can ride with two restaurants' orders.
     const id = String(item.id);
     // Add-ons ride with the basket being checked out (never a stall order); everything else follows basketKindOf.
     const kind: BasketKind = item.basket && isBasketKind(item.basket)
@@ -568,7 +617,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         : basketKindOf(item);
     const baseKey = generateCartKey(id, item.customizations);
     // Add-on keys are per basket, so the same extra can ride with two baskets.
-    const cartKey = item.isAddOn && kind !== 'restaurant' ? `${kind}:${baseKey}` : baseKey;
+    const forStoreId = item.isAddOn && kind === 'restaurant' && item.forStoreId ? String(item.forStoreId) : '';
+    const cartKey = item.isAddOn && kind !== 'restaurant' ? `${kind}:${baseKey}` : forStoreId ? `${forStoreId}:${baseKey}` : baseKey;
     const basePrice = item.basePrice || item.price;
 
     const line: CartItem = {
@@ -601,8 +651,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       return false;
     }
 
-    // One store per order, inside this basket only (Swiggy-style "Replace basket?")
-    const newStore = storeKeyOf(line);
+    // One store per order, inside the campus store and stall baskets only (Swiggy-style "Replace basket?"). The restaurants
+    // basket keeps every restaurant; each one is placed as its own order (owner, 5 Nov 2026).
+    const newStore = kind === 'restaurant' ? null : storeKeyOf(line);
     const otherStoreLine = newStore
       ? same.find((i) => {
           const k = storeKeyOf(i);
@@ -803,6 +854,8 @@ export interface OrderQuote {
   lines: QuoteLine[];
   subtotal: number;
   deliveryFee: number;
+  /** ZenWe platform fee per order (server config 'platform_fee'; 0 on stall orders and older servers). */
+  platformFee?: number;
   packagingFee: number;
   taxes: number;
   discounts: { type: string; label: string; amount: number }[];
@@ -838,11 +891,13 @@ export const friendlyNetworkMessage = "We couldn't reach ZenWe. Check your inter
  * Live bill for one basket (default: the active one) from POST /api/orders/quote. Custom Mega Basket requests are not part of it.
  * `enabled` should be false for guests (the quote needs a signed-in customer).
  */
-export function useBasketQuote(couponCode: string | null | undefined, enabled: boolean, active: boolean = true, basket?: BasketKind) {
+export function useBasketQuote(couponCode: string | null | undefined, enabled: boolean, active: boolean = true, basket?: BasketKind, storeId?: string | null) {
   const { baskets, activeBasket } = useCartState();
   const kind: BasketKind = basket || activeBasket;
   const cart = baskets[kind];
-  const orderLines = useMemo(() => cart.filter((i) => !isCustomRequest(i)), [cart]);
+  // storeId: one restaurant's order inside the restaurants basket (each restaurant is quoted and placed on its own).
+  const orderLines = useMemo(() => linesForStore(cart, storeId).filter((i) => !isCustomRequest(i)), [cart, storeId]);
+  const resultKey = `${kind}|${storeId || ''}`;
   const signature = useMemo(
     () => JSON.stringify(orderLines.map((l) => [l.id, l.quantity, l.customizations || null])),
     [orderLines]
@@ -856,7 +911,7 @@ export function useBasketQuote(couponCode: string | null | undefined, enabled: b
   const [error, setError] = useState<QuoteError | null>(null);
   // Which basket the quote / error above belongs to: switching baskets must never show the other
   // basket's bill (or its error) while the new quote is on its way.
-  const [resultKind, setResultKind] = useState<BasketKind | null>(null);
+  const [resultKind, setResultKind] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
   const refresh = useCallback(() => setNonce((n) => n + 1), []);
   // Live-sync refreshes run silently: the current bill stays on screen (no "Calculating…" flash)
@@ -894,7 +949,7 @@ export function useBasketQuote(couponCode: string | null | undefined, enabled: b
     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
     // A silent (live-sync) re-quote only keeps the old bill on screen when the basket and coupon are
     // unchanged; if they changed in the same render, the old bill no longer matches and must not be placeable.
-    const requestSig = `${kind}|${signature}|${couponCode || ''}|${college || ''}`;
+    const requestSig = `${kind}|${storeId || ''}|${signature}|${couponCode || ''}|${college || ''}`;
     const silent = silentRef.current && lastQuoteSigRef.current === requestSig;
     silentRef.current = false;
     lastQuoteSigRef.current = requestSig;
@@ -913,7 +968,7 @@ export function useBasketQuote(couponCode: string | null | undefined, enabled: b
         });
         const data = await res.json().catch(() => null);
         if (cancelled) return;
-        setResultKind(kind);
+        setResultKind(resultKey);
         if (res.ok && data && typeof data.finalPrice === 'number') {
           setQuote(data);
           setError(null);
@@ -928,7 +983,7 @@ export function useBasketQuote(couponCode: string | null | undefined, enabled: b
       } catch (e: any) {
         if (cancelled || (e?.name === 'AbortError' && !timedOut)) return;
         if (silent) return; // background re-quote hit a network blip: keep the bill we have
-        setResultKind(kind);
+        setResultKind(resultKey);
         setQuote(null);
         setError({ message: friendlyNetworkMessage, network: true });
       } finally {
@@ -943,11 +998,11 @@ export function useBasketQuote(couponCode: string | null | undefined, enabled: b
       try { controller?.abort(); } catch {}
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signature, couponCode, enabled, nonce, active, kind, college]);
+  }, [signature, couponCode, enabled, nonce, active, kind, college, storeId]);
 
   // Only this basket's result counts; until it arrives the caller sees "loading" (a skeleton), not the
   // last basket's bill.
-  const fresh = resultKind === kind;
+  const fresh = resultKind === resultKey;
   const waitingForThisBasket = !fresh && enabled && orderLines.length > 0;
   return {
     quote: fresh ? quote : null,

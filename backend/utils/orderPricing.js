@@ -15,7 +15,10 @@ const { getStoreOpenState } = require('./storeHours');
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_QTY = 20;
 const MAX_LINES = 50;
-const DEFAULT_DELIVERY_FEE = 30;
+// Owner, 5 Nov 2026: every restaurant order is its own order with ₹19 delivery + ₹4 platform fee. Both are
+// admin-overridable (GlobalConfig 'delivery_fee' / 'platform_fee'); stalls pay neither.
+const DEFAULT_DELIVERY_FEE = 19;
+const DEFAULT_PLATFORM_FEE = 4;
 const ADDON_VENDOR_TYPE = 'EXTRAS';
 
 const money = (n) => Math.round((Number(n) || 0) * 100) / 100;
@@ -334,6 +337,9 @@ const computeOrderQuote = async ({ user, items, couponCode }) => {
   // 4. Fees
   // Stalls deliver themselves: no Zenvy delivery fee.
   const deliveryFee = isStall ? 0 : money(await readConfigNumber('delivery_fee', DEFAULT_DELIVERY_FEE));
+  // ZenWe platform fee per order (never discounted: delivery coupons / perks only touch deliveryFee, item
+  // discounts only the item total). Capped so a typo in the admin value can't make a huge bill.
+  const platformFee = isStall ? 0 : money(Math.min(100, await readConfigNumber('platform_fee', DEFAULT_PLATFORM_FEE)));
   // Per-store packaging fee and minimum order (admin-set, 0 = none).
   const packagingFee = money(Math.min(500, Math.max(0, Number(store.packagingFee) || 0)));
   const minOrderValue = money(Math.max(0, Number(store.minOrderValue) || 0));
@@ -406,7 +412,7 @@ const computeOrderQuote = async ({ user, items, couponCode }) => {
   }
 
   const totalDiscount = money(discounts.reduce((s, d) => s + d.amount, 0));
-  const finalPrice = money(Math.max(0, subtotal + deliveryFee + packagingFee + taxes - totalDiscount));
+  const finalPrice = money(Math.max(0, subtotal + deliveryFee + platformFee + packagingFee + taxes - totalDiscount));
   const sumOf = (types) => money(discounts.filter(d => types.includes(d.type)).reduce((s, d) => s + d.amount, 0));
 
   return {
@@ -418,6 +424,7 @@ const computeOrderQuote = async ({ user, items, couponCode }) => {
     lines: pricedLines,
     subtotal,
     deliveryFee,
+    platformFee,
     packagingFee,
     taxes,
     discounts,
@@ -452,5 +459,7 @@ module.exports = {
   normalizePaymentMethod,
   PAYMENT_UNAVAILABLE_MESSAGE,
   money,
-  UUID_RE
+  UUID_RE,
+  DEFAULT_DELIVERY_FEE,
+  DEFAULT_PLATFORM_FEE
 };

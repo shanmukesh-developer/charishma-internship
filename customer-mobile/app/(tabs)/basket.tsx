@@ -9,7 +9,7 @@ import TabBackButton from '../../components/TabBackButton';
 import { COLORS, SHADOWS, BUTTON } from '../../constants/theme';
 import { plainDiscountLabel } from '../../utils/billLabel';
 import { useTopInset } from '../../utils/useTopInset';
-import { useCart, useBasketQuote, useServiceability, isCustomRequest, isBasketKind, BASKET_KINDS, BASKET_LABELS, BasketKind, DELIVERY_INSTRUCTIONS, DELIVERY_INSTRUCTIONS_KEY } from '../../context/CartContext';
+import { useCart, useBasketQuote, useServiceability, isCustomRequest, isBasketKind, restaurantGroupsOf, BASKET_KINDS, BASKET_LABELS, BasketKind, DELIVERY_INSTRUCTIONS, DELIVERY_INSTRUCTIONS_KEY, type StoreGroup } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { summarizeCustomizations } from '../../components/CustomizeDrawer';
@@ -84,8 +84,13 @@ export default function BasketScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [basketFocused, basketParam, cartLoaded]);
 
-  // The bill comes from the server (POST /api/orders/quote); guests see an item estimate only.
-  const { quote, loading: quoteLoading, error: quoteError, refresh: refreshQuote, hasOrderLines } = useBasketQuote(null, !!user, basketFocused, basketKind);
+  // Restaurants basket with several restaurants (owner, 5 Nov 2026): one section per restaurant, each its own order
+  // with its own bill and Checkout button. The one-restaurant basket looks exactly as before.
+  const restaurantGroups = basketKind === 'restaurant' ? restaurantGroupsOf(cart) : [];
+  const multiRestaurant = restaurantGroups.length > 1;
+  // The bill comes from the server (POST /api/orders/quote); guests see an item estimate only. With several
+  // restaurants each section asks for its own bill instead (a whole-basket quote would be refused).
+  const { quote, loading: quoteLoading, error: quoteError, refresh: refreshQuote, hasOrderLines } = useBasketQuote(null, !!user && !multiRestaurant, basketFocused, basketKind);
   const { serviceability } = useServiceability();
   const isClosed = quote?.serviceability?.open === false || serviceability?.open === false;
   const closedMessage = stripEmoji(String(quote?.serviceability?.message || serviceability?.message ||
@@ -155,6 +160,90 @@ export default function BasketScreen() {
           ? 'Choose the item options first'
           : `Go to checkout · ${plural(totalItems, 'item')}`;
 
+  // One basket line (also used inside each restaurant's section when the basket has several restaurants).
+  const renderItemCard = (item: any, i: number) => (
+              <StaggeredSection key={item.cartKey || item.id || i} delay={(i + 1) * 80} direction="up">
+                <View style={[s.itemCard, { backgroundColor: cardBg, borderColor: border }]}>
+                  {item.image ? (
+                    <SafeImage source={{ uri: item.image }} style={s.itemImg} />
+                  ) : (
+                    <View style={[s.itemImg, { backgroundColor: isDark ? '#222' : '#E5E7EB', alignItems: 'center', justifyContent: 'center' }]}>
+                      <Ionicons name="restaurant-outline" size={22} color={txtSec} />
+                    </View>
+                  )}
+                  <View style={s.itemInfo}>
+                    <Text style={[s.itemName, { color: txt }]} numberOfLines={2}>{item.name}</Text>
+                    {!!item.restaurantName && !multiRestaurant && (
+                      <Text style={{ fontSize: 12, color: txtSec }}>from {item.restaurantName}</Text>
+                    )}
+                    {item.customizations && Object.keys(item.customizations).length > 0 && (
+                      <Text style={{ fontSize: 12, color: goldColor, marginTop: 2, fontStyle: 'italic', fontWeight: '600' }}>
+                        {summarizeCustomizations(item.customizations)}
+                      </Text>
+                    )}
+                    {!!item.addedBy && !!roomCode && (
+                      <View style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)', alignSelf: 'flex-start', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginTop: 4 }}>
+                        <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec }}>Added by {item.addedBy}</Text>
+                      </View>
+                    )}
+                    <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
+                      {isCustomRequest(item) && !(Number(item.price) > 0) ? (
+                        <Text style={{ fontSize: 13, fontWeight: '800', color: txtSec }}>Price after shopping</Text>
+                      ) : (
+                        <>
+                          <Text style={{ fontSize: 16, fontWeight: '900', color: txt }}>{formatINR(Number(item.price) * Number(item.quantity))}</Text>
+                          {item.quantity > 1 && (
+                            <Text style={{ fontSize: 12, fontWeight: '700', color: txtSec }}>{formatINR(item.price)} each</Text>
+                          )}
+                          {isCustomRequest(item) && (
+                            <Text style={{ fontSize: 12, fontWeight: '700', color: txtSec }}>est.</Text>
+                          )}
+                        </>
+                      )}
+                    </View>
+                  </View>
+                  <View style={{ alignItems: 'flex-end', gap: 8 }}>
+                    <TouchableOpacity
+                      style={{ padding: 4, borderRadius: 8, backgroundColor: isDark ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.08)' }}
+                      onPress={() =>
+                        Alert.alert('Remove item?', `Remove "${item.name}" from your basket?`, [
+                          { text: 'Cancel', style: 'cancel' },
+                          { text: 'Remove', style: 'destructive', onPress: () => removeFromCart(item.cartKey || item.id) }
+                        ])
+                      }
+                      accessibilityRole="button"
+                      accessibilityLabel={`Remove ${item.name}`}
+                    >
+                      <Text style={{ fontSize: 14 }}>🗑️</Text>
+                    </TouchableOpacity>
+                    <View style={[s.qtyWrap, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F1F4F8' }]}>
+                      <DopaminePressable 
+                        style={[s.qtyBtn, { backgroundColor: isDark ? '#27272A' : '#FFFFFF' }]} 
+                        onPress={() => updateQuantity(item.cartKey || item.id, Math.max(0, item.quantity - 1))}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Decrease quantity of ${item.name}`}
+                        sound="click"
+                        activeScale={0.88}
+                      >
+                        <SymbolIcon name="remove" style={[s.qtyText, { color: txt }]} />
+                      </DopaminePressable>
+                      <Text style={[s.qtyNum, { color: txt }]}>{item.quantity}</Text>
+                      <DopaminePressable 
+                        style={[s.qtyBtn, { backgroundColor: isDark ? '#27272A' : '#FFFFFF' }]} 
+                        onPress={() => updateQuantity(item.cartKey || item.id, item.quantity + 1)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Increase quantity of ${item.name}`}
+                        sound="click"
+                        activeScale={0.88}
+                      >
+                        <SymbolIcon name="add" style={[s.qtyText, { color: txt }]} />
+                      </DopaminePressable>
+                    </View>
+                  </View>
+                </View>
+              </StaggeredSection>
+  );
+
   const bg = colors.bg;
   const cardBg = colors.card;
   const txt = colors.text;
@@ -166,7 +255,23 @@ export default function BasketScreen() {
   // The checkout button floats over the page. The list stops above it (its measured height plus its
   // offset), so no card can ever sit under it, at rest or scrolled to the end.
   const [checkoutH, setCheckoutH] = useState(CHECKOUT_EST_HEIGHT);
-  const listBottom = totalItems > 0 ? CHECKOUT_BOTTOM + checkoutH + 12 : 0;
+  const showFloatingCheckout = totalItems > 0 && !multiRestaurant;
+  const listBottom = showFloatingCheckout ? CHECKOUT_BOTTOM + checkoutH + 12 : 0;
+  // Checkout for the basket, or for one restaurant's order (?store=) when the basket has several restaurants.
+  const goToCheckout = (storeId?: string) => {
+    if (!user) {
+      Alert.alert(
+        'Sign in to check out',
+        'Sign in to place your order and track it.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Sign in', onPress: () => router.push('/login' as any) }
+        ]
+      );
+      return;
+    }
+    router.push(`/checkout?basket=${basketKind}${storeId ? `&store=${encodeURIComponent(storeId)}` : ''}` as any);
+  };
 
   return (
     <KeyboardAvoidingView style={[s.container, { paddingTop: topPad, backgroundColor: bg }]} enabled={basketFocused}>
@@ -389,89 +494,23 @@ export default function BasketScreen() {
                 </View>
               </StaggeredSection>
             )}
-            {cart.map((item: any, i: number) => (
-              <StaggeredSection key={item.cartKey || item.id || i} delay={(i + 1) * 80} direction="up">
-                <View style={[s.itemCard, { backgroundColor: cardBg, borderColor: border }]}>
-                  {item.image ? (
-                    <SafeImage source={{ uri: item.image }} style={s.itemImg} />
-                  ) : (
-                    <View style={[s.itemImg, { backgroundColor: isDark ? '#222' : '#E5E7EB', alignItems: 'center', justifyContent: 'center' }]}>
-                      <Ionicons name="restaurant-outline" size={22} color={txtSec} />
-                    </View>
-                  )}
-                  <View style={s.itemInfo}>
-                    <Text style={[s.itemName, { color: txt }]} numberOfLines={2}>{item.name}</Text>
-                    {!!item.restaurantName && (
-                      <Text style={{ fontSize: 12, color: txtSec }}>from {item.restaurantName}</Text>
-                    )}
-                    {item.customizations && Object.keys(item.customizations).length > 0 && (
-                      <Text style={{ fontSize: 12, color: goldColor, marginTop: 2, fontStyle: 'italic', fontWeight: '600' }}>
-                        {summarizeCustomizations(item.customizations)}
-                      </Text>
-                    )}
-                    {!!item.addedBy && !!roomCode && (
-                      <View style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)', alignSelf: 'flex-start', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginTop: 4 }}>
-                        <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec }}>Added by {item.addedBy}</Text>
-                      </View>
-                    )}
-                    <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
-                      {isCustomRequest(item) && !(Number(item.price) > 0) ? (
-                        <Text style={{ fontSize: 13, fontWeight: '800', color: txtSec }}>Price after shopping</Text>
-                      ) : (
-                        <>
-                          <Text style={{ fontSize: 16, fontWeight: '900', color: txt }}>{formatINR(Number(item.price) * Number(item.quantity))}</Text>
-                          {item.quantity > 1 && (
-                            <Text style={{ fontSize: 12, fontWeight: '700', color: txtSec }}>{formatINR(item.price)} each</Text>
-                          )}
-                          {isCustomRequest(item) && (
-                            <Text style={{ fontSize: 12, fontWeight: '700', color: txtSec }}>est.</Text>
-                          )}
-                        </>
-                      )}
-                    </View>
-                  </View>
-                  <View style={{ alignItems: 'flex-end', gap: 8 }}>
-                    <TouchableOpacity
-                      style={{ padding: 4, borderRadius: 8, backgroundColor: isDark ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.08)' }}
-                      onPress={() =>
-                        Alert.alert('Remove item?', `Remove "${item.name}" from your basket?`, [
-                          { text: 'Cancel', style: 'cancel' },
-                          { text: 'Remove', style: 'destructive', onPress: () => removeFromCart(item.cartKey || item.id) }
-                        ])
-                      }
-                      accessibilityRole="button"
-                      accessibilityLabel={`Remove ${item.name}`}
-                    >
-                      <Text style={{ fontSize: 14 }}>🗑️</Text>
-                    </TouchableOpacity>
-                    <View style={[s.qtyWrap, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F1F4F8' }]}>
-                      <DopaminePressable 
-                        style={[s.qtyBtn, { backgroundColor: isDark ? '#27272A' : '#FFFFFF' }]} 
-                        onPress={() => updateQuantity(item.cartKey || item.id, Math.max(0, item.quantity - 1))}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Decrease quantity of ${item.name}`}
-                        sound="click"
-                        activeScale={0.88}
-                      >
-                        <SymbolIcon name="remove" style={[s.qtyText, { color: txt }]} />
-                      </DopaminePressable>
-                      <Text style={[s.qtyNum, { color: txt }]}>{item.quantity}</Text>
-                      <DopaminePressable 
-                        style={[s.qtyBtn, { backgroundColor: isDark ? '#27272A' : '#FFFFFF' }]} 
-                        onPress={() => updateQuantity(item.cartKey || item.id, item.quantity + 1)}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Increase quantity of ${item.name}`}
-                        sound="click"
-                        activeScale={0.88}
-                      >
-                        <SymbolIcon name="add" style={[s.qtyText, { color: txt }]} />
-                      </DopaminePressable>
-                    </View>
-                  </View>
-                </View>
-              </StaggeredSection>
+            {!multiRestaurant && cart.map((item: any, i: number) => renderItemCard(item, i))}
+
+            {multiRestaurant && restaurantGroups.map((g, gi) => (
+              <RestaurantOrderSection
+                key={g.storeId || `group-${gi}`}
+                group={g}
+                index={gi}
+                signedIn={!!user}
+                active={basketFocused}
+                orderingClosed={isClosed}
+                renderItemCard={renderItemCard}
+                onRemoveItems={removeItems}
+                onCheckout={() => goToCheckout(g.storeId)}
+              />
             ))}
 
+            {!multiRestaurant && (
             <StaggeredSection delay={(cart.length + 1) * 80} direction="up">
               <View style={[s.billCard, { backgroundColor: cardBg, borderColor: border, borderWidth: 1 }]}>
                 {!user ? (
@@ -502,6 +541,12 @@ export default function BasketScreen() {
                         {quote.deliveryFee === 0 ? 'Free' : formatINR(quote.deliveryFee)}
                       </Text>
                     </View>
+                    {Number(quote.platformFee) > 0 && (
+                      <View style={s.billRow}>
+                        <Text style={[s.billLabel, { color: txtSec }]}>Platform fee</Text>
+                        <Text style={[s.billVal, { color: txt }]}>{formatINR(Number(quote.platformFee))}</Text>
+                      </View>
+                    )}
                     {quote.packagingFee > 0 && (
                       <View style={s.billRow}>
                         <Text style={[s.billLabel, { color: txtSec }]}>Packaging</Text>
@@ -570,6 +615,7 @@ export default function BasketScreen() {
                 ) : null}
               </View>
             </StaggeredSection>
+            )}
 
             {/* Delivery instructions */}
             <StaggeredSection delay={(cart.length + 2) * 80} direction="up">
@@ -609,31 +655,18 @@ export default function BasketScreen() {
         )}
 
         {/* Breathing room under the last card (the list already ends above the checkout button). */}
-        <View style={{ height: totalItems > 0 ? 8 : 120 }} />
+        <View style={{ height: totalItems > 0 && !multiRestaurant ? 8 : 120 }} />
       </ScrollView>
       </View>
 
-      {totalItems > 0 && (
+      {showFloatingCheckout && (
         <FloatingPulse color={COLORS.red} style={s.checkoutBtnContainer} onLayout={(e) => { const h = Math.round(e.nativeEvent.layout.height); if (h > 0 && h !== checkoutH) setCheckoutH(h); }}>
           <ActionPressable 
             style={[s.checkoutBtn, { backgroundColor: actionBtnBg, width: '100%' }, checkoutBlocked && { opacity: 0.55 }]}
             disabled={checkoutBlocked}
             accessibilityRole="button"
             accessibilityLabel={checkoutLabel}
-            onPress={() => {
-              if (!user) {
-                Alert.alert(
-                  'Sign in to check out',
-                  'Sign in to place your order and track it.',
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Sign in', onPress: () => router.push('/login' as any) }
-                  ]
-                );
-                return;
-              }
-              router.push(`/checkout?basket=${basketKind}` as any);
-            }}
+            onPress={() => goToCheckout()}
             sound="click"
           >
             <Text style={s.checkoutText}>{checkoutLabel}</Text>
@@ -641,6 +674,139 @@ export default function BasketScreen() {
         </FloatingPulse>
       )}
     </KeyboardAvoidingView>
+  );
+}
+
+/**
+ * One restaurant inside a restaurants basket that holds several (owner, 5 Nov 2026): its items, its own server bill
+ * and its own Checkout button. Each restaurant is placed as a separate order with its own order number, delivery fee
+ * and platform fee (the amounts come from the server quote, never from the app).
+ */
+function RestaurantOrderSection({ group, index, signedIn, active, orderingClosed, renderItemCard, onRemoveItems, onCheckout }: {
+  group: StoreGroup;
+  index: number;
+  signedIn: boolean;
+  active: boolean;
+  orderingClosed: boolean;
+  renderItemCard: (item: any, i: number) => React.ReactNode;
+  onRemoveItems: (m: { ids?: string[]; names?: string[] }) => void;
+  onCheckout: () => void;
+}) {
+  const { isDark, colors } = useTheme();
+  const { quote, loading, error, refresh } = useBasketQuote(null, signedIn, active, 'restaurant', group.storeId || null);
+  const txt = colors.text;
+  const txtSec = colors.textSecondary;
+  const border = colors.border;
+  const goldColor = isDark ? COLORS.gold : colors.gold;
+  const items = group.lines.reduce((n, l) => n + l.quantity, 0);
+  const estimate = Math.round(group.lines.reduce((sum, l) => sum + (Number(l.price) || 0) * l.quantity, 0) * 100) / 100;
+  const unavailable: { id?: string; name?: string }[] = error?.code === 'ITEMS_UNAVAILABLE' && Array.isArray(error.body?.unavailableItems) ? error.body.unavailableItems : [];
+  const storeClosed = error?.code === 'STORE_CLOSED';
+  const blocked = signedIn && (orderingClosed || storeClosed || unavailable.length > 0 || error?.code === 'OPTION_INVALID');
+  const deliveryFee = Number(quote?.deliveryFee) || 0;
+  const platformFee = Number(quote?.platformFee) || 0;
+  const feeNote = quote
+    ? `Separate order · ${deliveryFee > 0 ? `${formatINR(deliveryFee)} delivery` : 'free delivery'}${platformFee > 0 ? ` + ${formatINR(platformFee)} platform fee` : ''}`
+    : 'Separate order with its own delivery and platform fee';
+  const name = group.storeName || 'Restaurant';
+  const label = !signedIn
+    ? `Checkout ${name} · ${plural(items, 'item')}`
+    : orderingClosed || storeClosed
+      ? 'Ordering closed'
+      : unavailable.length > 0
+        ? 'Remove unavailable items first'
+        : `Checkout ${name}${quote ? ` · ${formatINR(quote.finalPrice)}` : ''}`;
+  return (
+    <StaggeredSection delay={(index + 1) * 80} direction="up">
+      <View style={{ marginBottom: 8 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 16, marginBottom: 8, marginTop: index === 0 ? 0 : 8 }}>
+          <Ionicons name="restaurant-outline" size={16} color={goldColor} />
+          <Text style={{ flex: 1, fontSize: 14, fontWeight: '900', color: txt }} numberOfLines={1}>{name}</Text>
+          <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec }}>{plural(items, 'item')}</Text>
+        </View>
+        {group.lines.map((item, i) => <React.Fragment key={item.cartKey || item.id || i}>{renderItemCard(item, i)}</React.Fragment>)}
+        <View style={[s.billCard, { backgroundColor: colors.card, borderColor: border, borderWidth: 1, marginTop: 0 }]}>
+          {!signedIn ? (
+            <View style={s.billRow}>
+              <Text style={[s.billLabel, { color: txtSec }]}>Item total</Text>
+              <Text style={[s.billVal, { color: txt }]}>{formatINR(estimate)}</Text>
+            </View>
+          ) : quote ? (
+            <View style={{ opacity: loading ? 0.5 : 1 }}>
+              <View style={s.billRow}>
+                <Text style={[s.billLabel, { color: txtSec }]}>Subtotal</Text>
+                <Text style={[s.billVal, { color: txt }]}>{formatINR(quote.subtotal)}</Text>
+              </View>
+              <View style={s.billRow}>
+                <Text style={[s.billLabel, { color: txtSec }]}>Delivery fee</Text>
+                <Text style={[s.billVal, { color: deliveryFee === 0 ? '#10B981' : txt }]}>{deliveryFee === 0 ? 'Free' : formatINR(deliveryFee)}</Text>
+              </View>
+              {platformFee > 0 && (
+                <View style={s.billRow}>
+                  <Text style={[s.billLabel, { color: txtSec }]}>Platform fee</Text>
+                  <Text style={[s.billVal, { color: txt }]}>{formatINR(platformFee)}</Text>
+                </View>
+              )}
+              {quote.packagingFee > 0 && (
+                <View style={s.billRow}>
+                  <Text style={[s.billLabel, { color: txtSec }]}>Packaging</Text>
+                  <Text style={[s.billVal, { color: txt }]}>{formatINR(quote.packagingFee)}</Text>
+                </View>
+              )}
+              {(quote.discounts || []).filter((d) => d && d.amount > 0).map((d, idx) => (
+                <View style={s.billRow} key={`${d.type}-${idx}`}>
+                  <Text style={[s.billLabel, { color: '#10B981', flex: 1 }]} numberOfLines={1}>{plainDiscountLabel(d.label)}</Text>
+                  <Text style={[s.billVal, { color: '#10B981' }]}>{formatINR(-Math.abs(Number(d.amount)))}</Text>
+                </View>
+              ))}
+              <View style={[s.billRow, { borderTopWidth: 1, borderTopColor: border, paddingTop: 10, marginTop: 2 }]}>
+                <Text style={[s.billLabel, { color: txt, fontSize: 13, fontWeight: '900' }]}>To pay</Text>
+                <Text style={{ fontSize: 18, fontWeight: '900', color: goldColor }}>{formatINR(quote.finalPrice)}</Text>
+              </View>
+            </View>
+          ) : loading ? (
+            <View accessibilityLabel={`Calculating the bill for ${name}`}>
+              {[0.42, 0.5].map((w, idx) => (
+                <View style={s.billRow} key={idx}>
+                  <View style={[s.skelBar, { width: `${w * 100}%` as any, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#ECEEF2' }]} />
+                  <View style={[s.skelBar, { width: 56, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#ECEEF2' }]} />
+                </View>
+              ))}
+            </View>
+          ) : error ? (
+            <View>
+              <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600', lineHeight: 16, marginBottom: 8 }}>{error.message}</Text>
+              {unavailable.length > 0 ? (
+                <TouchableOpacity
+                  style={[s.bannerBtn, { alignSelf: 'flex-start' }]}
+                  onPress={() => onRemoveItems({
+                    ids: unavailable.map((u) => String(u.id || '')).filter(Boolean),
+                    names: unavailable.map((u) => String(u.name || '')).filter(Boolean),
+                  })}
+                >
+                  <Text style={s.bannerBtnText}>Remove unavailable</Text>
+                </TouchableOpacity>
+              ) : !storeClosed && (
+                <TouchableOpacity style={[s.bannerBtn, { alignSelf: 'flex-start' }]} onPress={refresh}>
+                  <Text style={s.bannerBtnText}>Try again</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ) : null}
+          <Text style={{ fontSize: 12, color: txtSec, fontWeight: '700', marginTop: 4 }}>{feeNote}</Text>
+          <ActionPressable
+            style={[s.groupCheckoutBtn, { backgroundColor: COLORS.red }, blocked && { opacity: 0.55 }]}
+            disabled={blocked}
+            accessibilityRole="button"
+            accessibilityLabel={label}
+            onPress={onCheckout}
+            sound="click"
+          >
+            <Text style={s.checkoutText} numberOfLines={1}>{label}</Text>
+          </ActionPressable>
+        </View>
+      </View>
+    </StaggeredSection>
   );
 }
 
@@ -709,6 +875,7 @@ const s = StyleSheet.create({
     ...SHADOWS.redGlow,
   },
   checkoutText: { fontSize: 14, fontWeight: '900', color: '#fff', letterSpacing: 0.3 },
+  groupCheckoutBtn: { marginTop: 12, paddingVertical: 14, paddingHorizontal: 12, borderRadius: 14, alignItems: 'center', ...SHADOWS.redGlow },
   multiRestBanner: {
     flexDirection: 'row',
     alignItems: 'center',

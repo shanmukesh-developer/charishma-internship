@@ -1,6 +1,6 @@
 // Store-accept timeout: an order the store never accepts is cancelled after STORE_ACCEPT_TIMEOUT_MIN
-// (default 7, the older PENDING_ORDER_TIMEOUT_MINUTES still read), a Wallet payment comes back through
-// the ledger, and the customer gets "The store didn't respond…" (push + in-app list). The rider timeout
+// (default 60 since 5 Nov 2026, was 7; the older PENDING_ORDER_TIMEOUT_MINUTES still read), a Wallet payment comes
+// back through the ledger, and the customer gets "Order cancelled / We're sorry…" (push + in-app list). The rider timeout
 // is unchanged. GET /api/orders/serviceability reports the window for the tracking screen.
 const { test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
@@ -27,31 +27,32 @@ const backdate = async (orderId, minutes) => {
 };
 const pushesFor = (orderId) => H.ctx.pushes.filter((p) => p.data && String(p.data.orderId) === String(orderId));
 
-test('timeout setting: default 7, new env wins, legacy env still read, clamped to 3..60', () => {
-  assert.equal(storeAcceptTimeoutMinutes({}), 7);
+test('timeout setting: default 60, new env wins, legacy env still read, clamped to 3..120', () => {
+  assert.equal(storeAcceptTimeoutMinutes({}), 60);
   assert.equal(storeAcceptTimeoutMinutes({ STORE_ACCEPT_TIMEOUT_MIN: '5' }), 5);
   assert.equal(storeAcceptTimeoutMinutes({ PENDING_ORDER_TIMEOUT_MINUTES: '15' }), 15);
   assert.equal(storeAcceptTimeoutMinutes({ STORE_ACCEPT_TIMEOUT_MIN: '9', PENDING_ORDER_TIMEOUT_MINUTES: '15' }), 9);
   assert.equal(storeAcceptTimeoutMinutes({ STORE_ACCEPT_TIMEOUT_MIN: '1' }), 3);
-  assert.equal(storeAcceptTimeoutMinutes({ STORE_ACCEPT_TIMEOUT_MIN: '500' }), 60);
-  assert.equal(storeAcceptTimeoutMinutes({ STORE_ACCEPT_TIMEOUT_MIN: 'abc' }), 7);
+  assert.equal(storeAcceptTimeoutMinutes({ STORE_ACCEPT_TIMEOUT_MIN: '500' }), 120);
+  assert.equal(storeAcceptTimeoutMinutes({ STORE_ACCEPT_TIMEOUT_MIN: 'abc' }), 60);
 });
 
-test('COD order the store ignores: kept at 6 min, cancelled after 7 min, "Nothing was charged."', async () => {
+test('COD order the store ignores: kept at 59 min, cancelled at 61 min, apology message', async () => {
   const { item } = await H.mkStore({ price: 110 });
   const u = await H.mkUser();
   const order = await H.placeOrder({ item, user: u, method: 'COD' });
   assert.equal(order.status, 'Pending');
-  await backdate(order.id, 6);
+  await backdate(order.id, 59);
   await autoCancelStalePendingOrders(fakeIo);
   assert.equal((await H.ctx.M('Order').findByPk(order.id)).status, 'Pending');
-  await backdate(order.id, 8);
+  assert.equal(pushesFor(order.id).filter((x) => x.title === 'Order cancelled').length, 0);
+  await backdate(order.id, 61);
   await autoCancelStalePendingOrders(fakeIo);
   assert.equal((await H.ctx.M('Order').findByPk(order.id)).status, 'Cancelled');
-  const p = pushesFor(order.id).find((x) => /didn't respond/.test(x.body));
+  const p = pushesFor(order.id).find((x) => /We're sorry/.test(x.body));
   assert.ok(p, JSON.stringify(pushesFor(order.id)));
-  assert.equal(p.body, "The store didn't respond, so your order was cancelled. Nothing was charged.");
-  assert.equal(p.title, "The store didn't respond");
+  assert.equal(p.body, "We're sorry, we couldn't get this order placed because the restaurant didn't confirm it. Any amount paid has been refunded.");
+  assert.equal(p.title, 'Order cancelled');
 });
 
 test('Wallet order: refunded through the ledger and the message says so', async () => {
@@ -62,7 +63,7 @@ test('Wallet order: refunded through the ledger and the message says so', async 
   assert.ok(paid > 0);
   const afterPay = Number((await H.ctx.M('User').findByPk(u.id)).walletBalance);
   assert.ok(Math.abs(afterPay - (500 - paid)) < 0.01, `${afterPay} vs ${500 - paid}`);
-  await backdate(order.id, 8);
+  await backdate(order.id, 61);
   await autoCancelStalePendingOrders(fakeIo);
   assert.equal((await H.ctx.M('Order').findByPk(order.id)).status, 'Cancelled');
   const balance = Number((await H.ctx.M('User').findByPk(u.id)).walletBalance);
@@ -71,8 +72,9 @@ test('Wallet order: refunded through the ledger and the message says so', async 
   const refund = rows.find((t) => Number(t.amountPaise) > 0 && String(t.refId || '') === String(order.id));
   assert.ok(refund, JSON.stringify(rows.map((t) => [t.type, t.amountPaise, t.refId])));
   assert.equal(Number(refund.amountPaise), Math.round(paid * 100));
-  const p = pushesFor(order.id).find((x) => /didn't respond/.test(x.body));
+  const p = pushesFor(order.id).find((x) => /We're sorry/.test(x.body));
   assert.ok(p && /is back in your Wallet\.$/.test(p.body), p && p.body);
+  assert.equal(p.title, 'Order cancelled');
 });
 
 test('STORE_ACCEPT_TIMEOUT_MIN=10 keeps an 8-minute-old order; accepted orders are never store-timed out', async () => {

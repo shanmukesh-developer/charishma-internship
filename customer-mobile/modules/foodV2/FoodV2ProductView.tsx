@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { rankRelated } from '../../utils/relatedItems';
 import { View, Text, ScrollView, Platform, useWindowDimensions, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -185,11 +186,8 @@ export default function FoodV2ProductView(p: Props) {
     ? `The ${SELLER_LABEL.toLowerCase()} is closed now.${opensAt ? ` Opens ${opensAt}.` : ''} You can add this once it opens.`
     : p.unavailableReason;
   // You may also like: same category first, then the rest of the store.
-  const related = useMemo(() => {
-    const cat = String(product.category || '').toLowerCase();
-    const same = (r: any) => (cat && String(r.category || '').toLowerCase() === cat ? 1 : 0);
-    return [...p.moreItems].map((r, i) => ({ r, i })).sort((a, b) => same(b.r) - same(a.r) || a.i - b.i).map(x => x.r);
-  }, [p.moreItems, product.category]);
+  // Ranked by how related each item is to this one (utils/relatedItems); unrelated items are left out.
+  const related = useMemo(() => rankRelated(product, p.moreItems, { max: 10 }), [p.moreItems, product]);
   const isFood = String(product.vendorType || '').toUpperCase() === 'GROCERY' && !NON_FOOD.test(String(product.category || ''));
   const specs = product.specs && typeof product.specs === 'object' ? product.specs : {};
 

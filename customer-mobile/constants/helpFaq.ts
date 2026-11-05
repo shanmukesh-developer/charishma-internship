@@ -2,8 +2,8 @@
 // works today. Plain sentence case, no emoji, no exclamation marks.
 // Facts used below: food and grocery orders are delivered in 3 daily IST slots (12:30–1:00 PM, 4:30–5:30 PM,
 // 8:30–9:30 PM; booking closes 1 h before, cakes 2 h); Cash on delivery and Zenvy Wallet only;
-// stores have 7 minutes to accept; customer cancel while Pending or within 2 minutes while the store
-// has it; refunds go to the Zenvy Wallet; delivery PIN at handover.
+// stores have 1 hour to accept; customer cancel until the store accepts (buy-at-store shops: until a rider
+// takes it); refunds go to the Zenvy Wallet; delivery PIN at handover.
 
 export type FaqItem = { q: string; a: string };
 export type FaqSection = { title: string; items: FaqItem[] };
@@ -18,7 +18,7 @@ export const HELP_FAQ: FaqSection[] = [
       },
       {
         q: 'What happens after I place an order?',
-        a: 'The store gets 7 minutes to accept it. If it does not, the order is cancelled automatically and anything you paid from your Wallet goes back to your Wallet.',
+        a: 'The restaurant gets up to an hour to confirm it. If it does not, the order is cancelled automatically and anything you paid from your Wallet goes back to your Wallet.',
       },
       {
         q: 'How do I follow my order?',
@@ -57,7 +57,7 @@ export const HELP_FAQ: FaqSection[] = [
     items: [
       {
         q: 'Can I cancel an order?',
-        a: 'Yes, while the store has not accepted it yet, or within 2 minutes of placing it while the store is preparing it. Once a rider is on the way it can no longer be cancelled. Contact support from the order page if something is wrong.',
+        a: 'Yes, any time until the restaurant accepts it. For shops where our delivery partner buys your items at the counter, you can cancel until a delivery partner takes the order. After that it can no longer be cancelled in the app. Contact support from the order page if something is wrong.',
       },
       {
         q: 'How do refunds work?',

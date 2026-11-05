@@ -145,7 +145,6 @@ export default function TrackingScreen() {
   const [isConnected, setIsConnected] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [gateNotification, setGateNotification] = useState<string | null>(null);
-  const [cancelSecondsLeft, setCancelSecondsLeft] = useState(0);
   const [zoomPin, setZoomPin] = useState(false);
   // Rider's live GPS position, relayed by the server to this order's room ('riderLocation').
   const [riderFix, setRiderFix] = useState<RiderFix | null>(null);
@@ -301,7 +300,6 @@ export default function TrackingScreen() {
 
       if (data.createdAt) {
         const elapsed = (Date.now() - new Date(data.createdAt).getTime()) / 1000;
-        setCancelSecondsLeft(Math.max(0, 120 - Math.round(elapsed)));
         if (data.status === 'Pending' && elapsed < 30 && !confettiShownRef.current) {
           confettiShownRef.current = true;
           setShowConfetti(true);
@@ -441,20 +439,18 @@ export default function TrackingScreen() {
     return () => clearInterval(t);
   }, [riderFix]);
 
-  // Countdown for the 2-minute cancel window
-  useEffect(() => {
-    if (cancelSecondsLeft <= 0) return;
-    const t = setTimeout(() => setCancelSecondsLeft(p => Math.max(0, p - 1)), 1000);
-    return () => clearTimeout(t);
-  }, [cancelSecondsLeft]);
-
-  // Customers can cancel while the store has not accepted yet, or within 2 minutes of placing it (before pickup).
-  // Same rule as the server: Pending, or Accepted / Preparing within the window (not ready for pickup / picking).
+  // Owner, 5 Nov 2026 (server customerCancelRule): a store with a partner login can be cancelled until it accepts the
+  // order (Pending); a buy-at-store shop (the rider buys at the counter) until a delivery partner takes it. No timed
+  // window. The server sends canCancel on the order; a live status change hides the button until the order is read
+  // again (fetchOrder runs on every status event), so the app never offers a cancel the server would refuse.
   const liveStatus = orderInfo?.status;
-  // Also not once a rider has claimed it: the server refuses then (buy-at-store shops start at Accepted and go
-  // straight to riders, so the 2-minute window often still runs with a rider assigned).
-  const canCancel = !orderInfo?.deliveryPartner && (status === 1 ||
-    (cancelSecondsLeft > 0 && (status === 2 || status === 3) && (liveStatus === 'Accepted' || liveStatus === 'Preparing')));
+  const hasRider = !!(orderInfo?.deliveryPartner || (orderInfo as any)?.deliveryPartnerId);
+  const buyAtStore = (orderInfo as any)?.storePaidByRider === true;
+  const localCanCancel = !hasRider && (buyAtStore
+    ? ['Pending', 'Accepted', 'Preparing', 'ReadyForPickup'].includes(String(liveStatus))
+    : liveStatus === 'Pending');
+  const serverCanCancel = typeof (orderInfo as any)?.canCancel === 'boolean' ? (orderInfo as any).canCancel as boolean : localCanCancel;
+  const canCancel = !!orderInfo && serverCanCancel && statusToStep(liveStatus, status) === status && status >= 1;
 
   // Cancel order handler
   const handleCancelOrder = async () => {
@@ -1057,12 +1053,12 @@ export default function TrackingScreen() {
           </View>
         )}
 
-        {/* ── CANCEL (Pending, or within 2 minutes of placing) ── */}
+        {/* ── CANCEL (until the store accepts; buy-at-store shops: until a rider takes it) ── */}
         {canCancel && (
           <StaggeredSection delay={260} direction="up">
             <TouchableOpacity style={s.cancelBox} onPress={() => setShowCancelConfirmation(true)} disabled={cancelling} accessibilityRole="button">
               <Text style={s.cancelBoxText}>
-                {status === 1 ? 'Cancel for free' : `Cancel order${cancelSecondsLeft > 0 ? ` (${cancelSecondsLeft}s)` : ''}`}
+                {status === 1 ? 'Cancel for free' : 'Cancel order'}
               </Text>
             </TouchableOpacity>
           </StaggeredSection>

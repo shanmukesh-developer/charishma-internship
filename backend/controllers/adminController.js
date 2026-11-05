@@ -1609,7 +1609,7 @@ exports.getFinanceReport = async (req, res) => {
 
     const allDelivered = await Order.findAll({
       where: { status: 'Delivered' },
-      attributes: ['totalPrice', 'finalPrice', 'restaurantId', 'deliveryFee', 'fulfilment', 'deliveryPartnerId', 'commissionAmountPaise'],
+      attributes: ['totalPrice', 'finalPrice', 'restaurantId', 'deliveryFee', 'platformFee', 'fulfilment', 'deliveryPartnerId', 'commissionAmountPaise'],
       raw: true,
     });
     const restaurants = await Restaurant.findAll({ attributes: ['id', 'name', 'commissionRate', 'commissionType'], raw: true });
@@ -1634,10 +1634,11 @@ exports.getFinanceReport = async (req, res) => {
     }
     const totalRevenue = allDelivered.reduce((s, o) => s + orderAmount(o), 0);
     const totalDeliveryFees = allDelivered.reduce((s, o) => s + (Number(o.deliveryFee) || 0), 0);
+    const totalPlatformFees = allDelivered.reduce((s, o) => s + (Number(o.platformFee) || 0), 0);
 
     const { count, rows: orders } = await Order.findAndCountAll({
       where: { status: 'Delivered' },
-      attributes: ['id', 'restaurantId', 'totalPrice', 'finalPrice', 'deliveryFee', 'createdAt', 'commissionAmountPaise', 'commissionRate', 'commissionType'],
+      attributes: ['id', 'restaurantId', 'totalPrice', 'finalPrice', 'deliveryFee', 'platformFee', 'createdAt', 'commissionAmountPaise', 'commissionRate', 'commissionType'],
       order: [['createdAt', 'DESC']],
       limit: lim,
       offset,
@@ -1657,6 +1658,7 @@ exports.getFinanceReport = async (req, res) => {
         commissionType: order.commissionType ?? null,
         commissionEstimated: c.estimated,
         deliveryFee: Number(order.deliveryFee) || 0,
+        platformFee: Number(order.platformFee) || 0,
         timestamp: order.createdAt
       };
     });
@@ -1668,6 +1670,7 @@ exports.getFinanceReport = async (req, res) => {
       totalCommissionPaise: commissionPaise,
       commissionEstimatedOrders: estimatedCount,
       totalDeliveryFees: Math.round(totalDeliveryFees),
+      totalPlatformFees: Math.round(totalPlatformFees),
       totalRiderEarnings: Math.round(riderEarningsPaise / 100),
       total: count,
       pages: Math.ceil(count / lim)

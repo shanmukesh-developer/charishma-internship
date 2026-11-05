@@ -159,6 +159,7 @@ const buildReceipt = (order, { customerName = null } = {}) => {
   const itemsSubtotal = billApproved ? money(o.billAmount) : money(has('subtotal') ? pb.subtotal : o.totalPrice);
   const deliveryFee = money(has('deliveryFee') ? pb.deliveryFee : o.deliveryFee);
   const packagingFee = money(has('packagingFee') ? pb.packagingFee : 0);
+  const platformFee = money(has('platformFee') ? pb.platformFee : (Number(o.platformFee) || 0));
   const taxesCharged = money(has('taxes') ? pb.taxes : 0);
   let discounts;
   if (Array.isArray(pb.discounts)) {
@@ -171,7 +172,7 @@ const buildReceipt = (order, { customerName = null } = {}) => {
   }
   const totalDiscount = money(has('totalDiscount') ? pb.totalDiscount : discounts.reduce((s, d) => s + d.amount, 0));
   const total = money(o.finalPrice);
-  const adjustment = money(total - (itemsSubtotal + deliveryFee + packagingFee + taxesCharged - totalDiscount));
+  const adjustment = money(total - (itemsSubtotal + deliveryFee + platformFee + packagingFee + taxesCharged - totalDiscount));
   const method = o.paymentMethod || null;
   const paid = {
     wallet: method === 'Wallet' ? total : 0,
@@ -220,7 +221,7 @@ const buildReceipt = (order, { customerName = null } = {}) => {
     items: itemLines(o.items),
     itemsBasis: billApproved ? 'SHOP_BILL' : 'MENU',
     amounts: {
-      itemsSubtotal, packagingFee, deliveryFee, taxesCharged, discounts, totalDiscount,
+      itemsSubtotal, packagingFee, deliveryFee, platformFee, taxesCharged, discounts, totalDiscount,
       ...(Math.abs(adjustment) >= 0.01 ? { adjustment } : {}),
       total,
     },
@@ -319,6 +320,7 @@ const renderHtml = (rc) => {
     [rc.itemsBasis === 'SHOP_BILL' ? 'Items (as per shop bill)' : 'Items total', a.itemsSubtotal],
     ...(a.packagingFee ? [['Packaging fee', a.packagingFee]] : []),
     ...(rc.fulfilment === 'VENDOR' && !a.deliveryFee ? [] : [['Delivery fee', a.deliveryFee]]),
+    ...(a.platformFee ? [['Platform fee', a.platformFee]] : []),
     ...(a.taxesCharged ? [['Taxes', a.taxesCharged]] : []),
     ...a.discounts.map((d) => [d.label, -d.amount]),
     ...(a.adjustment ? [['Other adjustment', a.adjustment]] : []),

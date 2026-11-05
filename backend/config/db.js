@@ -592,7 +592,8 @@ const connectDB = async () => {
           { name: 'outForDeliveryAt', type: 'DATETIME' },
           { name: 'refundedAt', type: 'DATETIME' },
           { name: 'stuckFlaggedAt', type: 'DATETIME' },
-          { name: 'cancelledBy', type: 'VARCHAR(16)' }
+          { name: 'cancelledBy', type: 'VARCHAR(16)' },
+          { name: 'platformFee', type: 'FLOAT DEFAULT 0' }
         ];
         for (const col of orderCols) {
           try {
@@ -843,6 +844,8 @@ const connectDB = async () => {
         // 2026-10-27 rider jobs (utils/riderJobs): when riders were told about a shopping list.
         ['MegaBaskets', 'slotDispatchedAt', 'TIMESTAMP WITH TIME ZONE'],
         ['MenuItems', 'isSpecializedCake', 'BOOLEAN DEFAULT false'],
+        // 2026-11-05 platform fee per order (utils/orderPricing). Nullable, default 0: older rows read as no fee.
+        ['Orders', 'platformFee', 'DOUBLE PRECISION DEFAULT 0'],
       ];
       for (const [table, col, type] of pgNewCols) {
         try {

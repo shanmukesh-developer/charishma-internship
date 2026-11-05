@@ -162,6 +162,12 @@ const sweepIdempotencyKeys = () => {
   for (const [k, v] of recentOrderKeys) if (now - v.at > IDEMPOTENCY_TTL_MS) recentOrderKeys.delete(k);
 };
 
+// Platform fee stored on an order: the priceBreakdown copy, else the column, else 0 (orders before 5 Nov 2026).
+const platformFeeOf = (o, pb) => {
+  const v = pb && pb.platformFee != null ? Number(pb.platformFee) : Number(o && o.platformFee);
+  return Number.isFinite(v) && v > 0 ? v : 0;
+};
+
 const sendPricingError = (res, err) => res.status(err.status || 400).json(err.toBody());
 
 // @desc    Price a basket without placing it (the bill the customer sees = the bill we charge)
@@ -452,12 +458,14 @@ const createOrder = async (req, res) => {
           items: quote.lines,
           totalPrice: quote.subtotal,
           deliveryFee: quote.deliveryFee,
+          platformFee: quote.platformFee || 0,
           batchDiscount: quote.batchDiscount,
           gateDiscount: quote.perkDiscount, // badge / ZenPoints perks
           finalPrice: quote.finalPrice,
           priceBreakdown: {
             subtotal: quote.subtotal,
             deliveryFee: quote.deliveryFee,
+            platformFee: quote.platformFee || 0,
             packagingFee: quote.packagingFee,
             taxes: quote.taxes,
             discounts: quote.discounts,
@@ -578,6 +586,7 @@ const createOrder = async (req, res) => {
       createdAt: createdOrder.createdAt,
       finalPrice: createdOrder.finalPrice,
       deliveryFee: createdOrder.deliveryFee,
+      platformFee: Number(createdOrder.platformFee) || 0,
       paymentMethod: createdOrder.paymentMethod,
       paymentStatus: createdOrder.paymentStatus,
       deliveryAddress: createdOrder.deliveryAddress,
@@ -822,6 +831,7 @@ const getOrderById = async (req, res) => {
     }
 
     orderData.storeAcceptBy = storeAcceptBy(orderData);
+    orderData.canCancel = customerCancelRule(orderData).canCancel;
     await signOrderMedia(req, orderData);
     res.json({ ...orderData, _id: order.id });
   } catch (error) {
@@ -833,7 +843,7 @@ const getOrderById = async (req, res) => {
 // Fields the customer app reads from GET /api/orders/myorders (orders tab, checkout duplicate
 // guard via idempotencyKey, review-store picker). Everything else stays server-side.
 const MY_ORDER_FIELDS = [
-  'id', 'restaurantId', 'restaurant', 'items', 'totalPrice', 'deliveryFee', 'batchDiscount', 'gateDiscount',
+  'id', 'restaurantId', 'restaurant', 'items', 'totalPrice', 'deliveryFee', 'platformFee', 'batchDiscount', 'gateDiscount',
   'finalPrice', 'priceBreakdown', 'status', 'cancellationReason', 'paymentStatus', 'paymentMethod',
   'deliverySlot', 'deliveryAddress', 'deliveryInstructions', 'distance', 'deliveredAt', 'estDuration',
   'acceptedAt', 'readyAt', 'fulfilment', 'outForDeliveryAt', 'idempotencyKey', 'dropLat', 'dropLng',
@@ -843,6 +853,23 @@ const MY_ORDER_FIELDS = [
   // Delivery slot window (utils/deliverySlots); deliverySlot above holds its label.
   'slotStart', 'slotEnd',
 ];
+// Customer self-cancel (owner, 5 Nov 2026). Stores with a partner login: only while Pending (until the store
+// accepts). Buy-at-store shops (storePaidByRider: no partner login, the order starts Accepted and the rider buys
+// at the counter): until a delivery partner takes it. Never once a rider is on the order. The order JSON carries
+// canCancel from this, so the app shows "Cancel order" exactly when the server allows it.
+const CANCEL_ACCEPTED_MESSAGE = "The restaurant has accepted your order, so it can't be cancelled now. Need help? Contact support from the order page.";
+const CANCEL_RIDER_MESSAGE = 'A delivery partner is already on this order, so it can no longer be cancelled. Need help? Contact support from the order page.';
+const BUY_AT_STORE_CANCELLABLE = ['Pending', 'Accepted', 'Preparing', 'ReadyForPickup'];
+const customerCancelRule = (o) => {
+  const status = o && o.status;
+  if (!o || status === 'Cancelled' || status === 'Delivered') return { canCancel: false, statuses: [], message: 'This order can no longer be cancelled.' };
+  const buyAtStore = o.storePaidByRider === true || o.storePaidByRider === 1;
+  const statuses = buyAtStore ? BUY_AT_STORE_CANCELLABLE : ['Pending'];
+  if (o.deliveryPartnerId) return { canCancel: false, statuses, message: CANCEL_RIDER_MESSAGE };
+  if (!statuses.includes(status)) return { canCancel: false, statuses, message: buyAtStore ? CANCEL_RIDER_MESSAGE : CANCEL_ACCEPTED_MESSAGE };
+  return { canCancel: true, statuses, message: null };
+};
+
 // When the store must have accepted a Pending order (slot orders: counted from an hour before the slot,
 // so a night order for tomorrow is not cancelled at night). Null once the order is past Pending.
 const storeAcceptBy = (o) => {
@@ -865,6 +892,7 @@ function customerOrderJson(o) {
     ...out,
     _id: json.id,
     storeAcceptBy: storeAcceptBy(json),
+    canCancel: customerCancelRule(json).canCancel,
     restaurantName: json.restaurant ? json.restaurant.name : null,
     restaurantImage: json.restaurant ? json.restaurant.imageUrl : null
   };
@@ -874,6 +902,7 @@ function ownerOrderJson(order) {
   const j = order && typeof order.toJSON === 'function' ? order.toJSON() : { ...(order || {}) };
   for (const k of ORDER_INTERNAL_FIELDS) delete j[k];
   j.storeAcceptBy = storeAcceptBy(j);
+  j.canCancel = customerCancelRule(j).canCancel;
   return j;
 }
 
@@ -1256,7 +1285,9 @@ const cancelAndRefund = async (order, { reason = null, onlyFromStatuses = null, 
 const { storeAcceptTimeoutMinutes } = require('../utils/orderTimeouts');
 const UNCLAIMED_TIMEOUT_MINUTES = Math.max(10, parseInt(process.env.UNCLAIMED_ORDER_TIMEOUT_MINUTES, 10) || 30);
 const UNCLAIMED_STATUSES = ['Accepted', 'Preparing', 'ReadyForPickup'];
-const STORE_TIMEOUT_TEXT = "The store didn't respond, so your order was cancelled.";
+// Owner, 5 Nov 2026: "we are sorry we unable to reach this order due to restaurant management".
+const STORE_TIMEOUT_TITLE = 'Order cancelled';
+const STORE_TIMEOUT_TEXT = "We're sorry, we couldn't get this order placed because the restaurant didn't confirm it. Any amount paid has been refunded.";
 // The "no rider" clock starts when the food can actually go: the later of acceptance + the store's own prep
 // estimate (capped at 4 h) and the moment it was marked ready. A 40-minute dish used to be cancelled and
 // refunded at 30 minutes while it was still cooking, because riders wait until an order is nearly ready.
@@ -1390,10 +1421,12 @@ const autoCancelStalePendingOrders = async (io) => {
         if (customer) {
           await sendPushToTokens(
             customer.fcmTokens,
-            code === 'STORE_TIMEOUT' ? "The store didn't respond" : 'Order cancelled',
-            refunded > 0
-              ? `${text} ₹${refunded} is back in your Wallet.`
-              : `${text} Nothing was charged.`,
+            code === 'STORE_TIMEOUT' ? STORE_TIMEOUT_TITLE : 'Order cancelled',
+            code === 'STORE_TIMEOUT'
+              ? (refunded > 0 ? `${text} ₹${refunded} is back in your Wallet.` : text)
+              : refunded > 0
+                ? `${text} ₹${refunded} is back in your Wallet.`
+                : `${text} Nothing was charged.`,
             { orderId: order.id, type: 'ORDER_UPDATE' },
             { recipients: [customer.id] }
           );
@@ -1550,40 +1583,25 @@ const cancelOrder = async (req, res) => {
     if (order.status === 'Delivered') {
       return res.status(400).json({ message: 'This order has already been delivered. Need help? Contact support from the order page.', code: 'ALREADY_DELIVERED' });
     }
-    // Customers can cancel while the order is Pending, or within 2 minutes of placing it while it is
-    // still at the store (never once a rider is picking it up or carrying it). Orders no rider
-    // claims are cancelled and refunded by autoCancelStalePendingOrders.
-    const OWNER_CANCELLABLE = ['Pending', 'Accepted', 'Preparing'];
-    if (isOwner && !isAdmin && order.status !== 'Pending') {
-      const elapsed = (Date.now() - new Date(order.createdAt).getTime()) / 1000;
-      if (!OWNER_CANCELLABLE.includes(order.status) || elapsed > 120) {
-        return res.status(400).json({ message: 'The store has already started on this order, so it can no longer be cancelled. Need help? Contact support from the order page.', code: 'CANCEL_WINDOW_CLOSED' });
-      }
+    // Owner, 5 Nov 2026 (customerCancelRule): a store with a partner login: until the store accepts (Pending), never
+    // after. A buy-at-store shop (no partner login, the rider buys at the counter; these start Accepted): until a
+    // delivery partner takes the order. No timed grace window any more.
+    const ownerCancel = isOwner && !isAdmin;
+    const rule = customerCancelRule(order);
+    if (ownerCancel && !rule.canCancel) {
+      return res.status(400).json({ message: rule.message, code: 'CANCEL_WINDOW_CLOSED' });
     }
 
     const reason = typeof (req.body || {}).reason === 'string' ? req.body.reason.replace(/[<>]/g, '').slice(0, 250) : null;
-    // The status guard is part of the conditional update, so a pickup that lands between our read
-    // and the cancel wins (the customer cannot cancel food the rider is already carrying).
-    const ownerCancel = isOwner && !isAdmin;
-    if (ownerCancel && order.deliveryPartnerId) {
-      // A rider holds the order (for buy-at-store shops they may already have paid at the counter):
-      // only support can cancel now (B13).
-      return res.status(400).json({ message: 'A delivery partner is already on this order, so it can no longer be cancelled. Need help? Contact support from the order page.', code: 'CANCEL_WINDOW_CLOSED' });
-    }
-    // Owner rules are re-checked inside the conditional update (B13/B24): still unclaimed, and either
-    // Pending or within 2 minutes of placing, judged at write time (not on the row read above).
-    const ownerWhere = ownerCancel ? {
-      [Op.or]: [
-        { status: 'Pending' },
-        { createdAt: { [Op.gte]: new Date(Date.now() - 120 * 1000) } },
-      ],
-    } : null;
-    const { cancelled, refunded } = await cancelAndRefund(order, { reason, by: ownerCancel ? 'customer' : 'support', ...(ownerCancel ? { onlyFromStatuses: OWNER_CANCELLABLE, requireUnclaimed: true, extraWhere: ownerWhere } : {}) });
+    // The status + rider guards are part of the conditional update, so an accept / rider claim that lands
+    // between our read and the cancel wins.
+    const { cancelled, refunded } = await cancelAndRefund(order, { reason, by: ownerCancel ? 'customer' : 'support', ...(ownerCancel ? { onlyFromStatuses: rule.statuses, requireUnclaimed: true } : {}) });
 
     if (!cancelled) {
-      const fresh = await Order.findByPk(order.id, { attributes: ['id', 'status'] });
+      const fresh = await Order.findByPk(order.id, { attributes: ['id', 'status', 'deliveryPartnerId', 'storePaidByRider', 'fulfilment'] });
       if (fresh && fresh.status !== 'Cancelled') {
-        return res.status(400).json({ message: 'Your order is already on its way, so it can no longer be cancelled. Need help? Contact support from the order page.', code: 'CANCEL_WINDOW_CLOSED' });
+        const now = customerCancelRule(fresh);
+        return res.status(400).json({ message: now.canCancel ? 'Your order is already on its way, so it can no longer be cancelled. Need help? Contact support from the order page.' : now.message, code: 'CANCEL_WINDOW_CLOSED' });
       }
       return res.status(400).json({ message: 'This order is already cancelled.', code: 'ALREADY_CANCELLED' });
     }
@@ -2389,7 +2407,7 @@ const approveBill = async (req, res) => {
         pb = pb && typeof pb === 'object' ? pb : {};
         const legacyDiscount = Number(fresh.batchDiscount || 0) + Number(fresh.gateDiscount || 0);
         const totalDiscount = Number.isFinite(Number(pb.totalDiscount)) && pb.totalDiscount != null ? Number(pb.totalDiscount) : legacyDiscount;
-        newFinal = money(Math.max(0, Number(fresh.billAmount) + Number(fresh.deliveryFee || 0) + Number(pb.packagingFee || 0) + Number(pb.taxes || 0) - totalDiscount));
+        newFinal = money(Math.max(0, Number(fresh.billAmount) + Number(fresh.deliveryFee || 0) + platformFeeOf(fresh, pb) + Number(pb.packagingFee || 0) + Number(pb.taxes || 0) - totalDiscount));
         diff = money(newFinal - Number(fresh.finalPrice || 0));
         const [n] = await Order.update(
           { isBillApproved: true, finalPrice: newFinal },
@@ -2427,4 +2445,4 @@ const approveBill = async (req, res) => {
   }
 };
 
-module.exports = { pushCustomer, pushStoreCancelled, customerOrderJson, restaurantUpdateOrderStatus, autoCancelStalePendingOrders, escalateUnclaimedOrders, unclaimedClockStart, releaseStalledRiderClaims, releaseDueSlotOrders, cancelAndRefund, createOrder, quoteOrder, getServiceability, getDeliverySlots, getOrderById, getMyOrders, rateOrder, getAllOrders, cancelOrder, updateOrderStatus, getSurgeStatus, restaurantAcceptOrder, verifyUPIPayment, restaurantReadyOrder, getOrderStats, uploadItemPhoto, approvePurchase, uploadBillProof, approveBill };
+module.exports = { customerCancelRule, pushCustomer, pushStoreCancelled, customerOrderJson, restaurantUpdateOrderStatus, autoCancelStalePendingOrders, escalateUnclaimedOrders, unclaimedClockStart, releaseStalledRiderClaims, releaseDueSlotOrders, cancelAndRefund, createOrder, quoteOrder, getServiceability, getDeliverySlots, getOrderById, getMyOrders, rateOrder, getAllOrders, cancelOrder, updateOrderStatus, getSurgeStatus, restaurantAcceptOrder, verifyUPIPayment, restaurantReadyOrder, getOrderStats, uploadItemPhoto, approvePurchase, uploadBillProof, approveBill };

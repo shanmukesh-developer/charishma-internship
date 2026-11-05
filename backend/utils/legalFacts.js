@@ -108,7 +108,8 @@ const gather = async (env = process.env) => {
       pendingTimeoutMin: require('./orderTimeouts').storeAcceptTimeoutMinutes(env),
       unclaimedTimeoutMin: Math.max(10, parseInt(env.UNCLAIMED_ORDER_TIMEOUT_MINUTES, 10) || 30),
       riderPickupTimeoutMin: Math.max(5, parseInt(env.RIDER_PICKUP_TIMEOUT_MIN, 10) || 20),
-      customerCancelSeconds: 120,
+      // Customers cancel until the store accepts (buy-at-store shops: until a rider takes it); no timed window since 5 Nov 2026.
+      customerCancelSeconds: 0,
     },
     walletTransfers: String(env.WALLET_TRANSFERS_ENABLED || '').toLowerCase() === 'true',
     thirdParties: await thirdParties(env),

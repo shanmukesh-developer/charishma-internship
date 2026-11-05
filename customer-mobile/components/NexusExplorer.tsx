@@ -214,8 +214,15 @@ export default function NexusExplorer({ restaurants, activeCategory, onSelectIte
       if (activeSort === 'fastest') {
         return (Number(a.deliveryTime) || 999) - (Number(b.deliveryTime) || 999);
       }
-      // Recommended: the best-rated dishes first, so the top 4 are the ones worth showing.
-      return (Number(b.rating) || 0) - (Number(a.rating) || 0);
+      // Recommended: a real dish of this cuisine first (QA Q25, 5 Nov 2026: "Pizza" led with "Pizza Dosa" from a
+      // dosa place): its section / tag is the cuisine, or its name ends with the cuisine word. Then best-rated.
+      const fit = (it: any) => {
+        const key = String(activeCategory || '').toLowerCase().replace(/s$/, '');
+        const cat = String(it.category || '').toLowerCase();
+        const nm = String(it.cleanName || it.name || '').toLowerCase().trim();
+        return (key && cat.includes(key) ? 2 : 0) + (key && (nm.endsWith(key) || nm.endsWith(key + 's')) ? 1 : 0) + (it.storeOpen ? 0.5 : 0);
+      };
+      return fit(b) - fit(a) || (Number(b.rating) || 0) - (Number(a.rating) || 0);
     });
   }, [restaurants, activeCategory, activeFilter, activeSort, sortValue, isItemAllowed]);
 

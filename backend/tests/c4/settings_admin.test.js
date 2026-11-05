@@ -21,18 +21,19 @@ test('admin only', async () => {
   assert.strictEqual((await put({ businessName: 'X' }, student.token)).status, 403);
 });
 
-test('GET returns defaults (existing operator + contact, empty officer) with a missing-officer warning', async () => {
+test('GET returns defaults (existing operator + contact, operator as grievance officer) with what is still missing', async () => {
   const res = await H.api('GET', '/api/admin/legal-settings', { token: adminU.token });
   assert.strictEqual(res.status, 200);
   const s = res.body.settings;
   assert.strictEqual(s.businessName, 'ZenWe');
   assert.strictEqual(s.operatorName, 'Shanmukesh Kunjam');
   assert.strictEqual(s.contactEmail, 'projectshanmukh@gmail.com');
-  assert.deepStrictEqual(s.grievanceOfficer, { name: '', designation: '', email: '', phone: '', address: '' });
+  assert.deepStrictEqual(s.grievanceOfficer, { name: 'Shanmukesh Kunjam', designation: 'Founder and Grievance Officer', email: 'projectshanmukh@gmail.com', phone: '', address: '' });
   assert.strictEqual(s.registeredAddress, '');
   assert.strictEqual(s.jurisdictionCity, '');
-  assert.strictEqual(res.body.grievanceComplete, false);
-  assert.ok(res.body.missing.includes('grievanceOfficer.name'));
+  assert.strictEqual(res.body.grievanceComplete, true);
+  assert.ok(!res.body.missing.includes('grievanceOfficer.name'));
+  assert.ok(res.body.missing.includes('jurisdictionCity'));
   assert.ok(res.body.pages.terms.endsWith('/legal/terms'));
 });
 
@@ -69,7 +70,7 @@ test('valid update saves, is audited with a diff, clears the warning, and shows 
   assert.strictEqual(res.status, 200, JSON.stringify(res.body));
   assert.strictEqual(res.body.changed, true);
   assert.strictEqual(res.body.grievanceComplete, true);
-  assert.deepStrictEqual(res.body.changes['grievanceOfficer.name'], ['', 'Jane Doe']);
+  assert.deepStrictEqual(res.body.changes['grievanceOfficer.name'], ['Shanmukesh Kunjam', 'Jane Doe']);
   const log = await H.r('models/VerificationLog').getVerificationLogModel().findOne({ where: { action: 'LEGAL_SETTINGS_UPDATED' }, order: [['timestamp', 'DESC']] });
   assert.ok(log, 'audit row');
   assert.strictEqual(log.adminId, String(adminU.id));

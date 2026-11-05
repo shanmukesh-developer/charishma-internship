@@ -43,6 +43,7 @@ const picksText = (c: OrderItem['customizations']): string | null => {
 interface PriceBreakdown {
   subtotal?: number;
   deliveryFee?: number;
+  platformFee?: number;
   packagingFee?: number;
   taxes?: number;
   discounts?: { type: string; label: string; amount: number }[];
@@ -849,6 +850,7 @@ export default function OrdersPage() {
                 <div className="space-y-1 border-t border-line px-3 py-2 text-sm">
                   {breakdown?.subtotal != null && <div className="flex justify-between text-fg-muted"><span>Subtotal</span><span className="tabular-nums">{rupees(breakdown.subtotal)}</span></div>}
                   {breakdown?.deliveryFee != null && <div className="flex justify-between text-fg-muted"><span>Delivery fee</span><span className="tabular-nums">{rupees(breakdown.deliveryFee)}</span></div>}
+                  {!!breakdown?.platformFee && <div className="flex justify-between text-fg-muted"><span>Platform fee</span><span className="tabular-nums">{rupees(breakdown.platformFee)}</span></div>}
                   {!!breakdown?.packagingFee && <div className="flex justify-between text-fg-muted"><span>Packaging</span><span className="tabular-nums">{rupees(breakdown.packagingFee)}</span></div>}
                   {!!breakdown?.taxes && <div className="flex justify-between text-fg-muted"><span>Taxes</span><span className="tabular-nums">{rupees(breakdown.taxes)}</span></div>}
                   {(breakdown?.discounts || []).map((d, i) => (

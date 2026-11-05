@@ -107,14 +107,16 @@ export function FloatingBasketButton({ onPress }: { onPress: () => void }) {
 const s = StyleSheet.create({
   // Owner, 31 Oct 2026: "basket icon is too low, move it up a little" (was bottom 20). The "View basket" bar
   // (floatingCartWrap) moves up by the same 16 so the two stay side by side.
-  fabBtnWrap: { position: 'absolute', bottom: 36, right: 20, width: 54, height: 54, zIndex: 999 },
+  // QA 5 Nov 2026: it covered the category cards and the "open now" chip, so it sits a little closer to the corner
+  // (still above the owner's old 20) and Home's sideways rows end with room to scroll their last card out from under it.
+  fabBtnWrap: { position: 'absolute', bottom: 28, right: 14, width: 54, height: 54, zIndex: 999 },
   fabBtn: { width: 54, height: 54, borderRadius: 27, backgroundColor: COLORS.red, alignItems: 'center', justifyContent: 'center', ...SHADOWS.redGlow },
   fabBadge: { position: 'absolute', top: -3, right: -3, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: COLORS.red, alignItems: 'center', justifyContent: 'center' },
   fabBadgeText: { color: COLORS.red, fontSize: 11, fontWeight: '800' },
 
   floatingCartWrap: {
     position: 'absolute',
-    bottom: 40,
+    bottom: 32,
     left: 16,
     right: 76,
     zIndex: 95,

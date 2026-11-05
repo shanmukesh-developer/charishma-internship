@@ -33,7 +33,7 @@ interface Serviceability {
 /** fetch against the one backend; throws an Error carrying the server's friendly `message`. */
 // Keys the backend actually reads. Everything else in GlobalConfig is stored but not enforced.
 const DELIVERY_FEE_KEY = 'delivery_fee';
-const DEFAULT_DELIVERY_FEE = 30; // backend fallback in utils/orderPricing.js
+const DEFAULT_DELIVERY_FEE = 19; // backend fallback in utils/orderPricing.js
 const MAX_DELIVERY_FEE = 200;
 // Retention windows read by backend/cron/retentionCron.js (whole days, minimum 1).
 const RETENTION = [

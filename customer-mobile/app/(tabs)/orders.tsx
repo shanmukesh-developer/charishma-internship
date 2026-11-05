@@ -990,6 +990,7 @@ export default function OrdersScreen() {
           const showPin = !!o.deliveryPin && PIN_STATUSES.includes(o.status);
           const subtotal = Number(breakdown?.subtotal ?? o.totalPrice ?? 0) || 0;
           const deliveryFee = Number(breakdown?.deliveryFee ?? o.deliveryFee ?? 0) || 0;
+          const platformFee = Number(breakdown?.platformFee ?? o.platformFee ?? 0) || 0;
           const discounts: any[] = Array.isArray(breakdown?.discounts)
             ? breakdown.discounts.filter((d: any) => Number(d?.amount) > 0)
             : [
@@ -1113,6 +1114,12 @@ export default function OrdersScreen() {
                       <View style={st.itemRow}>
                         <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600' }}>Delivery fee</Text>
                         <Text style={{ fontSize: 12, color: txtSec, fontWeight: '700' }}>{formatINR(deliveryFee)}</Text>
+                      </View>
+                    )}
+                    {platformFee > 0 && (
+                      <View style={st.itemRow}>
+                        <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600' }}>Platform fee</Text>
+                        <Text style={{ fontSize: 12, color: txtSec, fontWeight: '700' }}>{formatINR(platformFee)}</Text>
                       </View>
                     )}
                     {discounts.map((d: any, i: number) => (

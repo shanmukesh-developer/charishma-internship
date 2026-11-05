@@ -25,10 +25,13 @@ const initOrderModel = (sequelize) => {
     },
     totalPrice: { type: DataTypes.FLOAT, allowNull: false },
     deliveryFee: { type: DataTypes.FLOAT, allowNull: false },
+    // ZenWe platform fee charged on this order (utils/orderPricing, 5 Nov 2026; 0 on stall orders and on
+    // orders placed before it). Part of finalPrice, so wallet refunds return it with everything else.
+    platformFee: { type: DataTypes.FLOAT, allowNull: true, defaultValue: 0 },
     batchDiscount: { type: DataTypes.FLOAT, defaultValue: 0 },
     gateDiscount: { type: DataTypes.FLOAT, defaultValue: 0 },
     finalPrice: { type: DataTypes.FLOAT, allowNull: false },
-    // Server-computed bill shown to the customer: { subtotal, deliveryFee, packagingFee, taxes, discounts[], totalDiscount, finalPrice, couponCode }
+    // Server-computed bill shown to the customer: { subtotal, deliveryFee, platformFee, packagingFee, taxes, discounts[], totalDiscount, finalPrice, couponCode }
     priceBreakdown: { type: DataTypes.JSON, allowNull: true },
     status: {
       type: DataTypes.STRING,

@@ -121,6 +121,9 @@ test('category-stock: switches only that category of the store\'s own items, Oth
 test('waiting-order reminders: Pending only, at most N per order, gap respected, last minute skipped, can be turned off', async () => {
   const R = H.r('utils/storeOrderReminder');
   R._resetReminders();
+  // Reminder mechanics against a short 7-minute accept window (the default is 60 min since 5 Nov 2026).
+  const prevTimeout = process.env.STORE_ACCEPT_TIMEOUT_MIN;
+  process.env.STORE_ACCEPT_TIMEOUT_MIN = '7';
   const { store } = await H.mkStore();
   const u = await H.mkUser();
   const Order = H.ctx.M('Order');
@@ -176,6 +179,7 @@ test('waiting-order reminders: Pending only, at most N per order, gap respected,
   // The real push path: a store without device tokens is a quiet no-op (never throws).
   R._resetReminders();
   assert.equal(await R.remindPendingStoreOrders({ now }), 1);
+  if (prevTimeout === undefined) delete process.env.STORE_ACCEPT_TIMEOUT_MIN; else process.env.STORE_ACCEPT_TIMEOUT_MIN = prevTimeout;
 });
 
 test('store push carries the per-order tag; the new-order title has no emoji', () => {

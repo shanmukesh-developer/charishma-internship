@@ -70,7 +70,7 @@ export default function LoginScreen() {
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
 
-  const [loginMethod, setLoginMethod] = useState<'password' | 'otp'>('password');
+  const [loginMethod, setLoginMethod] = useState<'password' | 'otp'>('otp');
   const [otp, setOtp] = useState('');
   const [focusedField, setFocusedField] = useState<'phone' | 'password' | 'otp' | null>(null);
 
@@ -372,12 +372,12 @@ export default function LoginScreen() {
                 {error ? <Text style={s.error}>{error}</Text> : null}
 
                 <TouchableOpacity
-                  style={[s.primaryBtn, { backgroundColor: isDark ? COLORS.gold : '#0F172A' }, busy && { opacity: 0.7 }]}
+                  style={[s.primaryBtn, { backgroundColor: COLORS.red }, busy && { opacity: 0.7 }]}
                   onPress={handleSendOtp}
                   disabled={busy}
                   activeOpacity={0.85}
                 >
-                  {busy ? <ActivityIndicator color={isDark ? '#000' : '#FFF'} size="small" /> : <Text style={[s.primaryBtnText, { color: isDark ? '#000' : '#FFF' }]}>Verify Phone</Text>}
+                  {busy ? <ActivityIndicator color={'#FFFFFF'} size="small" /> : <Text style={[s.primaryBtnText, { color: '#FFFFFF' }]}>Verify Phone</Text>}
                 </TouchableOpacity>
 
                 <TouchableOpacity onPress={cancelGoogle} disabled={busy} style={{ alignSelf: 'center', marginTop: 14, padding: 6 }}>
@@ -386,8 +386,9 @@ export default function LoginScreen() {
               </>
             ) : (
               <>
-                <Text style={[s.cardTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>Welcome back</Text>
-                <Text style={[s.cardSubtitle, { color: isDark ? '#94A3B8' : '#64748B' }]}>Sign in to your campus account</Text>
+                {/* QA 5 Nov 2026: opens on One-time code, which also signs new numbers up (handleAuthResult -> /register). */}
+                <Text style={[s.cardTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>Sign in or sign up</Text>
+                <Text style={[s.cardSubtitle, { color: isDark ? '#94A3B8' : '#64748B' }]}>Use your phone number to continue</Text>
 
                 {/* Segmented Method Switcher */}
                 <View style={[s.segmentedContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9', borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0' }]}>
@@ -516,17 +517,17 @@ export default function LoginScreen() {
                     {error ? <Text style={s.error}>{error}</Text> : null}
 
                     <TouchableOpacity
-                      style={[s.primaryBtn, { backgroundColor: isDark ? COLORS.gold : '#0F172A' }, busy && { opacity: 0.7 }]}
+                      style={[s.primaryBtn, { backgroundColor: COLORS.red }, busy && { opacity: 0.7 }]}
                       onPress={handleLogin}
                       disabled={busy}
                       activeOpacity={0.85}
                     >
                       {busy ? (
-                        <ActivityIndicator color={isDark ? '#000000' : '#FFFFFF'} size="small" />
+                        <ActivityIndicator color={'#FFFFFF'} size="small" />
                       ) : (
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                          <Text style={[s.primaryBtnText, { color: isDark ? '#000000' : '#FFFFFF' }]}>Sign In</Text>
-                          <Ionicons name="arrow-forward" size={17} color={isDark ? '#000000' : '#FFFFFF'} />
+                          <Text style={[s.primaryBtnText, { color: '#FFFFFF' }]}>Sign In</Text>
+                          <Ionicons name="arrow-forward" size={17} color={'#FFFFFF'} />
                         </View>
                       )}
                     </TouchableOpacity>
@@ -546,17 +547,17 @@ export default function LoginScreen() {
                         {error ? <Text style={s.error}>{error}</Text> : null}
 
                         <TouchableOpacity
-                          style={[s.primaryBtn, { backgroundColor: isDark ? COLORS.gold : '#0F172A' }, busy && { opacity: 0.7 }]}
+                          style={[s.primaryBtn, { backgroundColor: COLORS.red }, busy && { opacity: 0.7 }]}
                           onPress={handleSendOtp}
                           disabled={busy}
                           activeOpacity={0.85}
                         >
                           {busy ? (
-                            <ActivityIndicator color={isDark ? '#000000' : '#FFFFFF'} size="small" />
+                            <ActivityIndicator color={'#FFFFFF'} size="small" />
                           ) : (
                             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                              <Text style={[s.primaryBtnText, { color: isDark ? '#000000' : '#FFFFFF' }]}>Send verification code</Text>
-                              <Ionicons name="arrow-forward" size={17} color={isDark ? '#000000' : '#FFFFFF'} />
+                              <Text style={[s.primaryBtnText, { color: '#FFFFFF' }]}>Send verification code</Text>
+                              <Ionicons name="arrow-forward" size={17} color={'#FFFFFF'} />
                             </View>
                           )}
                         </TouchableOpacity>
@@ -626,17 +627,17 @@ export default function LoginScreen() {
                         {error ? <Text style={s.error}>{error}</Text> : null}
 
                         <TouchableOpacity
-                          style={[s.primaryBtn, { backgroundColor: isDark ? COLORS.gold : '#0F172A' }, busy && { opacity: 0.7 }]}
+                          style={[s.primaryBtn, { backgroundColor: COLORS.red }, busy && { opacity: 0.7 }]}
                           onPress={handleVerifyOtp}
                           disabled={busy}
                           activeOpacity={0.85}
                         >
                           {busy ? (
-                            <ActivityIndicator color={isDark ? '#000000' : '#FFFFFF'} size="small" />
+                            <ActivityIndicator color={'#FFFFFF'} size="small" />
                           ) : (
                             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                              <Text style={[s.primaryBtnText, { color: isDark ? '#000000' : '#FFFFFF' }]}>Verify & Sign In</Text>
-                              <Ionicons name="checkmark-circle" size={18} color={isDark ? '#000000' : '#FFFFFF'} />
+                              <Text style={[s.primaryBtnText, { color: '#FFFFFF' }]}>Verify & Sign In</Text>
+                              <Ionicons name="checkmark-circle" size={18} color={'#FFFFFF'} />
                             </View>
                           )}
                         </TouchableOpacity>

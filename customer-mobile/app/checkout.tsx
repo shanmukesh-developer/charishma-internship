@@ -26,6 +26,7 @@ import {
   useServiceability,
   useDeliverySlots,
   isCustomRequest,
+  restaurantGroupsOf,
   toOrderLine,
   friendlyNetworkMessage,
   newIdempotencyKey,
@@ -161,11 +162,21 @@ export default function CheckoutScreen() {
   const router = useRouter();
   const { baskets, basketCounts, activeBasket, setActiveBasket, addToCart, setCart, removeItems: removeAnyItems } = useCart();
   // Three checkouts: /checkout?basket=restaurant|store|stall orders only that basket (default: the active one).
-  const { basket: basketParamRaw } = useLocalSearchParams<{ basket?: string | string[] }>();
+  const { basket: basketParamRaw, store: storeParamRaw } = useLocalSearchParams<{ basket?: string | string[]; store?: string | string[] }>();
   const basketParam = Array.isArray(basketParamRaw) ? basketParamRaw[0] : basketParamRaw;
   const basketKind: BasketKind = isBasketKind(basketParam) ? basketParam : activeBasket;
-  const cart = baskets[basketKind];
-  const totalItems = basketCounts[basketKind];
+  // The restaurants basket can hold several restaurants (5 Nov 2026): checkout places ONE restaurant's order
+  // (?store=<id>, default the first restaurant); the other restaurants stay in the basket for their own order.
+  const storeParam = String((Array.isArray(storeParamRaw) ? storeParamRaw[0] : storeParamRaw) || '');
+  const restaurantGroups = useMemo(() => (basketKind === 'restaurant' ? restaurantGroupsOf(baskets.restaurant) : []), [basketKind, baskets.restaurant]);
+  const checkoutStoreId: string | null = basketKind !== 'restaurant' || restaurantGroups.length === 0
+    ? null
+    : (restaurantGroups.find((g) => g.storeId === storeParam) || restaurantGroups[0]).storeId || null;
+  const cart = useMemo(
+    () => (checkoutStoreId ? (restaurantGroups.find((g) => g.storeId === checkoutStoreId)?.lines || []) : baskets[basketKind]),
+    [checkoutStoreId, restaurantGroups, baskets, basketKind]
+  );
+  const totalItems = checkoutStoreId ? cart.reduce((n, l) => n + l.quantity, 0) : basketCounts[basketKind];
   const removeItems = (m: { ids?: string[]; names?: string[] }) => removeAnyItems({ ...m, basket: basketKind });
   useEffect(() => {
     if (activeBasket !== basketKind) setActiveBasket(basketKind);
@@ -252,7 +263,7 @@ export default function CheckoutScreen() {
   const hasOrder = orderLines.length > 0;
   const hasCustom = customLines.length > 0;
 
-  const { quote, loading: quoteLoading, error: quoteError, refresh: refreshQuote } = useBasketQuote(couponCode, !!user, true, basketKind);
+  const { quote, loading: quoteLoading, error: quoteError, refresh: refreshQuote } = useBasketQuote(couponCode, !!user, true, basketKind, checkoutStoreId);
   const { serviceability, refresh: refreshServiceability } = useServiceability();
   // CampusBites stall basket: the stall delivers, cash on delivery to the stall, no coupons / add-ons.
   const isStallOrder = hasOrder && (quote ? quote.fulfilment === 'VENDOR' : orderLines.some((i) => i.isStall));
@@ -450,11 +461,14 @@ export default function CheckoutScreen() {
     return () => { cancelled = true; };
   }, [dishTypesKey]);
 
+  // Only the order's own restaurant's items (owner, 5 Nov 2026: "related products are so random"): an extra from
+  // another store would start a second order. No match = no section.
+  const orderStoreId = checkoutStoreId || String(orderLines.find((i) => !i.isAddOn)?.restaurantId || '');
   const suggestions = useMemo(() => {
-    if (isStallOrder) return [];
+    if (isStallOrder || !orderStoreId) return [];
     const inCart = new Set(cart.map((i) => String(i.id)));
-    return extras.filter((e) => !inCart.has(e.id)).slice(0, 8);
-  }, [extras, cart, isStallOrder]);
+    return extras.filter((e) => String(e.restaurantId || '') === orderStoreId && !inCart.has(e.id)).slice(0, 8);
+  }, [extras, cart, isStallOrder, orderStoreId]);
   const addOnLines = useMemo(() => orderLines.filter((i) => i.isAddOn), [orderLines]);
   const removeAddOns = () => {
     const keys = new Set(addOnLines.map((l) => l.cartKey));
@@ -1224,6 +1238,7 @@ export default function CheckoutScreen() {
                         restaurantName: extra.storeName || 'Add-ons',
                         isAddOn: true,
                         basket: basketKind,
+                        ...(checkoutStoreId ? { forStoreId: checkoutStoreId } : {}),
                       });
                       if (added) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
                     }}
@@ -1436,6 +1451,12 @@ export default function CheckoutScreen() {
                     {quote.deliveryFee === 0 ? 'Free' : formatINR(quote.deliveryFee)}
                   </Text>
                 </View>
+                {Number(quote.platformFee) > 0 && (
+                  <View style={s.billRow}>
+                    <Text style={[s.billLabel, { color: txt }]}>Platform fee</Text>
+                    <Text style={[s.billVal, { color: txt }]}>{formatINR(Number(quote.platformFee))}</Text>
+                  </View>
+                )}
                 {quote.packagingFee > 0 && (
                   <View style={s.billRow}>
                     <Text style={[s.billLabel, { color: txt }]}>Packaging</Text>
