@@ -77,14 +77,14 @@ export default function RentalsV2Explore() {
           <Press onPress={nav.back} label="Back" style={x.back}><IArrowLeft size={20} color={DAY.ink} strokeWidth={1.7} /></Press>
           <View style={{ flex: 1, marginLeft: 12 }}>
             <Text style={x.h1} accessibilityRole="header">Rentals</Text>
-            <Text style={x.hey}>Bikes, cars, rooms and flats near campus</Text>
+            <Text style={x.hey}>{near ? `Near ${near.name}` : 'Bikes, cars, rooms and flats near campus'}</Text>
           </View>
         </View>
 
         <View style={[x.search, shadow(1)]}>
           <ISearch size={18} color={DAY.muted} strokeWidth={1.7} />
           <TextInput value={q} onChangeText={(t) => { setQ(t); setSearching(true); }} onFocus={() => setSearching(true)} autoFocus={!!route.focus}
-            onSubmitEditing={() => addRecent(q)} returnKeyType="search" placeholder="Search near SRM University…" placeholderTextColor={DAY.muted}
+            onSubmitEditing={() => addRecent(q)} returnKeyType="search" placeholder={`Search near ${near ? near.name : 'SRM University'}…`} placeholderTextColor={DAY.muted}
             style={x.input} accessibilityLabel="Search rentals" />
           {q ? <Press onPress={() => setQ('')} label="Clear search" style={x.clear}><IX size={16} color={DAY.muted} strokeWidth={1.8} /></Press> : null}
         </View>
@@ -106,9 +106,13 @@ export default function RentalsV2Explore() {
           <View style={{ marginTop: 16, gap: 12 }}>
             <View style={[x.note, shadow(1)]}>
               <IPin size={16} color={DAY.accent} strokeWidth={1.7} />
-              <Text style={x.noteText}>{near.key === 'srm' ? 'Rentals around SRM University AP, closest first.' : `Listings are around SRM AP, ${near.km.toFixed(1)} km from ${near.name}. Closest first.`}</Text>
+              {/* Tester, 5 Nov 2026: "selecting VIT ... opens irrelevant content": the note talked about SRM AP and an empty
+                  list showed nothing at all. It now names the chosen campus plainly and says what to do when nothing is listed. */}
+              <Text style={x.noteText}>{`Rentals near ${near.name}, closest first.`}</Text>
             </View>
-            {vState === 'loading' && rState === 'loading' ? <StateBlock kind="loading" /> : nearList.slice(0, 30).map((it) => <ItemRow key={it.id} item={it} />)}
+            {vState === 'loading' && rState === 'loading' ? <StateBlock kind="loading" />
+              : nearList.length ? nearList.slice(0, 30).map((it) => <ItemRow key={it.id} item={it} />)
+              : <StateBlock kind="empty" title={`No rentals near ${near.name} yet`} body="When students list bikes, cars, rooms or flats here, they show up closest first. Have a vehicle? List it from Rentals > List your vehicle." />}
           </View>
         ) : null}
 

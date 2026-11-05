@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, StyleProp, ImageStyle, ImageSourcePropType, PixelRatio, type LayoutChangeEvent } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Animated, Easing, StyleSheet, StyleProp, ImageStyle, ImageSourcePropType, PixelRatio, type LayoutChangeEvent } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Image, ImageProps } from 'expo-image';
 
@@ -85,6 +85,27 @@ function getSmartFallback(uriString?: string | null): string | null {
   return DEFAULT_FALLBACK_URI;
 }
 
+/**
+ * QA Q16 (5 Nov 2026): a photo still downloading showed a flat grey box for up to ~10 s on slow Wi-Fi, which read as
+ * "broken". Until the photo arrives, a soft light sweeps across the box; the loop stops when it loads or unmounts.
+ */
+function LoadingSweep() {
+  const x = useRef(new Animated.Value(0)).current;
+  const [w, setW] = useState(0);
+  useEffect(() => {
+    const loop = Animated.loop(Animated.timing(x, { toValue: 1, duration: 1200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }));
+    loop.start();
+    return () => loop.stop();
+  }, [x]);
+  const band = Math.max(40, w * 0.45);
+  const translateX = x.interpolate({ inputRange: [0, 1], outputRange: [-band, w + band] });
+  return (
+    <View pointerEvents="none" style={StyleSheet.absoluteFill} onLayout={(e) => setW(e.nativeEvent.layout.width)}>
+      {w > 0 && <Animated.View style={[styles.sweep, { width: band, transform: [{ translateX }] }]} />}
+    </View>
+  );
+}
+
 interface SafeImageProps extends Omit<ImageProps, 'source' | 'style' | 'onError'> {
   source?: ImageSourcePropType | { uri?: string | null } | null;
   style?: StyleProp<ImageStyle>;
@@ -119,6 +140,7 @@ export default function SafeImage({
   const rawUri = isStockPlaceholder(givenUri) ? '' : givenUri;
   const personImage = !!givenUri && getSmartFallback(givenUri) === null;
   const [hasError, setHasError] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   // The CDN rendition is sized to the width the image is drawn at (numeric style width, else its layout).
   const flatStyle: any = StyleSheet.flatten(style as any) || {};
   const styleW = typeof flatStyle.width === 'number' ? flatStyle.width : 0;
@@ -130,7 +152,7 @@ export default function SafeImage({
   };
   const drawW = styleW || layoutW;
 
-  useEffect(() => { setHasError(false); }, [rawUri]);
+  useEffect(() => { setHasError(false); setLoaded(false); }, [rawUri]);
 
   const failed = typeof source !== 'number' && (hasError || !rawUri.trim());
   // No photo (missing, broken or a shared stock photo): the caller's own fallback photo if it passed one,
@@ -157,7 +179,7 @@ export default function SafeImage({
   else if (isResizableCdn(rawUri) && !drawW) imgSource = null;
   else imgSource = { uri: optimizeImageUri(rawUri, cdnWidthFor(drawW || maxWidth)) };
 
-  if (!imgSource) return <View style={[style as any, styles.container]} onLayout={onLayout} />;
+  if (!imgSource) return <View style={[style as any, styles.container]} onLayout={onLayout}><LoadingSweep /></View>;
 
   return (
     <View style={[style as any, styles.container]} onLayout={onLayout}>
@@ -169,11 +191,13 @@ export default function SafeImage({
         {...props}
         source={imgSource}
         style={[style as any, StyleSheet.absoluteFill]}
+        onLoad={(e) => { setLoaded(true); (props as any).onLoad?.(e); }}
         onError={(e) => {
           if (!hasError) setHasError(true);
           onError?.(e);
         }}
       />
+      {!loaded && typeof imgSource !== 'number' && <LoadingSweep />}
     </View>
   );
 }
@@ -189,6 +213,10 @@ const styles = StyleSheet.create({
   },
   tint: {
     backgroundColor: 'rgba(128, 128, 128, 0.12)',
+  },
+  sweep: {
+    position: 'absolute', top: 0, bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.10)',
   },
 });
 

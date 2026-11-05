@@ -142,7 +142,7 @@ export function CoRideV2HomeBody() {
       <RouteCard from={from} to={to} setFrom={setFrom} setTo={setTo} places={d.places} onSearch={() => push({ name: 'find', from: from.trim(), to: to.trim() })} />
 
       <View style={[st.pad, st.services]}>
-        <ServiceCard tone="blue" title="Bike & car pool" body="Share rides, split fuel costs and save money" ratio={1.4} price={range(d.pool)} width={half} onPress={() => push({ name: 'find' })} />
+        <ServiceCard tone="blue" title="Bike & car pool" body="Share rides, split fuel costs and save money" art={ART.pool} ratio={ART_RATIO.pool} price={range(d.pool)} width={half} onPress={() => push({ name: 'find' })} />
         <ServiceCard tone="mint" title="Shared auto" body="Book a shared auto, travel together" art={ART.auto} ratio={ART_RATIO.auto} price={d.autoOn ? range(d.autoFare) : null} width={half} onPress={() => push({ name: 'auto' })} />
       </View>
 

@@ -57,13 +57,15 @@ export function DealCard({ deal, width, myStreak, signedIn }: { deal: AnyDeal; w
   return (
     <Press onPress={open} label={`${i.name}${i.sample ? ', sample' : ''}. ${i.tag || ''}. How to avail`} style={[s.card, shadow(2), { width }]}>
       <Art img={i.img} tag={i.tag} height={Math.round(width * 0.62)} radius={20} />
-      <View style={{ padding: 11 }}>
+      <View style={s.cardBody}>
         {i.sample ? <SampleTag style={{ marginBottom: 5 }} /> : null}
-        <Text style={s.name} numberOfLines={2}>{i.name}</Text>
+        {/* Fixed two-line title area + button pinned to the bottom, so "Get deal" lines up card to card (QA Q14). */}
+        <Text style={[s.name, s.nameTwoLine]} numberOfLines={2}>{i.name}</Text>
         <View style={s.meta}>
           {i.streak > 0 ? <IFlame size={12} color={DV.sub} strokeWidth={1.8} /> : <IClock size={12} color={DV.sub} strokeWidth={1.8} />}
           <Text style={s.metaText} numberOfLines={1}>{i.line}</Text>
         </View>
+        <View style={s.grow} />
         <View style={[s.btn, i.need ? s.btnLocked : null]}>
           {!i.need ? <LinearGradient colors={[DV.go[0], DV.go[2]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} /> : null}
           {i.need ? <ILock size={13} color={DV.violetDeep} strokeWidth={1.8} /> : null}
@@ -105,10 +107,13 @@ const s = themedSheet(() => ({
   card: { borderRadius: 20, backgroundColor: DV.card, borderWidth: StyleSheet.hairlineWidth, borderColor: DV.line },
   tag: { position: 'absolute', left: 9, top: 9, paddingHorizontal: 9, height: 24, borderRadius: 12, overflow: 'hidden', justifyContent: 'center' },
   tagText: { color: '#FFFFFF', fontSize: 11.5, fontWeight: W.title },
+  cardBody: { padding: 11, flexGrow: 1 },
   name: { fontSize: 14, fontWeight: W.label, color: DV.ink, lineHeight: 19 },
+  nameTwoLine: { minHeight: 38 },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 5 },
   metaText: { fontSize: 12, color: DV.sub, flexShrink: 1 },
   btn: { flexDirection: 'row', gap: 5, marginTop: 10, height: 34, borderRadius: 17, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  grow: { flexGrow: 1 },
   btnLocked: { backgroundColor: DV.violetSoft, borderWidth: StyleSheet.hairlineWidth, borderColor: DV.violetLine },
   btnText: { color: '#FFFFFF', fontSize: 13, fontWeight: W.title },
   row: { flexDirection: 'row', gap: 12, padding: 10, borderRadius: 20, backgroundColor: DV.card, borderWidth: StyleSheet.hairlineWidth, borderColor: DV.line },

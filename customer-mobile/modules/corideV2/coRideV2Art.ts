@@ -11,6 +11,9 @@
 export const ART = {
   hero: require('./assets/coride-v2-owner-hero-students-scooter-car-campus-2026-10-24.webp'),
   auto: require('./assets/coride-v2-owner-tile-auto-rickshaw-2026-10-24.webp'),
+  /** Pool card (QA Q18, 5 Nov 2026): a real cut-out blue scooter so it matches the auto card; reused from the
+   *  rentals art set (already in the app), a different picture from the hero. */
+  pool: require('../rentalsV2/assets/rv2-explore-bike-blue-scooter-2026-10-25.webp'),
   /** The ZCS emblem (navy disc, gold Z) shared with the Food v2 header. */
   emblem: require('../../assets/zenwe-brand-badge-2026-11-04.webp'),
 } as const;
@@ -19,6 +22,7 @@ export const ART = {
 export const ART_RATIO = {
   hero: 1200 / 572,
   auto: 291 / 256,
+  pool: 560 / 445,
 } as const;
 /** Largest width the small owner auto-rickshaw is shown at (its source is 402 px wide). */
 export const AUTO_MAX_W = 180;

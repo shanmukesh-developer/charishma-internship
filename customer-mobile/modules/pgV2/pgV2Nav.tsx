@@ -32,7 +32,7 @@ export interface Nav {
   defaultPgId: string | null;
 }
 
-export const PG_HOME_PATH = '/(tabs)/others?tab=pg';
+export const PG_HOME_PATH = '/(tabs)/services?tab=pg';
 
 const qs = (o: Record<string, string | undefined | false>) => {
   const parts = Object.entries(o).filter(([, v]) => v !== undefined && v !== false && v !== '').map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`);

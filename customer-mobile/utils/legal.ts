@@ -1,5 +1,6 @@
 // C4 legal: links to the public policy pages + the current policy version (GET /api/config/legal).
 import { Alert, Linking } from 'react-native';
+import { router } from 'expo-router';
 import { ENDPOINTS } from '../constants/api';
 
 export type LegalPage = 'terms' | 'privacy' | 'refunds' | 'grievance' | 'community' | 'index' | 'deleteAccount';
@@ -24,11 +25,18 @@ export const LEGAL_LABELS: Record<LegalPage, string> = {
   deleteAccount: 'Delete your account',
 };
 
-/** Opens a policy page; when the phone cannot open it (no browser), says so and shows the address instead of doing nothing. */
+/**
+ * Opens a policy page inside the app (app/legal-view.tsx, QA Q5 5 Nov 2026); if navigation is not ready yet (very early
+ * in start-up) it falls back to the browser, and when that fails too it shows the address.
+ */
 export const openLegal = (page: LegalPage) => {
-  Linking.openURL(LEGAL_LINKS[page]).catch(() => {
-    Alert.alert(LEGAL_LABELS[page], `We couldn't open the page here. You can read it at:\n${LEGAL_LINKS[page]}`);
-  });
+  try {
+    router.push({ pathname: '/legal-view', params: { page } } as any);
+  } catch {
+    Linking.openURL(LEGAL_LINKS[page]).catch(() => {
+      Alert.alert(LEGAL_LABELS[page], `We couldn't open the page here. You can read it at: ${LEGAL_LINKS[page]}`);
+    });
+  }
 };
 
 let cached: { at: number; version: string | null } | null = null;

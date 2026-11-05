@@ -421,12 +421,12 @@ export default function NexusExplorer({ restaurants, activeCategory, onSelectIte
                     <ActionPressable 
                       style={[
                         s.addBtn, 
-                        { backgroundColor: isAdded ? '#10B981' : (item.storeOpen ? '#C8A265' : (isDark ? '#3F3F46' : '#E5E7EB')) }
+                        { backgroundColor: isAdded ? '#10B981' : (item.storeOpen ? COLORS.red : (isDark ? '#3F3F46' : '#E5E7EB')) }
                       ]}
                       onPress={() => handleAddToCart(item)}
                       sound="tabSwitch"
                     >
-                      <Text style={[s.addBtnText, { color: isAdded ? '#FFFFFF' : (item.storeOpen ? '#000000' : txtSec), fontWeight: '900' }]}>
+                      <Text style={[s.addBtnText, { color: isAdded ? '#FFFFFF' : (item.storeOpen ? '#FFFFFF' : txtSec), fontWeight: '900' }]}>
                         {isAdded ? 'ADDED ✓' : (item.storeOpen ? 'ADD +' : 'CLOSED')}
                       </Text>
                     </ActionPressable>

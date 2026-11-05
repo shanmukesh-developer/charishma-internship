@@ -28,13 +28,15 @@ export function WheelStage({ prizes, width, labels }: { prizes: Prize[]; width: 
   );
 }
 
-export function Hero({ prizes, spinsLeft, signedIn, onWheel }: { prizes: Prize[]; spinsLeft: number; signedIn: boolean; onWheel: () => void }) {
+export function Hero({ prizes, spinsLeft, signedIn, nextIn, onWheel }: { prizes: Prize[]; spinsLeft: number; signedIn: boolean; nextIn?: number | null; onWheel: () => void }) {
   const w = usePageW();
   const cardW = w - 32;
   const compact = w < 380;
   const artW = Math.round(cardW * (compact ? 0.45 : 0.47));
   const h1 = compact ? 23 : w >= 420 ? 27 : 25;
   const ready = signedIn && spinsLeft > 0;
+  /** The live progress line (was the separate "Spin & win" row under the balances, QA Q13). */
+  const progress = signedIn && !ready && nextIn ? `${nextIn} more delivered order${nextIn === 1 ? '' : 's'} to your next spin` : null;
   return (
     <View style={[s.wrap, shadow(3, '#2A1680')]}>
       <View style={s.card}>
@@ -59,7 +61,8 @@ export function Hero({ prizes, spinsLeft, signedIn, onWheel }: { prizes: Prize[]
             <Text style={[s.body, { fontSize: compact ? 12.3 : 13 }]}>
               Earn a spin for every {ORDERS_PER_SPIN} delivered orders. Win ZenWe Points or a free-delivery coupon.
             </Text>
-            <Press onPress={onWheel} label={ready ? 'Spin the wheel' : 'See the wheel'} style={[s.pill, shadow(2, '#120A3A')]} scaleTo={0.95}>
+            {progress ? <Text style={s.progress} numberOfLines={2}>{progress}</Text> : null}
+            <Press onPress={onWheel} label={ready ? `Spin the wheel. ${spinsLeft} spin${spinsLeft === 1 ? '' : 's'} ready` : progress ? `See the wheel. ${progress}` : 'See the wheel'} style={[s.pill, shadow(2, '#120A3A')]} scaleTo={0.95}>
               <View style={s.pillWheel}><WheelDisk prizes={prizes} size={18} labels={false} /></View>
               <Text style={s.pillText} numberOfLines={1}>{ready ? 'Spin now' : 'See the wheel'}</Text>
               <View><IArrowRight size={15} color={DV.violetDeep} strokeWidth={2} /></View>
@@ -85,6 +88,7 @@ const s = themedSheet(() => ({
   eyebrowText: { color: '#FFFFFF', fontSize: 12, fontWeight: W.title, letterSpacing: 0.3 },
   h1: { color: '#FFFFFF', fontWeight: W.display, letterSpacing: -0.3, marginTop: 12 },
   body: { color: 'rgba(240,236,255,0.9)', lineHeight: 18, marginTop: 6 },
+  progress: { color: '#FFFFFF', fontSize: 12.5, fontWeight: W.title, lineHeight: 17, marginTop: 6 },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 7, alignSelf: 'flex-start', height: 40, paddingLeft: 8, paddingRight: 14, borderRadius: 20, backgroundColor: DV.card, marginTop: 14 },
   pillWheel: { width: 24, height: 24, borderRadius: 12, backgroundColor: DV.violetSoft, alignItems: 'center', justifyContent: 'center' },
   pillText: { color: DV.violetDeep, fontSize: 13.5, fontWeight: W.title },

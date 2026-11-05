@@ -12,6 +12,9 @@ import { isLocalVendorType } from '../utils/localVendor';
 import { isCustomizable } from './CustomizeDrawer';
 import { productOptions } from './ProductOptions';
 import SymbolIcon from './SymbolIcon';
+import {
+  buildQueryPlan, correctQuery, loadSearchCorpus, localityOf, matchesEveryWord, rankItems, rankStores, type QueryPlan,
+} from '../utils/searchMatch';
 
 // Grocery search runs against the DB catalogue (GET /api/catalogue/items?type=grocery&q=…)
 const toGroceryResult = (it: any) => ({
@@ -30,6 +33,79 @@ const toGroceryResult = (it: any) => ({
 });
 
 const { width: SW } = Dimensions.get('window');
+
+const idOf = (x: any) => String(x?._id || x?.id || '');
+
+/** One server search per spelling (utils/searchMatch), merged without duplicates. Throws only when every request failed. */
+async function searchPhrases(phrases: string[], signal: AbortSignal): Promise<{ restaurants: any[]; items: any[] }> {
+  const answers = await Promise.all(phrases.map(async (p) => {
+    try {
+      const res = await apiFetch(`${API_URL}/api/users/search?q=${encodeURIComponent(p)}`, { signal });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return { restaurants: Array.isArray(data?.restaurants) ? data.restaurants : [], items: Array.isArray(data?.items) ? data.items : [] };
+    } catch (err: any) {
+      if (err?.name === 'AbortError') throw err;
+      return null;
+    }
+  }));
+  if (answers.every((a) => a === null)) throw new Error('search failed');
+  const seenR = new Set<string>();
+  const seenI = new Set<string>();
+  const restaurants: any[] = [];
+  const items: any[] = [];
+  for (const a of answers) {
+    if (!a) continue;
+    for (const r of a.restaurants) { const k = idOf(r); if (k && !seenR.has(k)) { seenR.add(k); restaurants.push(r); } }
+    for (const it of a.items) { const k = idOf(it); if (k && !seenI.has(k)) { seenI.add(k); items.push(it); } }
+  }
+  return { restaurants, items };
+}
+
+/**
+ * Food search that forgives spelling (QA 5 Nov 2026: "biriyani" found nothing): every common spelling first; when
+ * that finds nothing, the closest real menu words; for several words, the longest word filtered by all of them.
+ * Results are ranked name-first. When nothing is found, a "Did you mean" from the loaded menus.
+ */
+async function searchFoodTolerant(plan: QueryPlan, signal: AbortSignal, stale: () => boolean): Promise<{
+  restaurants: any[]; items: any[]; correctedTo: string | null; didYouMean: string | null;
+}> {
+  const tried = new Set<string>(plan.phrases);
+  const ranked = (found: { restaurants: any[]; items: any[] }, p: QueryPlan) => ({
+    restaurants: rankStores(found.restaurants, p),
+    items: rankItems(found.items, p),
+  });
+  const first = await searchPhrases(plan.phrases, signal);
+  if (first.restaurants.length || first.items.length) return { ...ranked(first, plan), correctedTo: null, didYouMean: null };
+  if (stale()) return { restaurants: [], items: [], correctedTo: null, didYouMean: null };
+
+  const corpus = await loadSearchCorpus();
+  if (stale()) return { restaurants: [], items: [], correctedTo: null, didYouMean: null };
+  const fix = corpus ? correctQuery(plan, corpus, 'strict') : null;
+  if (fix) {
+    const fixedPlan = buildQueryPlan(fix.query);
+    const phrases = fixedPlan.phrases.filter((p) => !tried.has(p));
+    phrases.forEach((p) => tried.add(p));
+    if (phrases.length) {
+      const again = await searchPhrases(phrases, signal);
+      if (again.restaurants.length || again.items.length) return { ...ranked(again, fixedPlan), correctedTo: fix.display, didYouMean: null };
+    }
+  }
+  // Several words in another order ("biryani chicken"): search the longest one, keep dishes that have every word.
+  const usePlan = fix ? buildQueryPlan(fix.query) : plan;
+  if (usePlan.tokens.length > 1 && !stale()) {
+    const longest = usePlan.tokens.reduce((a, b) => (b[0].length > a[0].length ? b : a));
+    const phrases = longest.filter((p) => !tried.has(p));
+    phrases.forEach((p) => tried.add(p));
+    if (phrases.length) {
+      const wide = await searchPhrases(phrases, signal);
+      const items = wide.items.filter((it) => matchesEveryWord(it, usePlan));
+      if (items.length) return { restaurants: [], items: rankItems(items, usePlan), correctedTo: fix ? fix.display : null, didYouMean: null };
+    }
+  }
+  const loose = corpus ? correctQuery(plan, corpus, 'loose') : null;
+  return { restaurants: [], items: [], correctedTo: null, didYouMean: loose && !tried.has(loose.query) ? loose.display : null };
+}
 
 interface SearchOverlayProps {
   isOpen: boolean;
@@ -51,6 +127,17 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
   // Bumped by the Retry button to re-run the same search.
   const [retryTick, setRetryTick] = useState(0);
   const requestIdRef = useRef(0);
+  // Spelling help (food): the corrected words the results are for, a "Did you mean" for no results, and popular
+  // searches from the loaded menus (utils/searchMatch).
+  const [correctedTo, setCorrectedTo] = useState<string | null>(null);
+  const [didYouMean, setDidYouMean] = useState<string | null>(null);
+  const [popular, setPopular] = useState<string[]>([]);
+  useEffect(() => {
+    if (!isOpen || searchMode !== 'food') return;
+    let alive = true;
+    loadSearchCorpus().then((c) => { if (alive && c) setPopular(c.popular); }).catch(() => { /* no popular row */ });
+    return () => { alive = false; };
+  }, [isOpen, searchMode]);
 
   const inputRef = useRef<TextInput>(null);
 
@@ -97,11 +184,24 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
       // apiFetch skips its own timeout when a signal is passed, so cap a stalled request here.
       timeoutTimer = setTimeout(() => controller.abort(), 15000);
       try {
+        if (searchMode === 'food') {
+          const plan = buildQueryPlan(trimmed);
+          if (plan.norm.length >= 2) {
+            const found = await searchFoodTolerant(plan, controller.signal, () => requestId !== requestIdRef.current);
+            if (requestId !== requestIdRef.current) return;
+            setResults({ restaurants: found.restaurants, items: found.items });
+            setCorrectedTo(found.correctedTo);
+            setDidYouMean(found.didYouMean);
+            return;
+          }
+        }
         const url = searchMode === 'grocery'
           ? `${API_URL}/api/catalogue/items?type=grocery&q=${encodeURIComponent(trimmed)}&limit=40`
           : `${API_URL}/api/users/search?q=${encodeURIComponent(query)}`;
         const res = await apiFetch(url, { signal: controller.signal });
         if (requestId !== requestIdRef.current) return;
+        setCorrectedTo(null);
+        setDidYouMean(null);
         if (!res.ok) {
           setResults({ restaurants: [], items: [] });
           setSearchError(true);
@@ -124,6 +224,8 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
         // returns here; a timeout abort keeps the same id and is shown as an error with Retry.
         if (requestId !== requestIdRef.current) return;
         if (err?.name !== 'AbortError') console.error('[SEARCH_ERROR]', err);
+        setCorrectedTo(null);
+        setDidYouMean(null);
         setResults({ restaurants: [], items: [] });
         setSearchError(true);
       } finally {
@@ -152,6 +254,8 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
       setQuery('');
       setResults({ restaurants: [], items: [] });
       setSearchError(false);
+      setCorrectedTo(null);
+      setDidYouMean(null);
     }
   }, [isOpen]);
 
@@ -213,6 +317,8 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
   const txtColor = isDark ? '#FFF' : COLORS.textDark;
   const txtMuted = isDark ? COLORS.textSecondary : COLORS.textDarkSecondary;
   const border = isDark ? COLORS.borderDark : COLORS.borderLight;
+  // Same accent as the search field border and spinner.
+  const accent = isDark ? COLORS.gold : '#D97706';
 
   return (
     <Modal visible={isOpen} animationType="fade" transparent={false} onRequestClose={onClose}>
@@ -250,6 +356,36 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
           {results.restaurants.length === 0 && results.items.length === 0 && query.length > 1 && !loading && (
             <View style={s.emptyState}>
               <Text style={s.emptyText}>{searchError ? "Couldn't search right now. Check your connection and try again." : `No results found for "${query}" 😕`}</Text>
+              {!searchError && searchMode === 'food' && !!didYouMean && (
+                <TouchableOpacity
+                  onPress={() => setQuery(didYouMean)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Did you mean ${didYouMean}? Search for ${didYouMean}`}
+                  style={s.didYouMean}
+                >
+                  <Text style={[s.didYouMeanText, { color: txtMuted }]}>
+                    Did you mean <Text style={{ color: accent, fontWeight: '900' }}>{didYouMean}</Text>?
+                  </Text>
+                </TouchableOpacity>
+              )}
+              {!searchError && searchMode === 'food' && popular.length > 0 && (
+                <View style={s.popularWrap}>
+                  <Text style={[s.sectionTitle, { textAlign: 'center', color: isDark ? '#A1A1AA' : '#334155' }]}>POPULAR SEARCHES</Text>
+                  <View style={[s.tagsRow, { justifyContent: 'center' }]}>
+                    {popular.map((tag) => (
+                      <TouchableOpacity
+                        key={tag}
+                        style={[s.tagBtn, { backgroundColor: cardBg, borderColor: border }]}
+                        onPress={() => setQuery(tag)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Search for ${tag}`}
+                      >
+                        <Text style={[s.tagText, { color: txtColor }]}>{tag}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              )}
               {searchError && (
                 <TouchableOpacity
                   onPress={() => setRetryTick((t) => t + 1)}
@@ -260,6 +396,13 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
                 </TouchableOpacity>
               )}
             </View>
+          )}
+
+          {/* Results for the corrected spelling (e.g. "biriyani" -> Biryani) */}
+          {searchMode === 'food' && !!correctedTo && !loading && (results.restaurants.length > 0 || results.items.length > 0) && (
+            <Text style={[s.correctedText, { color: txtMuted }]} accessibilityRole="text">
+              Showing results for <Text style={{ color: accent, fontWeight: '900' }}>{correctedTo}</Text>
+            </Text>
           )}
 
           {/* Restaurants section */}
@@ -278,7 +421,7 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
                       <Image source={{ uri: img }} style={s.gridCardImg} />
                       <View style={s.gridCardInfo}>
                         <Text style={[s.gridCardName, { color: txtColor }]} numberOfLines={1}>{res.name}</Text>
-                        <Text style={[s.gridCardMeta, { color: isDark ? COLORS.textSecondary : '#617088' }]}>{Number(res.rating) > 0 ? `⭐ ${Number(res.rating).toFixed(1)}` : '✨ New'} • {res.location || 'Campus'}</Text>
+                        <Text style={[s.gridCardMeta, { color: isDark ? COLORS.textSecondary : '#617088' }]} numberOfLines={1}>{Number(res.rating) > 0 ? `⭐ ${Number(res.rating).toFixed(1)}` : '✨ New'} • {localityOf(res.location) || 'Campus'}</Text>
                       </View>
                     </TouchableOpacity>
                   );
@@ -359,7 +502,7 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
                               </View>
                             ) : (
                               <TouchableOpacity
-                                style={[s.addBtn, !item.orderable && { opacity: 0.5 }]}
+                                style={[s.addBtn, !item.orderable && s.addBtnOff]}
                                 disabled={!item.orderable}
                                 onPress={() => {
                                   // Weights / flavours to choose: open the product page (a bare add was refused at checkout).
@@ -376,7 +519,7 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
                                   });
                                 }}
                               >
-                                <Text style={s.addBtnText}>{item.orderable ? (productOptions(item).length ? 'CHOOSE' : 'ADD +') : 'SOLD OUT'}</Text>
+                                <Text style={[s.addBtnText, !item.orderable && s.addBtnOffText]}>{item.orderable ? (productOptions(item).length ? 'CHOOSE' : 'ADD +') : 'SOLD OUT'}</Text>
                               </TouchableOpacity>
                             )}
                           </View>
@@ -408,12 +551,12 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
                             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
                               <Text style={{ fontSize: 12, fontWeight: '800', color: '#F97316' }}>🏪 STALL · CASH</Text>
                               <TouchableOpacity
-                                style={[s.addBtn, soldOut && { opacity: 0.5 }]}
+                                style={[s.addBtn, soldOut && s.addBtnOff]}
                                 disabled={soldOut}
                                 accessibilityLabel={`Add ${item.name} to your basket`}
                                 onPress={() => addStallDish(item)}
                               >
-                                <Text style={s.addBtnText}>{soldOut ? 'SOLD OUT' : stallQty > 0 ? `ADD + (${stallQty})` : 'ADD +'}</Text>
+                                <Text style={[s.addBtnText, soldOut && s.addBtnOffText]}>{soldOut ? 'SOLD OUT' : stallQty > 0 ? `ADD + (${stallQty})` : 'ADD +'}</Text>
                               </TouchableOpacity>
                             </View>
                           );
@@ -606,8 +749,15 @@ const s = StyleSheet.create({
   stepperBtn: { paddingHorizontal: 6, paddingVertical: 4, backgroundColor: '#DCFCE7' },
   stepperBtnText: { fontSize: 12, fontWeight: '900', color: '#22C55E' },
   stepperQty: { fontSize: 12, fontWeight: '900', paddingHorizontal: 6, textAlign: 'center', minWidth: 16 },
-  addBtn: { backgroundColor: '#fff', borderColor: '#22C55E', borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-  addBtnText: { fontSize: 12, fontWeight: '900', color: '#22C55E' },
+  // Enabled add buttons use the app-wide action colour (owner, 5 Nov 2026); sold out keeps its old look (addBtnOff).
+  addBtn: { backgroundColor: COLORS.red, borderColor: COLORS.red, borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
+  addBtnText: { fontSize: 12, fontWeight: '900', color: '#FFFFFF' },
+  addBtnOff: { backgroundColor: '#fff', borderColor: '#22C55E', opacity: 0.5 },
+  addBtnOffText: { color: '#22C55E' },
+  didYouMean: { marginTop: 14, paddingHorizontal: 16, paddingVertical: 8 },
+  didYouMeanText: { fontSize: 14, fontWeight: '600', textAlign: 'center' },
+  popularWrap: { marginTop: 20, alignSelf: 'stretch', alignItems: 'center' },
+  correctedText: { fontSize: 12, fontWeight: '600', marginBottom: 12 },
   discountBadge: { position: 'absolute', bottom: 8, left: 8, backgroundColor: '#F59E0B', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
   discountText: { fontSize: 12, fontWeight: '900', color: '#fff' },
 });

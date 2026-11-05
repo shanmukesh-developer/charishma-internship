@@ -37,7 +37,7 @@ export function Press({ onPress, label, style, children, scaleTo = 0.97, disable
 }
 
 /** Back: history when there is some, otherwise the given fallback (the Tech & repairs home). */
-export function useBack(fallback = '/(tabs)/others?tab=services') {
+export function useBack(fallback = '/(tabs)/services?tab=services') {
   const router = useRouter();
   return () => (router.canGoBack() ? router.back() : router.replace(fallback as any));
 }

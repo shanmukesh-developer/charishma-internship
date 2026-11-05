@@ -23,5 +23,5 @@ export const autoRideHrefForNotification = (type?: string | null, rawData?: any)
   if (requestId) return `/auto-ride/request/${requestId}`;
   const tripId = id('tripId');
   if (tripId) return `/auto-ride/trip/${tripId}`;
-  return '/(tabs)/others?tab=coride&sub=auto&seg=bookings';
+  return '/(tabs)/services?tab=coride&sub=auto&seg=bookings';
 };

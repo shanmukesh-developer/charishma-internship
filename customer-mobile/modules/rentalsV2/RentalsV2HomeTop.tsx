@@ -8,6 +8,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import SectionPillRail from '../others/SectionPillRail';
 import { Image } from 'expo-image';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
@@ -31,7 +32,8 @@ export function HomeTop({ sections, active = 'rentals' }: { sections?: { key: st
   const unread = useUnreadDot();
   const { campusLine } = useRentalsV2();
   const avatar = (user as any)?.profileImage || (user as any)?.avatar || null;
-  const initial = String(user?.name || 'Z').trim().charAt(0).toUpperCase();
+  // A guest (or a name not set yet) gets a person, like Home's header avatar, never the "Z" brand letter.
+  const initial = String(user?.name || '').trim().charAt(0).toUpperCase();
   const compact = w < 380;
   const head = compact ? 22 : 24;
   return (
@@ -52,18 +54,24 @@ export function HomeTop({ sections, active = 'rentals' }: { sections?: { key: st
           <IBell size={17} color="#FFFFFF" strokeWidth={1.7} />
           {unread ? <View style={s.bellDot} /> : null}
         </Press>
-        <Press onPress={() => router.push('/(tabs)/profile' as any)} label="Your profile" style={s.avatarRing}>
-          {avatar ? <Image source={{ uri: avatar }} style={s.avatar} contentFit="cover" /> : (
+        <Press onPress={() => router.push('/(tabs)/profile' as any)} label={user ? 'Your profile' : 'Guest, open profile'} style={s.avatarRing}>
+          {user && avatar ? <Image source={{ uri: avatar }} style={s.avatar} contentFit="cover" /> : (
             <LinearGradient colors={['#C4B5FD', '#7C5CF0']} style={[s.avatar, { alignItems: 'center', justifyContent: 'center' }]}>
-              <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: W.title }}>{initial}</Text>
+              {user && initial
+                ? <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: W.title }}>{initial}</Text>
+                : <Ionicons name="person" size={17} color="#FFFFFF" />}
             </LinearGradient>
           )}
-          <View style={s.avatarDot} />
+          {user ? <View style={s.avatarDot} /> : null}
         </Press>
       </View>
 
       {/* Headline */}
       <View style={{ paddingHorizontal: 16, marginTop: 18, maxWidth: compact ? 300 : 330 }}>
+        {/* Readability scrim behind the headline and the white subtitle: the dusk photo is busy (city lights). A soft
+            full-width band, faded at its top and bottom edges, keeps the text at 4.5:1 or better without moving it. */}
+        <LinearGradient pointerEvents="none" colors={['rgba(14,12,46,0)', 'rgba(14,12,46,0.58)', 'rgba(14,12,46,0.58)', 'rgba(14,12,46,0)']}
+          locations={[0, 0.14, 0.88, 1]} style={[s.ledeScrim, { width: w }]} />
         <Text style={[s.h1, { fontSize: head, lineHeight: head + 5 }]} accessibilityRole="header">Rent bikes, cars, rooms and flats near campus</Text>
         <Text style={s.lede}>Student vehicles, PG rooms and flats around SRM AP. Pay at pickup or move-in.</Text>
       </View>
@@ -97,7 +105,7 @@ export function HomeTop({ sections, active = 'rentals' }: { sections?: { key: st
 
 const s = themedSheet(() => ({
   brandRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16 },
-  brand: { color: '#FFFFFF', fontSize: 21, fontWeight: W.title, letterSpacing: 1.2, lineHeight: 24 },
+  brand: { color: '#FFFFFF', fontSize: 21, fontWeight: W.title, letterSpacing: 0.2, lineHeight: 24 },
   tagline: { color: 'rgba(235,232,255,0.82)', fontSize: 10.5, marginTop: 1, letterSpacing: 0.2 },
   bell: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center', marginRight: 10 },
   bellDot: { position: 'absolute', top: 8, right: 9, width: 7, height: 7, borderRadius: 4, backgroundColor: NIGHT.bellDot, borderWidth: 1, borderColor: '#FFFFFF' },
@@ -105,7 +113,8 @@ const s = themedSheet(() => ({
   avatar: { width: '100%', height: '100%', borderRadius: 17 },
   avatarDot: { position: 'absolute', right: -1, bottom: -1, width: 11, height: 11, borderRadius: 6, backgroundColor: '#7C5CF0', borderWidth: 1.5, borderColor: '#FFFFFF' },
   h1: { color: '#FFFFFF', fontWeight: W.hero, letterSpacing: -0.4, textShadowColor: 'rgba(10,6,40,0.35)', textShadowRadius: 10 },
-  lede: { color: 'rgba(255,255,255,0.88)', fontSize: 13, lineHeight: 18, marginTop: 8, textShadowColor: 'rgba(10,6,40,0.4)', textShadowRadius: 8 },
+  lede: { color: 'rgba(255,255,255,0.88)', fontSize: 13, lineHeight: 18, marginTop: 8, textShadowColor: 'rgba(10,6,40,0.75)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6 },
+  ledeScrim: { position: 'absolute', top: -22, bottom: -18, left: -16 },
   search: { marginHorizontal: 14, height: 42, borderRadius: 21, backgroundColor: 'rgba(250,249,255,0.94)', flexDirection: 'row', alignItems: 'center', paddingLeft: 15, paddingRight: 5 },
   searchText: { color: '#6B6B8F', fontSize: 13, flex: 1 },
   go: { width: 32, height: 32, borderRadius: 16, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },

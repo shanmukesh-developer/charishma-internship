@@ -13,7 +13,7 @@ export const s = StyleSheet.create({
   // header
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingTop: 16 },
   brandLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  brandWord: { color: '#FFFFFF', fontSize: 22, fontWeight: '600', letterSpacing: 2, lineHeight: 26 },
+  brandWord: { color: '#FFFFFF', fontSize: 22, fontWeight: '700', letterSpacing: 0.2, lineHeight: 26 },
   brandSub: { color: 'rgba(255,255,255,0.72)', fontSize: 12.5, fontWeight: '400', marginTop: 1, letterSpacing: 0.2 },
   hdrBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   hdrBadge: { position: 'absolute', top: 5, right: 3, minWidth: 16, height: 16, borderRadius: 8, paddingHorizontal: 4, backgroundColor: '#D4AF37', alignItems: 'center', justifyContent: 'center' },

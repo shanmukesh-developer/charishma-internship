@@ -16,7 +16,7 @@ import { cbApi, newIdempotencyKey, type CbStall } from './cbApi';
 import { cbCart, isNonFood, useCbCart, MAX_QTY_STATIONERY } from './cbCart';
 import { uploadServicePdf } from '../services/uploadServicePdf';
 import { COLORS, inr, useCbTheme } from './cbTheme';
-import { AddControl, CbHeader, EmptyCard, PlaceButton, StaggeredSection, VegBox } from './cbKit';
+import { AddControl, CbHeader, EmptyCard, PlaceButton, StaggeredSection, VegBox, useCbSignIn } from './cbKit';
 
 // Stationery / print stalls (owner, 29 Oct): the PDFs to print travel with the booking. Each is uploaded on its own
 // first (POST /api/services/documents, progress + retry), the booking then carries only the file ids.
@@ -58,6 +58,8 @@ export default function CbCartScreen({ stallId }: { stallId: string }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const cart = useCbCart(stallId);
+  // Booking (and the print-PDF upload) needs a signed-in student: guests get the basket's sign-in prompt (QA Q23).
+  const { requireSignIn } = useCbSignIn();
   const [stall, setStall] = useState<CbStall | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -80,6 +82,7 @@ export default function CbCartScreen({ stallId }: { stallId: string }) {
   };
   const pickDoc = async () => {
     if (docs.length >= MAX_DOCS) return;
+    if (!requireSignIn()) return;
     try {
       const res = await DocumentPicker.getDocumentAsync({ type: 'application/pdf', copyToCacheDirectory: true, multiple: false });
       if (res.canceled || !res.assets || !res.assets[0]) return;
@@ -109,6 +112,7 @@ export default function CbCartScreen({ stallId }: { stallId: string }) {
 
   const proceed = async () => {
     if (busy || !cart.lines.length) return;
+    if (!requireSignIn()) return;
     if (docs.some((d) => d.status === 'uploading')) { setError('Wait for the files to finish uploading.'); return; }
     if (docs.some((d) => d.status === 'failed')) { setError('One file did not upload. Tap Retry or remove it.'); return; }
     if (!keyRef.current || keyRef.current.sig !== sig) keyRef.current = { sig, key: newIdempotencyKey() };

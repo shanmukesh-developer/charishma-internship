@@ -705,7 +705,7 @@ export default function OrdersScreen() {
           <Text style={[st.emptyDesc, { color: txtSec }]}>
             Repairs, laundry and tailoring you book will show up here with their live status.
           </Text>
-          <TouchableOpacity style={[st.browseBtn, { backgroundColor: COLORS.red }]} activeOpacity={0.85} onPress={() => router.push({ pathname: '/(tabs)/others', params: { tab: 'services' } } as any)}>
+          <TouchableOpacity style={[st.browseBtn, { backgroundColor: COLORS.red }]} activeOpacity={0.85} onPress={() => router.push({ pathname: '/(tabs)/services', params: { tab: 'services' } } as any)}>
             <Text style={st.browseBtnText}>Browse services</Text>
           </TouchableOpacity>
         </View>

@@ -67,7 +67,7 @@ export function RHeader({ title, subtitle, right, onBack }: { title: string; sub
       <TouchableOpacity
         accessibilityRole="button"
         accessibilityLabel="Go back"
-        onPress={onBack || (() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/others?tab=rentals' as any)))}
+        onPress={onBack || (() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/services?tab=rentals' as any)))}
         style={[st.backBtn, { backgroundColor: p.card2 }]}
       >
         <Ionicons name="chevron-back" size={20} color={p.text} />

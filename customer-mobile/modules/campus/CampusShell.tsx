@@ -660,7 +660,7 @@ export const CampusShell: React.FC<CampusShellProps> = ({ onBack, link }) => {
           subtitle="Ride pillion with a student going your way and split the fuel"
           onPress={() => {
             setOverlay(null);
-            afterModalDismiss(() => router.push({ pathname: '/(tabs)/others', params: { tab: 'coride' } } as any));
+            afterModalDismiss(() => router.push({ pathname: '/(tabs)/services', params: { tab: 'coride' } } as any));
           }}
         />
       </Sheet>

@@ -3,8 +3,9 @@
  * sheets. `RentalsV2Screen` is a full-screen app/rentals/* route; `RentalsV2Home` is Others → Rentals (full
  * screen like Food v2: its own night header, with the Others section pills driven by `sections` / `onSection`).
  */
-import React, { useEffect } from 'react';
-import { View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Animated, View } from 'react-native';
+import StatusBarScrim from '../../components/StatusBarScrim';
 import { useLocalSearchParams } from 'expo-router';
 import { DAY, NIGHT } from './rentalsV2Theme';
 import { RentalsV2Provider } from './rentalsV2Data';
@@ -53,12 +54,15 @@ export function RentalsV2Screen({ name }: { name: Exclude<ScreenName, 'home'> })
 
 /** Others → Rentals. */
 function RentalsV2Home({ sections, onSection }: { sections?: { key: string; label: string }[]; onSection?: (key: string) => void }) {
+  // The hero scrolls away under the edge-to-edge status bar: the scrim fades in behind the clock once it does.
+  const scrollY = useRef(new Animated.Value(0)).current;
   return (
     <RentalsV2Provider>
       <RentalsV2Nav route={{ name: 'home' }} onSection={onSection}>
         <View style={{ flex: 1, backgroundColor: NIGHT.page }}>
-          <RentalsV2HomeBody sections={sections} />
+          <RentalsV2HomeBody sections={sections} scrollY={scrollY} />
           <RentalsV2Sheets />
+          <StatusBarScrim color={NIGHT.pageTop} scrollY={scrollY} />
         </View>
       </RentalsV2Nav>
     </RentalsV2Provider>

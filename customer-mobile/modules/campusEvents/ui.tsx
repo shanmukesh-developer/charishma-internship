@@ -24,7 +24,7 @@ import {
 
 export type { CeIconName };
 
-export const CE_HOME = '/(tabs)/others?tab=events';
+export const CE_HOME = '/(tabs)/services?tab=events';
 export const CE_GRAD: [string, string] = ['#7C3AED', '#DB2777'];
 
 export const usePalette = () => {

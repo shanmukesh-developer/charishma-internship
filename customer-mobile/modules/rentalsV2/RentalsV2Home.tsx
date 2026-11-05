@@ -4,7 +4,7 @@
  * which the old Rentals tab had and the board leaves out. Pull to refresh reloads the real data.
  */
 import React, { useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
@@ -74,21 +74,23 @@ function YourRentals() {
   );
 }
 
-export function RentalsV2HomeBody({ sections }: { sections?: { key: string; label: string }[] }) {
+export function RentalsV2HomeBody({ sections, scrollY }: { sections?: { key: string; label: string }[]; scrollY?: Animated.Value }) {
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = async () => {
     setRefreshing(true);
     try { await reloadAll(); } finally { setRefreshing(false); }
   };
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: NIGHT.page }} contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}
+    <Animated.ScrollView style={{ flex: 1, backgroundColor: NIGHT.page }} contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}
+      scrollEventThrottle={16}
+      onScroll={scrollY ? Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true }) : undefined}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#C4B5FD" colors={['#7C5CF0']} progressViewOffset={60} />}>
       <HomeTop sections={sections} />
       <CategoryGrid />
       <NearCampus />
       <PopularWeek />
       <YourRentals />
-    </ScrollView>
+    </Animated.ScrollView>
   );
 }
 

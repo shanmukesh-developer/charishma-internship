@@ -15,10 +15,15 @@ docRouter.get('/:bookingId/:mediaId', noStore, handler(St.document, 'CAMPUS_BOOK
 
 // ── Students ────────────────────────────────────────────────────────────────
 const router = express.Router();
+// Public menu reads (QA Q23, 5 Nov 2026): guests browse the stalls and their menus before signing in, like the
+// restaurant menus (routes/restaurantRoutes). Same whitelisted cards as a signed-in student gets
+// (services/stalls serializeStall / serializeItem): names, photos, items, prices, hours, campus. Never the UPI
+// details, owner phone, earnings or bookings. Declared before the sign-in wall below; everything after it
+// (home with the student's own bookings, booking, proof, cancel) still needs a signed-in student.
+router.get('/stalls', noStore, handler(St.listStalls, 'CAMPUS_BOOKING_STALLS'));
+router.get('/stalls/:id', noStore, handler(St.stallDetail, 'CAMPUS_BOOKING_STALL'));
 router.use(protect, studentOnly, noStore);
 router.get('/home', handler(St.home, 'CAMPUS_BOOKING_HOME'));
-router.get('/stalls', handler(St.listStalls, 'CAMPUS_BOOKING_STALLS'));
-router.get('/stalls/:id', handler(St.stallDetail, 'CAMPUS_BOOKING_STALL'));
 router.post('/bookings', handler(St.create, 'CAMPUS_BOOKING_CREATE'));
 router.get('/bookings', handler(St.listMine, 'CAMPUS_BOOKING_MINE'));
 router.get('/bookings/:id', handler(St.getMine, 'CAMPUS_BOOKING_ONE'));

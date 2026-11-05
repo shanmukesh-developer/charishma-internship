@@ -31,7 +31,7 @@ export type Sheet =
   | { kind: 'sent'; title: string; body: string; mine?: boolean };
 export type Duration = 'day' | 'week' | 'month';
 
-export const RENTALS_HOME_PATH = '/(tabs)/others?tab=rentals';
+export const RENTALS_HOME_PATH = '/(tabs)/services?tab=rentals';
 const CATS: Category[] = ['bike', 'car', 'room', 'flat'];
 const qs = (o: Record<string, string | undefined | false>) => {
   const parts = Object.entries(o).filter(([, v]) => v !== undefined && v !== false && v !== '').map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`);

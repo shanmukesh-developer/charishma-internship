@@ -19,7 +19,7 @@ import { useTopInset } from '../../utils/useTopInset';
 import { cbApi, type CbMenuItem, type CbStall as Stall } from './cbApi';
 import { cbCart, useCbCart, MAX_QTY_STATIONERY } from './cbCart';
 import { COLORS, SHADOWS, hhmm12, inr, surfaceLift, useCbTheme } from './cbTheme';
-import { AddControl, DopaminePressable, EmptyCard, NoticeBar, StaggeredSection, useCbBack, useCbLive } from './cbKit';
+import { AddControl, DopaminePressable, EmptyCard, NoticeBar, StaggeredSection, useCbBack, useCbLive, useCbSignIn } from './cbKit';
 import { isSampleId, sampleStallById, type CbSampleMenuItem } from './campusBookingDemo';
 import CbSampleSheet, { CbSampleTag, type CbSampleNote } from './CbSampleSheet';
 import { BUTTON_ROLE } from '../../utils/pressRole';
@@ -45,6 +45,8 @@ export default function CbStall({ id }: { id: string }) {
   const [activeCategory, setActiveCategory] = useState('All');
   const [menuSearch, setMenuSearch] = useState('');
   const cart = useCbCart(id);
+  // Guests read the menu and prices; Add and "Your bookings" ask them to sign in (QA Q23).
+  const { requireSignIn } = useCbSignIn();
 
   const load = useCallback(async (pull = false) => {
     if (sampleId) return;
@@ -125,7 +127,7 @@ export default function CbStall({ id }: { id: string }) {
             <Ionicons name="chevron-back" size={22} color="#fff" />
           </TouchableOpacity>
           {sample ? null : (
-            <TouchableOpacity style={[st.sideBtn, { top: topPad }]} onPress={() => router.push('/campus-booking/bookings' as any)} accessibilityRole="button" accessibilityLabel="Your bookings">
+            <TouchableOpacity style={[st.sideBtn, { top: topPad }]} onPress={() => { if (requireSignIn('Sign in to see your bookings')) router.push('/campus-booking/bookings' as any); }} accessibilityRole="button" accessibilityLabel="Your bookings">
               <Ionicons name="receipt-outline" size={18} color="#6B7280" />
             </TouchableOpacity>
           )}
@@ -261,7 +263,7 @@ export default function CbStall({ id }: { id: string }) {
                             soldOut={!m.isAvailable}
                             closed={!stall.isOpen}
                             max={stall.category === 'stationery' ? MAX_QTY_STATIONERY : undefined}
-                            onAdd={() => { if (stall.isOpen) cbCart.change(id, { menuItemId: m.id, name: m.name, price: m.price, isVeg: m.isVeg, category: m.category }, 1, stall.category === 'stationery' ? MAX_QTY_STATIONERY : undefined); }}
+                            onAdd={() => { if (stall.isOpen && requireSignIn('Sign in to book')) cbCart.change(id, { menuItemId: m.id, name: m.name, price: m.price, isVeg: m.isVeg, category: m.category }, 1, stall.category === 'stationery' ? MAX_QTY_STATIONERY : undefined); }}
                             onRemove={() => cbCart.change(id, { menuItemId: m.id, name: m.name, price: m.price, isVeg: m.isVeg, category: m.category }, -1)}
                           />
                           )}

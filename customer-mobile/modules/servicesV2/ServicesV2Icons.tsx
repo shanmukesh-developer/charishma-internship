@@ -27,7 +27,8 @@ export { default as IPlus } from 'lucide-react-native/icons/plus';
 export { default as IMinus } from 'lucide-react-native/icons/minus';
 export { default as IChevronRight } from 'lucide-react-native/icons/chevron-right';
 export { default as IChevronDown } from 'lucide-react-native/icons/chevron-down';
-export { default as IReceipt } from 'lucide-react-native/icons/receipt';
+/** Rupee receipt (QA Q19): the plain lucide receipt prints a "$". */
+export { default as IReceipt } from 'lucide-react-native/icons/receipt-indian-rupee';
 export { default as ICheck } from 'lucide-react-native/icons/circle-check';
 export { default as IInfo } from 'lucide-react-native/icons/info';
 export { default as IX } from 'lucide-react-native/icons/x';

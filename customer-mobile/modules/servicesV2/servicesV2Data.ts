@@ -277,4 +277,4 @@ export const matchesQuery = (i: ShelfItem, q: string) => {
 /** Paths of the v2 screens. */
 export const shelfPath = (shelf: ShelfId) => `/category/${shelf}`;
 export const detailPath = (shelf: ServiceShelf, id: string) => `/services/${shelf}/${encodeURIComponent(id)}`;
-export const SERVICES_HOME_PATH = '/(tabs)/others?tab=services';
+export const SERVICES_HOME_PATH = '/(tabs)/services?tab=services';

@@ -8,6 +8,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { useTopInset } from '../../utils/useTopInset';
@@ -28,7 +29,8 @@ export function HomeTop({ sections, active = 'events' }: { sections?: { key: str
   const { user } = useAuth();
   const unread = useUnreadDot();
   const avatar = (user as any)?.profileImage || (user as any)?.avatar || null;
-  const initial = String(user?.name || 'Z').trim().charAt(0).toUpperCase();
+  // A guest (or a name not set yet) gets a person, like Home's header avatar, never the "Z" brand letter.
+  const initial = String(user?.name || '').trim().charAt(0).toUpperCase();
   const h1 = w < 380 ? 27 : w >= 420 ? 32 : 30;
   const search = () => nav.push({ name: 'explore', focus: true });
   return (
@@ -49,10 +51,12 @@ export function HomeTop({ sections, active = 'events' }: { sections?: { key: str
           <IBell size={17} color="#FFFFFF" strokeWidth={1.7} />
           {unread ? <View style={s.bellDot} /> : null}
         </Press>
-        <Press onPress={() => router.push('/(tabs)/profile' as any)} label="Your profile" style={s.avatarRing} scaleTo={0.9}>
-          {avatar ? <Image source={{ uri: avatar }} style={s.avatar} contentFit="cover" /> : (
+        <Press onPress={() => router.push('/(tabs)/profile' as any)} label={user ? 'Your profile' : 'Guest, open profile'} style={s.avatarRing} scaleTo={0.9}>
+          {user && avatar ? <Image source={{ uri: avatar }} style={s.avatar} contentFit="cover" /> : (
             <LinearGradient colors={['#A083E2', '#5B37AE']} style={[s.avatar, { alignItems: 'center', justifyContent: 'center' }]}>
-              <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: W.title }}>{initial}</Text>
+              {user && initial
+                ? <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: W.title }}>{initial}</Text>
+                : <Ionicons name="person" size={17} color="#FFFFFF" />}
             </LinearGradient>
           )}
         </Press>

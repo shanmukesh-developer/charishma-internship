@@ -147,7 +147,7 @@ export const usePgPalette = () => {
 };
 export type PgPalette = ReturnType<typeof usePgPalette>;
 
-export const PG_HOME = '/(tabs)/others?tab=pg';
+export const PG_HOME = '/(tabs)/services?tab=pg';
 
 /** Amenity name -> icon (matching on words the housing team uses). */
 export const amenityIcon = (name: string): LucideIcon => {

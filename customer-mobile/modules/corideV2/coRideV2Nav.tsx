@@ -33,7 +33,7 @@ export type Sheet =
   | { kind: 'sos'; rideId?: string }
   | { kind: 'done'; title: string; body: string };
 
-export const CORIDE_HOME_PATH = '/(tabs)/others?tab=coride';
+export const CORIDE_HOME_PATH = '/(tabs)/services?tab=coride';
 const qs = (o: Record<string, string | undefined | false>) => {
   const parts = Object.entries(o).filter(([, v]) => v !== undefined && v !== false && v !== '').map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`);
   return parts.length ? `?${parts.join('&')}` : '';

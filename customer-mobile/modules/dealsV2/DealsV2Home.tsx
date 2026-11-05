@@ -1,6 +1,6 @@
 /**
  * Others → Deals & spin (v2 home, owner reference): the indigo header, the violet "Spin. Win. Save." hero with the
- * real wheel on a podium, the ZenPoints and wallet cards, the "Spin & win" row, today's deals (real first, then
+ * real wheel on a podium (with the live spin progress line), the ZenPoints and wallet cards, today's deals (real first, then
  * labelled samples), your coupons as perforated tickets and the invite card. Real data only for anything money-like.
  */
 import React, { useState } from 'react';
@@ -11,7 +11,7 @@ import { DV, W, shadow } from './dealsV2Theme';
 import { Press, SectionHead, usePageW } from './DealsV2Kit';
 import { HomeTop } from './DealsV2HomeTop';
 import { Hero } from './DealsV2Hero';
-import { Balances, SignInCard, SpinRow } from './DealsV2Balances';
+import { Balances, SignInCard } from './DealsV2Balances';
 import { DealCard } from './DealsV2Deals';
 import { Ticket } from './DealsV2Ticket';
 import { Notice, Skeleton, StateBlock } from './DealsV2States';
@@ -49,15 +49,13 @@ export function DealsV2HomeBody({ sections }: { sections?: { key: string; label:
         </View>
       ) : null}
 
-      <Hero prizes={d.prizes} spinsLeft={d.spinsLeft} signedIn={d.signedIn} onWheel={() => nav.push({ name: 'spin' })} />
+      <Hero prizes={d.prizes} spinsLeft={d.spinsLeft} signedIn={d.signedIn} nextIn={d.nextIn} onWheel={() => nav.push({ name: 'spin' })} />
 
       {d.signedIn ? (
         <Balances zenPoints={d.zenPoints} wallet={d.wallet} onPoints={() => nav.push({ name: 'points' })} onWallet={() => nav.go('/wallet-history')} />
       ) : (
         <SignInCard onSignIn={() => router.push('/login' as any)} />
       )}
-
-      <SpinRow prizes={d.prizes} signedIn={d.signedIn} spinsLeft={d.spinsLeft} nextIn={d.nextIn} onPress={() => nav.push({ name: 'spin' })} />
 
       {/* Today's deals */}
       {deals.length > 0 ? (

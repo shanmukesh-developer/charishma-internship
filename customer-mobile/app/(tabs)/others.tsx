@@ -675,6 +675,17 @@ export function HubScreen({ hub }: { hub: Hub }) {
     () => TABS.filter(t => HUB_SECTIONS[hub].includes(t.key) && sectionLive(t.key)),
     [sectionLive, hub],
   );
+  // Tester, 5 Nov 2026: the Services tab opened on PG stays showing "0 PGs" (the server keeps PG live with no
+  // listings). Opened plainly (no ?tab= link), it starts on Tech & repairs while PG has no listings; a link or a chip
+  // tap still opens PG stays, and the chip order is unchanged.
+  const autoStartDoneRef = useRef(false);
+  useEffect(() => {
+    if (hub !== 'services' || autoStartDoneRef.current || tab) return;
+    const pgInfo = (sectionsSWR.data?.sections as Record<string, { live?: boolean; count?: number }> | undefined)?.pg;
+    if (!pgInfo) return;
+    autoStartDoneRef.current = true;
+    if (activeTab === 'pg' && Number(pgInfo.count) === 0) setActiveTab('services');
+  }, [hub, tab, sectionsSWR.data, activeTab]);
   useEffect(() => {
     // A hidden section (no live listings) or one of the other hub falls back to this hub's first visible section.
     if (!sectionLive(activeTab) || !HUB_SECTIONS[hub].includes(activeTab)) setActiveTab(visibleTabs[0]?.key || homeSection);

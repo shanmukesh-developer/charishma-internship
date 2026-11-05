@@ -926,9 +926,9 @@ export default function HomeScreen() {
               } else if (slide.id === 'campus-buddy') {
                 router.push('/friends' as any);
               } else if (slide.id === 'ride') {
-                router.push({ pathname: '/(tabs)/others', params: { tab: 'rides' } } as any);
+                router.push({ pathname: '/(tabs)/services', params: { tab: 'rides' } } as any);
               } else if (slide.id === 'stays') {
-                router.push({ pathname: '/(tabs)/others', params: { tab: 'stays' } } as any);
+                router.push({ pathname: '/(tabs)/services', params: { tab: 'stays' } } as any);
               } else if (slide.id === 'express-canteen') {
                 router.push('/category/express' as any);
               } else if (slide.id === 'welcome-benefits') {
@@ -982,8 +982,11 @@ export default function HomeScreen() {
                 } else if (c.key === 'campusBooking') {
                   router.push('/campus-booking' as any);
                 } else {
-                  // Others records the visit from its ?tab= link.
-                  router.push({ pathname: '/(tabs)/others', params: { tab: c.key } } as any);
+                  // Others / Services record the visit from their ?tab= link. Tester, 5 Nov 2026: "Clicking on PG Stays
+                  // opens the groceries tab": the card went to the Groceries tab, which then forwarded to Services.
+                  // Each card now opens its own tab directly (Deals & spin lives in Groceries, the rest in Services).
+                  const hub = c.key === 'promos' || c.key === 'food' ? '/(tabs)/others' : '/(tabs)/services';
+                  router.push({ pathname: hub, params: { tab: c.key } } as any);
                 }
               }}
               sound="tabSwitch"

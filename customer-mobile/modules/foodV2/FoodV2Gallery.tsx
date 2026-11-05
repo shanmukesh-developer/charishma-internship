@@ -11,6 +11,7 @@ import { PressScale } from '../../modules/others/motion';
 import { FOOD } from './foodV2Theme';
 import { Icon } from './FoodV2Icons';
 import { BUTTON_ROLE } from '../../utils/pressRole';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function FoodV2Gallery({ images, topPad, isSaved, onBack, onShare, onToggleSaved, name }: {
   images: string[]; topPad: number; isSaved: boolean; name: string;
@@ -18,6 +19,8 @@ export default function FoodV2Gallery({ images, topPad, isSaved, onBack, onShare
 }) {
   const { width, height } = useWindowDimensions();
   const W = Math.min(width, 600);
+  // QA Q7 (5 Nov 2026): the frame behind the clock was always white, a white strip on the dark page.
+  const { isDark } = useTheme();
   const H = Math.round(Math.min(340, Math.max(280, W * 0.82))) + topPad;
   const [index, setIndex] = useState(0);
   const [viewer, setViewer] = useState<number | null>(null);
@@ -27,7 +30,7 @@ export default function FoodV2Gallery({ images, topPad, isSaved, onBack, onShare
 
   return (
     <View>
-      <View style={[st.frame, { height: H }]}>
+      <View style={[st.frame, { height: H, backgroundColor: isDark ? FOOD.page.dark : FOOD.page.light }]}>
         <ScrollView ref={pager} horizontal pagingEnabled showsHorizontalScrollIndicator={false} scrollEventThrottle={16}
           onMomentumScrollEnd={e => setIndex(Math.round(e.nativeEvent.contentOffset.x / W))}
           onScroll={e => { const i = Math.round(e.nativeEvent.contentOffset.x / W); if (i !== index) setIndex(i); }}>

@@ -70,8 +70,8 @@ export default function AboutZcsModal({ visible, onClose }: { visible: boolean; 
             ))}
           </View>
 
-          <TouchableOpacity onPress={onClose} style={[st.done, { backgroundColor: gold }]} accessibilityRole="button" accessibilityLabel="Done" activeOpacity={0.85}>
-            <Text style={[st.doneText, { color: isDark ? '#0A0A0B' : '#FFFFFF' }]}>Done</Text>
+          <TouchableOpacity onPress={onClose} style={[st.done, { backgroundColor: COLORS.red }]} accessibilityRole="button" accessibilityLabel="Done" activeOpacity={0.85}>
+            <Text style={[st.doneText, { color: '#FFFFFF' }]}>Done</Text>
           </TouchableOpacity>
 
           <Text style={[st.credit, { color: colors.textMuted }]}>
@@ -90,7 +90,7 @@ const st = StyleSheet.create({
   close: { position: 'absolute', top: 14, right: 16, width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', zIndex: 2 },
   brand: { alignItems: 'center', marginTop: 16 },
   // Web and iOS add the letter spacing after the last letter too; the same space in front keeps the word centred.
-  wordmark: { ...BRAND_FONT, fontSize: 30, letterSpacing: 6, paddingLeft: Platform.OS === 'android' ? 0 : 6, marginTop: 14 },
+  wordmark: { ...BRAND_FONT, fontSize: 30, letterSpacing: 0.8, paddingLeft: 0, marginTop: 14 },
   tagline: { fontSize: 15, lineHeight: 22, textAlign: 'center', marginTop: 16, marginHorizontal: 8 },
   card: { borderRadius: 18, borderWidth: 1, marginTop: 20, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52, paddingHorizontal: 14 },

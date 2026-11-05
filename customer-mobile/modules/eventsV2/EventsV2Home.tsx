@@ -4,7 +4,7 @@
  * The app keeps its own tab bar (the reference's Home · Explore · calendar · Bookings · Profile bar is not added).
  */
 import React, { useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { NIGHT, W } from './eventsV2Theme';
 import { HomeTop } from './EventsV2HomeTop';
@@ -39,12 +39,14 @@ function ModeNote() {
   return null;
 }
 
-export function EventsV2HomeBody({ sections }: { sections?: { key: string; label: string }[] }) {
+export function EventsV2HomeBody({ sections, scrollY }: { sections?: { key: string; label: string }[]; scrollY?: Animated.Value }) {
   const d = useEventsV2();
   const [refreshing, setRefreshing] = useState(false);
   return (
-    <ScrollView
+    <Animated.ScrollView
       style={{ flex: 1, backgroundColor: NIGHT.page }}
+      scrollEventThrottle={16}
+      onScroll={scrollY ? Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true }) : undefined}
       contentContainerStyle={{ paddingBottom: 120 }}
       showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await d.reload(); setRefreshing(false); }} tintColor={NIGHT.violet} colors={[NIGHT.violetDeep]} />}
@@ -56,7 +58,7 @@ export function EventsV2HomeBody({ sections }: { sections?: { key: string; label
       <Upcoming />
       <Clubs />
       {!d.isOrganizer && d.signedIn ? <HostLine /> : null}
-    </ScrollView>
+    </Animated.ScrollView>
   );
 }
 

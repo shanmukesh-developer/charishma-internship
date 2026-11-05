@@ -27,7 +27,7 @@ export type Route =
 
 export type Sheet = null | { kind: 'sample'; ev: EvEvent };
 
-export const EVENTS_HOME_PATH = '/(tabs)/others?tab=events';
+export const EVENTS_HOME_PATH = '/(tabs)/services?tab=events';
 const qs = (o: Record<string, string | undefined | false>) => {
   const parts = Object.entries(o).filter(([, v]) => v !== undefined && v !== false && v !== '').map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`);
   return parts.length ? `?${parts.join('&')}` : '';

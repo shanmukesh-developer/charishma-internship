@@ -6,10 +6,11 @@
  *   PlaceButton    the checkout "Place order" button;  OutlineButton  the stall section "Try again" button
  *   StatusTag      the store page status badge;  VegBox  the stall dish diet box
  *   EmptyCard      the stall section empty / error card;  useCbLive  live updates (ids-only socket nudges)
+ *   useCbSignIn    guests browse stalls and menus; booking actions ask them to sign in (the basket's prompt)
  * Motion: DopaminePressable press feedback and StaggeredSection one-time fade-ins only.
  */
 import React, { useEffect, useRef } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View, type StyleProp, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import DopaminePressable, { ActionPressable, CartPressable } from '../../components/DopaminePressable';
@@ -17,12 +18,32 @@ import { useTopInset } from '../../utils/useTopInset';
 import { connectSocket } from '../../utils/socket';
 import { COLORS, SHADOWS, surfaceLift, useCbTheme } from './cbTheme';
 import type { CbStatus } from './cbApi';
+import { useAuth } from '../../context/AuthContext';
 import SymbolIcon from '../../components/SymbolIcon';
 
 export { default as DopaminePressable } from '../../components/DopaminePressable';
 export { StaggeredSection } from '../../components/AnimatedSection';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
+
+/**
+ * Guests browse the stalls and menus (QA Q23); adding to a booking, booking and "Your bookings" ask them to sign in
+ * first, with the basket's prompt (app/(tabs)/basket: Alert, then /login). requireSignIn() returns true when signed in.
+ */
+export function useCbSignIn() {
+  const router = useRouter();
+  const { user, isLoading } = useAuth();
+  const signedIn = !!(user?._id || user?.id);
+  const requireSignIn = (title = 'Sign in to check out', message = 'Sign in to book from campus stalls and track your pickup.') => {
+    if (signedIn) return true;
+    Alert.alert(title, message, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Sign in', onPress: () => router.push('/login' as any) },
+    ]);
+    return false;
+  };
+  return { signedIn, authLoading: isLoading, requireSignIn };
+}
 
 /** Back to the previous screen, or the In-Campus Booking list when opened from a link / push. */
 export function useCbBack(fallback = '/campus-booking') {

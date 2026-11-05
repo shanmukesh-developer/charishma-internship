@@ -131,8 +131,9 @@ export default function ThemedAlert() {
                   btnBg = COLORS.red;
                   textCol = '#FFFFFF';
                 } else {
-                  btnBg = COLORS.gold;
-                  textCol = '#000000';
+                  // Owner, 5 Nov 2026 (QA Q1): one action colour across the app, the brand red, not the old gold.
+                  btnBg = COLORS.red;
+                  textCol = '#FFFFFF';
                 }
               } else {
                 textCol = activeSubText;

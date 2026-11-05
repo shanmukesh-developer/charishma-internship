@@ -16,12 +16,18 @@ import { resolveMediaUrl } from '../../utils/imageUpload';
 import { cbApi, type CbBooking, type CbCategoryKey, type CbHome as HomeData, type CbStall } from './cbApi';
 import { cbCart, cartTotals, useCbCartTick } from './cbCart';
 import { TYPE, hhmm12, inr, surfaceLift, timeIST, useCbTheme } from './cbTheme';
-import { AddControl, CbHeader, DopaminePressable, EmptyCard, NoticeBar, StaggeredSection, StatusTag, VegBox, useCbLive } from './cbKit';
+import { AddControl, CbHeader, DopaminePressable, EmptyCard, NoticeBar, StaggeredSection, StatusTag, VegBox, useCbLive, useCbSignIn } from './cbKit';
 import { isSampleStall, sampleItemArt, sampleStallsFor } from './campusBookingDemo';
 import CbSampleSheet, { CbSampleTag, type CbSampleNote } from './CbSampleSheet';
 import SymbolIcon from '../../components/SymbolIcon';
 
 let homeMem: HomeData | null = null;
+
+// Guests (QA Q23): the public stall list (GET /stalls), with no bookings of their own.
+const guestHome = async (): Promise<HomeData> => {
+  const r = await cbApi.stalls();
+  return { categories: r.categories, stalls: r.stalls, active: [], limits: { maxQtyPerLine: 10, maxLines: 20, proofMaxBytes: 5 * 1024 * 1024 }, commissionPct: 0 };
+};
 
 const CATEGORY_CHIPS: { key: CbCategoryKey | 'all'; label: string }[] = [
   { key: 'all', label: 'All' },
@@ -45,8 +51,8 @@ export default function CbHome() {
   const insets = useSafeAreaInsets();
   const [data, setData] = useState<HomeData | null>(homeMem);
   const [error, setError] = useState<string | null>(null);
-  // Signed out: the server answers 401, so this is a sign-in step, not a failed load (no Try again).
-  const [needsSignIn, setNeedsSignIn] = useState(false);
+  // Guests browse the stalls and menus; adding, booking and "Your bookings" ask them to sign in (QA Q23).
+  const { signedIn, authLoading, requireSignIn } = useCbSignIn();
   const [refreshing, setRefreshing] = useState(false);
   const [chip, setChip] = useState<CbCategoryKey | 'all'>('all');
   const [search, setSearch] = useState('');
@@ -54,20 +60,25 @@ export default function CbHome() {
   useCbCartTick();
 
   const load = useCallback(async (pull = false) => {
+    if (authLoading) return;
     if (pull) setRefreshing(true);
     try {
-      const d = await cbApi.home();
+      let d: HomeData;
+      if (signedIn) {
+        // An expired sign-in still shows the stalls (the booking actions ask to sign in again).
+        try { d = await cbApi.home(); } catch (e: any) { if (e?.code !== 'AUTH') throw e; d = await guestHome(); }
+      } else {
+        d = await guestHome();
+      }
       homeMem = d;
       setData(d);
       setError(null);
-      setNeedsSignIn(false);
     } catch (e: any) {
-      setNeedsSignIn(e?.code === 'AUTH');
       setError(e?.message || 'Could not load the stalls.');
     } finally {
       setRefreshing(false);
     }
-  }, []);
+  }, [authLoading, signedIn]);
   useFocusEffect(useCallback(() => { void load(); }, [load]));
   useCbLive(() => { void load(); });
 
@@ -84,6 +95,8 @@ export default function CbHome() {
   const samples = useMemo(() => pick(allSamples), [allSamples, pick]);
   const allStalls = data?.stalls || [];
   const openCount = allStalls.filter((v) => v.isOpen).length;
+  // Never a previous account's bookings after signing out.
+  const active = signedIn ? data?.active || [] : [];
   const latest = cbCart.latest();
   const latestTotals = latest ? cartTotals(latest.lines) : null;
   const latestStall = latest ? allStalls.find((v) => v.id === latest.stallId) : null;
@@ -97,9 +110,9 @@ export default function CbHome() {
         sub={data ? (!allStalls.length && allSamples.length ? 'Sample stalls for now' : `${allStalls.length} ${allStalls.length === 1 ? 'stall' : 'stalls'} · ${openCount} open now`) : 'Campus stalls'}
         onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)' as any))}
         right={(
-          <TouchableOpacity onPress={() => router.push('/campus-booking/bookings' as any)} style={[st.headerIcon, pillStyle]} accessibilityRole="button" accessibilityLabel={`Your bookings${data?.active.length ? `, ${data.active.length} in progress` : ''}`}>
+          <TouchableOpacity onPress={() => { if (requireSignIn('Sign in to see your bookings')) router.push('/campus-booking/bookings' as any); }} style={[st.headerIcon, pillStyle]} accessibilityRole="button" accessibilityLabel={`Your bookings${active.length ? `, ${active.length} in progress` : ''}`}>
             <Ionicons name="receipt-outline" size={18} color={p.txt} />
-            {data?.active.length ? <View style={[st.dot, { backgroundColor: p.accent }]} /> : null}
+            {active.length ? <View style={[st.dot, { backgroundColor: p.accent }]} /> : null}
           </TouchableOpacity>
         )}
       />
@@ -123,10 +136,10 @@ export default function CbHome() {
         </View>
 
         {/* Bookings in progress */}
-        {data?.active.length ? (
+        {active.length ? (
           <View style={{ marginTop: 8 }}>
             <Text style={[st.sectionTitle, { color: p.txt }]}>In progress</Text>
-            {data.active.map((b) => <ActiveRow key={b.id} b={b} onPress={() => router.push(((b.status === 'PAYMENT_PENDING' || b.status === 'REJECTED') && b.canSubmitProof ? `/campus-booking/pay/${b.id}` : `/campus-booking/order/${b.id}`) as any)} />)}
+            {active.map((b) => <ActiveRow key={b.id} b={b} onPress={() => router.push(((b.status === 'PAYMENT_PENDING' || b.status === 'REJECTED') && b.canSubmitProof ? `/campus-booking/pay/${b.id}` : `/campus-booking/order/${b.id}`) as any)} />)}
           </View>
         ) : null}
 
@@ -163,8 +176,7 @@ export default function CbHome() {
         </ScrollView>
 
         {!data && !error ? <EmptyCard loading title="Loading campus stalls" /> : null}
-        {!data && error && needsSignIn ? <EmptyCard icon="lock-closed-outline" title="Sign in to book from campus stalls" sub="Pre-order from campus stalls, pay the stall by UPI and collect with a pickup code." actionLabel="Sign in" onAction={() => router.push('/login' as any)} /> : null}
-        {!data && error && !needsSignIn ? <EmptyCard icon="cloud-offline-outline" title="Couldn't load the stalls" sub={error} actionLabel="Try again" onAction={() => load()} /> : null}
+        {!data && error ? <EmptyCard icon="cloud-offline-outline" title="Couldn't load the stalls" sub={error} actionLabel="Try again" onAction={() => load()} /> : null}
         {data && !allStalls.length && !allSamples.length ? (
           <EmptyCard title="No stalls take bookings yet" sub="Campus stalls appear here as soon as they start taking In-Campus Bookings." />
         ) : null}
@@ -224,6 +236,7 @@ export default function CbHome() {
 function StallCard({ stall: v, onOpen, onSample }: { stall: CbStall; onOpen: () => void; onSample?: (n: CbSampleNote) => void }) {
   const p = useCbTheme();
   useCbCartTick();
+  const { requireSignIn } = useCbSignIn();
   const sample = isSampleStall(v) ? v : null;
   const img = sample ? null : resolveMediaUrl(v.imageUrl) || resolveMediaUrl(v.logoUrl);
   const meta = [v.menuCategories || v.categoryLabel, v.location].filter(Boolean).join(' · ');
@@ -274,7 +287,7 @@ function StallCard({ stall: v, onOpen, onSample }: { stall: CbStall; onOpen: () 
               ) : v.isOpen ? (
                 <AddControl
                   qty={cbCart.qty(v.id, m.id)}
-                  onAdd={() => cbCart.change(v.id, { menuItemId: m.id, name: m.name, price: m.price, isVeg: m.isVeg, category: m.category }, 1)}
+                  onAdd={() => { if (requireSignIn('Sign in to book')) cbCart.change(v.id, { menuItemId: m.id, name: m.name, price: m.price, isVeg: m.isVeg, category: m.category }, 1); }}
                   onRemove={() => cbCart.change(v.id, { menuItemId: m.id, name: m.name, price: m.price, isVeg: m.isVeg, category: m.category }, -1)}
                 />
               ) : null}

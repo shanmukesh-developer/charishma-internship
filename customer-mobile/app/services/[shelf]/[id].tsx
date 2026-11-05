@@ -8,6 +8,6 @@ export default function ServiceDetailRoute() {
   const p = useLocalSearchParams<{ shelf?: string | string[]; id?: string | string[] }>();
   const shelf = String(Array.isArray(p.shelf) ? p.shelf[0] : p.shelf || '').toLowerCase();
   const id = String(Array.isArray(p.id) ? p.id[0] : p.id || '');
-  if (!isServiceShelf(shelf)) return <Redirect href={'/(tabs)/others?tab=services' as any} />;
+  if (!isServiceShelf(shelf)) return <Redirect href={'/(tabs)/services?tab=services' as any} />;
   return <ServicesV2Detail key={`${shelf}-${id}`} shelf={shelf} id={id} />;
 }

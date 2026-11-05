@@ -26,7 +26,7 @@ export const AUTO_BLUE = ACCENTS.auto.solid;
 export const AUTO_YELLOW = '#FACC15';
 export const AUTO_GREEN = '#16A34A';
 export const AUTO_GRAD: [string, string] = [ACCENTS.auto.deep, ACCENTS.auto.solid];
-export const AUTO_HOME = '/(tabs)/others?tab=coride&sub=auto';
+export const AUTO_HOME = '/(tabs)/services?tab=coride&sub=auto';
 
 // ── Palette ──────────────────────────────────────────────────────────────────
 

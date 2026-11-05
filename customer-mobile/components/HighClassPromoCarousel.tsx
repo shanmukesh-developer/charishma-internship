@@ -405,7 +405,7 @@ export default function HighClassPromoCarousel({
         description: 'Share a bike or auto with someone going your way. The rider decides who joins.',
         buttonText: 'Find a ride',
         accentColor: '#22D3EE',
-        redirectAction: () => router.push({ pathname: '/(tabs)/others', params: { tab: 'rides' } } as any),
+        redirectAction: () => router.push({ pathname: '/(tabs)/services', params: { tab: 'rides' } } as any),
       },
       {
         id: 'campus-buddy',
@@ -427,7 +427,7 @@ export default function HighClassPromoCarousel({
         description: 'See rooms, rent, mess menu and photos, then send a booking request.',
         buttonText: 'See PGs',
         accentColor: '#34D399',
-        redirectAction: () => router.push({ pathname: '/(tabs)/others', params: { tab: 'stays' } } as any),
+        redirectAction: () => router.push({ pathname: '/(tabs)/services', params: { tab: 'stays' } } as any),
       },
       {
         id: 'kirana',

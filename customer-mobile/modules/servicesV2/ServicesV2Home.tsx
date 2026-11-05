@@ -43,7 +43,7 @@ function HomeTop({ sections, onSection }: { sections?: Sections; onSection?: (k:
           <Text style={h.brand} accessibilityRole="header">ZenWe</Text>
           <Text style={h.brandSub} numberOfLines={1}>Tech & repairs</Text>
         </View>
-        <Press onPress={() => openMyBookings(router)} label="My service bookings" style={h.iconBtn} scaleTo={0.9}>
+        <Press onPress={() => openMyBookings(router)} label="My service bookings" hint="Opens Orders, Services: track and manage your repair and service bookings" style={h.iconBtn} scaleTo={0.9}>
           <IReceipt size={21} color="rgba(255,255,255,0.95)" strokeWidth={1.6} />
         </Press>
         <Press onPress={() => router.push('/notifications' as any)} label={unread ? 'Notifications, unread' : 'Notifications'} style={[h.iconBtn, { marginRight: -8 }]} scaleTo={0.9}>
@@ -237,7 +237,7 @@ export default React.memo(ServicesV2Home);
 const h = themedSheet(() => ({
   brandRow: { flexDirection: 'row', alignItems: 'center', paddingLeft: 6, paddingRight: 16, paddingTop: 12 },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  brand: { color: '#FFFFFF', fontSize: 21, fontWeight: W.title, letterSpacing: 1.2, lineHeight: 25 },
+  brand: { color: '#FFFFFF', fontSize: 21, fontWeight: W.title, letterSpacing: 0.2, lineHeight: 25 },
   brandSub: { color: TV.onDarkSub, fontSize: 12.5, marginTop: 1, letterSpacing: 0.2 },
   dot: { position: 'absolute', top: 10, right: 11, width: 9, height: 9, borderRadius: 5, backgroundColor: TV.bellDot, borderWidth: 1.5, borderColor: TV.header[1] },
   search: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 48, marginHorizontal: 16, marginTop: 14, borderRadius: 24, backgroundColor: TV.card, paddingHorizontal: 16 },
