@@ -7,7 +7,7 @@
     },
     "name": "ZenWe",
     "slug": "zenvy-customer",
-    "version": "1.0.66",
+    "version": "1.0.67",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -42,7 +42,7 @@
       },
       "package": "com.srm.hostelbites",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 67,
+      "versionCode": 68,
       "compileSdkVersion": 36,
       "targetSdkVersion": 36,
       "minSdkVersion": 24,
