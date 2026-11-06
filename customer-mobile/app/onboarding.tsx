@@ -447,16 +447,7 @@ export default function OnboardingScreen() {
               <Text allowFontScaling={false} style={s.brand}>ZenWe</Text>
             </View>
           </View>
-          <TouchableOpacity
-            style={s.skip}
-            onPress={() => finish('/(tabs)')}
-            activeOpacity={0.7}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            accessibilityRole="button"
-            accessibilityLabel="Skip the introduction"
-          >
-            <Text style={s.skipText}>Skip</Text>
-          </TouchableOpacity>
+          {/* No Skip (owner, 6 Nov 2026): the welcome slides are seen in full; Next leads to sign-up, "Already have an account? Sign in" stays. */}
         </View>
 
         <Animated.FlatList
