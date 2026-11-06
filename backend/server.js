@@ -2645,6 +2645,8 @@ const initializeApp = async () => {
           ? await orderChat.createIssueTicket({ orderId: room, actor: socket.user, issueType: issue.issueType, details: issue.details })
           : null;
         if (ticket) issue.ticketId = ticket.id;
+        // Human order ID (ZEN-123) for the admin alert, when the order has one.
+        if (ticket && /^ZEN-\d+$/.test(String(ticket.orderLabel || ''))) issue.orderCode = ticket.orderLabel;
         log(`[ISSUE] ${issue.senderRole} reported: ${issue.issueType} for order ${room}${ticket ? ` (ticket ${ticket.id})` : ''}`);
         // Notify both parties in the room and the admin
         io.to(room).emit('issue_alert', issue);
@@ -2653,7 +2655,7 @@ const initializeApp = async () => {
           try { require('./utils/realtime').notifyAdmin('ticket', 'created', ticket.id, { scope: 'order_issue', orderId: room }); } catch { /* best effort */ }
           require('./utils/adminAlert').pushAdmins(
             'Order issue reported',
-            `${issue.senderRole}: ${issue.issueType} (order ${room.slice(0, 8)})`,
+            `${issue.senderRole}: ${issue.issueType} (order ${ticket.orderLabel || `#${String(room).replace(/-/g, '').slice(-6).toUpperCase()}`})`,
             { type: 'order_issue', ticketId: String(ticket.id), orderId: room },
             { io }
           ).catch(() => {});
@@ -2850,6 +2852,7 @@ const initializeApp = async () => {
               log(`[DELIVERED] ${data.riderName} completed order ${data.orderId} (+₹${data.earnings})`);
               io.to('admin-room').emit('admin_delivery_complete', {
                 orderId: order.id,
+                ...require('./utils/orderNumbers').fields(order),
                 riderId: data.riderId,
                 riderName: adminSafeText(data.riderName, 60),
                 earnings: Number.isFinite(Number(data.earnings)) ? Number(data.earnings) : undefined,

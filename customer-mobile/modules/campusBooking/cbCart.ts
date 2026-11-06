@@ -1,7 +1,8 @@
 /**
- * In-Campus Booking cart: one small cart PER STALL, kept apart from the app's three delivery baskets (others,
- * restaurant, local vendor in context/CartContext). Nothing here reads or writes CartContext, so a pickup booking
- * can never mix with a delivery order or change a delivery checkout.
+ * In-Campus Booking cart: one small cart PER STALL. Since 6 Nov 2026 these carts are the main basket's "Campus store"
+ * tab (context/CartContext reads them through cbCart.all / subscribeCbCart, app/(tabs)/basket shows one section per
+ * stall, each booked as its own order through CbCartScreen and the campus booking API). The delivery baskets never
+ * write here, so a pickup booking can never mix with a delivery order or change a delivery checkout.
  * Saved on the phone (AsyncStorage) so a cart survives leaving the screen. Prices / names are only for showing;
  * the server prices every booking again from the stall menu.
  */
@@ -17,7 +18,7 @@ const MAX_LINES = 20;
 const STALE_MS = 24 * 3600 * 1000;
 
 export interface CbCartLine { menuItemId: string; name: string; price: number; isVeg: boolean; quantity: number; category?: string | null }
-interface CbCartData { lines: CbCartLine[]; at: number }
+interface CbCartData { lines: CbCartLine[]; at: number; /** The stall's name (for the main basket's Campus store tab). */ name?: string }
 type Store = Record<string, CbCartData>;
 
 let store: Store = {};
@@ -32,7 +33,7 @@ const loading = AsyncStorage.getItem(KEY)
     if (!v || typeof v !== 'object') return;
     const now = Date.now();
     for (const [k, c] of Object.entries(v as Store)) {
-      if (c && Array.isArray(c.lines) && now - Number(c.at || 0) < STALE_MS) store[k] = { lines: c.lines.filter((l) => l && l.menuItemId && l.quantity > 0), at: c.at };
+      if (c && Array.isArray(c.lines) && now - Number(c.at || 0) < STALE_MS) store[k] = { lines: c.lines.filter((l) => l && l.menuItemId && l.quantity > 0), at: c.at, ...(typeof c.name === 'string' && c.name ? { name: c.name } : {}) };
     }
   })
   .catch(() => { /* unreadable: start empty */ })
@@ -40,9 +41,10 @@ const loading = AsyncStorage.getItem(KEY)
 
 const save = () => { AsyncStorage.setItem(KEY, JSON.stringify(store)).catch(() => {}); };
 
-const write = (stallId: string, lines: CbCartLine[]) => {
+const write = (stallId: string, lines: CbCartLine[], stallName?: string) => {
   const next = { ...store };
-  if (lines.length) next[stallId] = { lines, at: Date.now() };
+  const name = String(stallName || '').trim() || store[stallId]?.name;
+  if (lines.length) next[stallId] = { lines, at: Date.now(), ...(name ? { name } : {}) };
   else delete next[stallId];
   store = next;
   save();
@@ -52,8 +54,9 @@ const write = (stallId: string, lines: CbCartLine[]) => {
 export const cbCart = {
   lines: (stallId: string): CbCartLine[] => (store[stallId] ? store[stallId].lines : []),
   qty: (stallId: string, menuItemId: string) => (store[stallId]?.lines.find((l) => l.menuItemId === menuItemId)?.quantity || 0),
-  /** +1 / -1 (or any delta) for one item. Returns false when a limit stopped it. */
-  change: (stallId: string, item: Omit<CbCartLine, 'quantity'>, delta: number, max: number = MAX_QTY): boolean => {
+  /** +1 / -1 (or any delta) for one item. Returns false when a limit stopped it. `stallName` labels the stall's
+   *  section in the main basket's Campus store tab. */
+  change: (stallId: string, item: Omit<CbCartLine, 'quantity'>, delta: number, max: number = MAX_QTY, stallName?: string): boolean => {
     const lines = [...cbCart.lines(stallId)];
     const i = lines.findIndex((l) => l.menuItemId === item.menuItemId);
     const cur = i >= 0 ? lines[i].quantity : 0;
@@ -63,7 +66,7 @@ export const cbCart = {
     if (q === 0) lines.splice(i, 1);
     else if (i >= 0) lines[i] = { ...lines[i], ...item, quantity: q };
     else lines.push({ ...item, quantity: q });
-    write(stallId, lines);
+    write(stallId, lines, stallName);
     return true;
   },
   /** A typed count (stationery pages): sets the line to `qty` (1..max). */
@@ -86,6 +89,22 @@ export const cbCart = {
     if (JSON.stringify(lines) !== before) write(stallId, lines);
     return removed;
   },
+  /** Remembers the stall's name for its cart (no change event when the name is the same or there is no cart). */
+  nameStall: (stallId: string, name: string | null | undefined) => {
+    const n = String(name || '').trim();
+    const c = store[stallId];
+    if (!n || !c || c.name === n) return;
+    store = { ...store, [stallId]: { ...c, name: n } };
+    save();
+    emit();
+  },
+  /** Every stall cart with items, oldest first (the main basket's Campus store tab). */
+  all: (): { stallId: string; name: string; lines: CbCartLine[]; at: number }[] =>
+    Object.entries(store)
+      .filter(([, c]) => c && c.lines.length)
+      .map(([stallId, c]) => ({ stallId, name: c.name || '', lines: c.lines, at: Number(c.at) || 0 }))
+      .sort((a, b) => a.at - b.at),
+  isLoaded: () => loaded,
   remove: (stallId: string, menuItemId: string) => write(stallId, cbCart.lines(stallId).filter((l) => l.menuItemId !== menuItemId)),
   /** Every stall cart (logout: the next account on a shared phone starts empty). */
   clearAll: () => { store = {}; AsyncStorage.removeItem(KEY).catch(() => {}); emit(); },
@@ -98,6 +117,13 @@ export const cbCart = {
   },
   MAX_QTY,
 };
+
+/** Change listener for screens outside React hooks' reach (CartContext). Returns the unsubscribe. */
+export function subscribeCbCart(fn: () => void): () => void {
+  listeners.add(fn);
+  if (!loaded) void loading.then(fn);
+  return () => { listeners.delete(fn); };
+}
 
 export const cartTotals = (lines: CbCartLine[]) => ({
   count: lines.reduce((s, l) => s + l.quantity, 0),

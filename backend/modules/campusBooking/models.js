@@ -9,6 +9,7 @@
 // keeping it apart means none of those paths can pick one up by mistake, and the delivery baskets and
 // checkouts stay exactly as they are.
 const { DataTypes } = require('sequelize');
+const orderNumbers = require('../../utils/orderNumbers');
 
 const initCampusBookingModels = (sequelize) => {
   if (!sequelize) return {};
@@ -17,6 +18,8 @@ const initCampusBookingModels = (sequelize) => {
     id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
     // Short reference shown to both sides, e.g. "CB7K3F" (unique: campus_bookings_ref_unique).
     ref: { type: DataTypes.STRING(12), allowNull: false },
+    // Human order ID (utils/orderNumbers): same server-wide ZEN-<n> count as Orders (shown with the ref).
+    ...orderNumbers.attributes(DataTypes),
     userId: { type: DataTypes.UUID, allowNull: false },
     restaurantId: { type: DataTypes.UUID, allowNull: false },
     // Server-priced lines: [{ menuItemId, name, unitPrice, quantity, lineTotal, isVeg }]
@@ -72,6 +75,8 @@ const initCampusBookingModels = (sequelize) => {
       { name: 'campus_bookings_status', fields: ['status', 'updatedAt'] },
     ],
   });
+
+  orderNumbers.installNumbering(CampusBooking);
 
   return { CampusBooking };
 };

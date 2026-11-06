@@ -101,6 +101,7 @@ export default function CbCartScreen({ stallId }: { stallId: string }) {
     try {
       const d = await cbApi.stall(stallId);
       setStall(d.stall);
+      cbCart.nameStall(stallId, d.stall?.name);
       const removed = cbCart.refresh(stallId, d.menu);
       const sold = d.menu.filter((m) => !m.isAvailable && cbCart.qty(stallId, m.id) > 0).map((m) => m.name);
       setNotice([removed.length ? `${removed.join(', ')} left the menu and ${removed.length === 1 ? 'was' : 'were'} removed.` : '', sold.length ? `${sold.join(', ')} ${sold.length === 1 ? 'is' : 'are'} sold out right now. Remove ${sold.length === 1 ? 'it' : 'them'} to book.` : ''].filter(Boolean).join(' ') || null);

@@ -14,7 +14,8 @@ let waLastLogAt = 0;
  * Formats order details into a clean WhatsApp-ready message
  */
 const formatOrderMessage = (order, type = 'CUSTOMER_CONFIRMATION') => {
-  const orderId = (order._id || order.id || 'UNKNOWN').toString().slice(-6).toUpperCase();
+  // Human order ID (ZEN-123), or '#' + the old short id for an order without a number yet.
+  const orderRef = require('./orderNumbers').label(order) || '#UNKNOWN';
   let parsedItems = [];
   if (order && order.items) {
     if (Array.isArray(order.items)) {
@@ -33,7 +34,7 @@ const formatOrderMessage = (order, type = 'CUSTOMER_CONFIRMATION') => {
   const trackUrl = require('./publicUrl').orderTrackingUrl(order._id || order.id || '');
 
   if (type === 'CUSTOMER_CONFIRMATION') {
-    return `🛍️ *Order Confirmed!* #${orderId}\n\nHi! Your order from *${restaurant}* is now being prepared.\n\n*Items:*\n${items}\n\n*Total:* ₹${order.finalPrice || order.totalPrice}\n\n📍 *Tracking:* ${trackUrl}\n\n_Thank you for choosing ZenWe!_`;
+    return `🛍️ *Order Confirmed!* ${orderRef}\n\nHi! Your order from *${restaurant}* is now being prepared.\n\n*Items:*\n${items}\n\n*Total:* ₹${order.finalPrice || order.totalPrice}\n\n📍 *Tracking:* ${trackUrl}\n\n_Thank you for choosing ZenWe!_`;
   }
 
   if (type === 'STATUS_UPDATE') {
@@ -44,14 +45,14 @@ const formatOrderMessage = (order, type = 'CUSTOMER_CONFIRMATION') => {
       'Delivered': '✅',
       'Cancelled': '❌'
     };
-    return `${statusEmoji[order.status] || '🔔'} *Order Update!* #${orderId}\n\nYour order from *${restaurant}* is now: *${order.status}*.\n\n📍 *Track here:* ${trackUrl}`;
+    return `${statusEmoji[order.status] || '🔔'} *Order Update!* ${orderRef}\n\nYour order from *${restaurant}* is now: *${order.status}*.\n\n📍 *Track here:* ${trackUrl}`;
   }
 
   if (type === 'RIDER_ALERT') {
-    return `🛵 *New Delivery Request!* #${orderId}\n\nPickup: *${restaurant}*\nDrop: *${order.deliveryAddress}*\n\n💰 *Earnings:* ₹${order.deliveryFee}\n\n_Open ZenWe Rider app to accept immediately!_`;
+    return `🛵 *New Delivery Request!* ${orderRef}\n\nPickup: *${restaurant}*\nDrop: *${order.deliveryAddress}*\n\n💰 *Earnings:* ₹${order.deliveryFee}\n\n_Open ZenWe Rider app to accept immediately!_`;
   }
 
-  return `🔔 *ZenWe Alert:* Order #${orderId} - ${order.status}`;
+  return `🔔 *ZenWe Alert:* Order ${orderRef} - ${order.status}`;
 };
 
 /**

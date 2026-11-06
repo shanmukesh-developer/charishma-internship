@@ -25,6 +25,8 @@ const buildMyOrdersWhere = async ({ userId, before, q, Restaurant }) => {
   if (before) where.createdAt = { [Op.lt]: before };
   if (q) {
     const like = `%${q}%`;
+    // "ZEN-123" / "123": the human order ID too (utils/orderNumbers).
+    const number = require('./orderNumbers').parseCode(q);
     const stores = await Restaurant.findAll({
       where: sqlWhere(fn('lower', col('name')), { [Op.like]: like }),
       attributes: ['id'],
@@ -32,6 +34,7 @@ const buildMyOrdersWhere = async ({ userId, before, q, Restaurant }) => {
     });
     where[Op.and] = [{
       [Op.or]: [
+        ...(number !== null ? [{ orderNumber: number }] : []),
         ...(stores.length ? [{ restaurantId: { [Op.in]: stores.map((s) => s.id) } }] : []),
         sqlWhere(fn('lower', cast(col('Order.items'), 'TEXT')), { [Op.like]: like }),
       ],

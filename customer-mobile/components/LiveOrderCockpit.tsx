@@ -11,6 +11,7 @@ import {
 import Clipboard from '@react-native-clipboard/clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, SHADOWS } from '../constants/theme';
+import { orderCode } from '../utils/orderCode';
 
 export interface CockpitRider {
   id?: string;
@@ -31,6 +32,8 @@ interface LiveOrderCockpitProps {
   restaurantName?: string;
   hostelAddress?: string;
   orderId: string;
+  /** Human order ID from the server ("ZEN-123"); the badge falls back to the old short id without it. */
+  orderCode?: string | null;
   deliveryPin?: string | null;
   riderInfo?: CockpitRider | null;
   /** Store's own estimate in minutes (Order.estDuration). Hidden when missing. */
@@ -74,6 +77,7 @@ export default function LiveOrderCockpit({
   restaurantName,
   hostelAddress,
   orderId,
+  orderCode: orderCodeProp,
   deliveryPin,
   riderInfo,
   estMinutes,
@@ -120,7 +124,7 @@ export default function LiveOrderCockpit({
   };
 
   const progressPercent = Math.min(100, Math.max(10, (Math.min(status, 6) / 6) * 100));
-  const shortId = (orderId || '').slice(-6).toUpperCase();
+  const shortId = orderCode({ orderCode: orderCodeProp }, orderId);
 
   const title = isVendor
     ? (status >= 6 ? `Delivered by ${stallName} 🎉`
@@ -160,7 +164,7 @@ export default function LiveOrderCockpit({
             <View style={[styles.liveBeaconDot, status >= 6 && { backgroundColor: COLORS.gold }]} />
             <Text style={styles.liveBeaconText}>{status >= 6 ? 'ORDER COMPLETE' : 'LIVE ORDER STATUS'}</Text>
           </View>
-          {!!shortId && <Text style={[styles.orderIdBadge, { color: COLORS.gold }]}>#{shortId}</Text>}
+          {!!shortId && <Text style={[styles.orderIdBadge, { color: COLORS.gold }]}>{shortId}</Text>}
         </View>
 
         <View style={styles.etaRow}>

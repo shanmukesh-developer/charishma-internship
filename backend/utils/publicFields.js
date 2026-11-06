@@ -6,7 +6,9 @@
 const STORE_PRIVATE_FIELDS = ['pan', 'payoutUpiId', 'bankAccountHolder', 'bankAccountLast4', 'bankIfsc', 'fssaiVerifiedBy',
   'campusUpiId', 'campusUpiName', 'campusUpiQrUrl',
   // Admin-set special delivery price: customers see only the resulting fee in the bill preview.
-  'deliveryFeeOverride'];
+  'deliveryFeeOverride',
+  // How often ZenWe settles the store (admin only, utils/revenueReport).
+  'settlementCycle'];
 const STORE_SECRET_FIELDS = ['password', 'commissionRate', 'commissionType', 'phone', 'tokenVersion', 'fcmTokens', ...STORE_PRIVATE_FIELDS];
 const ITEM_SECRET_FIELDS = ['password', 'customCommission', 'ownerName', 'ownerPhone'];
 

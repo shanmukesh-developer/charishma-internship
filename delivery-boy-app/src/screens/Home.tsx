@@ -220,7 +220,7 @@ function ActiveCard({ order, syncing, onOpen }: { order: RiderOrder; syncing: bo
   return (
     <Card style={{ gap: S.md, borderWidth: 2, borderColor: C.ink }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.sm }}>
-        <Text style={[T.label, { color: C.muted, flex: 1 }]}>ORDER #{order.shortId}</Text>
+        <Text style={[T.label, { color: C.muted, flex: 1 }]}>ORDER {order.orderCode}</Text>
         {syncing ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             <MaterialCommunityIcons name="cloud-upload-outline" size={18} color={C.amber} />

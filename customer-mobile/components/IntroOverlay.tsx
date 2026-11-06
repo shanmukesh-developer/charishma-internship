@@ -491,19 +491,7 @@ export default function IntroOverlay({ onComplete, ready = true, start = true }:
         </Animated.View>
       )}
 
-      {/* ── Skip ── */}
-      <Animated.View style={[styles.skipWrap, { opacity: still ? a.stageOpacity : mode === 'video' ? a.skipFade : a.badgeSkip }]}>
-        <TouchableOpacity
-          style={[styles.skipBtn, onLight ? styles.skipBtnLight : styles.skipBtnDark]}
-          onPress={skip}
-          activeOpacity={0.75}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          accessibilityRole="button"
-          accessibilityLabel="Skip intro"
-        >
-          <Text style={[styles.skipText, onLight ? styles.skipTextLight : styles.skipTextDark]}>Skip</Text>
-        </TouchableOpacity>
-      </Animated.View>
+      {/* Skip button removed (owner, 6 Nov 2026): the intro always plays to its end; its time caps still end it. */}
     </Animated.View>
   );
 }

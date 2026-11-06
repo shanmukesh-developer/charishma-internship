@@ -131,7 +131,7 @@ export default function NexusExplorer({ restaurants, activeCategory, onSelectIte
         restaurantId: item.restaurantId,
         restaurantName: item.restaurantName,
       });
-      // The cart may ask "Replace basket?" or hit the per-item limit; only confirm a real add
+      // The cart may hit the per-item limit; only confirm a real add
       if (added === false) return;
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       setAddedIds(prev => ({ ...prev, [itemId]: true }));

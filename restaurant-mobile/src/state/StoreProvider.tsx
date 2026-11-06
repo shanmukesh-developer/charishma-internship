@@ -547,12 +547,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     if (res?.alreadyAccepted) {
       // Double tap / another phone got there first: keep the server's real status, no second announcement.
       if (typeof res.status === 'string' && res.status) patchOrder(o.id, { status: res.status });
-      toast.show(`#${o.shortId} was already accepted`, 'info');
+      toast.show(`${o.orderCode} was already accepted`, 'info');
       return;
     }
     announce(`accept:${o.id}`, { kind: 'accepted', mins: est }, { urgent: true });
     patchOrder(o.id, { status: 'Accepted', estDuration: est, acceptedAt: new Date().toISOString() });
-    toast.show(`#${o.shortId} accepted · ready in ${est} min`, 'success');
+    toast.show(`${o.orderCode} accepted · ready in ${est} min`, 'success');
   }), [runAction, patchOrder, toast]);
 
   const reject = useCallback((o: Order, reason: string) => runAction(o, 'reject', async () => {
@@ -562,7 +562,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     announce(`cancel:${o.id}`, { kind: 'rejected' });
     patchOrder(o.id, { status: 'Cancelled', cancellationReason: reason });
     const refund = Number(res?.refundedToWallet) || 0;
-    toast.show(refund > 0 ? `#${o.shortId} rejected · ${rupees(refund)} refunded to the customer` : `#${o.shortId} rejected`, 'info');
+    toast.show(refund > 0 ? `${o.orderCode} rejected · ${rupees(refund)} refunded to the customer` : `${o.orderCode} rejected`, 'info');
   }), [runAction, patchOrder, toast]);
 
   const markReady = useCallback((o: Order) => runAction(o, 'ready', async () => {
@@ -570,14 +570,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const now = new Date().toISOString();
     if (res?.status === 'Picking') {
       patchOrder(o.id, { status: 'Picking', readyAt: now });
-      toast.show(`Rider told #${o.shortId} is packed`, 'success');
+      toast.show(`Rider told ${o.orderCode} is packed`, 'success');
     } else if (typeof res?.status === 'string' && res.status !== 'ReadyForPickup') {
       // Retry after the rider already took it (PickedUp / ArrivedAtGate / Delivered): keep the real status.
       patchOrder(o.id, { status: res.status, readyAt: o.readyAt || now });
-      toast.show(`#${o.shortId} is already with the rider`, 'info');
+      toast.show(`${o.orderCode} is already with the rider`, 'info');
     } else {
       patchOrder(o.id, { status: 'ReadyForPickup', readyAt: now });
-      toast.show(`#${o.shortId} is ready for pickup`, 'success');
+      toast.show(`${o.orderCode} is ready for pickup`, 'success');
     }
   }), [runAction, patchOrder, toast]);
 

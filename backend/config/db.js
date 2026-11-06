@@ -537,7 +537,8 @@ const connectDB = async () => {
           { name: 'packagingFee', type: 'FLOAT DEFAULT 0' },
           { name: 'minOrderValue', type: 'FLOAT DEFAULT 0' },
           { name: 'logoUrl', type: 'TEXT' },
-          { name: 'deliveryFeeOverride', type: 'INTEGER' }
+          { name: 'deliveryFeeOverride', type: 'INTEGER' },
+          { name: 'settlementCycle', type: "VARCHAR(8) NOT NULL DEFAULT 'weekly'" }
         ];
         for (const col of restCols) {
           try {
@@ -699,6 +700,9 @@ const connectDB = async () => {
       await require('../utils/financeMigrations').runFinanceMigrations(sequelize);
       // C8: unique index on Orders.receiptNumber (additive, idempotent; no data written). Never throws.
       await require('../utils/receipts').runReceiptMigrations(sequelize);
+      // Human order IDs (ZEN-<n>): orderNumber columns, counter, oldest-first backfill of unnumbered rows (additive,
+      // idempotent; one EXISTS check when there is nothing to do). Never throws.
+      await require('../utils/orderNumbers').runOrderNumberMigrations(sequelize);
       // Delivery slots: index on Orders / MegaBaskets slotStart for the rider dispatch job (additive,
       // idempotent; the columns come from the models via addMissingColumns). Never throws.
       await require('../utils/deliverySlots').runDeliverySlotMigrations(sequelize);
@@ -787,6 +791,10 @@ const connectDB = async () => {
       await require('../utils/financeMigrations').runFinanceMigrations(sequelize);
       // C8: unique index on Orders.receiptNumber (additive, idempotent; no data written). Never throws.
       await require('../utils/receipts').runReceiptMigrations(sequelize);
+      // Human order IDs (ZEN-<n>): orderNumber columns, sequence, oldest-first backfill of unnumbered rows (additive,
+      // idempotent; one EXISTS check when there is nothing to do). Re-checked once 3 min later for orders the old
+      // instance placed during this deploy. Never throws.
+      await require('../utils/orderNumbers').runOrderNumberMigrations(sequelize, { recheckAfterMs: 3 * 60 * 1000 });
       // Delivery slots: index on Orders / MegaBaskets slotStart for the rider dispatch job (additive,
       // idempotent; the columns come from the models via addMissingColumns). Never throws.
       await require('../utils/deliverySlots').runDeliverySlotMigrations(sequelize);
@@ -852,6 +860,8 @@ const connectDB = async () => {
         ['Orders', 'platformFee', 'DOUBLE PRECISION DEFAULT 0'],
         // 2026-11-05 per-store special delivery price (utils/orderPricing). Nullable, no default: null = standard ₹19.
         ['Restaurants', 'deliveryFeeOverride', 'INTEGER'],
+        // 2026-11-06 Revenue: settlement cycle per store (utils/revenueReport). Existing stores read as weekly.
+        ['Restaurants', 'settlementCycle', "VARCHAR(8) NOT NULL DEFAULT 'weekly'"],
       ];
       for (const [table, col, type] of pgNewCols) {
         try {

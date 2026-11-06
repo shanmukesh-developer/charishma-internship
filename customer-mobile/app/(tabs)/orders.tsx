@@ -24,6 +24,7 @@ import { productOptions, optionsUnitPrice, cleanPicks, type OptionPicks } from '
 import { orderPicksText } from '../../components/CustomizeDrawer';
 import CbOrdersSection from '../../modules/campusBooking/CbOrdersSection';
 import SymbolIcon from '../../components/SymbolIcon';
+import { orderCode } from '../../utils/orderCode';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -109,7 +110,9 @@ const orderKey = (o: any) => String(o?._id || o?.id || '');
 // Order search, on the phone too (a server without ?q= support still gets a working search box).
 const orderMatches = (o: any, q: string): boolean => {
   if (!q) return true;
-  const hay = [o?.restaurantName, o?.restaurant?.name, o?.category === 'Mega Basket' ? 'shopping list' : '']
+  // The order ID too: "ZEN-123" / "zen 123" / "123".
+  const code = orderCode(o).toLowerCase();
+  const hay = [o?.restaurantName, o?.restaurant?.name, o?.category === 'Mega Basket' ? 'shopping list' : '', code, code.replace('zen-', 'zen ')]
     .concat(parseItems(o?.items).map((i: any) => i?.name))
     .filter(Boolean).join(' ').toLowerCase();
   return q.split(' ').every((w) => hay.includes(w));
@@ -271,8 +274,8 @@ export default function OrdersScreen() {
         return;
       }
 
-      // The basket enforces one store per order itself: when it holds another store's items,
-      // addToCart returns false and shows a single "Replace basket?" prompt for all these lines.
+      // Every basket keeps several shops side by side (one order each at checkout), so these lines simply join it;
+      // addToCart returns false only when an item is already at its limit (it says so itself).
       let addedAny = false;
       available.forEach(({ item, live }) => {
         // A product with choices is priced from today's choices for the same picks (a 1 kg pack at the 1 kg price,
@@ -300,7 +303,7 @@ export default function OrdersScreen() {
         });
         if (added) addedAny = true;
       });
-      if (!addedAny) return; // the basket's "Replace basket?" prompt is showing
+      if (!addedAny) return; // nothing was added (the basket already showed why)
 
       if (dropped.length > 0) {
         Alert.alert(
@@ -974,7 +977,7 @@ export default function OrdersScreen() {
           if (filter === 'PAST') return o.status === 'Delivered' || o.status === 'Cancelled';
           return true;
         }).slice(0, orderLimit).map((o, idx) => {
-          const id = shortRef(o._id || o.id);
+          const id = orderCode(o);
           const isExpanded = expanded === (o._id || o.id);
           const orderItems: any[] = parseItems(o.items);
           const breakdown = parseBreakdown(o.priceBreakdown);
@@ -1010,7 +1013,7 @@ export default function OrdersScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 12, color: txtSec, fontWeight: '700', letterSpacing: 0.3 }}>
                     {o.status === 'Cancelled' ? '✕' : o.status === 'Delivered' ? '✓' : '◉'}{' '}
-                    <Text style={{ color: goldColor, fontWeight: '600' }}>Order #{id}</Text>
+                    <Text style={{ color: goldColor, fontWeight: '600' }}>Order {id}</Text>
                   </Text>
                   <Text style={[st.restaurantName, { color: txt }]} numberOfLines={1}>{restaurantName}</Text>
                   <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600' }}>{[plural(orderItems.length, 'item'), formatISTDate(o.createdAt)].filter(Boolean).join(' · ')}</Text>
@@ -1142,7 +1145,7 @@ export default function OrdersScreen() {
                   </View>
                   <TouchableOpacity
                     style={{ marginTop: 10, alignSelf: 'flex-start' }}
-                    onPress={() => router.push({ pathname: '/support', params: { orderId: String(o._id || o.id) } } as any)}
+                    onPress={() => router.push({ pathname: '/support', params: { orderId: String(o._id || o.id), orderCode: o.orderCode || '' } } as any)}
                   >
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}><Text style={{ fontSize: 12, fontWeight: '600', color: isDark ? goldColor : COLORS.red }}>Need help with this order?</Text><SymbolIcon name="chevron-forward" style={{ fontSize: 12, fontWeight: '600', color: isDark ? goldColor : COLORS.red }} scale={1} /></View>
                   </TouchableOpacity>

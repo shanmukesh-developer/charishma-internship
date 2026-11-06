@@ -119,10 +119,10 @@ export function useOrderSheets() {
   const [rejectFor, setRejectFor] = useState<Order | null>(null);
   const sheets = (
     <>
-      <Sheet visible={!!acceptFor} onClose={() => setAcceptFor(null)} title={acceptFor ? `Accept #${acceptFor.shortId}` : ''}>
+      <Sheet visible={!!acceptFor} onClose={() => setAcceptFor(null)} title={acceptFor ? `Accept ${acceptFor.orderCode}` : ''}>
         {acceptFor ? <PrepPicker key={acceptFor.id} order={acceptFor} onDone={() => setAcceptFor(null)} /> : null}
       </Sheet>
-      <Sheet visible={!!rejectFor} onClose={() => setRejectFor(null)} title={rejectFor ? `Reject #${rejectFor.shortId}` : ''}>
+      <Sheet visible={!!rejectFor} onClose={() => setRejectFor(null)} title={rejectFor ? `Reject ${rejectFor.orderCode}` : ''}>
         {rejectFor ? (
           <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 560 }}>
             <RejectPicker key={rejectFor.id} order={rejectFor} onDone={() => setRejectFor(null)} />

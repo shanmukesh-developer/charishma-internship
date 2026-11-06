@@ -92,6 +92,29 @@ export function shortId(id: unknown): string {
   return `#${String(id).slice(-6).toUpperCase()}`;
 }
 
+/** Anything that may carry the human order ID (orders, socket events, ledger rows). */
+export type OrderCodeLike = {
+  orderCode?: string | null;
+  orderNumber?: number | string | null;
+  id?: string | null;
+  _id?: string | null;
+  orderId?: string | null;
+} | null | undefined;
+
+/**
+ * Human order ID (owner, 6 Nov 2026): "ZEN-123", one running count across the whole server (backend
+ * utils/orderNumbers). An order without a number yet falls back to the old short reference "#A1B2C3".
+ */
+export function orderCode(order: OrderCodeLike, fallbackId?: unknown): string {
+  if (order && order.orderCode) return String(order.orderCode);
+  const n = order ? Number(order.orderNumber) : NaN;
+  if (Number.isInteger(n) && n > 0) return `ZEN-${n}`;
+  return shortId((order && (order._id || order.id || order.orderId)) || fallbackId);
+}
+
+/** "ZEN-123" / "zen 123" / "#123" / "123" -> true (what the admin types to find an order by its human ID). */
+export const ORDER_CODE_QUERY_RE = /^\s*(?:zen\s*[-#]?\s*|#\s*)?\d{1,9}\s*$/i;
+
 /** Phone shown as 98765 43210 (last 10 digits); '–' when empty. */
 export function formatPhone(value: unknown): string {
   if (!value) return EMPTY;

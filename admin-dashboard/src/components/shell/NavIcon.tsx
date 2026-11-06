@@ -3,7 +3,7 @@ import {
   IconAuto, IconBasket, IconBike, IconBuilding, IconCalendar, IconCar, IconChart, IconGift, IconHeart, IconHistory,
   IconHome, IconImage, IconLayout, IconList, IconLock, IconMessage, IconPackage, IconPin, IconSchool, IconSettings,
   IconShield, IconSpark, IconStar, IconStore, IconTag, IconTicket, IconTrophy, IconUsers, IconWallet, IconWrench,
-  IconBell, type IconProps,
+  IconBell, IconRupee, type IconProps,
 } from '@/components/ui/icons';
 
 const MAP: Record<NavIconName, (p: IconProps) => React.ReactElement> = {
@@ -39,6 +39,7 @@ const MAP: Record<NavIconName, (p: IconProps) => React.ReactElement> = {
   settings: IconSettings,
   lock: IconLock,
   history: IconHistory,
+  revenue: IconRupee,
 };
 
 export function NavIcon({ name, ...rest }: { name: NavIconName } & IconProps) {

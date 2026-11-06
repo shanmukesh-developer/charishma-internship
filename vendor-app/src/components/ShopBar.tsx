@@ -168,7 +168,7 @@ export function ConnBanner() {
     <View style={[styles.banner, { backgroundColor: color.warningTint }]} accessibilityLiveRegion="polite">
       <ActivityIndicator color={color.warning} />
       <Text style={[font.body, { color: color.warning, fontWeight: '800', flex: 1 }]}>
-        {conn === 'connecting' ? 'Connecting to ZENWE…' : 'Reconnecting…'}
+        {conn === 'connecting' ? 'Connecting to ZenWe…' : 'Reconnecting…'}
       </Text>
     </View>
   );

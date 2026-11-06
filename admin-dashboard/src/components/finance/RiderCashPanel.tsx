@@ -8,7 +8,7 @@ import {
   Badge, Button, DataTable, Drawer, Field, Input, LoadingState, Modal, Notice as NoticeBox, SectionTitle, SegmentedControl, Select,
   StatTile, Textarea, useConfirm, type Column, IconRefresh,
 } from '@/components/ui';
-import { formatDateTime, formatINR, humanize } from '@/lib/format';
+import { formatDateTime, formatINR, humanize, orderCode } from '@/lib/format';
 
 interface Position { cashHeldPaise: number; zenvyOwesPaise: number; netPaise: number; earningsPaise: number; tipsPaise: number }
 interface HoldingRow {
@@ -21,7 +21,7 @@ interface Holdings {
   riders: HoldingRow[];
 }
 interface Entry {
-  id: string; type: string; label: string; amountPaise: number; balanceAfterPaise: number; orderId: string | null;
+  id: string; type: string; label: string; amountPaise: number; balanceAfterPaise: number; orderId: string | null; orderCode?: string | null;
   method: string | null; reference: string | null; reason: string | null; actorType: string; createdAt: string;
 }
 interface EntriesResp { rider: { id: string; name: string; phone: string }; cashHeldPaise: number; inSync: boolean; ledgerPaise: number; position: Position; entries: Entry[]; page: number; hasMore: boolean }
@@ -39,7 +39,8 @@ const rs = (paise: number) => formatINR(Number(paise || 0) / 100);
 const signed = (paise: number) => `${paise > 0 ? '+' : paise < 0 ? '−' : ''}${rs(Math.abs(paise))}`;
 const when = (s: string | null) => (s ? formatDateTime(s) : '–');
 const newKey = () => (typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
-const short = (id: string) => `#${id.slice(-6).toUpperCase()}`;
+// Human order ID (ZEN-123) when the row carries it, else the old short reference.
+const short = (id: string, code?: string | null) => orderCode({ orderCode: code }, id);
 
 export default function RiderCashPanel() {
   const [data, setData] = useState<Holdings | null>(null);
@@ -75,7 +76,7 @@ export default function RiderCashPanel() {
     if (!reason) return;
     try {
       await adminRequest(`/api/admin/rider-cash/orders/${orderId}/record`, { method: 'POST', body: JSON.stringify({ reason }) });
-      setNotice({ kind: 'ok', text: `Cash row recorded for order #${orderId.slice(-6).toUpperCase()}.` });
+      setNotice({ kind: 'ok', text: `Cash row recorded for order ${short(orderId)}.` });
       runCheck(); load();
     } catch (e) { setNotice({ kind: 'err', text: e instanceof Error ? e.message : 'Could not record it.' }); }
   };
@@ -236,7 +237,7 @@ function RiderCashDrawer({ row, onClose, onChanged }: { row: HoldingRow; onClose
     { key: 'what', header: 'What', cell: e => <span className="text-fg">{e.label}</span> },
     { key: 'amount', header: 'Amount', align: 'right', cell: e => <span className="tabular-nums">{signed(e.amountPaise)}</span> },
     { key: 'after', header: 'Held after', align: 'right', cell: e => <span className="tabular-nums text-fg-muted">{rs(e.balanceAfterPaise)}</span> },
-    { key: 'details', header: 'Details', cell: e => <span className="text-xs text-fg-muted">{[e.orderId ? short(e.orderId) : null, e.method ? humanize(e.method) : null, e.reference, e.reason].filter(Boolean).join(' · ') || '–'}</span> },
+    { key: 'details', header: 'Details', cell: e => <span className="text-xs text-fg-muted">{[e.orderId ? short(e.orderId, e.orderCode) : null, e.method ? humanize(e.method) : null, e.reference, e.reason].filter(Boolean).join(' · ') || '–'}</span> },
   ];
 
   return (

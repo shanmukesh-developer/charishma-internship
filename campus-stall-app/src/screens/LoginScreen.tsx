@@ -208,7 +208,7 @@ export default function LoginScreen() {
             <View style={[styles.dot, { backgroundColor: server === 'up' ? color.open : color.warning }]} />
           )}
           <Text style={[font.small, { color: color.textMuted }]}>
-            {server === 'checking' ? 'Checking ZENWE…' : server === 'up' ? 'ZenWe is online' : 'ZenWe is waking up — first login can take ~30 s'}
+            {server === 'checking' ? 'Checking ZenWe…' : server === 'up' ? 'ZenWe is online' : 'ZenWe is waking up — first login can take ~30 s'}
           </Text>
         </View>
 

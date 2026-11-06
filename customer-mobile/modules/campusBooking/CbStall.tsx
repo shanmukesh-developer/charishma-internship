@@ -57,6 +57,7 @@ export default function CbStall({ id }: { id: string }) {
       setData(d);
       setError(null);
       cbCart.refresh(id, d.menu);
+      cbCart.nameStall(id, d.stall?.name);
     } catch (e: any) {
       setError({ msg: e?.message || 'Could not load this stall.', gone: e?.status === 404 });
     } finally {
@@ -263,7 +264,7 @@ export default function CbStall({ id }: { id: string }) {
                             soldOut={!m.isAvailable}
                             closed={!stall.isOpen}
                             max={stall.category === 'stationery' ? MAX_QTY_STATIONERY : undefined}
-                            onAdd={() => { if (stall.isOpen && requireSignIn('Sign in to book')) cbCart.change(id, { menuItemId: m.id, name: m.name, price: m.price, isVeg: m.isVeg, category: m.category }, 1, stall.category === 'stationery' ? MAX_QTY_STATIONERY : undefined); }}
+                            onAdd={() => { if (stall.isOpen && requireSignIn('Sign in to book')) cbCart.change(id, { menuItemId: m.id, name: m.name, price: m.price, isVeg: m.isVeg, category: m.category }, 1, stall.category === 'stationery' ? MAX_QTY_STATIONERY : undefined, stall.name); }}
                             onRemove={() => cbCart.change(id, { menuItemId: m.id, name: m.name, price: m.price, isVeg: m.isVeg, category: m.category }, -1)}
                           />
                           )}

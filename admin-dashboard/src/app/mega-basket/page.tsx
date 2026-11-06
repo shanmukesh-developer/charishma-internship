@@ -4,11 +4,14 @@ import {
   Button, DataTable, DescriptionList, Drawer, Notice as NoticeBox, PageHeader, SearchInput, Select, StatusPill, Toolbar, useConfirm,
   type Column, IconRefresh,
 } from '@/components/ui';
-import { formatDateTime, formatINR, formatPhone, humanize } from '@/lib/format';
+import { formatDateTime, formatINR, formatPhone, humanize, orderCode } from '@/lib/format';
 import { useEffect, useRef, useState } from 'react';
 import { API_URL } from '@/lib/config';
 import { useAdminAuth } from '@/utils/useAdminAuth';
 import { useAdminSocket } from '@/components/AdminSocketProvider';
+
+// Human order ID (ZEN-123, same server-wide count as orders), else the old basket reference.
+const basketCode = (b: { id: string; orderCode?: string | null; orderNumber?: number | null }) => (b.orderCode || b.orderNumber ? orderCode(b) : `#${b.id.slice(-8).toUpperCase()}`);
 
 interface BasketItem {
   id?: string;
@@ -87,7 +90,7 @@ export default function MegaBasketAdminPage() {
     if (cancellingId) return;
     const who = basket.user?.name || 'the student';
     const shopping = ['Shopping', 'PriceApprovalPending', 'Approved', 'Purchased', 'Delivering'].includes(basket.status);
-    if (!(await confirm({ title: `Cancel ${who}'s basket #${basket.id.slice(-8).toUpperCase()}?`, description: `${shopping ? 'The shopper has already started; tell them to stop before you cancel. ' : ''}This cannot be undone.`, confirmLabel: 'Cancel basket', cancelLabel: 'Keep basket', tone: 'danger' }))) return;
+    if (!(await confirm({ title: `Cancel ${who}'s basket ${basketCode(basket)}?`, description: `${shopping ? 'The shopper has already started; tell them to stop before you cancel. ' : ''}This cannot be undone.`, confirmLabel: 'Cancel basket', cancelLabel: 'Keep basket', tone: 'danger' }))) return;
     setCancellingId(basket.id);
     setNotice(null);
     try {
@@ -101,7 +104,7 @@ export default function MegaBasketAdminPage() {
       if (response.status === 401) throw new Error('Your session has expired. Please sign in again.');
       if (!response.ok) throw new Error(data.message || `Could not cancel this basket (${response.status}).`);
       setBaskets(prev => prev.map(b => (b.id === basket.id ? { ...b, status: 'Cancelled' } : b)));
-      setNotice({ kind: 'ok', text: `Basket #${basket.id.slice(-8).toUpperCase()} cancelled.` });
+      setNotice({ kind: 'ok', text: `Basket ${basketCode(basket)} cancelled.` });
       setRefreshCount(count => count + 1);
     } catch (err) {
       setNotice({ kind: 'error', text: err instanceof TypeError ? 'Could not reach the server. Check your connection and try again.' : err instanceof Error ? err.message : 'Could not cancel this basket.' });
@@ -186,7 +189,7 @@ export default function MegaBasketAdminPage() {
   const open = expandedId ? baskets.find(b => b.id === expandedId) || null : null;
 
   const columns: Column<MegaBasket>[] = [
-    { key: 'id', header: 'Basket', width: '110px', cell: b => <span className="font-mono text-xs text-fg-muted">#{b.id.slice(-8).toUpperCase()}</span> },
+    { key: 'id', header: 'Basket', width: '110px', cell: b => <span className="font-mono text-xs text-fg-muted">{basketCode(b)}</span> },
     {
       key: 'customer',
       header: 'Customer',

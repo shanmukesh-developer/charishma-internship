@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { adminRequest } from '@/lib/api';
 import { ALL_NAV_ITEMS, EXTRA_SEARCH_PAGES, NAV_GROUPS, type NavItem } from '@/lib/nav';
-import { humanize, shortId } from '@/lib/format';
+import { humanize, orderCode, ORDER_CODE_QUERY_RE } from '@/lib/format';
 import { cn } from '@/components/ui/cn';
 import { IconArrowRight, IconAuto, IconBike, IconPackage, IconSearch, IconStore, IconUser } from '@/components/ui/icons';
 import { Spinner } from '@/components/ui/Feedback';
@@ -115,9 +115,10 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
       const isPhoneish = qDigits.length >= 4 && qDigits.length === raw.replace(/[\s+-]/g, '').length;
       const jobs: Array<Promise<Result[]>> = [];
 
-      // Orders by ID (full ID or the short #ABC123 reference shown everywhere).
-      if (ORDER_ID_RE.test(raw) && /[0-9a-f]{4,}/i.test(raw.replace(/-/g, ''))) {
-        const idq = raw.replace(/^#/, '').toLowerCase();
+      // Orders by ID: the human order ID ("ZEN-123" or just "123"), the full ID or the old short #ABC123 reference.
+      const isCode = ORDER_CODE_QUERY_RE.test(raw);
+      if (isCode || (ORDER_ID_RE.test(raw) && /[0-9a-f]{4,}/i.test(raw.replace(/-/g, '')))) {
+        const idq = isCode ? raw.trim() : raw.replace(/^#/, '').toLowerCase();
         jobs.push(
           adminRequest<{ orders?: any[] }>(`/api/admin/orders?q=${encodeURIComponent(idq)}&limit=5`)
             .then(d => (Array.isArray(d?.orders) ? d.orders : []).map(o => {
@@ -125,7 +126,7 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
               return {
                 id: `order:${id}`,
                 section: 'Orders',
-                title: `Order ${shortId(id)}`,
+                title: `Order ${orderCode(o, id)}`,
                 subtitle: [o.restaurant?.name, o.user?.name, humanize(o.status)].filter(Boolean).join(' · '),
                 href: `/orders?order=${encodeURIComponent(id)}`,
                 icon: <IconPackage size={16} />,

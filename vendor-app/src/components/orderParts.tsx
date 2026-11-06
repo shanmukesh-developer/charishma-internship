@@ -72,7 +72,7 @@ export function CustomerBlock({ order, compact }: { order: Order; compact?: bool
             icon="logo-whatsapp"
             variant="secondary"
             size={compact ? 'secondary' : 'primary'}
-            onPress={() => whatsappNumber(phone, `Hi${order.customerName ? ` ${order.customerName}` : ''}, about your ZenWe order #${order.shortId}`)}
+            onPress={() => whatsappNumber(phone, `Hi${order.customerName ? ` ${order.customerName}` : ''}, about your ZenWe order ${order.orderCode}`)}
             style={{ flex: 1 }}
             a11y={`WhatsApp ${order.customerName || 'customer'}`}
           />
@@ -299,7 +299,7 @@ export function useOrderSheets() {
     <Sheet
       visible={!!target}
       onClose={close}
-      title={target ? `${target.kind === 'reject' ? 'Reject' : 'Cancel'} #${target.order.shortId}` : ''}
+      title={target ? `${target.kind === 'reject' ? 'Reject' : 'Cancel'} ${target.order.orderCode}` : ''}
     >
       {target ? (
         <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 560 }}>

@@ -22,7 +22,7 @@ export function OrderLine({ order, last, showDay }: { order: RiderOrder; last?: 
           {order.restaurantName ?? 'Store'}
         </Text>
         <Text style={[T.small, { color: C.muted }]} numberOfLines={1}>
-          #{order.shortId} · {showDay && when ? `${dayLabel(istDayKey(when))}, ` : ''}
+          {order.orderCode} · {showDay && when ? `${dayLabel(istDayKey(when))}, ` : ''}
           {timeIST(when)}
           {cod && order.finalPrice !== null ? ` · Cash ${rupees(order.finalPrice)}` : order.paymentMethod ? ' · Prepaid' : ''}
         </Text>

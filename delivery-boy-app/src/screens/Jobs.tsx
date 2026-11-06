@@ -52,7 +52,7 @@ export function JobsOnHome() {
             <Card key={b.id} style={styles.mineCard}>
               <View style={styles.rowCenter}>
                 <Badge tone="gold" icon="cart-outline" label="SHOPPING LIST" />
-                <Text style={[T.label, { color: C.muted, marginLeft: 'auto' }]}>#{b.shortId}</Text>
+                <Text style={[T.label, { color: C.muted, marginLeft: 'auto' }]}>{b.orderCode}</Text>
               </View>
               <Text style={[T.h2, { color: C.ink }]}>{BASKET_STEP[b.status] ?? 'Contact support'}</Text>
               <Text style={[T.body, { color: C.ink2 }]} numberOfLines={2}>
@@ -65,7 +65,7 @@ export function JobsOnHome() {
             <Card key={s.id} style={styles.mineCard}>
               <View style={styles.rowCenter}>
                 <Badge tone="blue" icon="hanger" label="PICKUP" />
-                <Text style={[T.label, { color: C.muted, marginLeft: 'auto' }]}>#{s.shortId}</Text>
+                <Text style={[T.label, { color: C.muted, marginLeft: 'auto' }]}>{s.orderCode}</Text>
               </View>
               <Text style={[T.h2, { color: C.ink }]}>{SERVICE_STEP[s.status] ?? 'Contact support'}</Text>
               <Text style={[T.body, { color: C.ink2 }]} numberOfLines={2}>
@@ -231,7 +231,7 @@ function BasketJob({ basket: b, onClose }: { basket: RiderBasket; onClose: () =>
   };
 
   return (
-    <Shell title={`List #${b.shortId}`} onClose={onClose} phone={b.customerPhone}>
+    <Shell title={`List ${b.orderCode}`} onClose={onClose} phone={b.customerPhone}>
       <Text style={[T.h2, { color: C.ink }]}>{BASKET_STEP[b.status] ?? 'Contact support'}</Text>
       {b.deliverySlot ? <Badge tone="blue" icon="clock-outline" label={`SLOT ${b.deliverySlot}`} /> : null}
 
@@ -326,7 +326,7 @@ function ServiceJob({ booking: s, onClose }: { booking: RiderService; onClose: (
   const amount = s.finalAmount || s.quotedAmount;
   const room = [s.deliveryAddress ?? [s.area, s.roomNumber ? `Room ${s.roomNumber}` : null].filter(Boolean).join(', ')].filter(Boolean)[0] || null;
   return (
-    <Shell title={`Pickup #${s.shortId}`} onClose={onClose} phone={s.contactPhone}>
+    <Shell title={`Pickup ${s.orderCode}`} onClose={onClose} phone={s.contactPhone}>
       <Text style={[T.h2, { color: C.ink }]}>{SERVICE_STEP[s.status] ?? 'Contact support'}</Text>
       <Card style={{ gap: S.xs }}>
         <Text style={[T.label, { color: C.muted }]}>SERVICE</Text>

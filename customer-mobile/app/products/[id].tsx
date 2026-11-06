@@ -374,8 +374,8 @@ export default function ProductDetailScreen() {
   };
 
   /**
-   * Swiggy-style single-store basket. CartContext.addToCart owns the "Replace basket?" prompt
-   * (it keeps Mega Basket custom requests and queues rapid taps), so we only flag add-ons here.
+   * CartContext.addToCart picks the basket (every basket keeps several shops, one order each at checkout),
+   * so we only flag add-ons and stall items here.
    */
   const addWithStoreCheck = (payload: any) => {
     const isAddOn = String(product?.vendorType || '').toUpperCase() === 'EXTRAS';

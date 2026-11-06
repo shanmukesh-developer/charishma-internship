@@ -1,4 +1,5 @@
 const { DataTypes } = require('sequelize');
+const orderNumbers = require('../utils/orderNumbers');
 
 let MegaBasket;
 
@@ -7,6 +8,8 @@ const initMegaBasketModel = (sequelize) => {
 
   MegaBasket = sequelize.define('MegaBasket', {
     id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+    // Human order ID (utils/orderNumbers): same server-wide ZEN-<n> count as Orders.
+    ...orderNumbers.attributes(DataTypes),
     userId: { type: DataTypes.UUID, allowNull: false },
     deliveryPartnerId: { type: DataTypes.UUID },
     status: {
@@ -58,6 +61,8 @@ const initMegaBasketModel = (sequelize) => {
       { fields: ['createdAt'] }
     ]
   });
+
+  orderNumbers.installNumbering(MegaBasket);
 
   return MegaBasket;
 };

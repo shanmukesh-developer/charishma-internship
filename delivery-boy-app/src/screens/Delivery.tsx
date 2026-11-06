@@ -52,7 +52,7 @@ export function DeliveryScreen({ orderId, onClose }: { orderId: string; onClose:
   const others = r.active.data.filter((o) => o.id !== order.id);
   const callStore = isDialable(order.restaurantPhone) ? () => links.call(order.restaurantPhone) : null;
   const callCustomer = order.customerPhone ? () => links.call(order.customerPhone) : null;
-  const helpPrefill = `Order #${order.shortId}: `;
+  const helpPrefill = `Order ${order.orderCode}: `;
 
   const navigate = (to: 'store' | 'drop') => {
     const dest =
@@ -287,7 +287,7 @@ export function DeliveryScreen({ orderId, onClose }: { orderId: string; onClose:
       <View style={styles.top}>
         <IconBtn icon="arrow-left" onPress={onClose} label="Back" />
         <View style={{ flex: 1 }}>
-          <Text style={[T.label, { color: C.muted }]}>ORDER #{order.shortId}</Text>
+          <Text style={[T.label, { color: C.muted }]}>ORDER {order.orderCode}</Text>
           <Text style={[T.h2, { color: C.ink }]}>{title}</Text>
         </View>
         <SosButton />
@@ -326,7 +326,7 @@ export function DeliveryScreen({ orderId, onClose }: { orderId: string; onClose:
         </View>
       </Sheet>
 
-      <Sheet visible={menu} onClose={() => setMenu(false)} title={`Order #${order.shortId}`}>
+      <Sheet visible={menu} onClose={() => setMenu(false)} title={`Order ${order.orderCode}`}>
         {canUnassign(order.status) ? (
           <Row
             icon="close-circle-outline"
@@ -351,10 +351,10 @@ export function DeliveryScreen({ orderId, onClose }: { orderId: string; onClose:
         <Row
           icon="share-variant-outline"
           label="Share order ID"
-          value={`#${order.shortId}`}
+          value={`${order.orderCode}`}
           onPress={() => {
             setMenu(false);
-            Share.share({ message: `ZenWe order #${order.shortId} (${order.id})` }).catch(() => {});
+            Share.share({ message: `ZenWe order ${order.orderCode} (${order.id})` }).catch(() => {});
           }}
         />
       </Sheet>

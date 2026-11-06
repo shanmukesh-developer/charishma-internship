@@ -70,3 +70,6 @@ backend/send_live_*.js
 # ---- OS / editor ----
 .DS_Store
 Thumbs.db
+
+# Runtime socket log (contains user ids): never commit
+backend/socket_debug.txt

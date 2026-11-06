@@ -344,8 +344,9 @@ const labelFor = (type, amountPaise) => {
 };
 
 const REF_LINKS = {
-  // Same order reference as the app (last 6 characters), so a refund can be matched to its order.
-  ORDER: (id) => ({ label: `Order #${String(id).slice(-6).toUpperCase()}`, link: `/tracking/${id}` }),
+  // Same order reference as the app (ZEN-123; older rows without a number: last 6 characters), so a refund
+  // can be matched to its order. listFor attaches refOrderNumber.
+  ORDER: (id, r) => ({ label: `Order ${require('./orderNumbers').label({ id, orderNumber: r && r.refOrderNumber })}`, link: `/tracking/${id}` }),
   AUTO_BOOKING: (id) => ({ label: 'Auto booking', link: `/auto-ride/booking/${id}` }),
   AUTO_PRIVATE_REQUEST: () => ({ label: 'Private auto request', link: null }),
   EVENT_REGISTRATION: (id) => ({ label: 'Event registration', link: `/campus-events/registration/${id}` }),
@@ -355,7 +356,8 @@ const REF_LINKS = {
 const toPublic = (row) => {
   const r = row && typeof row.toJSON === 'function' ? row.toJSON() : row;
   const refFn = r.refType && REF_LINKS[r.refType];
-  const ref = r.refType ? { type: r.refType, id: r.refId, ...(refFn ? refFn(r.refId) : { label: null, link: null }) } : null;
+  const ref = r.refType ? { type: r.refType, id: r.refId, ...(refFn ? refFn(r.refId, r) : { label: null, link: null }) } : null;
+  if (ref && r.refType === 'ORDER' && r.refOrderNumber) Object.assign(ref, require('./orderNumbers').fields({ orderNumber: r.refOrderNumber }));
   return {
     id: r.id,
     type: r.type,
@@ -388,7 +390,18 @@ const listFor = async ({ ownerType, ownerId, page = 1, limit = 20, sequelize = n
     limit: lim + 1,
     offset: (pg - 1) * lim,
   });
-  return { rows: rows.slice(0, lim), page: pg, limit: lim, hasMore: rows.length > lim };
+  const pageRows = rows.slice(0, lim);
+  // Human order IDs for rows that point at an order (ZEN-123 in the label). Never fails the list.
+  try {
+    const ids = [...new Set(pageRows.filter((r) => r.refType === 'ORDER' && r.refId).map((r) => String(r.refId)))]
+      .filter((id) => /^[0-9a-f-]{36}$/i.test(id));
+    if (ids.length && seq.models.Order) {
+      const orders = await seq.models.Order.findAll({ where: { id: ids }, attributes: ['id', 'orderNumber'], raw: true });
+      const byId = new Map(orders.map((o) => [String(o.id), o.orderNumber]));
+      for (const r of pageRows) if (r.refType === 'ORDER' && byId.get(String(r.refId))) r.dataValues.refOrderNumber = byId.get(String(r.refId));
+    }
+  } catch (err) { console.warn('[WALLET_LEDGER_ORDER_CODES_WARN]', err.message); }
+  return { rows: pageRows, page: pg, limit: lim, hasMore: rows.length > lim };
 };
 
 module.exports = {

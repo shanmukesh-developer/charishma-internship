@@ -71,6 +71,8 @@ const deadlineOf = (b) => {
 const base = (b) => ({
   id: String(b.id),
   ref: b.ref,
+  // Human order ID from the server-wide ZEN-<n> count (utils/orderNumbers); null until numbered.
+  ...require('../../../utils/orderNumbers').fields(b),
   status: b.status,
   statusLabel: STATUS_LABEL[b.status] || b.status,
   items: itemsOf(b),

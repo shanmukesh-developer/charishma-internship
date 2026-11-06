@@ -88,7 +88,7 @@ const flagStuckStallOrdersOnce = async (io, { now = Date.now() } = {}) => {
   const byStore = new Map();
   for (const o of flagged) {
     const payload = {
-      orderId: o.id, restaurantId: o.restaurantId, status: o.status, hours: STUCK_HOURS,
+      orderId: o.id, ...require('./orderNumbers').fields(o), restaurantId: o.restaurantId, status: o.status, hours: STUCK_HOURS,
       createdAt: o.createdAt, placedAtIST: istClock(o.createdAt),
     };
     if (io) {
@@ -104,7 +104,7 @@ const flagStuckStallOrdersOnce = async (io, { now = Date.now() } = {}) => {
   for (const [rid, list] of byStore) {
     const first = list[0];
     const body = list.length === 1
-      ? `An order from ${istClock(first.createdAt)} is still open. Mark it Delivered if you handed it over, or call ZenWe support.`
+      ? `Order ${require('./orderNumbers').label(first)} from ${istClock(first.createdAt)} is still open. Mark it Delivered if you handed it over, or call ZenWe support.`
       : `${list.length} orders (oldest ${istClock(first.createdAt)}) are still open. Mark them Delivered if handed over, or call ZenWe support.`;
     await pushToStore(rid, 'Order still open', body, { type: 'ORDER_STUCK', orderId: String(first.id) });
   }

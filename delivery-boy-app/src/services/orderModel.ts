@@ -60,6 +60,19 @@ export function isDialable(p: string | null | undefined): boolean {
   return /\d{10}/.test(digitsOnly(p));
 }
 
+/**
+ * Human order ID (owner, 6 Nov 2026): "ZEN-123", one running count across the whole server (backend
+ * utils/orderNumbers sends orderNumber + orderCode). An order without a number yet shows the old "#AB12CD".
+ */
+export function orderCodeOf(raw: any, id: string): string {
+  const code = raw && typeof raw.orderCode === 'string' ? raw.orderCode.trim() : '';
+  if (code) return code;
+  const n = Number(raw && raw.orderNumber);
+  if (Number.isInteger(n) && n > 0) return `ZEN-${n}`;
+  const s = String(id || '').replace(/-/g, '').slice(-6).toUpperCase();
+  return s ? `#${s}` : '';
+}
+
 const STATUSES: OrderStatus[] = [
   'Pending',
   'Accepted',
@@ -194,6 +207,7 @@ export function normalizeOrder(raw: any): RiderOrder {
   return {
     id,
     shortId: id.replace(/-/g, '').slice(-6).toUpperCase(),
+    orderCode: orderCodeOf(raw, id),
     status,
     rawStatus: cleanText(raw?.status),
     kitchenReady: toKitchenReady(raw, status),

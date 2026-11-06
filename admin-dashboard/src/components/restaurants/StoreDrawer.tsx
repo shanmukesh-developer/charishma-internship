@@ -18,6 +18,7 @@ import { StorePreviewCard } from './StorePreviewCard';
 import { StepKey } from './StoreWizard';
 import { hasStoreBanner, patchStore, removeStoreBanner, upsertStoreBanner } from './storeActions';
 import { StoreOrder, StoreStats, useStoreOrders, useStorePayout } from './useStoreStats';
+import { orderCode } from '@/lib/format';
 import {
   Button, Callout, Chip, ConfirmModal, CopyButton, Drawer, EmptyState, Field, INPUT, MenuButton, Skeleton, Tabs, Thumb, Toggle,
   cx, useToast,
@@ -229,7 +230,7 @@ function OverviewTab({ store, stats, orders, ordersState, onTab, onEdit, onPubli
                 <ul className="divide-y divide-white/5">
                   {recent.map(o => (
                     <li key={o._id} className="flex flex-wrap items-center gap-3 px-4 py-2.5 text-sm">
-                      <code className="text-xs text-fg-muted">#{String(o._id || o.id).slice(0, 8)}</code>
+                      <code className="text-xs text-fg-muted">{orderCode(o)}</code>
                       <Chip tone={STATUS_COLOR[o.status] || 'slate'}>{STATUS_TEXT[o.status] || o.status}</Chip>
                       <span className="text-fg-muted">{o.paymentMethod || ''}</span>
                       <span className="ml-auto font-semibold">{formatINR(Number(o.totalPrice) || 0)}</span>
@@ -639,7 +640,7 @@ function ActivityTab({ store, orders }: { store: Store; orders: StoreOrder[] }) 
       out.push({ at: l.timestamp || '', title: ACTION_TEXT[l.action] || l.action.replace(/_/g, ' ').toLowerCase(), detail, kind: 'admin' });
     }
     for (const o of orders.slice(0, 30)) {
-      out.push({ at: o.createdAt, title: `Order #${String(o._id || o.id).slice(0, 8)} · ${o.status}`, detail: `${formatINR(Number(o.totalPrice) || 0)}${o.paymentMethod ? ` · ${o.paymentMethod}` : ''}`, kind: 'order' });
+      out.push({ at: o.createdAt, title: `Order ${orderCode(o)} · ${o.status}`, detail: `${formatINR(Number(o.totalPrice) || 0)}${o.paymentMethod ? ` · ${o.paymentMethod}` : ''}`, kind: 'order' });
     }
     return out.filter(e => e.at).sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime()).slice(0, 80);
   }, [logs, orders]);

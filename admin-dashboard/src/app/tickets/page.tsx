@@ -9,7 +9,7 @@ import {
   Badge, Button, DataTable, DescriptionList, Drawer, Field, IconButton, Input, Modal, Notice as NoticeBox, PageHeader, SearchInput,
   SegmentedControl, Select, StatusPill, Textarea, Toolbar, useConfirm, useToast, type Column, IconPlus, IconRefresh, IconTrash,
 } from '@/components/ui';
-import { formatDateTime, formatPhone, formatRelative } from '@/lib/format';
+import { formatDateTime, formatPhone, formatRelative, orderCode } from '@/lib/format';
 
 type TicketStatus = 'Open' | 'In Progress' | 'Resolved' | 'Closed';
 
@@ -22,6 +22,7 @@ interface Ticket {
   slaBreachAt: string | null;
   createdAt: string;
   orderId?: string | null;
+  orderCode?: string | null;
   adminResponse?: string | null;
   user?: { name: string | null; phone: string | null } | null;
   assigneeId?: string | null;
@@ -277,7 +278,7 @@ export default function SupportTickets() {
                   ),
                 },
                 { label: 'Priority', value: <Badge tone={priorityTone(selected.priority)}>{selected.priority}</Badge> },
-                { label: 'Order', value: selected.orderId ? <a href={`/orders?order=${encodeURIComponent(selected.orderId)}`} className="text-accent-text hover:underline">#{selected.orderId.slice(-6).toUpperCase()}</a> : 'None' },
+                { label: 'Order', value: selected.orderId ? <a href={`/orders?order=${encodeURIComponent(selected.orderId)}`} className="text-accent-text hover:underline">{orderCode({ orderCode: selected.orderCode }, selected.orderId)}</a> : 'None' },
                 { label: 'Reply due', value: slaCell(selected) },
               ]}
             />

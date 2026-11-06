@@ -38,6 +38,7 @@ export type DeliverResult =
 export interface CancelNotice {
   orderId: string;
   shortId: string;
+  orderCode: string;
   restaurantName: string | null;
   reason?: string;
 }
@@ -470,7 +471,7 @@ export function RiderProvider({ children }: { children: React.ReactNode }) {
     queue.removeForOrder(o.id);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
     announce('cancelled', {}, { dedupeKey: `cancel:${o.id}`, chime: 'alert' });
-    setCancelNotice({ orderId: o.id, shortId: o.shortId, restaurantName: o.restaurantName, reason });
+    setCancelNotice({ orderId: o.id, shortId: o.shortId, orderCode: o.orderCode, restaurantName: o.restaurantName, reason });
     setDeliveryId((cur) => (cur === o.id ? null : cur));
   }, []);
 
@@ -502,15 +503,15 @@ export function RiderProvider({ children }: { children: React.ReactNode }) {
           if (how) {
             handedOver.current.delete(o.id);
             showToast(how === 'released'
-              ? `Order #${o.shortId} went back to other riders: it was not picked up in time.`
-              : `Order #${o.shortId} was given to another rider by ZenWe support.`, 'info');
+              ? `Order ${o.orderCode} went back to other riders: it was not picked up in time.`
+              : `Order ${o.orderCode} was given to another rider by ZenWe support.`, 'info');
             setDeliveryId((cur) => (cur === o.id ? null : cur));
           } else if (hist?.some((h) => h.id === o.id)) {
-            showToast(`Order #${o.shortId} was marked delivered by ZenWe support.`, 'success');
+            showToast(`Order ${o.orderCode} was marked delivered by ZenWe support.`, 'success');
             setDeliveryId((cur) => (cur === o.id ? null : cur));
           } else if (hist === null) {
             // Could not check history (bad network): do not claim a cancellation we cannot prove.
-            showToast(`Order #${o.shortId} is no longer assigned to you.`, 'info');
+            showToast(`Order ${o.orderCode} is no longer assigned to you.`, 'info');
             setDeliveryId((cur) => (cur === o.id ? null : cur));
           } else {
             noteCancelled(o);

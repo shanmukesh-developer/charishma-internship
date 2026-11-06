@@ -187,7 +187,7 @@ export function BasketBar({ count, total, onPress }: { count: number; total: num
   if (count <= 0) return null;
   return (
     <View style={[k.basketWrap, { bottom: 12 + insets.bottom }]} pointerEvents="box-none">
-      <Press onPress={onPress} label={`${plural(count, 'item')} in the campus store basket, ${formatINR(total)}. View basket.`} style={[k.basket, shadow(3, TV.heroInk)]} scaleTo={0.98}>
+      <Press onPress={onPress} label={`${plural(count, 'item')} in the Groceries basket, ${formatINR(total)}. View basket.`} style={[k.basket, shadow(3, TV.heroInk)]} scaleTo={0.98}>
         <LinearGradient colors={[TV.header[1], TV.header[2]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
         <View style={k.basketIcon}><IBag size={18} color="#FFFFFF" strokeWidth={1.7} /></View>
         <View style={{ flex: 1, minWidth: 0 }}>

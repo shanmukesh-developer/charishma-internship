@@ -29,7 +29,7 @@ export default function OrderDetailScreen({ orderId, onBack }: { orderId: string
   const header = (
     <View style={[styles.header, { paddingTop: insets.top + space.xs }]}>
       <IconButton icon="arrow-back" label="Back" onPress={onBack} />
-      <Text style={[font.h2, mono, { color: color.text, flex: 1 }]}>{order ? `#${order.shortId}` : 'Order'}</Text>
+      <Text style={[font.h2, mono, { color: color.text, flex: 1 }]}>{order ? `${order.orderCode}` : 'Order'}</Text>
       {order ? <PaymentBadge order={order} /> : null}
     </View>
   );
@@ -49,7 +49,7 @@ export default function OrderDetailScreen({ orderId, onBack }: { orderId: string
   }
 
   const help = () => {
-    const text = encodeURIComponent(`Restaurant ${restaurant.name} needs help with order #${order.shortId}`);
+    const text = encodeURIComponent(`Restaurant ${restaurant.name} needs help with order ${order.orderCode}`);
     Linking.openURL(`https://wa.me/${SUPPORT_PHONE}?text=${text}`).catch(() => {});
   };
   const hasActions = order.stage === 'new' || order.stage === 'preparing' || order.stage === 'ready';

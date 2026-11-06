@@ -178,16 +178,22 @@ const createIssueTicket = async ({ orderId, actor, issueType, details }) => {
     const kind = String(issueType || 'Other').replace(/\s+/g, ' ').trim().slice(0, 80) || 'Other';
     const text = String(details || '').trim().slice(0, 1000);
     const who = type === 'rider' ? 'Rider' : type === 'admin' ? 'Admin' : 'Customer';
-    return await Ticket.create({
+    // Human order ID (ZEN-123) in the ticket text; '#' + short id when the order has no number yet.
+    const Order = model('Order');
+    const orderRow = Order ? await Order.findByPk(String(orderId), { attributes: ['id', 'orderNumber'] }).catch(() => null) : null;
+    const orderLabel = require('./orderNumbers').label(orderRow || { id: orderId });
+    const ticket = await Ticket.create({
       userId: type === 'rider' ? null : actor.id,
       riderId: type === 'rider' ? actor.id : null,
       orderId: String(orderId),
       subject: `Order issue: ${kind}`.slice(0, 120),
-      description: `${who} reported "${kind}" on order ${String(orderId).slice(0, 8)} from the order chat.${text ? `\n\n${text}` : ''}`,
+      description: `${who} reported "${kind}" on order ${orderLabel} from the order chat.${text ? `\n\n${text}` : ''}`,
       priority: 'High',
       status: 'Open',
       slaBreachAt: new Date(Date.now() + 4 * 60 * 60 * 1000),
     });
+    ticket.orderLabel = orderLabel; // for the admin push text (not stored)
+    return ticket;
   } catch (err) {
     console.warn('[ORDER_ISSUE_TICKET_WARN]', err && (err.parent?.code || err.name || err.message));
     return null;

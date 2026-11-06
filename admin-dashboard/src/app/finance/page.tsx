@@ -8,12 +8,14 @@ import {
   Badge, Button, DataTable, DescriptionList, Drawer, Notice as NoticeBox, PageHeader, SearchInput, StatTile, Tabs, Toolbar,
   useConfirm, type Column, IconDownload, IconRefresh,
 } from '@/components/ui';
-import { formatDate, formatINR, humanize } from '@/lib/format';
+import { formatDate, formatINR, humanize, orderCode } from '@/lib/format';
 
 // ─── Types (GET /api/admin/finance, /finance/payouts, /finance/disputes) ───
 interface Transaction {
   _id: string;
   orderId: string;
+  orderNumber?: number | null;
+  orderCode?: string | null;
   restaurantName: string;
   totalAmount: number;
   commissionEarned: number;
@@ -36,6 +38,8 @@ interface FinanceReport {
 
 interface Dispute {
   _id: string;
+  orderNumber?: number | null;
+  orderCode?: string | null;
   userId?: { name?: string; phone?: string } | null;
   totalPrice: number;
   finalPrice?: number | null;
@@ -53,7 +57,8 @@ type Tab = 'ledger' | 'payouts' | 'cash' | 'disputes';
 type Notice = { kind: 'success' | 'error'; text: string } | null;
 
 const rupees = (n: number | null | undefined) => formatINR(Math.round(Number(n || 0)));
-const shortId = (id: string) => `#${String(id || '').slice(-6).toUpperCase()}`;
+// Human order ID (ZEN-123), else the old short reference.
+const txCode = (tx: Transaction) => orderCode({ orderCode: tx.orderCode, orderNumber: tx.orderNumber }, tx.orderId);
 
 /** fetch + JSON with friendly errors (never shows raw server internals). */
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
@@ -162,7 +167,7 @@ export default function FinanceConsole() {
     if (!report || report.transactions.length === 0) return;
     const headers = ['Order', 'Store', 'Order value (INR)', 'Commission (INR)', 'Delivery fee (INR)', 'Date'];
     const rows = report.transactions.map(tx => [
-      shortId(tx.orderId), tx.restaurantName, tx.totalAmount, tx.commissionEarned, tx.deliveryFee,
+      txCode(tx), tx.restaurantName, tx.totalAmount, tx.commissionEarned, tx.deliveryFee,
       // toISOString() throws on an invalid date, which would abort the whole export.
       (() => { const d = new Date(tx.timestamp); return Number.isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10); })(),
     ]);
@@ -195,11 +200,11 @@ export default function FinanceConsole() {
   const handleRefund = async (d: Dispute) => {
     const amount = d.finalPrice ?? d.totalPrice;
     const state = refundState(d);
-    if (!(await confirm({ title: `Refund ${rupees(amount)} to ${d.userId?.name || 'the customer'}'s Wallet?`, description: `Order ${shortId(d._id)}. ${state.note} This can only be done once.`, confirmLabel: 'Refund to Wallet', tone: 'danger' }))) return;
+    if (!(await confirm({ title: `Refund ${rupees(amount)} to ${d.userId?.name || 'the customer'}'s Wallet?`, description: `Order ${orderCode(d)}. ${state.note} This can only be done once.`, confirmLabel: 'Refund to Wallet', tone: 'danger' }))) return;
     runAction(d._id, async () => {
       const data = await requestJson<{ message?: string; refundAmount?: number }>(`${API_URL}/api/admin/finance/refund/${d._id}`, { method: 'POST' });
       fetchDisputes();
-      return `${data?.message || 'Refund successful'}: ${rupees(data?.refundAmount ?? amount)} added to the Wallet (order ${shortId(d._id)}).`;
+      return `${data?.message || 'Refund successful'}: ${rupees(data?.refundAmount ?? amount)} added to the Wallet (order ${orderCode(d)}).`;
     });
   };
 
@@ -213,7 +218,7 @@ export default function FinanceConsole() {
   const refundableCount = disputes.filter(d => refundState(d).refundable).length;
 
   const ledgerColumns: Column<Transaction>[] = [
-    { key: 'order', header: 'Order', width: '110px', cell: tx => <a href={`/orders?order=${encodeURIComponent(tx.orderId)}`} className="font-mono text-xs text-fg-muted hover:text-fg hover:underline">{shortId(tx.orderId)}</a> },
+    { key: 'order', header: 'Order', width: '110px', cell: tx => <a href={`/orders?order=${encodeURIComponent(tx.orderId)}`} className="font-mono text-xs text-fg-muted hover:text-fg hover:underline">{txCode(tx)}</a> },
     { key: 'store', header: 'Store', sortValue: tx => tx.restaurantName, cell: tx => <span className="font-medium text-fg">{tx.restaurantName}</span> },
     { key: 'value', header: 'Order value', align: 'right', sortValue: tx => tx.totalAmount, cell: tx => <span className="tabular-nums">{rupees(tx.totalAmount)}</span> },
     { key: 'commission', header: 'Commission', align: 'right', sortValue: tx => tx.commissionEarned, cell: tx => <span className="tabular-nums text-success-text">{rupees(tx.commissionEarned)}</span> },
@@ -227,7 +232,7 @@ export default function FinanceConsole() {
       header: 'Order',
       cell: d => (
         <div>
-          <p className="font-mono text-xs text-fg-muted">{shortId(d._id)}</p>
+          <p className="font-mono text-xs text-fg-muted">{orderCode(d)}</p>
           <p className="text-xs text-fg-muted">{formatDate(d.createdAt)}</p>
         </div>
       ),
@@ -353,7 +358,7 @@ export default function FinanceConsole() {
         open={!!dispute}
         onClose={() => setOpenDispute(null)}
         size="md"
-        title={dispute ? `Cancelled order ${shortId(dispute._id)}` : 'Cancelled order'}
+        title={dispute ? `Cancelled order ${orderCode(dispute)}` : 'Cancelled order'}
         description={dispute ? `Placed ${formatDate(dispute.createdAt)}` : undefined}
         footer={dispute && refundState(dispute).refundable && !dispute.refundedAt ? (
           <Button variant="primary" disabled={actionLoading !== null} loading={actionLoading === dispute._id} onClick={() => handleRefund(dispute)}>Refund to Wallet</Button>

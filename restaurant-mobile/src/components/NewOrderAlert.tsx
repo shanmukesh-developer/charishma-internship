@@ -48,7 +48,7 @@ export function NewOrderAlert() {
             <View style={styles.row}>
               <View style={{ flex: 1, gap: 4 }}>
                 <View style={styles.row}>
-                  <Text style={[font.orderId, mono, { color: color.text, fontSize: 26, lineHeight: 32 }]}>#{order.shortId}</Text>
+                  <Text style={[font.orderId, mono, { color: color.text, fontSize: 26, lineHeight: 32 }]}>{order.orderCode}</Text>
                   <CampusTag order={order} />
                 </View>
                 <Elapsed order={order} />

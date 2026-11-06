@@ -95,6 +95,10 @@ router.get('/me', twoFactor.requireAdminAccount, async (req, res) => {
 
 router.use(admin);
 
+// Revenue (6 Nov 2026): period report (collected / ZenWe keeps / owed to stores, reconciled), settlement
+// cycles and Settle all (routes/revenueRoutes, utils/revenueReport). Admin only (protect + admin above).
+router.use('/revenue', require('./revenueRoutes'));
+
 // Mailer check: sends one demo email through Brevo so the admin can confirm BREVO_API_KEY/MAIL_FROM work.
 router.post('/mail/test', async (req, res) => {
   const { sendMail, isMailerConfigured } = require('../utils/mailer');

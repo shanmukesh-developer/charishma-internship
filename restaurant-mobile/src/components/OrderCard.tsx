@@ -25,7 +25,7 @@ function OrderCardBase({ order, onOpen, onAccept, onReject }: {
         <View style={styles.row}>
           <View style={{ flex: 1, gap: 2 }}>
             <View style={styles.row}>
-              <Text style={[font.orderId, mono, { color: color.text }]}>#{order.shortId}</Text>
+              <Text style={[font.orderId, mono, { color: color.text }]}>{order.orderCode}</Text>
               <CampusTag order={order} />
             </View>
             <Elapsed order={order} />

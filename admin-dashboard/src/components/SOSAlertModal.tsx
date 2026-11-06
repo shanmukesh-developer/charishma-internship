@@ -6,6 +6,7 @@ import { useAdminAuth } from '@/utils/useAdminAuth';
 import { adminRequest } from '@/lib/api';
 import { getAuthState } from '@/lib/session';
 import { useLiveSync } from '@/lib/useLiveSync';
+import { orderCode } from '@/lib/format';
 
 interface SOSData {
   riderId: string;
@@ -19,6 +20,8 @@ interface SOSData {
   note?: string;
   /** Order the rider was carrying when they pressed SOS. */
   orderId?: string | null;
+  /** Its human order ID (ZEN-123) when the live alert carried it. */
+  orderCode?: string | null;
 }
 
 /**
@@ -205,7 +208,7 @@ export default function SOSAlertModal() {
         <p className="text-xl text-fg font-semibold mb-1">Rider: {current.riderName || 'Unknown rider'}</p>
         {current.riderPhone && <a className="block text-lg text-fg underline mb-1" href={`tel:${current.riderPhone}`}>Call {current.riderPhone}</a>}
         {current.note && <p className="text-base text-fg font-semibold mb-1 break-words">“{String(current.note).slice(0, 200)}”</p>}
-        {current.orderId && <p className="text-sm text-fg font-semibold mb-1">Carrying order #{String(current.orderId).slice(-6).toUpperCase()}</p>}
+        {current.orderId && <p className="text-sm text-fg font-semibold mb-1">Carrying order {orderCode({ orderCode: current.orderCode }, current.orderId)}</p>}
         <p className="text-sm text-danger-text mb-2 font-mono break-all">ID: {current.riderId}{when && !Number.isNaN(when.getTime()) ? ` · ${when.toLocaleString()}` : ''}</p>
         {where && (
           <a className="block text-sm text-fg underline mb-6" target="_blank" rel="noreferrer" href={`https://www.google.com/maps?q=${where.lat},${where.lng}`}>

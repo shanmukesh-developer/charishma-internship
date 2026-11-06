@@ -287,7 +287,7 @@ function StallCard({ stall: v, onOpen, onSample }: { stall: CbStall; onOpen: () 
               ) : v.isOpen ? (
                 <AddControl
                   qty={cbCart.qty(v.id, m.id)}
-                  onAdd={() => { if (requireSignIn('Sign in to book')) cbCart.change(v.id, { menuItemId: m.id, name: m.name, price: m.price, isVeg: m.isVeg, category: m.category }, 1); }}
+                  onAdd={() => { if (requireSignIn('Sign in to book')) cbCart.change(v.id, { menuItemId: m.id, name: m.name, price: m.price, isVeg: m.isVeg, category: m.category }, 1, undefined, v.name); }}
                   onRemove={() => cbCart.change(v.id, { menuItemId: m.id, name: m.name, price: m.price, isVeg: m.isVeg, category: m.category }, -1)}
                 />
               ) : null}

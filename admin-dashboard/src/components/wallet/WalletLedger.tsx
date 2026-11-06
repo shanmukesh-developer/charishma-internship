@@ -15,7 +15,7 @@ interface LedgerRow {
   amount: number;
   amountPaise: number;
   balanceAfter: number;
-  ref: { type: string; id: string; label: string | null } | null;
+  ref: { type: string; id: string; label: string | null; orderCode?: string | null } | null;
   actorType: string;
   actorId: string | null;
   reason: string | null;
@@ -74,7 +74,7 @@ const ledgerColumns: Column<LedgerRow>[] = [
     cell: r => (
       <div>
         <p className="text-fg">{r.label}</p>
-        <p className="text-xs text-fg-muted">{humanize(r.type)}{r.ref ? ` · ${r.ref.label || humanize(r.ref.type)} ${r.ref.id ? r.ref.id.slice(0, 8) : ''}` : ''}</p>
+        <p className="text-xs text-fg-muted">{humanize(r.type)}{r.ref ? ` · ${r.ref.label || humanize(r.ref.type)} ${r.ref.id && !r.ref.orderCode ? r.ref.id.slice(0, 8) : ''}` : ''}</p>
       </div>
     ),
   },

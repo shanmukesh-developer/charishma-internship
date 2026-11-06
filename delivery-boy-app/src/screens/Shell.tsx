@@ -144,7 +144,7 @@ export function Shell() {
             <View style={styles.cancelIcon}>
               <MaterialCommunityIcons name="cancel" size={44} color={C.red} />
             </View>
-            <Text style={[T.h2, { color: C.ink, textAlign: 'center' }]}>Order #{r.cancelNotice.shortId} cancelled</Text>
+            <Text style={[T.h2, { color: C.ink, textAlign: 'center' }]}>Order {r.cancelNotice.orderCode} cancelled</Text>
             <Text style={[T.body, { color: C.ink2, textAlign: 'center' }]}>
               Do not pick it up. If you already have the food, return it to {r.cancelNotice.restaurantName ?? 'the store'} or ask support.
             </Text>
@@ -156,9 +156,9 @@ export function Shell() {
                 variant="outline"
                 size="mid"
                 onPress={() => {
-                  const id = r.cancelNotice?.shortId;
+                  const code = r.cancelNotice?.orderCode;
                   r.clearCancelNotice();
-                  setOverlay({ kind: 'support', prefill: `Order #${id}: order was cancelled while I had it. ` });
+                  setOverlay({ kind: 'support', prefill: `Order ${code}: order was cancelled while I had it. ` });
                 }}
               />
             </View>

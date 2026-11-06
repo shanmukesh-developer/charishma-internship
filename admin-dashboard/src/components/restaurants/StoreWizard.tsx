@@ -47,6 +47,8 @@ export interface WizardState {
   deliveryFeeOverride: string;
   commissionType: 'percentage' | 'flat';
   commissionRate: string;
+  /** How often ZenWe settles this store (Revenue > Settle all). */
+  settlementCycle: 'daily' | 'weekly' | 'monthly';
   /** "Add campus stall": created with In-Campus Booking on (create only; later changes live in the stall's
    * In-Campus Booking tab). Students pre-book and collect at the stall, paying it by UPI. */
   campusBooking: boolean;
@@ -82,7 +84,7 @@ const emptyState = (): WizardState => ({
   location: '', zone: '', lat: '', lon: '', whatsapp: '',
   imageUrl: '', brandOn: false, logoUrl: '', primaryColor: '#E23744', secondaryColor: '#111111', accentColor: '#FFC72C',
   weekly: uniformWeekly('09:00', '22:00'), isOpenNow: true, deliveryTime: '30',
-  managedByZenvy: false, password: '', loginPhone: '', packagingFee: '', minOrderValue: '', deliveryFeeOverride: '', commissionType: 'percentage', commissionRate: '10',
+  managedByZenvy: false, password: '', loginPhone: '', packagingFee: '', minOrderValue: '', deliveryFeeOverride: '', commissionType: 'percentage', commissionRate: '10', settlementCycle: 'weekly',
   campusBooking: false, upiId: '', upiName: '', prepMinutes: '',
 });
 
@@ -117,6 +119,7 @@ export function stateFromStore(s: Store): WizardState {
     deliveryFeeOverride: s.deliveryFeeOverride != null ? String(s.deliveryFeeOverride) : '',
     commissionType: s.commissionType === 'flat' ? 'flat' : 'percentage',
     commissionRate: String(s.commissionRate ?? 10),
+    settlementCycle: s.settlementCycle === 'daily' || s.settlementCycle === 'monthly' ? s.settlementCycle : 'weekly',
     // An existing In-Campus stall keeps its wording when edited (its booking settings live in its In-Campus tab).
     campusBooking: isBookingStall(s), upiId: '', upiName: '', prepMinutes: '',
   };
@@ -224,6 +227,8 @@ export function buildPayload(s: WizardState, existing: Store | null): Record<str
     isOffline: local ? false : s.managedByZenvy,
     commissionType: s.commissionType,
     commissionRate: local ? Number(existing?.commissionRate ?? 0) : Number(s.commissionRate),
+    // Stalls keep their cycle (changed from the Revenue page); restaurants set it here.
+    ...(local ? {} : { settlementCycle: s.settlementCycle }),
   };
   if (s.zone.trim()) body.zone = s.zone.trim();
   else if (existing && existing.zone) body.zone = null; // emptied: the server puts back the default zone
@@ -966,6 +971,15 @@ function CommissionStep({ s, set, errors }: StepProps) {
           { value: 'flat', label: '₹ fixed per order' },
         ]} />
       </div>
+      <div className="space-y-2">
+        <p className="text-xs font-semibold text-fg-muted">Settlement cycle</p>
+        <Segmented label="Settlement cycle" value={s.settlementCycle} onChange={settlementCycle => set({ settlementCycle })} options={[
+          { value: 'daily', label: 'Daily' },
+          { value: 'weekly', label: 'Weekly (Mon–Sun)' },
+          { value: 'monthly', label: 'Monthly' },
+        ]} />
+        <p className="text-xs text-fg-muted">How often ZenWe pays this partner. Revenue → Settle all creates one statement per store up to yesterday, last Sunday or the end of last month.</p>
+      </div>
       <Field label={s.commissionType === 'flat' ? 'Amount per order (₹)' : 'Commission (%)'} required error={errors.commissionRate} help="Charged on the item subtotal only. The rider fee and ZenWe coupons never reduce the partner's share.">
         {({ id, msgId, invalid }) => (
           <div className="flex flex-wrap items-center gap-2">
@@ -988,7 +1002,7 @@ function CommissionStep({ s, set, errors }: StepProps) {
           <div className="rounded-lg bg-surface-2/60 p-3"><dt className="text-xs text-fg-muted">ZenWe keeps</dt><dd className="mt-1 text-lg font-semibold text-warning-text">{formatINR(commission)}</dd></div>
           <div className="rounded-lg bg-success-soft p-3"><dt className="text-xs text-success-text">Partner receives</dt><dd className="mt-1 text-lg font-semibold text-success-text">{formatINR(order - commission)}</dd></div>
         </dl>
-        <p className="mt-3 text-xs text-fg-muted">Payments are Cash on Delivery or ZenWe Wallet. Delivered orders are settled to the partner from Finance → Payouts.</p>
+        <p className="mt-3 text-xs text-fg-muted">Payments are Cash on Delivery or ZenWe Wallet. Delivered orders are settled to the partner from Revenue → Settle all (or Finance → Payouts).</p>
       </section>
     </div>
   );
@@ -1028,7 +1042,7 @@ function ReviewStep({ s, issues, goto, mode, initial, preview }: {
       ? [['App', app], ['Login phone', loginPhone], ['Password', password], ['Payment', bookingStall ? 'UPI to the stall, collected at the counter' : 'Cash on delivery to the stall']]
       : [['Mode', s.managedByZenvy ? 'Managed by ZenWe' : 'ZenWe Restaurant app'], ['Login phone', loginPhone], ['Password', password]] },
     ...(local ? [] : [
-      { step: 'commission' as StepKey, items: [['Commission', s.commissionType === 'flat' ? `₹${s.commissionRate} per order` : `${s.commissionRate}% of order`]] as [string, ReactNode][] },
+      { step: 'commission' as StepKey, items: [['Commission', s.commissionType === 'flat' ? `₹${s.commissionRate} per order` : `${s.commissionRate}% of order`], ['Settlement', s.settlementCycle === 'daily' ? 'Daily' : s.settlementCycle === 'monthly' ? 'Monthly' : 'Weekly (Mon–Sun)']] as [string, ReactNode][] },
     ]),
   ];
   return (

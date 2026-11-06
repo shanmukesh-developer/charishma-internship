@@ -48,7 +48,7 @@ export function NewOrderAlert() {
               <View style={{ flex: 1, gap: 2 }}>
                 <Text style={[font.h2, { color: color.text }]} numberOfLines={1}>{order.customerName || 'Customer'}</Text>
                 <View style={styles.row}>
-                  <Text style={[font.body, mono, { color: color.textSecondary, fontWeight: '800' }]}>#{order.shortId}</Text>
+                  <Text style={[font.body, mono, { color: color.textSecondary, fontWeight: '800' }]}>{order.orderCode}</Text>
                   <Elapsed order={order} />
                 </View>
               </View>

@@ -5,6 +5,7 @@
 //                                      cancel, history, one statement
 //   Rider  /api/delivery/cash, /cash/entries, /payouts      cash held + limit + net position, history
 //   Store  /api/restaurants/:id/payouts                        the store's own statements (API only)
+const orderNumbers = require('../utils/orderNumbers');
 const { Op, Transaction } = require('sequelize');
 const riderCash = require('../utils/riderCash');
 const payouts = require('../utils/payouts');
@@ -335,8 +336,8 @@ exports.getPayout = async (req, res) => {
       order: [['deliveredAt', 'ASC']], raw: true,
     });
     const lines = orders.map((o) => (p.partnerType === 'rider'
-      ? { id: o.id, deliveredAt: o.deliveredAt || o.updatedAt, earningPaise: earningPaise(o), paymentMethod: o.paymentMethod }
-      : { id: o.id, deliveredAt: o.deliveredAt || o.updatedAt, ...(() => { const l = payouts.storeLine(o); return { grossPaise: l.gross, commissionPaise: l.commission, adjustmentsPaise: l.adjustments, netPaise: l.net }; })(), commissionRate: o.commissionRate, commissionType: o.commissionType, paymentMethod: o.paymentMethod }));
+      ? { id: o.id, ...orderNumbers.fields(o), deliveredAt: o.deliveredAt || o.updatedAt, earningPaise: earningPaise(o), paymentMethod: o.paymentMethod }
+      : { id: o.id, ...orderNumbers.fields(o), deliveredAt: o.deliveredAt || o.updatedAt, ...(() => { const l = payouts.storeLine(o); return { grossPaise: l.gross, commissionPaise: l.commission, adjustmentsPaise: l.adjustments, netPaise: l.net }; })(), commissionRate: o.commissionRate, commissionType: o.commissionType, paymentMethod: o.paymentMethod }));
     res.set('Cache-Control', 'no-store');
     res.json({ payout: payouts.payoutJson(p, { withOrderIds: true }), orders: lines });
   } catch (error) {

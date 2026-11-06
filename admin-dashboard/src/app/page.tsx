@@ -16,7 +16,7 @@ import {
   SegmentedControl, Skeleton, StatusDot, StatusPill, Textarea, useConfirm, type Column,
   IconChevronRight,
 } from '@/components/ui';
-import { formatINR, formatRelative, formatTime, humanize } from '@/lib/format';
+import { formatINR, formatRelative, formatTime, humanize, orderCode } from '@/lib/format';
 
 // "Needs attention" counters on the overview, kept live by realtime events.
 type LegacyInboxKey = 'tickets' | 'verifications' | 'pgBookings' | 'wallPending' | 'serviceRequests' | 'stuckStallOrders';
@@ -92,6 +92,8 @@ interface AdminStat {
 
 interface LiveOrder {
   id: string;
+  // Human order ID (ZEN-123) when the server sent one.
+  orderCode?: string | null;
   kind: 'order';
   customer: string;
   location: string;
@@ -130,6 +132,7 @@ interface OperationalEvent {
   issueType?: string;
   details: string;
   orderId?: string;
+  orderCode?: string;
   timestamp: Date;
 }
 
@@ -143,6 +146,7 @@ interface InterceptedChat {
 
 const mapOrder = (o: any): LiveOrder => ({
   id: String(o.id || o._id),
+  orderCode: orderCode(o) || null,
   kind: 'order',
   customer: o.user?.name || 'Customer',
   location: o.hostelGateDelivery ? 'Hostel gate' : 'Room delivery',
@@ -162,7 +166,8 @@ const mapOrder = (o: any): LiveOrder => ({
 // Legacy UPI orders (before COD + Wallet only) can still be waiting for a manual check.
 const needsUpiCheck = (o: LiveOrder) => o.kind === 'order' && o.paymentMethod === 'UPI' && o.upiStatus === 'Pending';
 
-const shortId = (id?: string) => (id ? `#${String(id).slice(-6).toUpperCase()}` : '');
+// Human order ID (ZEN-123) of a live order / event, else the old short reference.
+const liveCode = (o: { id?: string; orderCode?: string | null } | null | undefined, id?: string) => orderCode(o ? { orderCode: o.orderCode, id: o.id } : null, id);
 
 const toStats = (data: any): AdminStat[] => [
   { label: 'Delivered revenue', value: formatINR(data?.revenue ?? 0), hint: 'All delivered orders' },
@@ -213,7 +218,7 @@ const EventAlert = memo(({ event, onResolve }: { event: OperationalEvent, onReso
   >
     <span className="text-fg">{event.issueType || event.details}</span>
     {event.issueType && event.details && <span className="block">{event.details}</span>}
-    {event.orderId && <span className="block">Order {shortId(event.orderId)}</span>}
+    {event.orderId && <span className="block">Order {orderCode({ orderCode: event.orderCode }, event.orderId)}</span>}
   </Notice>
 ));
 EventAlert.displayName = 'EventAlert';
@@ -493,6 +498,7 @@ export default function AdminHome() {
       if (!orderId) return;
       prependOrder({
         id: String(orderId),
+        orderCode: orderCode(order, orderId) || null,
         kind: 'order',
         customer: order.customer || order.user?.name || 'Customer',
         location: order.hostelGateDelivery ? 'Hostel gate' : (order.drop || 'Room delivery'),
@@ -621,6 +627,7 @@ export default function AdminHome() {
         senderName: data?.riderName ? String(data.riderName) : undefined,
         details: 'Emergency SOS triggered. Call the rider now.',
         orderId: data?.orderId ? String(data.orderId) : undefined,
+        orderCode: data?.orderCode ? String(data.orderCode) : undefined,
         timestamp: new Date(),
       }, ...prev].slice(0, 10));
     };
@@ -634,6 +641,7 @@ export default function AdminHome() {
         issueType: data?.issueType ? String(data.issueType) : undefined,
         details: String(data?.details || ''),
         orderId: data?.orderId ? String(data.orderId) : undefined,
+        orderCode: data?.orderCode ? String(data.orderCode) : undefined,
         timestamp: new Date(),
       }, ...prev].slice(0, 10));
     };
@@ -750,7 +758,7 @@ export default function AdminHome() {
       header: 'Order',
       width: '120px',
       cell: o => (
-        <span className="font-mono text-xs text-fg-muted">{shortId(o.id)}</span>
+        <span className="font-mono text-xs text-fg-muted">{liveCode(o)}</span>
       ),
     },
     {
@@ -1046,7 +1054,7 @@ export default function AdminHome() {
                     <span className="truncate">
                       <span className="font-medium text-fg">{chat.sender}</span>
                       {chat.senderRole && <> · {chat.senderRole.toLowerCase()}</>}
-                      {chat.orderId && <> · Order {shortId(chat.orderId)}</>}
+                      {chat.orderId && <> · Order {liveCode(liveOrders.find(o => o.id === chat.orderId), chat.orderId)}</>}
                     </span>
                     <span className="shrink-0 tabular-nums">{formatTime(chat.timestamp)}</span>
                   </div>

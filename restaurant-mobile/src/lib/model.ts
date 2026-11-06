@@ -32,6 +32,19 @@ export function shortId(id: string): string {
   return clean ? clean.slice(-6).toUpperCase() : '';
 }
 
+/**
+ * Human order ID (owner, 6 Nov 2026): "ZEN-123", one running count across the whole server (backend
+ * utils/orderNumbers sends orderNumber + orderCode). An order without a number yet shows the old "#AB12CD".
+ */
+export function orderCodeOf(raw: any, id: string): string {
+  const code = raw && typeof raw.orderCode === 'string' ? raw.orderCode.trim() : '';
+  if (code) return code;
+  const n = Number(raw && raw.orderNumber);
+  if (Number.isInteger(n) && n > 0) return `ZEN-${n}`;
+  const s = String(id || '').replace(/-/g, '').slice(-6).toUpperCase();
+  return s ? `#${s}` : '';
+}
+
 export function firstName(name: unknown): string | null {
   if (typeof name !== 'string') return null;
   const f = name.trim().split(/\s+/)[0];
@@ -173,6 +186,7 @@ export function normalizeOrder(raw: any): Order | null {
   return {
     id,
     shortId: shortId(id),
+    orderCode: orderCodeOf(raw, id),
     status,
     stage: stageFor(status, raw.readyAt),
     createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : null,

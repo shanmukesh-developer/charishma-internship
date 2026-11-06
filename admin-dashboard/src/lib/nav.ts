@@ -7,7 +7,7 @@ export type NavIcon =
   | 'home' | 'orders' | 'basket' | 'store' | 'catalogue' | 'rider' | 'pg' | 'events' | 'auto' | 'bike'
   | 'car' | 'services' | 'users' | 'school' | 'wallet' | 'ticket' | 'tag' | 'gift' | 'bell' | 'layout'
   | 'pulse' | 'pin' | 'trophy' | 'message' | 'image' | 'shield' | 'heart' | 'chart' | 'star'
-  | 'settings' | 'lock' | 'history';
+  | 'settings' | 'lock' | 'history' | 'revenue';
 
 export interface NavItem {
   href: string;
@@ -44,6 +44,13 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: '/campus-booking', label: 'In-Campus Booking', icon: 'orders', description: 'Pickup bookings paid straight to campus stalls by UPI; each stall: switch, UPI ID and QR.', keywords: 'campus booking pickup stall upi qr payment proof commission' },
       { href: '/restaurants', label: 'Stores', icon: 'store', description: 'Restaurants, local vendors and stalls: details, hours, compliance.', keywords: 'restaurants vendors stalls shops merchants fssai gst' },
       { href: '/catalogue', label: 'Catalogue', icon: 'catalogue', description: 'Add, edit and delete items for any store or Groceries category.', keywords: 'menu items products prices stock categories toys fruits groceries stationery' },
+    ],
+  },
+  {
+    id: 'revenue',
+    label: 'Revenue',
+    items: [
+      { href: '/revenue', label: 'Revenue', icon: 'revenue', description: 'Daily, weekly and monthly: collected, what ZenWe keeps, what each store is owed; Settle all.', keywords: 'revenue commission earnings settle settlement payout stores owed collected cod wallet reconcile daily weekly monthly csv' },
     ],
   },
   {

@@ -13,6 +13,7 @@ import { formatISTDateTime } from '../utils/format';
 import { useTopInset } from '../utils/useTopInset';
 import { pickAndUploadImage, alertUploadError, resolveMediaUrl } from '../utils/imageUpload';
 import { CachedImage } from '../components/SafeImage';
+import { orderCode } from '../utils/orderCode';
 
 // Up to 3 photos per ticket (a missing or wrong item is easiest to sort out with a picture)
 const MAX_TICKET_PHOTOS = 3;
@@ -50,6 +51,9 @@ export default function SupportScreen() {
   const paramOrderId = (Array.isArray(params.orderId) ? params.orderId[0] : params.orderId) || '';
   // "Need help with this booking?" (Orders > Services) passes the booking: name it in the subject
   const paramBookingId = (Array.isArray((params as any).bookingId) ? (params as any).bookingId[0] : (params as any).bookingId) || '';
+  // Human order ID passed by the opener (orders tab / tracking): "ZEN-123". Older openers pass only the id.
+  const paramOrderCode = (Array.isArray((params as any).orderCode) ? (params as any).orderCode[0] : (params as any).orderCode) || '';
+  const orderLabel = (id?: string | null, code?: string | null) => orderCode({ orderCode: code || (id && id === paramOrderId ? paramOrderCode : '') }, id);
 
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,7 +63,7 @@ export default function SupportScreen() {
 
   // Form states (when opened from an order, the ticket is linked to it)
   const [linkedOrderId, setLinkedOrderId] = useState<string>(paramOrderId);
-  const [subject, setSubject] = useState(paramOrderId ? `Help with order #${shortId(paramOrderId)}` : paramBookingId ? `Help with booking #${shortId(paramBookingId)}` : '');
+  const [subject, setSubject] = useState(paramOrderId ? `Help with order ${orderLabel(paramOrderId)}` : paramBookingId ? `Help with booking #${shortId(paramBookingId)}` : '');
   const [description, setDescription] = useState('');
   const [photos, setPhotos] = useState<{ ref: string; preview: string }[]>([]);
   const [photoBusy, setPhotoBusy] = useState(false);
@@ -257,7 +261,7 @@ export default function SupportScreen() {
   };
 
   const whatsappText = linkedOrderId
-    ? `Hi ZenWe Support, I need help with order #${shortId(linkedOrderId)}`
+    ? `Hi ZenWe Support, I need help with order ${orderLabel(linkedOrderId)}`
     : 'Hi ZenWe Support, I need help';
 
   const txt = colors.text;
@@ -404,7 +408,7 @@ export default function SupportScreen() {
 
             {!!linkedOrderId && (
               <View style={[s.linkedOrder, { borderColor: border, backgroundColor: activeBgColor }]}>
-                <Text style={{ flex: 1, fontSize: 12, fontWeight: '800', color: txt }}>About order #{shortId(linkedOrderId)}</Text>
+                <Text style={{ flex: 1, fontSize: 12, fontWeight: '800', color: txt }}>About order {orderLabel(linkedOrderId)}</Text>
                 <TouchableOpacity onPress={() => setLinkedOrderId('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                   <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec }}>Remove</Text>
                 </TouchableOpacity>
@@ -589,7 +593,7 @@ export default function SupportScreen() {
                   {!!ticketOrderId && (
                     <TouchableOpacity onPress={() => router.push(`/tracking/${ticketOrderId}` as any)}>
                       <Text style={{ fontSize: 12, fontWeight: '800', color: activeTextColor, marginBottom: 4 }}>
-                        Order #{shortId(ticketOrderId)} ›
+                        Order {orderLabel(ticketOrderId, ticket.order?.orderCode)} ›
                       </Text>
                     </TouchableOpacity>
                   )}

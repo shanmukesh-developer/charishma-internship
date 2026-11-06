@@ -122,8 +122,15 @@ const getAllTickets = async (req, res) => {
       const riders = await getDeliveryPartnerModel().findAll({ where: { id: riderIds }, attributes: ['id', 'name', 'phone'] });
       riderMap = Object.fromEntries(riders.map(r => [r.id, r]));
     }
+    // Human order IDs (ZEN-123) of the linked orders, one query.
+    const orderIds = [...new Set(tickets.map(t => t.orderId).filter(id => id && UUID_RE.test(String(id))).map(String))];
+    const codeMap = new Map();
+    if (orderIds.length) {
+      const rows = await getOrderModel().findAll({ where: { id: orderIds }, attributes: ['id', 'orderNumber'], raw: true });
+      for (const o of rows) codeMap.set(String(o.id), require('../utils/orderNumbers').fields(o));
+    }
     res.json(await require('../utils/ticketAttachments').signTicketAttachments(req, tickets.map(t => {
-      const json = t.toJSON();
+      const json = { ...t.toJSON(), ...(t.orderId && codeMap.get(String(t.orderId)) ? codeMap.get(String(t.orderId)) : {}) };
       const rider = json.riderId ? riderMap[json.riderId] : null;
       if (!json.user && rider) json.user = { id: rider.id, name: `Rider: ${rider.name}`, phone: rider.phone };
       return { ...json, requesterRole: json.riderId && !json.userId ? 'rider' : 'customer' };

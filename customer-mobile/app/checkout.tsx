@@ -26,7 +26,7 @@ import {
   useServiceability,
   useDeliverySlots,
   isCustomRequest,
-  restaurantGroupsOf,
+  storeGroupsOf,
   toOrderLine,
   friendlyNetworkMessage,
   newIdempotencyKey,
@@ -161,15 +161,18 @@ export default function CheckoutScreen() {
   const topPad = useTopInset();
   const router = useRouter();
   const { baskets, basketCounts, activeBasket, setActiveBasket, addToCart, setCart, removeItems: removeAnyItems } = useCart();
-  // Three checkouts: /checkout?basket=restaurant|store|stall orders only that basket (default: the active one).
+  // Delivery checkouts: /checkout?basket=restaurant|store|stall orders only that basket (default: the active one).
+  // The Campus store tab never comes here (its stalls book through the campus booking screen, see below).
   const { basket: basketParamRaw, store: storeParamRaw } = useLocalSearchParams<{ basket?: string | string[]; store?: string | string[] }>();
   const basketParam = Array.isArray(basketParamRaw) ? basketParamRaw[0] : basketParamRaw;
-  const basketKind: BasketKind = isBasketKind(basketParam) ? basketParam : activeBasket;
-  // The restaurants basket can hold several restaurants (5 Nov 2026): checkout places ONE restaurant's order
-  // (?store=<id>, default the first restaurant); the other restaurants stay in the basket for their own order.
+  const requestedKind: BasketKind = isBasketKind(basketParam) ? basketParam : activeBasket;
+  const campusRequested = requestedKind === 'campus';
+  const basketKind: BasketKind = campusRequested ? 'restaurant' : requestedKind;
+  // Every basket can hold several shops (restaurants 5 Nov, Groceries and Local stores 6 Nov 2026): checkout places
+  // ONE shop's order (?store=<id>, default the first shop); the other shops stay in the basket for their own order.
   const storeParam = String((Array.isArray(storeParamRaw) ? storeParamRaw[0] : storeParamRaw) || '');
-  const restaurantGroups = useMemo(() => (basketKind === 'restaurant' ? restaurantGroupsOf(baskets.restaurant) : []), [basketKind, baskets.restaurant]);
-  const checkoutStoreId: string | null = basketKind !== 'restaurant' || restaurantGroups.length === 0
+  const restaurantGroups = useMemo(() => storeGroupsOf(baskets[basketKind]), [basketKind, baskets]);
+  const checkoutStoreId: string | null = restaurantGroups.length === 0
     ? null
     : (restaurantGroups.find((g) => g.storeId === storeParam) || restaurantGroups[0]).storeId || null;
   const cart = useMemo(
@@ -178,7 +181,15 @@ export default function CheckoutScreen() {
   );
   const totalItems = checkoutStoreId ? cart.reduce((n, l) => n + l.quantity, 0) : basketCounts[basketKind];
   const removeItems = (m: { ids?: string[]; names?: string[] }) => removeAnyItems({ ...m, basket: basketKind });
+  // A campus stall is booked on its own booking screen (campus booking API, pickup, no delivery or platform fee).
   useEffect(() => {
+    if (!campusRequested) return;
+    if (storeParam) router.replace(`/campus-booking/cart/${encodeURIComponent(storeParam)}` as any);
+    else router.replace('/(tabs)/basket?basket=campus' as any);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [campusRequested]);
+  useEffect(() => {
+    if (campusRequested) return;
     if (activeBasket !== basketKind) setActiveBasket(basketKind);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [basketKind]);

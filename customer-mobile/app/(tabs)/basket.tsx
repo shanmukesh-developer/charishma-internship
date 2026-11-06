@@ -4,12 +4,14 @@ import { KeyboardAvoidingView } from '../../components/KeyboardAvoidingView';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Clipboard from '@react-native-clipboard/clipboard';
 import { useRouter, useIsFocused, useLocalSearchParams } from 'expo-router';
+import { cbApi } from '../../modules/campusBooking/cbApi';
+import { cbCart } from '../../modules/campusBooking/cbCart';
 import { Ionicons } from '@expo/vector-icons';
 import TabBackButton from '../../components/TabBackButton';
 import { COLORS, SHADOWS, BUTTON } from '../../constants/theme';
 import { plainDiscountLabel } from '../../utils/billLabel';
 import { useTopInset } from '../../utils/useTopInset';
-import { useCart, useBasketQuote, useServiceability, isCustomRequest, isBasketKind, restaurantGroupsOf, BASKET_KINDS, BASKET_LABELS, BasketKind, DELIVERY_INSTRUCTIONS, DELIVERY_INSTRUCTIONS_KEY, type StoreGroup } from '../../context/CartContext';
+import { useCart, useBasketQuote, useServiceability, isCustomRequest, isBasketKind, storeGroupsOf, BASKET_KINDS, BASKET_LABELS, BasketKind, DELIVERY_INSTRUCTIONS, DELIVERY_INSTRUCTIONS_KEY, type StoreGroup } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { summarizeCustomizations } from '../../components/CustomizeDrawer';
@@ -46,8 +48,8 @@ export default function BasketScreen() {
   const onHostRoom = () => { resetGroupCard(); handleHostRoom(); };
   const onLeaveGroup = () => { resetGroupCard(); handleDisconnect(); };
 
-  // Three baskets (restaurants, campus store, local stalls), each with its own checkout.
-  // The screen below shows the selected basket exactly as a single basket.
+  // Four baskets (Restaurants, Groceries, Campus store, Local stores; owner, 6 Nov 2026), each with its own checkout.
+  // A basket with one shop looks exactly as a single basket; with several shops each shop gets its own section.
   const basketKind: BasketKind = activeBasket;
   const cart = baskets[basketKind];
   const totalItems = basketCounts[basketKind];
@@ -84,15 +86,18 @@ export default function BasketScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [basketFocused, basketParam, cartLoaded]);
 
-  // Restaurants basket with several restaurants (owner, 5 Nov 2026): one section per restaurant, each its own order
-  // with its own bill and Checkout button. The one-restaurant basket looks exactly as before.
-  const restaurantGroups = basketKind === 'restaurant' ? restaurantGroupsOf(cart) : [];
-  const multiRestaurant = restaurantGroups.length > 1;
+  // A basket with several shops (restaurants 5 Nov, Groceries and Local stores 6 Nov 2026): one section per shop, each
+  // its own order with its own bill and Checkout button. The one-shop basket looks exactly as before. The Campus store
+  // tab always shows one section per campus stall (each is booked for pickup on its own, no delivery or platform fee).
+  const isCampus = basketKind === 'campus';
+  const storeGroups = storeGroupsOf(cart);
+  const multiRestaurant = isCampus || storeGroups.length > 1;
   // The bill comes from the server (POST /api/orders/quote); guests see an item estimate only. With several
   // restaurants each section asks for its own bill instead (a whole-basket quote would be refused).
   const { quote, loading: quoteLoading, error: quoteError, refresh: refreshQuote, hasOrderLines } = useBasketQuote(null, !!user && !multiRestaurant, basketFocused, basketKind);
   const { serviceability } = useServiceability();
-  const isClosed = quote?.serviceability?.open === false || serviceability?.open === false;
+  // Campus stalls keep their own hours (shown in each stall's section), not the delivery hours.
+  const isClosed = !isCampus && (quote?.serviceability?.open === false || serviceability?.open === false);
   const closedMessage = stripEmoji(String(quote?.serviceability?.message || serviceability?.message ||
     `Campus stores are closed for the night. Ordering opens again at ${serviceability?.reopensAt ? formatClock(serviceability.reopensAt) : '6:00 AM'}.`));
   const customCount = cart.filter((i) => isCustomRequest(i)).length;
@@ -257,17 +262,22 @@ export default function BasketScreen() {
   const [checkoutH, setCheckoutH] = useState(CHECKOUT_EST_HEIGHT);
   const showFloatingCheckout = totalItems > 0 && !multiRestaurant;
   const listBottom = showFloatingCheckout ? CHECKOUT_BOTTOM + checkoutH + 12 : 0;
-  // Checkout for the basket, or for one restaurant's order (?store=) when the basket has several restaurants.
+  // Checkout for the basket, or for one shop's order (?store=) when the basket has several shops. A campus stall
+  // opens its booking checkout (modules/campusBooking/CbCartScreen: the campus booking API, pay the stall by UPI).
   const goToCheckout = (storeId?: string) => {
     if (!user) {
       Alert.alert(
         'Sign in to check out',
-        'Sign in to place your order and track it.',
+        isCampus ? 'Sign in to book from campus stalls and track your pickup.' : 'Sign in to place your order and track it.',
         [
           { text: 'Cancel', style: 'cancel' },
           { text: 'Sign in', onPress: () => router.push('/login' as any) }
         ]
       );
+      return;
+    }
+    if (isCampus) {
+      if (storeId) router.push(`/campus-booking/cart/${encodeURIComponent(storeId)}` as any);
       return;
     }
     router.push(`/checkout?basket=${basketKind}${storeId ? `&store=${encodeURIComponent(storeId)}` : ''}` as any);
@@ -312,7 +322,7 @@ export default function BasketScreen() {
           )}
         </View>
 
-        {/* Basket switch: Restaurants · Campus store · Local stalls */}
+        {/* Basket switch: Restaurants · Groceries · Campus store · Local stores (label over count, so four fit at large text) */}
         <View style={[s.segWrap, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F1F5F9', borderColor: border }]} accessibilityRole="tablist">
           {BASKET_KINDS.map((k) => {
             const selected = k === basketKind;
@@ -328,8 +338,8 @@ export default function BasketScreen() {
                 accessibilityState={{ selected }}
                 accessibilityLabel={`${BASKET_LABELS[k]} basket, ${plural(n, 'item')}`}
               >
-                <Text style={[s.segText, { color: selected ? onColor : txt }]} numberOfLines={1}>{BASKET_LABELS[k]}</Text>
-                <Text style={[s.segCount, { color: selected ? onColor : n === 0 ? txtSec : txt }]}>{n}</Text>
+                <Text style={[s.segText, { color: selected ? onColor : txt }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{BASKET_LABELS[k]}</Text>
+                <Text style={[s.segCount, { color: selected ? onColor : n === 0 ? txtSec : txt }]} numberOfLines={1}>{n}</Text>
               </TouchableOpacity>
             );
           })}
@@ -434,17 +444,19 @@ export default function BasketScreen() {
               <Text style={[s.emptyTitle, { color: txt }]}>Your basket is empty</Text>
               <Text style={[s.emptyDesc, { color: txtSec }]}>
                 {basketKind === 'store'
-                  ? 'Add groceries, snacks and room essentials from the campus store.'
-                  : basketKind === 'stall'
-                    ? 'Add snacks and meals from local stalls near campus. You pay the stall in cash.'
-                    : 'Add meals from campus restaurants. Groceries and stall food have their own baskets.'}
+                  ? 'Add groceries, snacks and room essentials from the Groceries shops.'
+                  : basketKind === 'campus'
+                    ? 'Add food and essentials from campus stalls. You pick them up at the stall counter.'
+                    : basketKind === 'stall'
+                      ? 'Add snacks and meals from local stores near campus. You pay the store in cash.'
+                      : 'Add meals from campus restaurants. Groceries, campus stalls and local stores have their own baskets.'}
               </Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[s.exploreBtn, { backgroundColor: COLORS.red }]}
                 activeOpacity={0.85}
-                onPress={() => router.push((basketKind === 'store' ? '/(tabs)/others' : '/(tabs)') as any)}
+                onPress={() => router.push((basketKind === 'store' ? '/(tabs)/others' : basketKind === 'campus' ? '/campus-booking' : basketKind === 'stall' ? '/(tabs)/local' : '/(tabs)') as any)}
               >
-                <Text style={s.exploreBtnText}>{basketKind === 'store' ? 'Browse campus store' : basketKind === 'stall' ? 'Browse stalls' : 'Browse restaurants'}</Text>
+                <Text style={s.exploreBtnText}>{basketKind === 'store' ? 'Browse groceries' : basketKind === 'campus' ? 'Browse campus stalls' : basketKind === 'stall' ? 'Browse local stores' : 'Browse restaurants'}</Text>
               </TouchableOpacity>
             </View>
           </StaggeredSection>
@@ -496,9 +508,22 @@ export default function BasketScreen() {
             )}
             {!multiRestaurant && cart.map((item: any, i: number) => renderItemCard(item, i))}
 
-            {multiRestaurant && restaurantGroups.map((g, gi) => (
+            {multiRestaurant && isCampus && storeGroups.map((g, gi) => (
+              <CampusStallSection
+                key={g.storeId || `stall-${gi}`}
+                group={g}
+                index={gi}
+                signedIn={!!user}
+                active={basketFocused}
+                renderItemCard={renderItemCard}
+                onCheckout={() => goToCheckout(g.storeId)}
+              />
+            ))}
+
+            {multiRestaurant && !isCampus && storeGroups.map((g, gi) => (
               <RestaurantOrderSection
                 key={g.storeId || `group-${gi}`}
+                basket={basketKind}
                 group={g}
                 index={gi}
                 signedIn={!!user}
@@ -617,7 +642,8 @@ export default function BasketScreen() {
             </StaggeredSection>
             )}
 
-            {/* Delivery instructions */}
+            {/* Delivery instructions (not for campus stall pickups) */}
+            {!isCampus && (
             <StaggeredSection delay={(cart.length + 2) * 80} direction="up">
               <View style={[s.instructionsCard, { backgroundColor: cardBg, borderColor: border, borderWidth: 1 }]}>
                 <Text style={{ fontSize: 12, fontWeight: '900', color: goldColor, letterSpacing: 0.3, marginBottom: 2 }}>
@@ -651,6 +677,7 @@ export default function BasketScreen() {
                 </View>
               </View>
             </StaggeredSection>
+            )}
           </>
         )}
 
@@ -678,11 +705,18 @@ export default function BasketScreen() {
 }
 
 /**
- * One restaurant inside a restaurants basket that holds several (owner, 5 Nov 2026): its items, its own server bill
- * and its own Checkout button. Each restaurant is placed as a separate order with its own order number, delivery fee
- * and platform fee (the amounts come from the server quote, never from the app).
+ * One shop inside a basket that holds several (restaurants 5 Nov, Groceries and Local stores 6 Nov 2026): its items,
+ * its own server bill and its own Checkout button. Each shop is placed as a separate order with its own order number
+ * and its own fees (restaurant / grocery: delivery + platform fee; local store: as the server prices it). The amounts
+ * come from the server quote, never from the app.
  */
-function RestaurantOrderSection({ group, index, signedIn, active, orderingClosed, renderItemCard, onRemoveItems, onCheckout }: {
+const SECTION_ICON: Record<BasketKind, React.ComponentProps<typeof Ionicons>['name']> = {
+  restaurant: 'restaurant-outline', store: 'basket-outline', campus: 'storefront-outline', stall: 'storefront-outline',
+};
+const SECTION_FALLBACK_NAME: Record<BasketKind, string> = { restaurant: 'Restaurant', store: 'Grocery shop', campus: 'Campus stall', stall: 'Local store' };
+
+function RestaurantOrderSection({ basket, group, index, signedIn, active, orderingClosed, renderItemCard, onRemoveItems, onCheckout }: {
+  basket: BasketKind;
   group: StoreGroup;
   index: number;
   signedIn: boolean;
@@ -693,7 +727,7 @@ function RestaurantOrderSection({ group, index, signedIn, active, orderingClosed
   onCheckout: () => void;
 }) {
   const { isDark, colors } = useTheme();
-  const { quote, loading, error, refresh } = useBasketQuote(null, signedIn, active, 'restaurant', group.storeId || null);
+  const { quote, loading, error, refresh } = useBasketQuote(null, signedIn, active, basket, group.storeId || null);
   const txt = colors.text;
   const txtSec = colors.textSecondary;
   const border = colors.border;
@@ -705,10 +739,13 @@ function RestaurantOrderSection({ group, index, signedIn, active, orderingClosed
   const blocked = signedIn && (orderingClosed || storeClosed || unavailable.length > 0 || error?.code === 'OPTION_INVALID');
   const deliveryFee = Number(quote?.deliveryFee) || 0;
   const platformFee = Number(quote?.platformFee) || 0;
-  const feeNote = quote
-    ? `Separate order · ${deliveryFee > 0 ? `${formatINR(deliveryFee)} delivery` : 'free delivery'}${platformFee > 0 ? ` + ${formatINR(platformFee)} platform fee` : ''}`
-    : 'Separate order with its own delivery and platform fee';
-  const name = group.storeName || 'Restaurant';
+  const vendorDelivers = quote ? quote.fulfilment === 'VENDOR' : basket === 'stall';
+  const name = group.storeName || SECTION_FALLBACK_NAME[basket];
+  const feeNote = vendorDelivers
+    ? `Separate order · ${quote ? `${stallPayCopy(quote.store?.name || name)}` : `${name} delivers it`}`
+    : quote
+      ? `Separate order · ${deliveryFee > 0 ? `${formatINR(deliveryFee)} delivery` : 'free delivery'}${platformFee > 0 ? ` + ${formatINR(platformFee)} platform fee` : ''}`
+      : 'Separate order with its own delivery and platform fee';
   const label = !signedIn
     ? `Checkout ${name} · ${plural(items, 'item')}`
     : orderingClosed || storeClosed
@@ -720,7 +757,7 @@ function RestaurantOrderSection({ group, index, signedIn, active, orderingClosed
     <StaggeredSection delay={(index + 1) * 80} direction="up">
       <View style={{ marginBottom: 8 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 16, marginBottom: 8, marginTop: index === 0 ? 0 : 8 }}>
-          <Ionicons name="restaurant-outline" size={16} color={goldColor} />
+          <Ionicons name={SECTION_ICON[basket]} size={16} color={goldColor} />
           <Text style={{ flex: 1, fontSize: 14, fontWeight: '900', color: txt }} numberOfLines={1}>{name}</Text>
           <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec }}>{plural(items, 'item')}</Text>
         </View>
@@ -810,6 +847,106 @@ function RestaurantOrderSection({ group, index, signedIn, active, orderingClosed
   );
 }
 
+/**
+ * One campus stall in the Campus store tab (owner, 6 Nov 2026): its items (the stall's In-Campus Booking cart, edited
+ * here or on the stall page), the item total and its own Checkout button. Checkout opens the stall's booking screen
+ * (modules/campusBooking/CbCartScreen), which books through the campus booking API exactly as before: pickup at the
+ * counter, pay the stall by UPI, no delivery fee and no platform fee. Each stall is its own booking.
+ */
+function CampusStallSection({ group, index, signedIn, active, renderItemCard, onCheckout }: {
+  group: StoreGroup;
+  index: number;
+  signedIn: boolean;
+  active: boolean;
+  renderItemCard: (item: any, i: number) => React.ReactNode;
+  onCheckout: () => void;
+}) {
+  const { isDark, colors } = useTheme();
+  const txt = colors.text;
+  const txtSec = colors.textSecondary;
+  const border = colors.border;
+  const goldColor = isDark ? COLORS.gold : colors.gold;
+  const stallId = group.storeId;
+  // The stall's live state (open now, name, menu): items that left the menu are dropped, as on the stall's own cart.
+  const [stall, setStall] = useState<{ name: string; isOpen: boolean; closedReason: string | null } | null>(null);
+  const [gone, setGone] = useState(false);
+  const [soldOutIds, setSoldOutIds] = useState<string[]>([]);
+  useEffect(() => {
+    if (!active || !stallId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const d = await cbApi.stall(stallId);
+        if (cancelled) return;
+        setGone(false);
+        setStall({ name: d.stall.name, isOpen: !!d.stall.isOpen, closedReason: d.stall.closedReason || null });
+        cbCart.nameStall(stallId, d.stall.name);
+        cbCart.refresh(stallId, d.menu);
+        setSoldOutIds(d.menu.filter((m) => !m.isAvailable).map((m) => String(m.id)));
+      } catch (e: any) {
+        if (!cancelled && e?.status === 404) setGone(true);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, stallId]);
+  const soldOut = group.lines.filter((l) => soldOutIds.includes(String(l.id))).map((l) => l.name);
+  const items = group.lines.reduce((n, l) => n + l.quantity, 0);
+  const total = Math.round(group.lines.reduce((sum, l) => sum + (Number(l.price) || 0) * l.quantity, 0) * 100) / 100;
+  const name = stall?.name || group.storeName || 'Campus stall';
+  const closed = gone || (!!stall && !stall.isOpen);
+  const blocked = signedIn && (closed || soldOut.length > 0);
+  const label = !signedIn
+    ? `Checkout ${name} · ${plural(items, 'item')}`
+    : gone
+      ? 'Not taking bookings'
+      : closed
+        ? 'Stall closed now'
+        : soldOut.length > 0
+          ? 'Remove sold-out items first'
+          : `Checkout ${name} · ${formatINR(total)}`;
+  return (
+    <StaggeredSection delay={(index + 1) * 80} direction="up">
+      <View style={{ marginBottom: 8 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 16, marginBottom: 8, marginTop: index === 0 ? 0 : 8 }}>
+          <Ionicons name="storefront-outline" size={16} color={goldColor} />
+          <Text style={{ flex: 1, fontSize: 14, fontWeight: '900', color: txt }} numberOfLines={1}>{name}</Text>
+          <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec }}>{plural(items, 'item')}</Text>
+        </View>
+        {group.lines.map((item, i) => <React.Fragment key={item.cartKey || item.id || i}>{renderItemCard(item, i)}</React.Fragment>)}
+        <View style={[s.billCard, { backgroundColor: colors.card, borderColor: border, borderWidth: 1, marginTop: 0 }]}>
+          <View style={s.billRow}>
+            <Text style={[s.billLabel, { color: txtSec }]}>Item total</Text>
+            <Text style={[s.billVal, { color: txt }]}>{formatINR(total)}</Text>
+          </View>
+          <View style={s.billRow}>
+            <Text style={[s.billLabel, { color: txtSec }]}>Pickup at the stall</Text>
+            <Text style={[s.billVal, { color: '#10B981' }]}>No fee</Text>
+          </View>
+          {gone ? (
+            <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600', lineHeight: 16 }}>This stall is not taking bookings right now.</Text>
+          ) : closed ? (
+            <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600', lineHeight: 16 }}>{stall?.closedReason || 'The stall is closed right now. You can book when it opens.'}</Text>
+          ) : soldOut.length > 0 ? (
+            <Text style={{ fontSize: 12, color: '#EF4444', fontWeight: '700', lineHeight: 16 }}>{soldOut.join(', ')} {soldOut.length === 1 ? 'is' : 'are'} sold out right now.</Text>
+          ) : null}
+          <Text style={{ fontSize: 12, color: txtSec, fontWeight: '700', marginTop: 4 }}>Separate booking · pick up at the counter, pay the stall by UPI</Text>
+          <ActionPressable
+            style={[s.groupCheckoutBtn, { backgroundColor: COLORS.red }, blocked && { opacity: 0.55 }]}
+            disabled={blocked}
+            accessibilityRole="button"
+            accessibilityLabel={label}
+            onPress={onCheckout}
+            sound="click"
+          >
+            <Text style={s.checkoutText} numberOfLines={1}>{label}</Text>
+          </ActionPressable>
+        </View>
+      </View>
+    </StaggeredSection>
+  );
+}
+
 // Floating checkout button: its offset from the bottom of the screen and a first guess at its height
 // (measured on first layout).
 const CHECKOUT_BOTTOM = Platform.OS === 'ios' ? 100 : 80;
@@ -819,8 +956,9 @@ const s = StyleSheet.create({
   container: { flex: 1, paddingTop: Platform.OS === 'android' ? 40 : 50, width: '100%', maxWidth: 600, alignSelf: 'center', position: 'relative' },
   pageTitle: { fontSize: 20, fontWeight: '900', letterSpacing: 0.3, paddingHorizontal: 16, marginBottom: 16, textAlign: 'center' },
   segWrap: { flexDirection: 'row', marginHorizontal: 16, marginTop: -4, marginBottom: 16, padding: 3, gap: 3, borderRadius: 12, borderWidth: 1 },
-  seg: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, minHeight: 36, paddingHorizontal: 4, borderRadius: 9 },
-  segText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.1, flexShrink: 1 },
+  // Four tabs: the label sits over its count so each label gets the whole tab width (fits at 130% text).
+  seg: { flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1, minHeight: 40, paddingHorizontal: 3, paddingVertical: 4, borderRadius: 9 },
+  segText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.1, alignSelf: 'stretch', textAlign: 'center' },
   segCount: { fontSize: 12, fontWeight: '900' },
   groupCard: { marginHorizontal: 16, padding: 16, borderRadius: 20, marginBottom: 16, borderWidth: 1 },
   groupDesc: { fontSize: 12, fontWeight: '600', letterSpacing: 0.1, lineHeight: 16, marginBottom: 12 },

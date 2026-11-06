@@ -21,7 +21,7 @@ function OrderCardBase({ order, onOpen, onReject, onCancel }: {
         style={({ pressed }) => [styles.row, pressed && { opacity: 0.8 }]}
       >
         <View style={{ flex: 1, gap: 2 }}>
-          <Text style={[font.orderId, mono, { color: color.text }]}>#{order.shortId}</Text>
+          <Text style={[font.orderId, mono, { color: color.text }]}>{order.orderCode}</Text>
           <Elapsed order={order} />
         </View>
         <Text style={[font.small, { color: color.info, fontWeight: '800' }]}>DETAILS</Text>

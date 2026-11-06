@@ -85,7 +85,7 @@ export function ProductRow({ shelf, item, qty, storeClosed, onOpen, onAdd, onMin
           {qty > 0 ? (
             <Stepper qty={qty} name={item.name} onMinus={onMinus} onPlus={onPlus} atMax={qty >= MAX_ITEM_QTY} />
           ) : (
-            <BookPill label={label} muted={blocked} onPress={onAdd} a11y={blocked ? `${item.name}, ${label.toLowerCase()}` : `Add ${item.name} to the campus store basket`} />
+            <BookPill label={label} muted={blocked} onPress={onAdd} a11y={blocked ? `${item.name}, ${label.toLowerCase()}` : `Add ${item.name} to the Groceries basket`} />
           )}
         </View>
       </View>

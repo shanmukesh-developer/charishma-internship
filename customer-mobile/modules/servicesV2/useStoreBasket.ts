@@ -1,6 +1,6 @@
 /**
  * The campus store ("others") basket for Room essentials and Chargers & gadgets: the same CartContext rules the old
- * category page used (basket 'store', one store per basket with the "Replace basket?" prompt, closed store / sold out
+ * category page used (basket 'store' = the Groceries tab, several shops side by side with one order each, closed store / sold out
  * alerts; products with choices open the options sheet).
  */
 import { useCallback } from 'react';

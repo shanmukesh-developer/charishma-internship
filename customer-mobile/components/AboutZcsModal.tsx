@@ -3,8 +3,9 @@
  * readable line about the app, real info rows (version and build from the app config, platform, the
  * campus chosen for checkout) and the credit line. Follows light / dark mode; Android back closes it.
  */
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, Platform, Pressable } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, Platform, Pressable, Animated, AccessibilityInfo } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -74,12 +75,58 @@ export default function AboutZcsModal({ visible, onClose }: { visible: boolean; 
             <Text style={[st.doneText, { color: '#FFFFFF' }]}>Done</Text>
           </TouchableOpacity>
 
-          <Text style={[st.credit, { color: colors.textMuted }]}>
-            Designed and developed by <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>Shanmukesh Kunjam</Text>
-          </Text>
+          <FounderCard isDark={isDark} />
         </View>
       </View>
     </Modal>
+  );
+}
+
+/**
+ * The founder credit (owner, 6 Nov 2026: "the Shanmukesh Kunjam name should be fiery and highlighted").
+ * A fire-gradient frame with a slow warm glow pulse (still when the phone asks for reduced motion).
+ */
+const FIRE = ['#FFB21A', '#FF6A1A', '#E8243C'] as const;
+function FounderCard({ isDark }: { isDark: boolean }) {
+  const glow = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    let loop: Animated.CompositeAnimation | null = null;
+    let cancelled = false;
+    AccessibilityInfo.isReduceMotionEnabled().then((reduce) => {
+      if (cancelled || reduce) return;
+      loop = Animated.loop(Animated.sequence([
+        Animated.timing(glow, { toValue: 1, duration: 1400, useNativeDriver: true }),
+        Animated.timing(glow, { toValue: 0, duration: 1400, useNativeDriver: true }),
+      ]));
+      loop.start();
+    }).catch(() => {});
+    return () => { cancelled = true; loop?.stop(); };
+  }, [glow]);
+  const nameColor = isDark ? '#FF7A2E' : '#E8450A';
+  return (
+    <View style={st.founderWrap} accessible accessibilityLabel="Founded, designed and developed by Shanmukesh Kunjam">
+      <Animated.View pointerEvents="none" style={[st.founderGlow, { opacity: glow.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0.8] }) }]}>
+        <LinearGradient colors={FIRE} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={StyleSheet.absoluteFill} />
+      </Animated.View>
+      <LinearGradient colors={FIRE} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={st.founderFrame}>
+        <View style={[st.founderInner, { backgroundColor: isDark ? '#140B07' : '#FFF7F0' }]}>
+          <View style={st.founderKickerRow}>
+            <Ionicons name="flame" size={14} color="#FF6A1A" />
+            <Text style={st.founderKicker} maxFontSizeMultiplier={1.2}>FOUNDER · DESIGNED & BUILT BY</Text>
+            <Ionicons name="flame" size={14} color="#FF6A1A" />
+          </View>
+          <Text
+            style={[st.founderName, { color: nameColor, textShadowColor: isDark ? 'rgba(255,90,20,0.75)' : 'rgba(232,69,10,0.35)' }]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.7}
+            maxFontSizeMultiplier={1.25}
+          >
+            Shanmukesh Kunjam
+          </Text>
+        </View>
+      </LinearGradient>
+    </View>
   );
 }
 
@@ -98,5 +145,11 @@ const st = StyleSheet.create({
   rowValue: { fontSize: 14, fontWeight: '600', flexShrink: 1, textAlign: 'right' },
   done: { minHeight: 50, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 20 },
   doneText: { fontSize: 15, fontWeight: '600' },
-  credit: { fontSize: 12, textAlign: 'center', marginTop: 14 },
+  founderWrap: { marginTop: 18, alignSelf: 'stretch' },
+  founderGlow: { position: 'absolute', left: 10, right: 10, top: 6, bottom: -4, borderRadius: 20, overflow: 'hidden', ...Platform.select({ android: { elevation: 0 }, default: {} }) },
+  founderFrame: { borderRadius: 18, padding: 2 },
+  founderInner: { borderRadius: 16, paddingVertical: 12, paddingHorizontal: 14, alignItems: 'center' },
+  founderKickerRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  founderKicker: { fontSize: 11, fontWeight: '800', letterSpacing: 1.4, color: '#FF8A3D' },
+  founderName: { fontSize: 24, fontWeight: '900', letterSpacing: 0.3, marginTop: 4, textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 12 },
 });

@@ -197,7 +197,9 @@ const buildReceipt = (order, { customerName = null } = {}) => {
     receiptNumber: o.receiptNumber || null,
     issuedAt: o.receiptIssuedAt || null,
     orderId: o.id,
-    orderRef: String(o.id || '').slice(-6).toUpperCase(), // the app's order reference (last 6)
+    // The app's order reference: the human order ID (ZEN-123), or '#' + last 6 of the id for an unnumbered row.
+    orderRef: require('./orderNumbers').label(o),
+    ...require('./orderNumbers').fields(o),
     placedAt: o.createdAt || null,
     deliveredAt: o.deliveredAt || null,
     status: o.status,
@@ -339,7 +341,7 @@ const renderHtml = (rc) => {
 <p class="muted">${esc(p.name || 'ZenWe')}</p>
 <div class="box" style="margin-top:10px">
   <p><strong>Receipt no.</strong> ${esc(rc.receiptNumber)}</p>
-  <p><strong>Order</strong> #${esc(rc.orderRef)} · placed ${esc(fmtWhen(rc.placedAt))}</p>
+  <p><strong>Order</strong> ${esc(rc.orderRef)} · placed ${esc(fmtWhen(rc.placedAt))}</p>
   ${rc.deliveredAt ? `<p><strong>Delivered</strong> ${esc(fmtWhen(rc.deliveredAt))}</p>` : ''}
   ${rc.customer.name ? `<p><strong>Customer</strong> ${esc(rc.customer.name)}</p>` : ''}
 </div>

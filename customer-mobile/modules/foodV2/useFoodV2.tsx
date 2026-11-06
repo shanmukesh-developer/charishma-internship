@@ -192,7 +192,7 @@ export function useFoodV2State({ forceDark, sections, onSection, openSearch, onS
 
   /** "Added to basket" toast (FoodV2Motion AddedToast). */
   const [toast, setToast] = useState({ stamp: 0, label: '' });
-  // ── Basket (real CartContext rules: one store per basket, shopping requests apart) ──
+  // ── Basket (real CartContext rules: several shops per basket, one order each at checkout) ──
   const qtyOf = (id: string) => cart.filter(i => i.id === id).reduce((n, i) => n + i.quantity, 0);
   const closedLabel = (p: Item) => {
     if (p.orderable || !p.isAvailable) return null;

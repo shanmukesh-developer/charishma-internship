@@ -1,4 +1,5 @@
 const { getDeliveryPartnerModel } = require('../models/DeliveryPartner');
+const orderNumbers = require('../utils/orderNumbers');
 const { getOrderModel } = require('../models/Order');
 const { getUserModel } = require('../models/User');
 const { getRestaurantModel } = require('../models/Restaurant');
@@ -110,6 +111,7 @@ const riderOrderPayload = (order, restaurant, customer, { revealCustomer }) => {
   const distance = Number(order.distance);
   return {
     id: order.id,
+    ...orderNumbers.fields(order),
     restaurant: restaurant?.name || null,
     restaurantAddress: restaurant?.location || null,
     restaurantPhone: restaurant?.whatsappNumber || null,
@@ -599,6 +601,7 @@ const getOrderHistory = async (req, res) => {
       const restaurant = restMap[order.restaurantId];
       return {
         id: order.id,
+        ...orderNumbers.fields(order),
         restaurant: restaurant?.name || null,
         restaurantAddress: restaurant?.location || null,
         drop: order.deliveryAddress || null,
@@ -784,6 +787,7 @@ const updateOrderStatus = async (req, res) => {
     if (io) {
       const payload = { 
         id: order.id,
+        ...orderNumbers.fields(order),
         status: status,
         newBadges: status === 'Delivered' ? (order.newBadges || []) : [] 
       };
@@ -791,7 +795,7 @@ const updateOrderStatus = async (req, res) => {
       io.to('admin-room').emit('statusUpdated', payload);
       if (order.restaurantId) io.to(`restaurant_${order.restaurantId}`).emit('statusUpdated', payload);
       if (status === 'Delivered') {
-        io.to('admin-room').emit('admin_delivery_complete', { orderId: order.id });
+        io.to('admin-room').emit('admin_delivery_complete', { orderId: order.id, ...orderNumbers.fields(order) });
       }
     }
     {
@@ -864,13 +868,13 @@ const cancelOrderByRider = async (req, res) => {
 
     const io = req.app.get('io');
     if (io) {
-      const payload = { id: order.id, status: order.status };
+      const payload = { id: order.id, ...orderNumbers.fields(order), status: order.status };
       // Notify customer tracking page
       io.to(order.id.toString()).emit('statusUpdated', payload);
       // Notify admin
       io.to('admin-room').emit('statusUpdated', payload);
       if (order.restaurantId) io.to(`restaurant_${order.restaurantId}`).emit('statusUpdated', payload);
-      io.to('admin-room').emit('order_unassigned', { orderId: order.id, reason: 'Rider emergency cancel' });
+      io.to('admin-room').emit('order_unassigned', { orderId: order.id, ...orderNumbers.fields(order), reason: 'Rider emergency cancel' });
       // Re-list for dispatch (riders poll the available-orders list; admins see it live)
       const relisted = { ...order.toJSON(), id: order.id, _id: order.id };
       delete relisted.deliveryPin; delete relisted.deliveryPinAttempts;
@@ -1058,11 +1062,11 @@ const getActiveOrders = async (req, res) => {
     const tasks = [];
     // 1. Pickups first (every pre-pickup state)
     enrichedOrders.filter(o => ['Accepted', 'Preparing', 'ReadyForPickup', 'Picking'].includes(o.status)).forEach(o => {
-      tasks.push({ type: 'PICKUP', orderId: o.id, location: o.restaurant, address: o.restaurantAddress });
+      tasks.push({ type: 'PICKUP', orderId: o.id, orderCode: o.orderCode, location: o.restaurant, address: o.restaurantAddress });
     });
     // 2. Deliveries next
     enrichedOrders.filter(o => ['PickedUp', 'ArrivedAtGate'].includes(o.status)).forEach(o => {
-      tasks.push({ type: 'DELIVERY', orderId: o.id, location: o.customerName, address: o.drop });
+      tasks.push({ type: 'DELIVERY', orderId: o.id, orderCode: o.orderCode, location: o.customerName, address: o.drop });
     });
 
     res.json({ orders: enrichedOrders, taskSequence: tasks });
@@ -1530,10 +1534,12 @@ const notifyArrivalAtGate = async (req, res) => {
     if (io) {
       io.to(order.id.toString()).emit('driverAtGate', {
         orderId: order.id,
+        ...orderNumbers.fields(order),
         message: 'Your rider is waiting at the hostel gate!'
       });
       const gatePayload = {
         id: order.id,
+        ...orderNumbers.fields(order),
         status: 'ArrivedAtGate'
       };
       io.to(order.id.toString()).emit('statusUpdated', gatePayload);
@@ -1667,6 +1673,10 @@ const triggerSos = async (req, res) => {
       lng: location ? location.lng : undefined,
       location,
       orderId: partner.currentOrderId || null,
+      // Human order ID (ZEN-123) of the order the rider carries; null when none / not numbered.
+      orderCode: partner.currentOrderId
+        ? orderNumbers.fields(await getOrderModel().findByPk(partner.currentOrderId, { attributes: ['id', 'orderNumber'] }).catch(() => null)).orderCode
+        : null,
       note: note || undefined,
     };
     const io = req.app.get('io');

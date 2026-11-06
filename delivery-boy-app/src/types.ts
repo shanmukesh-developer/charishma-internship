@@ -26,6 +26,8 @@ export interface RiderOrderItem {
 export interface RiderOrder {
   id: string;
   shortId: string;
+  /** Human order ID shown everywhere: "ZEN-123" (or "#AB12CD" for an order without a number yet). */
+  orderCode: string;
   status: OrderStatus;
   /** Status string exactly as the server sent it (kept so an unknown status is never shown as something else). */
   rawStatus: string | null;

@@ -112,6 +112,9 @@ const initRestaurantModel = (sequelize) => {
     // Payout: UPI ID and bank last-4 + IFSC only. A full bank account number is never stored.
     pan: { type: DataTypes.STRING(10), allowNull: true },
     payoutUpiId: { type: DataTypes.STRING(120), allowNull: true },
+    // Revenue (6 Nov 2026): how often ZenWe settles this store: 'daily' | 'weekly' | 'monthly' (utils/revenueReport
+    // SETTLEMENT_CYCLES). Admin-set, audited, private. Used by Revenue > Settle all to pick the stores and the cutoff.
+    settlementCycle: { type: DataTypes.STRING(8), allowNull: false, defaultValue: 'weekly' },
     bankAccountHolder: { type: DataTypes.STRING(120), allowNull: true },
     bankAccountLast4: { type: DataTypes.STRING(4), allowNull: true },
     bankIfsc: { type: DataTypes.STRING(11), allowNull: true },

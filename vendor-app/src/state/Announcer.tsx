@@ -46,7 +46,7 @@ function ring(o: Order, stillWaiting: (id: string) => boolean) {
       { urgent: true, dedupeMs: 0, force, native: { orderNum: o.shortId, amount, silent } },
     );
   };
-  playRing(`New order #${o.shortId}`).then((rang) => {
+  playRing(`New order ${o.orderCode}`).then((rang) => {
     if (!rang) {
       speak(true, false); // no ring sound: the voice (and the heads-up's own sound) is the sound
     } else if (voiceEnabled()) {

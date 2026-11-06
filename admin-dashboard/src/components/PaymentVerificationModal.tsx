@@ -2,6 +2,7 @@
 "use client";
 import { useConfirm } from '@/components/ui';
 import { useEffect, useState } from 'react';
+import { orderCode } from '@/lib/format';
 
 
 interface PaymentVerificationModalProps {
@@ -9,6 +10,7 @@ interface PaymentVerificationModalProps {
   onClose: () => void;
   order: {
     id: string;
+    orderCode?: string | null;
     customer: string;
     upiUTR?: string;
     upiScreenshot?: string;
@@ -48,7 +50,7 @@ export default function PaymentVerificationModal({ isOpen, onClose, order, onVer
         <div className="p-8 border-b border-line flex justify-between items-center bg-surface-2/60">
           <div>
             <h2 className="text-xl font-semibold text-fg">Verify UPI payment</h2>
-            <p className="text-xs text-fg-muted font-semibold mt-1">Order #{order.id.slice(-8)}</p>
+            <p className="text-xs text-fg-muted font-semibold mt-1">Order {orderCode(order)}</p>
           </div>
           <button onClick={onClose} className="w-10 h-10 rounded-full bg-surface-2/60 border border-line flex items-center justify-center text-fg-muted hover:text-fg transition-all" aria-label="Dismiss"><span aria-hidden="true" className="text-base leading-none">×</span></button>
         </div>

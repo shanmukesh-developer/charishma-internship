@@ -46,6 +46,8 @@ export type OrderStage = 'new' | 'accepted' | 'outForDelivery' | 'done';
 export interface Order {
   id: string;
   shortId: string;
+  /** Human order ID shown everywhere: "ZEN-123" (or "#AB12CD" for an order without a number yet). */
+  orderCode: string;
   status: string;
   stage: OrderStage;
   createdAt: string | null;

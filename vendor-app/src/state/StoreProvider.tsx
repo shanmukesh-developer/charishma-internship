@@ -515,7 +515,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     cancelAnnouncements(`new:${o.id}`);
     announce(`accept:${o.id}`, { kind: 'accepted' }, { urgent: true });
     patchOrder(o.id, { status: 'Accepted', acceptedAt: new Date().toISOString() });
-    toast.show(`#${o.shortId} accepted. Prepare it and deliver.`, 'success');
+    toast.show(`${o.orderCode} accepted. Prepare it and deliver.`, 'success');
   }), [runAction, patchOrder, toast]);
 
   const reject = useCallback((o: Order, reason: string) => runAction(o, 'reject', async () => {
@@ -524,21 +524,21 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     // Same key as the "cancelled" announcement, so the status change does not announce twice.
     announce(`cancel:${o.id}`, { kind: 'rejected' });
     patchOrder(o.id, { status: 'Cancelled', cancellationReason: reason, cancelledBy: 'store' });
-    toast.show(`#${o.shortId} rejected`, 'info');
+    toast.show(`${o.orderCode} rejected`, 'info');
   }), [runAction, patchOrder, toast]);
 
   const outForDelivery = useCallback((o: Order) => runAction(o, 'out', async () => {
     await api.setOrderStatus(o.id, 'OutForDelivery');
     announce(`out:${o.id}`, { kind: 'outForDelivery', cash: o.collectAmount });
     patchOrder(o.id, { status: 'OutForDelivery', outForDeliveryAt: new Date().toISOString() });
-    toast.show(o.collectAmount > 0 ? `#${o.shortId} on the way. Collect ${rupees(o.collectAmount)} cash.` : `#${o.shortId} on the way`, 'success');
+    toast.show(o.collectAmount > 0 ? `${o.orderCode} on the way. Collect ${rupees(o.collectAmount)} cash.` : `${o.orderCode} on the way`, 'success');
   }), [runAction, patchOrder, toast]);
 
   const delivered = useCallback((o: Order) => runAction(o, 'delivered', async () => {
     await api.setOrderStatus(o.id, 'Delivered');
     announce(`delivered:${o.id}`, { kind: 'delivered', cash: o.collectAmount });
     patchOrder(o.id, { status: 'Delivered', deliveredAt: new Date().toISOString() });
-    toast.show(o.collectAmount > 0 ? `#${o.shortId} delivered · ${rupees(o.collectAmount)} cash` : `#${o.shortId} delivered`, 'success');
+    toast.show(o.collectAmount > 0 ? `${o.orderCode} delivered · ${rupees(o.collectAmount)} cash` : `${o.orderCode} delivered`, 'success');
   }), [runAction, patchOrder, toast]);
 
   const cancel = useCallback((o: Order, reason: string) => runAction(o, 'cancel', async () => {
@@ -546,7 +546,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     // An accepted order the stall cancels itself: "Order cancelled", not "Order rejected" (that is for new orders).
     announce(`cancel:${o.id}`, { kind: 'cancelled', by: 'store' });
     patchOrder(o.id, { status: 'Cancelled', cancellationReason: reason, cancelledBy: 'store' });
-    toast.show(`#${o.shortId} cancelled`, 'info');
+    toast.show(`${o.orderCode} cancelled`, 'info');
   }), [runAction, patchOrder, toast]);
 
   const openBusy = useRef(false);

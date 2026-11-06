@@ -2,7 +2,7 @@
 // from the student's room and brought back) and, only to finish one the rider already holds, shopping lists
 // (/api/mega-basket; removed, no new ones). No invented defaults: a value the server did not send stays null.
 import { apiFetch } from './apiClient';
-import { toNumber } from './orderModel';
+import { orderCodeOf, toNumber } from './orderModel';
 
 export type JobKind = 'basket' | 'service';
 
@@ -33,6 +33,8 @@ export interface BasketItem {
 export interface RiderBasket {
   id: string;
   shortId: string;
+  /** Shown reference: "ZEN-123" for a shopping list (same count as orders), "#AB12CD" otherwise. */
+  orderCode: string;
   status: BasketStatus;
   estimatedTotal: number | null;
   actualTotal: number | null;
@@ -61,6 +63,8 @@ export interface ServiceStore {
 export interface RiderService {
   id: string;
   shortId: string;
+  /** Shown reference: "ZEN-123" for a shopping list (same count as orders), "#AB12CD" otherwise. */
+  orderCode: string;
   serviceType: string;
   title: string;
   serviceName: string | null;
@@ -96,6 +100,7 @@ function toBasket(raw: any): RiderBasket {
   return {
     id,
     shortId: shortOf(id),
+    orderCode: orderCodeOf(raw, id),
     status: String(raw?.status ?? ''),
     estimatedTotal: toNumber(raw?.estimatedTotal),
     actualTotal: toNumber(raw?.actualTotal),
@@ -129,6 +134,7 @@ function toService(raw: any): RiderService {
   return {
     id,
     shortId: shortOf(id),
+    orderCode: `#${shortOf(id)}`,
     serviceType: String(raw?.serviceType ?? ''),
     title: String(raw?.title ?? 'Service'),
     serviceName: str(raw?.serviceName),

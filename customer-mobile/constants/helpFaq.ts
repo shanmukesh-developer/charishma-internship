@@ -14,11 +14,15 @@ export const HELP_FAQ: FaqSection[] = [
     items: [
       {
         q: 'When can I order?',
-        a: 'Food and groceries are delivered in three daily slots: 12:30–1:00 PM, 4:30–5:30 PM and 8:30–9:30 PM. Order any time; booking for a slot closes 1 hour before it starts (2 hours for cakes), and you can always pick one of tomorrow\'s slots. Campus stalls deliver while they are open.',
+        a: 'Food and groceries are delivered in three daily slots: 12:30–1:00 PM, 4:30–5:30 PM and 8:30–9:30 PM. Order any time; booking for a slot closes 1 hour before it starts (2 hours for cakes, 2½ hours for specialised cakes), and you can always pick one of tomorrow\'s slots. Campus stalls deliver while they are open.',
       },
       {
         q: 'What happens after I place an order?',
         a: 'The restaurant gets up to an hour to confirm it. If it does not, the order is cancelled automatically and anything you paid from your Wallet goes back to your Wallet.',
+      },
+      {
+        q: 'What are the delivery and platform fees?',
+        a: 'Each restaurant or grocery order has a ₹19 delivery fee (some stores have a special price) and a ₹4 platform fee. Items from two places are two separate orders, so each has its own fees. Campus stall bookings have no delivery or platform fee. You always see the full bill before you place the order.',
       },
       {
         q: 'How do I follow my order?',

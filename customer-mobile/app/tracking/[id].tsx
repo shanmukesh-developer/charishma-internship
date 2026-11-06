@@ -39,6 +39,7 @@ import { orderSlotLabel, istClockLabel as formatSlotClock } from '../../utils/de
 import { useTopInset } from '../../utils/useTopInset';
 import { goHome } from '../../utils/goHome';
 import SymbolIcon from '../../components/SymbolIcon';
+import { orderCode } from '../../utils/orderCode';
 
 
 /**
@@ -66,6 +67,9 @@ const isTerminalStep = (step: number) => step === 6 || step === -1;
 
 interface OrderInfo {
   _id: string;
+  // Human order ID (ZEN-123); null only for an order the server has not numbered yet.
+  orderNumber?: number | null;
+  orderCode?: string | null;
   status: string;
   totalPrice: number;
   finalPrice?: number;
@@ -585,7 +589,7 @@ export default function TrackingScreen() {
   };
 
   const openHelp = () => {
-    router.push({ pathname: '/support', params: { orderId: String(orderId || '') } } as any);
+    router.push({ pathname: '/support', params: { orderId: String(orderId || ''), orderCode: orderInfo?.orderCode || '' } } as any);
   };
 
   const rider = isVendorOrder ? null : (orderInfo?.deliveryPartner || null);
@@ -615,7 +619,7 @@ export default function TrackingScreen() {
           Loading your order…
         </Text>
         <Text style={{ fontSize: 12, color: txtSec, marginTop: 6, textAlign: 'center' }}>
-          Order #{orderId ? orderId.slice(-6).toUpperCase() : ''}
+          Order {orderCode(orderInfo, orderId)}
         </Text>
       </View>
     );
@@ -718,7 +722,7 @@ export default function TrackingScreen() {
           <Text style={[s.headerTitle, { color: txt }]}>Order tracking</Text>
           {orderId && (
             <Text style={{ fontSize: 12, color: COLORS.gold, fontWeight: '600', letterSpacing: 1 }}>
-              #{orderId.slice(-6).toUpperCase()}
+              {orderCode(orderInfo, orderId)}
             </Text>
           )}
         </View>
@@ -761,6 +765,7 @@ export default function TrackingScreen() {
             restaurantName={storeName || undefined}
             hostelAddress={orderInfo?.deliveryAddress || orderInfo?.address || undefined}
             orderId={orderInfo?._id || orderId || ''}
+            orderCode={orderInfo ? orderCode(orderInfo, orderId) : null}
             riderInfo={rider}
             estMinutes={estMinutes}
             vendor={isVendorOrder ? { name: stallLabel, onCall: stallCallable ? callStall : null } : null}

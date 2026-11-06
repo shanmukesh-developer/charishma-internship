@@ -147,7 +147,7 @@ function ProductCard({ shelf, item, store }: { shelf: 'mattresses' | 'electronic
           {line ? (
             <Stepper qty={line.quantity} name={item.name} onMinus={() => basket.setQty(line.cartKey, line.quantity - 1)} onPlus={() => basket.setQty(line.cartKey, line.quantity + 1)} />
           ) : (
-            <BookPill label="Add" onPress={() => basket.add(item, store, SHELF_META[shelf].title)} a11y={`Add ${item.name} to the campus store basket`} />
+            <BookPill label="Add" onPress={() => basket.add(item, store, SHELF_META[shelf].title)} a11y={`Add ${item.name} to the Groceries basket`} />
           )}
         </View>
       </View>

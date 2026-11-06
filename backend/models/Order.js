@@ -1,4 +1,5 @@
 const { DataTypes } = require('sequelize');
+const orderNumbers = require('../utils/orderNumbers');
 
 let Order;
 
@@ -7,6 +8,8 @@ const initOrderModel = (sequelize) => {
 
   Order = sequelize.define('Order', {
     id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+    // Human order ID: orderNumber 123 -> orderCode 'ZEN-123' (utils/orderNumbers; server-wide running count).
+    ...orderNumbers.attributes(DataTypes),
     // Owner-only test row (utils/testView, scripts/test_data_v2_seed.js): hidden from every non-tester request.
     isTestData: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     userId: { type: DataTypes.UUID, allowNull: false },
@@ -219,6 +222,8 @@ const initOrderModel = (sequelize) => {
     if (options && options.c8ReceiptAssign) return;
     if (order.changed('status') && order.status === 'Delivered' && !order.receiptNumber) scheduleReceipt([order.id], options);
   });
+
+  orderNumbers.installNumbering(Order);
 
   return Order;
 };

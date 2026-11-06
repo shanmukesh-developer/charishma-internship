@@ -765,7 +765,7 @@ export function HubScreen({ hub }: { hub: Hub }) {
   const toyStartPrice = toyShelf.length ? toyShelf[0].price : null;
   const hasShelf = useCallback((name: string) => catalogueStatus !== 'ready' || shelfItems(name, catalogue).length > 0, [catalogue, catalogueStatus]);
 
-  // One store per order: CartContext shows the Swiggy-style "Replace basket?" prompt.
+  // Several shops can share the Groceries basket: each shop is checked out as its own order (CartContext).
   // Mega Basket shopping requests are ordered separately, so they never share a basket with store items.
   const addProduct = (product: CatalogueItem) => {
     if (!product.orderable || !product.isAvailable) {

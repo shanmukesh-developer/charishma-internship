@@ -260,6 +260,8 @@ const toPublic = (row) => {
     balanceAfterPaise: r.balanceAfterPaise,
     balanceAfter: toRupees(r.balanceAfterPaise),
     orderId: r.orderId || null,
+    // Human order ID of orderId (listFor attaches it): ZEN-123.
+    ...require('./orderNumbers').fields({ orderNumber: r.orderNumber }),
     method: r.method || null,
     reference: r.reference || null,
     note: r.actorType === 'admin' ? r.reason : null,
@@ -278,7 +280,17 @@ const listFor = async ({ sequelize, riderId, page = 1, limit = 20, types = null 
   const pg = Math.min(Math.max(parseInt(page, 10) || 1, 1), 10000);
   const where = { riderId: String(riderId), ...(types && types.length ? { type: { [Op.in]: types } } : {}) };
   const rows = await CE.findAll({ where, order: [['createdAt', 'DESC'], ['id', 'DESC']], limit: lim + 1, offset: (pg - 1) * lim });
-  return { rows: rows.slice(0, lim), page: pg, limit: lim, hasMore: rows.length > lim };
+  const pageRows = rows.slice(0, lim);
+  // Human order IDs (ZEN-123) for rows tied to an order. Never fails the list.
+  try {
+    const ids = [...new Set(pageRows.map((r) => r.orderId).filter((id) => id && /^[0-9a-f-]{36}$/i.test(String(id))).map(String))];
+    if (ids.length && sequelize.models.Order) {
+      const orders = await sequelize.models.Order.findAll({ where: { id: ids }, attributes: ['id', 'orderNumber'], raw: true });
+      const byId = new Map(orders.map((o) => [String(o.id), o.orderNumber]));
+      for (const r of pageRows) if (r.orderId && byId.get(String(r.orderId))) r.dataValues.orderNumber = byId.get(String(r.orderId));
+    }
+  } catch (err) { console.warn('[RIDER_CASH_ORDER_CODES_WARN]', err.message); }
+  return { rows: pageRows, page: pg, limit: lim, hasMore: rows.length > lim };
 };
 
 // ── Ledger start + reconciliation (read-only: reports, never fixes) ──────────────────────────────

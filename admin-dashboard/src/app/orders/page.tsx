@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAdminSocket } from '@/components/AdminSocketProvider';
 import { useAdminAuth } from '@/utils/useAdminAuth';
 import { API_URL } from '@/lib/config';
-import { formatDateTime, formatINR, humanize } from '@/lib/format';
+import { formatDateTime, formatINR, humanize, orderCode } from '@/lib/format';
 import {
   Badge, Button, DataTable, DescriptionList, Drawer, Field, Modal, Notice as NoticeBox, PageHeader, SegmentedControl, Select,
   StatusPill, Textarea, Toolbar, useConfirm, type Column, type Tone, IconRefresh, IconExternal, IconX, IconDownload,
@@ -55,6 +55,9 @@ interface PriceBreakdown {
 interface Order {
   _id: string;
   id?: string;
+  // Human order ID (ZEN-123); null only until the server numbers an older order.
+  orderNumber?: number | null;
+  orderCode?: string | null;
   user?: { name?: string; phone?: string } | null;
   restaurantId?: string | null;
   restaurant?: { name?: string; vendorType?: string | null; whatsappNumber?: string | null } | null;
@@ -128,7 +131,6 @@ const PIN_LOCK_ATTEMPTS = 5;
 
 const statusLabel = (s: string) => STATUS_LABELS[s] || s;
 const orderId = (o: { _id?: string; id?: string }) => String(o._id || o.id || '');
-const shortId = (id: string) => `#${id.slice(-6).toUpperCase()}`;
 const rupees = (n: number | null | undefined) => formatINR(Number(n || 0));
 const grandTotal = (o: Order) => (o.finalPrice ?? o.totalPrice ?? 0);
 
@@ -455,10 +457,10 @@ export default function OrdersPage() {
       const refunded = typeof data?.refundedToWallet === 'number' && data.refundedToWallet > 0
         ? `${label}. ${rupees(data.refundedToWallet)} refunded to the customer's Wallet.`
         : null;
-      showNotice({ kind: 'success', text: `${shortId(id)}: ${refunded || (data?.message ? data.message.replace(/\.$/, '') + '.' : `${label}.`)}` });
+      showNotice({ kind: 'success', text: `${orderCode(order)}: ${refunded || (data?.message ? data.message.replace(/\.$/, '') + '.' : `${label}.`)}` });
       await fetchOrders(pageRef.current, false);
     } catch (err) {
-      showNotice({ kind: 'error', text: `${shortId(id)}: ${err instanceof Error ? err.message : 'Action failed.'}` });
+      showNotice({ kind: 'error', text: `${orderCode(order)}: ${err instanceof Error ? err.message : 'Action failed.'}` });
     } finally {
       inFlight.current = false;
       setBusyId(null);
@@ -467,14 +469,14 @@ export default function OrdersPage() {
 
   const acceptOrder = async (o: Order) => {
     const question = isVendorOrder(o)
-      ? `Accept order ${shortId(orderId(o))} on behalf of ${stallName(o)}? Only do this after confirming with the stall: the stall delivers it itself (no rider).`
-      : `Accept order ${shortId(orderId(o))} on behalf of ${o.restaurant?.name || 'the store'} and send it to riders?`;
+      ? `Accept order ${orderCode(o)} on behalf of ${stallName(o)}? Only do this after confirming with the stall: the stall delivers it itself (no rider).`
+      : `Accept order ${orderCode(o)} on behalf of ${o.restaurant?.name || 'the store'} and send it to riders?`;
     if (!(await confirm({ title: 'Accept this order?', description: question, confirmLabel: isVendorOrder(o) ? 'Accept for stall' : 'Accept and dispatch' }))) return;
     runAction(o, 'Order accepted', `${API_URL}/api/orders/${orderId(o)}/restaurant-accept`, {}, 'Accepted');
   };
 
   const setStatus = async (o: Order, status: string) => {
-    const id = shortId(orderId(o));
+    const id = orderCode(o);
     if (status === 'Delivered') {
       const cash = o.paymentMethod === 'COD' ? ` This is a cash on delivery order: confirm ${rupees(grandTotal(o))} was collected${isVendorOrder(o) ? ` by ${stallName(o)}` : ''}.` : '';
       if (!(await confirm({ title: `Mark order ${id} as delivered?`, description: `The customer is notified and rewards are credited.${cash}`, confirmLabel: 'Mark delivered' }))) return;
@@ -498,7 +500,7 @@ export default function OrdersPage() {
   };
 
   const verifyUpi = async (o: Order, isVerified: boolean) => {
-    const id = shortId(orderId(o));
+    const id = orderCode(o);
     const question = isVerified
       ? `Confirm you found UTR ${o.upiUTR || '(none)'} for ${rupees(grandTotal(o))} in the bank statement? The order will be accepted.`
       : `Reject the UPI payment for order ${id}? The order will be cancelled.`;
@@ -528,7 +530,7 @@ export default function OrdersPage() {
     return () => { live = false; };
   }, [selectedAssignable, selectedId, assignRidersTry]);
   const assignRider = async (o: Order, riderId: string | null) => {
-    const id = shortId(orderId(o));
+    const id = orderCode(o);
     const who = riderId ? (assignRiders || []).find(r => r.id === riderId)?.name || 'this rider' : null;
     const offDuty = !!riderId && (assignRiders || []).find(r => r.id === riderId)?.isOnline === false;
     if (!(await confirm(riderId
@@ -556,7 +558,7 @@ export default function OrdersPage() {
       width: '110px',
       cell: o => (
         <div>
-          <span className="font-mono text-xs text-fg-muted">{shortId(orderId(o))}</span>
+          <span className="font-mono text-xs text-fg-muted">{orderCode(o)}</span>
           {isFresh(orderId(o)) && <span className="ml-1.5 text-xs font-medium text-success-text">New</span>}
         </div>
       ),
@@ -625,8 +627,8 @@ export default function OrdersPage() {
               leftIcon={<IconDownload size={14} />}
               disabled={visibleOrders.length === 0}
               onClick={() => downloadCsv(`zenwe_orders_page${currentPage}_${new Date().toISOString().slice(0, 10)}.csv`,
-                ['Order ID', 'Placed (IST)', 'Customer', 'Phone', 'Store', 'Delivery slot', 'Status', 'Payment', 'Payment status', 'Total (INR)', 'Delivered by'],
-                visibleOrders.map(o => [orderId(o), formatDateTime(o.createdAt), o.user?.name || '', o.user?.phone || '', o.restaurant?.name || '', slotText(o) || '', statusLabel(o.status), o.paymentMethod || '', o.paymentStatus || '', grandTotal(o), isVendorOrder(o) ? 'Stall' : 'ZenWe rider']))}
+                ['Order', 'Order ID', 'Placed (IST)', 'Customer', 'Phone', 'Store', 'Delivery slot', 'Status', 'Payment', 'Payment status', 'Total (INR)', 'Delivered by'],
+                visibleOrders.map(o => [orderCode(o), orderId(o), formatDateTime(o.createdAt), o.user?.name || '', o.user?.phone || '', o.restaurant?.name || '', slotText(o) || '', statusLabel(o.status), o.paymentMethod || '', o.paymentStatus || '', grandTotal(o), isVendorOrder(o) ? 'Stall' : 'ZenWe rider']))}
             >
               Export page (CSV)
             </Button>
@@ -701,7 +703,7 @@ export default function OrdersPage() {
         open={!!selectedOrder}
         onClose={() => setSelectedId(null)}
         size="xl"
-        title={selectedOrder ? `Order ${shortId(orderId(selectedOrder))}` : 'Order'}
+        title={selectedOrder ? `Order ${orderCode(selectedOrder)}` : 'Order'}
         description={selectedOrder ? `Placed ${formatDateTime(selectedOrder.createdAt)} · ${selectedOrder.restaurant?.name || 'Store'}` : undefined}
         headerActions={selectedOrder ? <OrderStatus status={selectedOrder.status} /> : undefined}
         footer={selectedOrder && selectedOpen && !isLegacyUpiPending(selectedOrder) ? (
@@ -878,7 +880,7 @@ export default function OrdersPage() {
         open={!!cancelling}
         onClose={() => setCancelling(null)}
         size="sm"
-        title={cancelling ? `Cancel order ${shortId(orderId(cancelling))}?` : 'Cancel order'}
+        title={cancelling ? `Cancel order ${orderCode(cancelling)}?` : 'Cancel order'}
         description={cancelling
           ? `This cannot be undone.${cancelling.paymentMethod === 'Wallet' ? ` ${rupees(grandTotal(cancelling))} will be refunded to the customer's Wallet.` : ''}`
           : undefined}

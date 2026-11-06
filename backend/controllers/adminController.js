@@ -1,4 +1,5 @@
 const { getRestaurantModel } = require('../models/Restaurant');
+const orderNumbers = require('../utils/orderNumbers');
 const { getMenuItemModel } = require('../models/MenuItem');
 const { getUserModel } = require('../models/User');
 const { getDeliveryPartnerModel } = require('../models/DeliveryPartner');
@@ -522,6 +523,8 @@ const RESTAURANT_FIELDS = [
   'phone', 'packagingFee', 'minOrderValue', 'logoUrl',
   // 5 Nov 2026: special delivery price for this store (whole rupees 0-200; null = standard ₹19, utils/orderPricing)
   'deliveryFeeOverride',
+  // 6 Nov 2026: how often ZenWe settles this store (daily | weekly | monthly; utils/revenueReport)
+  'settlementCycle',
   // 31 Oct 2026: the colleges the store serves (utils/campuses; empty = every college)
   'visibleCampuses'
 ];
@@ -597,6 +600,12 @@ const pickRestaurantFields = (body = {}, { creating = false } = {}) => {
       }
       out.deliveryFeeOverride = n;
     }
+  }
+  if (out.settlementCycle !== undefined) {
+    const { normalizeCycle, SETTLEMENT_CYCLES } = require('../utils/revenueReport');
+    const c = normalizeCycle(out.settlementCycle);
+    if (!c) throw new AdminInputError(`Settlement cycle must be one of: ${SETTLEMENT_CYCLES.join(', ')}.`);
+    out.settlementCycle = c;
   }
   if (out.logoUrl !== undefined) out.logoUrl = String(out.logoUrl || '').trim() || null;
 
@@ -992,6 +1001,7 @@ exports.updateRestaurant = async (req, res) => {
     // So does switching a live store off (C1-7 suspension, model hook sets suspendedAt).
     const tvBefore = Number(restaurant.tokenVersion) || 0;
     const deliveryFeeBefore = restaurant.deliveryFeeOverride ?? null;
+    const cycleBefore = restaurant.settlementCycle || 'weekly';
     await restaurant.update(updateData);
     if (updateData.password || stallSwitched || (Number(restaurant.tokenVersion) || 0) !== tvBefore) {
       clearCachedUser(restaurant.id);
@@ -1006,6 +1016,9 @@ exports.updateRestaurant = async (req, res) => {
     if (updateData.deliveryFeeOverride !== undefined && updateData.deliveryFeeOverride !== deliveryFeeBefore) {
       // null = the standard ₹19 (utils/orderPricing).
       await logAuditAction(req, restaurant.id, 'STORE_DELIVERY_FEE_UPDATED', { name: restaurant.name, from: deliveryFeeBefore, to: updateData.deliveryFeeOverride });
+    }
+    if (updateData.settlementCycle !== undefined && updateData.settlementCycle !== cycleBefore) {
+      await logAuditAction(req, restaurant.id, 'STORE_SETTLEMENT_CYCLE_UPDATED', { name: restaurant.name, from: cycleBefore, to: updateData.settlementCycle });
     }
     res.json(publicRestaurant(restaurant));
   } catch (error) {
@@ -1669,6 +1682,7 @@ exports.getFinanceReport = async (req, res) => {
       return {
         _id: order.id,
         orderId: order.id.slice(-6),
+        ...orderNumbers.fields(order),
         restaurantName: restaurant ? restaurant.name : 'Unknown store',
         totalAmount: orderAmount(order),
         commissionEarned: Math.round(c.paise / 100),
@@ -2160,10 +2174,10 @@ exports.batchUpdateOrders = async (req, res) => {
             if (order.restaurantId) io.to(`restaurant_${order.restaurantId}`).emit('orderCancelled', gone);
             // The assigned rider must stop (they may not be in the order room). cancelAndRefund already
             // re-pointed their currentOrderId at an order they still carry.
-            if (order.deliveryPartnerId) io.to(`rider_${order.deliveryPartnerId}`).emit('orderCancelled', { orderId: order.id });
+            if (order.deliveryPartnerId) io.to(`rider_${order.deliveryPartnerId}`).emit('orderCancelled', { orderId: order.id, ...orderNumbers.fields(order) });
             if (order.deliveryPartnerId) {
               const rd = require('../utils/riderDispatch');
-              rd.pushAssignedRider(order.deliveryPartnerId, 'Order cancelled', `Order #${rd.shortRef(order.id)} was cancelled by ZenWe support. Do not pick it up.`, { orderId: order.id, type: 'ORDER_CANCELLED' });
+              rd.pushAssignedRider(order.deliveryPartnerId, 'Order cancelled', `Order ${orderNumbers.label(order)} was cancelled by ZenWe support. Do not pick it up.`, { orderId: order.id, type: 'ORDER_CANCELLED' });
             }
           }
           realtime.notifyAdmin('order', 'updated', order.id);
@@ -3121,18 +3135,18 @@ const releaseOrderRider = async (order, { io = null, reason = 'Removed by ZenWe 
   realtime.leaveOrderRoom(oldRiderId, order.id);
   await refreshRiderCurrentOrder(oldRiderId);
   // The old rider's app drops the order on its refetch (it vanished from their active list).
-  if (io) io.to(`rider_${oldRiderId}`).emit('statusUpdated', { id: order.id, status: order.status, reassigned: true });
+  if (io) io.to(`rider_${oldRiderId}`).emit('statusUpdated', { id: order.id, ...orderNumbers.fields(order), status: order.status, reassigned: true });
   if (oldRiderId) {
     const rd = require('../utils/riderDispatch');
-    rd.pushAssignedRider(oldRiderId, 'Order given to another rider', `ZenWe support gave order #${rd.shortRef(order.id)} to another rider. You do not need to pick it up.`, { orderId: order.id, type: 'ORDER_REASSIGNED' });
+    rd.pushAssignedRider(oldRiderId, 'Order given to another rider', `ZenWe support gave order ${orderNumbers.label(order)} to another rider. You do not need to pick it up.`, { orderId: order.id, type: 'ORDER_REASSIGNED' });
   }
   realtime.deliveryRequest(order.id); // back in the pool for every online rider
   if (io) {
-    const payload = { id: order.id, status: order.status, riderAssigned: false };
+    const payload = { id: order.id, ...orderNumbers.fields(order), status: order.status, riderAssigned: false };
     io.to(String(order.id)).emit('statusUpdated', payload);
     io.to('admin-room').emit('statusUpdated', payload);
     if (order.restaurantId) io.to(`restaurant_${order.restaurantId}`).emit('statusUpdated', payload);
-    io.to('admin-room').emit('order_unassigned', { orderId: order.id, reason });
+    io.to('admin-room').emit('order_unassigned', { orderId: order.id, ...orderNumbers.fields(order), reason });
   }
   realtime.notifyAdmin('order', 'updated', order.id);
   try {
@@ -3209,10 +3223,10 @@ exports.assignOrderRider = async (req, res) => {
       realtime.leaveOrderRoom(oldRiderId, order.id);
       await refreshRiderCurrentOrder(oldRiderId);
       // The old rider's app drops the order on its refetch (it vanished from their active list).
-      if (io) io.to(`rider_${oldRiderId}`).emit('statusUpdated', { id: order.id, status: order.status, reassigned: true });
+      if (io) io.to(`rider_${oldRiderId}`).emit('statusUpdated', { id: order.id, ...orderNumbers.fields(order), status: order.status, reassigned: true });
       if (oldRiderId) {
         const rd = require('../utils/riderDispatch');
-        rd.pushAssignedRider(oldRiderId, 'Order given to another rider', `ZenWe support took order #${rd.shortRef(order.id)} off you. You do not need to pick it up.`, { orderId: order.id, type: 'ORDER_REASSIGNED' });
+        rd.pushAssignedRider(oldRiderId, 'Order given to another rider', `ZenWe support took order ${orderNumbers.label(order)} off you. You do not need to pick it up.`, { orderId: order.id, type: 'ORDER_REASSIGNED' });
       }
     }
     if (newRiderId) {
@@ -3223,14 +3237,14 @@ exports.assignOrderRider = async (req, res) => {
       realtime.deliveryRequest(order.id); // back in the pool for every online rider
     }
     if (io) {
-      const payload = { id: order.id, status: order.status, riderAssigned: !!newRiderId };
+      const payload = { id: order.id, ...orderNumbers.fields(order), status: order.status, riderAssigned: !!newRiderId };
       io.to(String(order.id)).emit('statusUpdated', payload);
       io.to('admin-room').emit('statusUpdated', payload);
       if (order.restaurantId) io.to(`restaurant_${order.restaurantId}`).emit('statusUpdated', payload);
       // The new rider is not in the order room yet: tell their own room, so the app refetches its active
       // orders now instead of on the next poll (or never, with no working push token).
       if (newRiderId) io.to(`rider_${newRiderId}`).emit('statusUpdated', payload);
-      if (!newRiderId) io.to('admin-room').emit('order_unassigned', { orderId: order.id, reason: 'Removed by ZenWe support' });
+      if (!newRiderId) io.to('admin-room').emit('order_unassigned', { orderId: order.id, ...orderNumbers.fields(order), reason: 'Removed by ZenWe support' });
     }
     realtime.notifyAdmin('order', 'updated', order.id);
     const restaurant = order.restaurantId ? await getRestaurantModel().findByPk(order.restaurantId, { attributes: ['id', 'name', 'location'] }) : null;

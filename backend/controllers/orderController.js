@@ -1,4 +1,5 @@
 const { getOrderModel } = require('../models/Order');
+const orderNumbers = require('../utils/orderNumbers');
 const { getUserModel } = require('../models/User');
 const { getRestaurantModel } = require('../models/Restaurant');
 const { getDeliveryPartnerModel } = require('../models/DeliveryPartner');
@@ -58,6 +59,8 @@ const broadcastOrderStatus = (req, orderOrId, payload) => {
     // it loads, so a status change while the phone slept was missed until a manual refresh. One emit over both
     // rooms, so a socket in both gets it once.
     const userRoom = isObj && orderOrId.userId ? `user_${orderOrId.userId}` : null;
+    // Human order ID (ZEN-<n>) on every status event when the order row is at hand.
+    if (isObj && payload && typeof payload === 'object' && payload.orderCode === undefined) payload = { ...orderNumbers.fields(orderOrId), ...payload };
     io.to(userRoom ? [room, userRoom] : room).emit('statusUpdated', payload);
     io.to('admin-room').emit('statusUpdated', payload);
     require('../utils/realtime').notifyAdmin('order', 'updated', room);
@@ -549,6 +552,7 @@ const createOrder = async (req, res) => {
     if (!io) return;
     const riderPayload = {
       id: createdOrder.id,
+      ...orderNumbers.fields(createdOrder),
       restaurant: restaurant.name,
       restaurantAddress: restaurant.location,
       drop: createdOrder.deliveryAddress,
@@ -563,6 +567,7 @@ const createOrder = async (req, res) => {
     };
     io.to('admin-room').emit('admin_newOrder', {
       id: createdOrder.id.toString(),
+      ...orderNumbers.fields(createdOrder),
       restaurant: restaurant.name,
       customer: currentUser.name || 'Customer',
       drop: createdOrder.deliveryAddress,
@@ -577,6 +582,7 @@ const createOrder = async (req, res) => {
 
     const storeOrderPayload = {
       id: createdOrder.id,
+      ...orderNumbers.fields(createdOrder),
       items: normalizeItems(createdOrder.items),
       totalPrice: createdOrder.totalPrice,
       address: createdOrder.deliveryAddress,
@@ -708,6 +714,7 @@ const restaurantAcceptOrder = async (req, res) => {
       if (io) {
         io.to('admin-room').emit('newOrder', {
           id: order.id,
+          ...orderNumbers.fields(order),
           restaurant: restaurant ? restaurant.name : 'Unknown',
           restaurantAddress: restaurant ? restaurant.location : '',
           drop: order.deliveryAddress,
@@ -843,7 +850,7 @@ const getOrderById = async (req, res) => {
 // Fields the customer app reads from GET /api/orders/myorders (orders tab, checkout duplicate
 // guard via idempotencyKey, review-store picker). Everything else stays server-side.
 const MY_ORDER_FIELDS = [
-  'id', 'restaurantId', 'restaurant', 'items', 'totalPrice', 'deliveryFee', 'platformFee', 'batchDiscount', 'gateDiscount',
+  'id', 'orderNumber', 'orderCode', 'restaurantId', 'restaurant', 'items', 'totalPrice', 'deliveryFee', 'platformFee', 'batchDiscount', 'gateDiscount',
   'finalPrice', 'priceBreakdown', 'status', 'cancellationReason', 'paymentStatus', 'paymentMethod',
   'deliverySlot', 'deliveryAddress', 'deliveryInstructions', 'distance', 'deliveredAt', 'estDuration',
   'acceptedAt', 'readyAt', 'fulfilment', 'outForDeliveryAt', 'idempotencyKey', 'dropLat', 'dropLng',
@@ -1159,19 +1166,27 @@ const getAllOrders = async (req, res) => {
       where.createdAt = { ...(where.createdAt || {}), ...stuck.createdAt };
       delete where[Op.and];
     }
-    // ?q=<order id> (admin global search): the full id, or the short reference the admin and the apps
-    // show (#A1B2C3 = the id's last characters). Only hex digits and dashes, 4-36 characters; anything
-    // else matches nothing. Combines with the other filters.
+    // ?q=<order id> (admin global search): the human order ID ("ZEN-123", "zen 123", "#123" or just "123"),
+    // the full id, or the old short reference (#A1B2C3 = the id's last characters: hex digits and dashes,
+    // 4-36 characters). Anything else matches nothing. Combines with the other filters.
     if (req.query.q !== undefined && String(req.query.q).trim() !== '') {
-      const q = String(req.query.q).trim().replace(/^#/, '').toLowerCase();
-      if (!/^[0-9a-f-]{4,36}$/.test(q)) return res.json({ orders: [], total: 0, pages: 0 });
-      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(q)) {
+      const rawQ = String(req.query.q).trim();
+      const number = orderNumbers.parseCode(rawQ);
+      const q = rawQ.replace(/^#/, '').toLowerCase();
+      const hexOk = !/^zen/i.test(rawQ) && /^[0-9a-f-]{4,36}$/.test(q);
+      if (number === null && !hexOk) return res.json({ orders: [], total: 0, pages: 0 });
+      if (hexOk && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(q)) {
         where.id = q;
       } else {
         const { where: sqlWhere, cast, col } = require('sequelize');
-        // Postgres stores ids as uuid: compare their text form. SQLite already stores text.
-        const idText = Order.sequelize.getDialect() === 'postgres' ? cast(col('Order.id'), 'text') : col('Order.id');
-        where[Op.and] = [...(where[Op.and] || []), sqlWhere(idText, { [Op.like]: `%${q}` })];
+        const matches = [];
+        if (number !== null) matches.push({ orderNumber: number });
+        if (hexOk) {
+          // Postgres stores ids as uuid: compare their text form. SQLite already stores text.
+          const idText = Order.sequelize.getDialect() === 'postgres' ? cast(col('Order.id'), 'text') : col('Order.id');
+          matches.push(sqlWhere(idText, { [Op.like]: `%${q}` }));
+        }
+        where[Op.and] = [...(where[Op.and] || []), matches.length === 1 ? matches[0] : { [Op.or]: matches }];
       }
     }
 
@@ -1354,7 +1369,7 @@ const escalateUnclaimedOrders = async (io) => {
       if (round.alertAdmins) {
         require('../utils/adminAlert').pushAdmins(
           'No rider for an order',
-          `${restaurant?.name || 'A store'}: order ${String(order.id).slice(-6)} has had no rider for ${Math.round(ageMin)} min. Assign one before it cancels.`,
+          `${restaurant?.name || 'A store'}: order ${orderNumbers.label(order)} has had no rider for ${Math.round(ageMin)} min. Assign one before it cancels.`,
           { orderId: String(order.id), type: 'NO_RIDER' },
           { io }
         ).catch(() => {});
@@ -1407,14 +1422,14 @@ const autoCancelStalePendingOrders = async (io) => {
       const { cancelled, refunded } = await cancelAndRefund(order, { reason: why, onlyFromStatuses: from, requireUnclaimed: true, by: 'system' });
       if (!cancelled) continue;
       count++;
-      const payload = { id: order.id, status: 'Cancelled', reason: code, refundedToWallet: refunded };
+      const payload = { id: order.id, ...orderNumbers.fields(order), status: 'Cancelled', reason: code, refundedToWallet: refunded };
       if (io) {
         io.to(String(order.id)).emit('statusUpdated', payload);
         io.to('admin-room').emit('statusUpdated', payload);
         if (order.restaurantId) io.to(`restaurant_${order.restaurantId}`).emit('statusUpdated', payload);
-        if (order.restaurantId) io.to(`restaurant_${order.restaurantId}`).emit('orderCancelled', { orderId: order.id, reason: code });
-        io.to(String(order.id)).emit('orderCancelled', { orderId: order.id, reason: code });
-        io.to('admin-room').emit('orderCancelled', { orderId: order.id, reason: code });
+        if (order.restaurantId) io.to(`restaurant_${order.restaurantId}`).emit('orderCancelled', { orderId: order.id, ...orderNumbers.fields(order), reason: code });
+        io.to(String(order.id)).emit('orderCancelled', { orderId: order.id, ...orderNumbers.fields(order), reason: code });
+        io.to('admin-room').emit('orderCancelled', { orderId: order.id, ...orderNumbers.fields(order), reason: code });
       }
       try {
         const customer = await getUserModel().findByPk(order.userId, { attributes: ['id', 'fcmTokens'] });
@@ -1483,7 +1498,7 @@ const releaseStalledRiderClaims = async (io) => {
       released.push({ order, riderId });
       console.warn(`[RIDER_PICKUP_TIMEOUT] rider ${riderId} released order ${order.id} (ready ${minutes}+ min, not picked up)`);
       try {
-        if (io) io.to(`rider_${riderId}`).emit('orderReleased', { orderId: order.id, reason: 'PICKUP_TIMEOUT' });
+        if (io) io.to(`rider_${riderId}`).emit('orderReleased', { orderId: order.id, ...orderNumbers.fields(order), reason: 'PICKUP_TIMEOUT' });
         const rider = await getDeliveryPartnerModel().findByPk(riderId, { attributes: ['id', 'fcmTokens'] });
         const tokens = (rider && Array.isArray(rider.fcmTokens) ? rider.fcmTokens : []).map((t) => (typeof t === 'string' ? t : t && t.token)).filter(Boolean);
         if (tokens.length) {
@@ -1607,22 +1622,22 @@ const cancelOrder = async (req, res) => {
     }
     const cancelCode = ownerCancel ? 'CUSTOMER_CANCELLED' : 'ADMIN_CANCELLED';
     // refundedToWallet: the apps refresh the customer's Wallet balance from it (the bulk cancel already sent it).
-    const statusPayload = { id: order.id, status: 'Cancelled', reason: cancelCode, refundedToWallet: refunded };
+    const statusPayload = { id: order.id, ...orderNumbers.fields(order), status: 'Cancelled', reason: cancelCode, refundedToWallet: refunded };
     broadcastOrderStatus(req, order, statusPayload);
     const io = req.app.get('io');
     if (io) {
-      io.to(String(order.id)).emit('orderCancelled', { orderId: order.id, reason: cancelCode });
-      io.to('admin-room').emit('orderCancelled', { orderId: order.id, reason: cancelCode });
+      io.to(String(order.id)).emit('orderCancelled', { orderId: order.id, ...orderNumbers.fields(order), reason: cancelCode });
+      io.to('admin-room').emit('orderCancelled', { orderId: order.id, ...orderNumbers.fields(order), reason: cancelCode });
       // The store / stall app drops the card (and stops ringing) at once.
-      if (order.restaurantId) io.to(`restaurant_${order.restaurantId}`).emit('orderCancelled', { orderId: order.id, reason: cancelCode });
+      if (order.restaurantId) io.to(`restaurant_${order.restaurantId}`).emit('orderCancelled', { orderId: order.id, ...orderNumbers.fields(order), reason: cancelCode });
       // The assigned rider must stop (they may not be in the order room right now).
-      if (order.deliveryPartnerId) io.to(`rider_${order.deliveryPartnerId}`).emit('orderCancelled', { orderId: order.id });
+      if (order.deliveryPartnerId) io.to(`rider_${order.deliveryPartnerId}`).emit('orderCancelled', { orderId: order.id, ...orderNumbers.fields(order) });
     }
     if (order.deliveryPartnerId) {
       const rd = require('../utils/riderDispatch');
       // Already carrying it: the rider must not just drop the items (a buy-at-store rider paid for them).
       const carrying = ['Picking', 'PickedUp', 'ArrivedAtGate', 'OutForDelivery'].includes(order.status);
-      rd.pushAssignedRider(order.deliveryPartnerId, 'Order cancelled', `Order #${rd.shortRef(order.id)} was cancelled${ownerCancel ? ' by the customer' : ' by ZenWe support'}. ${carrying ? 'Call ZenWe support about the items you have.' : 'Do not pick it up.'}`, { orderId: order.id, type: 'ORDER_CANCELLED' });
+      rd.pushAssignedRider(order.deliveryPartnerId, 'Order cancelled', `Order ${orderNumbers.label(order)} was cancelled${ownerCancel ? ' by the customer' : ' by ZenWe support'}. ${carrying ? 'Call ZenWe support about the items you have.' : 'Do not pick it up.'}`, { orderId: order.id, type: 'ORDER_CANCELLED' });
     }
     if (order.restaurantId) pushStoreCancelled(order.restaurantId, order, ownerCancel ? 'The customer cancelled an order.' : 'An order was cancelled by ZenWe support.');
     // Support cancelled it: the customer may not have the app open (the auto-cancel and store-decline paths push too).
@@ -1782,11 +1797,11 @@ const updateOrderStatus = async (req, res) => {
     // the rider app's "Food packed" alert listens for orderReady on the rider's own room.
     if (status === 'ReadyForPickup' && prevStatus !== 'ReadyForPickup' && order.deliveryPartnerId) {
       const io = req.app.get('io');
-      if (io) io.to(`rider_${order.deliveryPartnerId}`).emit('orderReady', { orderId: order.id });
+      if (io) io.to(`rider_${order.deliveryPartnerId}`).emit('orderReady', { orderId: order.id, ...orderNumbers.fields(order) });
     }
     if (status === 'Delivered') {
       const io = req.app.get('io');
-      if (io) io.to('admin-room').emit('admin_delivery_complete', { orderId: order.id });
+      if (io) io.to('admin-room').emit('admin_delivery_complete', { orderId: order.id, ...orderNumbers.fields(order) });
     }
 
     // 🟢 Push Notification: Status Update to Customer
@@ -1999,7 +2014,7 @@ const verifyUPIPayment = async (req, res) => {
       else if (order.status === 'Cancelled' && realtime.CLAIMABLE_STATUSES.includes(prevStatus)) realtime.deliveryRequestGone(order.id);
     }
 
-    const statusPayload = { id: order.id, status: order.status };
+    const statusPayload = { id: order.id, ...orderNumbers.fields(order), status: order.status };
     broadcastOrderStatus(req, order, statusPayload);
 
     res.json({ message: `Payment ${isVerified ? 'Verified' : 'Rejected'}`, orderId: order.id, status: order.status });
@@ -2032,7 +2047,7 @@ const restaurantReadyOrder = async (req, res) => {
     if (order.status === 'Picking') {
       if (!order.readyAt) await Order.update({ readyAt: new Date() }, { where: { id: order.id, status: 'Picking' } });
       const pio = req.app.get('io');
-      if (pio && order.deliveryPartnerId) pio.to(`rider_${order.deliveryPartnerId}`).emit('orderReady', { orderId: order.id });
+      if (pio && order.deliveryPartnerId) pio.to(`rider_${order.deliveryPartnerId}`).emit('orderReady', { orderId: order.id, ...orderNumbers.fields(order) });
       return res.json({ message: 'Rider notified that the food is packed', orderId: order.id, status: 'Picking' });
     }
 
@@ -2051,14 +2066,14 @@ const restaurantReadyOrder = async (req, res) => {
     if (ready === 0) return res.status(400).json({ message: 'This order was just cancelled or updated. Please refresh.' });
     order.status = 'ReadyForPickup';
 
-    const statusPayload = { id: order.id, status: 'ReadyForPickup' };
+    const statusPayload = { id: order.id, ...orderNumbers.fields(order), status: 'ReadyForPickup' };
     broadcastOrderStatus(req, order, statusPayload);
 
     const io = req.app.get('io');
 
     // Also notify the delivery partner if assigned
     if (io && order.deliveryPartnerId) {
-      io.to(`rider_${order.deliveryPartnerId}`).emit('orderReady', { orderId: order.id });
+      io.to(`rider_${order.deliveryPartnerId}`).emit('orderReady', { orderId: order.id, ...orderNumbers.fields(order) });
     }
 
     res.json({ message: 'Order marked as Ready for Pickup', orderId: order.id });
@@ -2142,17 +2157,17 @@ const restaurantUpdateOrderStatus = async (req, res) => {
       }
       return res.status(400).json({ message: 'This order can no longer be declined (it is already cancelled or out for delivery).' });
     }
-    const payload = { id: order.id, status: 'Cancelled', reason: 'STORE_DECLINED', refundedToWallet: refunded };
+    const payload = { id: order.id, ...orderNumbers.fields(order), status: 'Cancelled', reason: 'STORE_DECLINED', refundedToWallet: refunded };
     broadcastOrderStatus(req, order, payload);
     const io = req.app.get('io');
     if (io) {
-      io.to(String(order.id)).emit('orderCancelled', { orderId: order.id, reason: 'STORE_DECLINED' });
-      io.to('admin-room').emit('orderCancelled', { orderId: order.id, reason: 'STORE_DECLINED' });
-      if (order.deliveryPartnerId) io.to(`rider_${order.deliveryPartnerId}`).emit('orderCancelled', { orderId: order.id, reason: 'STORE_DECLINED' });
+      io.to(String(order.id)).emit('orderCancelled', { orderId: order.id, ...orderNumbers.fields(order), reason: 'STORE_DECLINED' });
+      io.to('admin-room').emit('orderCancelled', { orderId: order.id, ...orderNumbers.fields(order), reason: 'STORE_DECLINED' });
+      if (order.deliveryPartnerId) io.to(`rider_${order.deliveryPartnerId}`).emit('orderCancelled', { orderId: order.id, ...orderNumbers.fields(order), reason: 'STORE_DECLINED' });
     }
     if (order.deliveryPartnerId) {
       const rd = require('../utils/riderDispatch');
-      rd.pushAssignedRider(order.deliveryPartnerId, 'Order cancelled', `The store could not take order #${rd.shortRef(order.id)}. Do not pick it up.`, { orderId: order.id, type: 'ORDER_CANCELLED', reason: 'STORE_DECLINED' });
+      rd.pushAssignedRider(order.deliveryPartnerId, 'Order cancelled', `The store could not take order ${orderNumbers.label(order)}. Do not pick it up.`, { orderId: order.id, type: 'ORDER_CANCELLED', reason: 'STORE_DECLINED' });
     }
     res.json({ message: 'Order declined', orderId: order.id, status: 'Cancelled', refundedToWallet: refunded });
     try {
@@ -2212,8 +2227,8 @@ const vendorUpdateOrderStatus = async (req, res, order) => {
       broadcastOrderStatus(req, order, { id: order.id, status: 'Cancelled', reason });
       const io = req.app.get('io');
       if (io) {
-        io.to(String(order.id)).emit('orderCancelled', { orderId: order.id, reason: 'STORE_DECLINED' });
-        io.to('admin-room').emit('orderCancelled', { orderId: order.id, reason: 'STORE_DECLINED' });
+        io.to(String(order.id)).emit('orderCancelled', { orderId: order.id, ...orderNumbers.fields(order), reason: 'STORE_DECLINED' });
+        io.to('admin-room').emit('orderCancelled', { orderId: order.id, ...orderNumbers.fields(order), reason: 'STORE_DECLINED' });
       }
       res.json({ message: 'Order cancelled', orderId: order.id, status: 'Cancelled' });
       await notifyCustomer('Order cancelled', `${stall} cancelled: ${reason}`);
@@ -2247,7 +2262,7 @@ const vendorUpdateOrderStatus = async (req, res, order) => {
     broadcastOrderStatus(req, order, { id: order.id, status, ...(status === 'Delivered' ? { newBadges } : {}) });
     if (status === 'Delivered') {
       const io = req.app.get('io');
-      if (io) io.to('admin-room').emit('admin_delivery_complete', { orderId: order.id });
+      if (io) io.to('admin-room').emit('admin_delivery_complete', { orderId: order.id, ...orderNumbers.fields(order) });
     }
 
     // Answer the stall first, then the customer push (B28).
