@@ -23,30 +23,34 @@
 //                  Buy-at-store orders (storePaidByRider): the rider paid the shop at the counter (approved bill,
 //                  else the item subtotal), the shop is never on a ZenWe statement and no commission is taken,
 //                  so store share = what was paid at the counter and commission = 0.
-//   rider pay    = utils/riderEarnings.earningPaise (delivery fee, or ₹30 when the fee is 0; stall orders 0).
-//                  This is the rule riders are paid by, not a record of money sent. Tips are not ZenWe money
-//                  (customer -> rider wallet) and are not in any number here.
+//   delivery fee = ZenWe income (owner, 6 Nov 2026: "we don't pay anything like delivery fees; delivery fees are
+//                  for us"). Riders are paid separately, not out of this report: no rider pay is subtracted.
+//                  Tips are not ZenWe money (customer -> rider wallet) and are not in any number here.
 //   ZenWe keeps  = commission + delivery fee + platform fee + packaging fee + taxes
 //                  - discounts (coupons, member perks, shared-ride discounts: all ZenWe-funded)
-//                  - rider pay - refunds on delivered orders.
-//                  Packaging fee: store statements have never included it (docs/C6_FINANCE.md), so today it stays
-//                  with ZenWe; it is shown on its own line so the owner can see it.
+//                  - refunds on delivered orders.
+//                  Packaging fee: stays with ZenWe (owner confirmed 6 Nov 2026; store statements never included
+//                  it, docs/C6_FINANCE.md); shown on its own line.
+//   no rider     = a rider order marked Delivered with no rider on it (e.g. completed from the admin status
+//                  control). No money figure changes; counted (noRiderOrders) and listed because its COD cash is
+//                  not on any rider's cash count.
 //   owed to the store via statements = store share - cash the stall collected itself (0 for buy-at-store). A stall
 //                  holding the customers' cash can be negative: it owes ZenWe.
 //   settled      = on a PAID statement (Order.payoutSettled); on statement = on a PENDING statement; pending =
 //                  owed - settled.
 //
-// RECONCILIATION (must be exactly 0): collected - refunds = store share + ZenWe keeps + rider pay.
+// RECONCILIATION (must be exactly 0): collected - refunds = store share + ZenWe keeps.
 //   Per order: finalPrice is compared with its parts (store share + commission + fees - discounts). Any order
 //   where they differ (e.g. a Mega Basket bill approved after the commission snapshot, a clamped total, an old row
 //   without a saved bill) is listed with its difference; nothing is forced to balance.
 const crypto = require('crypto');
 const { Op, Transaction } = require('sequelize');
-const { toPaise, earningPaise } = require('./riderEarnings');
+const { toPaise } = require('./riderEarnings');
 const { computeCommission } = require('./commission');
 const { IST_OFFSET_MS, istShift } = require('./istTime');
 const { storePurchasePaise } = require('./riderCash');
 const payouts = require('./payouts');
+const storeCompliance = require('./storeCompliance');
 
 const { PayoutError } = payouts;
 const SETTLEMENT_CYCLES = ['daily', 'weekly', 'monthly'];
@@ -230,10 +234,10 @@ const orderMoney = (o, store, refundPaise = 0) => {
       storeShare = Math.max(0, toPaise(o.totalPrice));
     }
   }
-  const riderPay = o.deliveryPartnerId && channel !== 'stall' ? earningPaise(o) : 0;
+  const noRider = channel !== 'stall' && !o.deliveryPartnerId;
   const refund = Math.max(0, Number(refundPaise) || 0);
   const stallCash = channel === 'stall' ? collected : 0;
-  const keeps = commission + bill.deliveryFeePaise + bill.platformFeePaise + bill.packagingFeePaise + bill.taxesPaise - bill.discountPaise - riderPay - refund;
+  const keeps = commission + bill.deliveryFeePaise + bill.platformFeePaise + bill.packagingFeePaise + bill.taxesPaise - bill.discountPaise - refund;
   // What the bill's parts add up to; must equal what the customer paid.
   const expected = storeShare + commission + bill.deliveryFeePaise + bill.platformFeePaise + bill.packagingFeePaise + bill.taxesPaise - bill.discountPaise;
   let settlement = 'unsettled';
@@ -242,7 +246,7 @@ const orderMoney = (o, store, refundPaise = 0) => {
   else if (o.payoutId) settlement = 'on_statement';
   return {
     collected, channel, buyAtStore, commission, storeShare, itemsPaise: storeShare + commission, commissionEstimated, storeMissing,
-    riderPay, refund, stallCash, keeps,
+    noRider, refund, stallCash, keeps,
     counterPaid: buyAtStore ? storeShare : 0,
     owed: buyAtStore ? 0 : storeShare - stallCash,
     settlement,
@@ -297,7 +301,6 @@ const zeroTotals = () => ({
   taxesPaise: 0,
   discounts: { coupon: 0, perks: 0, sharedRide: 0, other: 0 },
   discountsPaise: 0,
-  riderPayPaise: 0,
   keepsPaise: 0,
   storeSharePaise: 0,
   counterPaidPaise: 0,
@@ -307,6 +310,7 @@ const zeroTotals = () => ({
   onStatementPaise: 0,
   pendingPaise: 0,
   commissionEstimatedOrders: 0,
+  noRiderOrders: 0,
   differencePaise: 0,
 });
 
@@ -324,7 +328,6 @@ const addTo = (t, m) => {
   t.taxesPaise += m.taxesPaise;
   for (const k of Object.keys(t.discounts)) t.discounts[k] += m.discounts[k];
   t.discountsPaise += m.discountPaise;
-  t.riderPayPaise += m.riderPay;
   t.keepsPaise += m.keeps;
   t.storeSharePaise += m.storeShare;
   t.counterPaidPaise += m.counterPaid;
@@ -334,6 +337,7 @@ const addTo = (t, m) => {
   if (m.settlement === 'on_statement') t.onStatementPaise += m.owed;
   t.pendingPaise = t.owedPaise - t.settledPaise;
   if (m.commissionEstimated) t.commissionEstimatedOrders++;
+  if (m.noRider) t.noRiderOrders++;
   t.differencePaise += m.differencePaise;
 };
 
@@ -358,7 +362,7 @@ const buildRevenueReport = async ({ sequelize, period = 'day', date = null, stor
   const storeIds = [...new Set(rows.map((o) => String(o.restaurantId)).filter(Boolean).concat(storeId ? [String(storeId)] : []))];
   const storeRows = storeIds.length ? await Restaurant.findAll({
     where: { id: { [Op.in]: storeIds } },
-    attributes: ['id', 'name', 'vendorType', 'commissionRate', 'commissionType', 'payoutUpiId', 'isTestData', 'isActive', ...(Restaurant.rawAttributes.settlementCycle ? ['settlementCycle'] : [])],
+    attributes: ['id', 'name', 'vendorType', 'commissionRate', 'commissionType', 'isTestData', 'isActive', ...paymentAttrs(Restaurant), ...(Restaurant.rawAttributes.settlementCycle ? ['settlementCycle'] : [])],
     raw: true,
   }) : [];
   const storeMap = new Map(storeRows.map((s) => [String(s.id), s]));
@@ -371,6 +375,7 @@ const buildRevenueReport = async ({ sequelize, period = 'day', date = null, stor
   const mismatches = [];
   const excluded = { testOrders: 0 };
   const estimatedOrders = [];
+  const noRiderSample = [];
 
   for (const o of rows) {
     const store = storeMap.get(String(o.restaurantId)) || null;
@@ -396,6 +401,9 @@ const buildRevenueReport = async ({ sequelize, period = 'day', date = null, stor
       s.rates.add(`${String(o.commissionType || 'percentage') === 'flat' ? 'flat' : 'percentage'}:${Number(o.commissionRate)}`);
     }
     if (m.commissionEstimated && estimatedOrders.length < MAX_MISMATCHES) estimatedOrders.push({ orderId: String(o.id), orderCode: orderLabel(o) });
+    if (m.noRider && noRiderSample.length < MAX_MISMATCHES) {
+      noRiderSample.push({ orderId: String(o.id), orderCode: orderLabel(o), storeName: store ? store.name : null, channel: m.channel, deliveryFeePaise: m.deliveryFeePaise });
+    }
     if (m.differencePaise !== 0 && mismatches.length < MAX_MISMATCHES) {
       mismatches.push({
         orderId: String(o.id), orderCode: orderLabel(o), storeId: k, storeName: store ? store.name : null, differencePaise: m.differencePaise,
@@ -407,17 +415,17 @@ const buildRevenueReport = async ({ sequelize, period = 'day', date = null, stor
     }
   }
 
-  // Reconciliation: collected - refunds = store share + ZenWe keeps + rider pay (exactly).
-  const rhs = totals.storeSharePaise + totals.keepsPaise + totals.riderPayPaise;
+  // Reconciliation: collected - refunds = store share + ZenWe keeps (exactly).
+  const rhs = totals.storeSharePaise + totals.keepsPaise;
   const lhs = totals.collectedPaise - totals.refundsPaise;
   const reconciliation = {
     ok: lhs === rhs && totals.differencePaise === 0,
     collectedLessRefundsPaise: lhs,
-    storeSharePlusKeepsPlusRiderPaise: rhs,
+    storeSharePlusKeepsPaise: rhs,
     differencePaise: lhs - rhs,
     mismatchedOrders: mismatches.length,
     mismatches,
-    rule: 'Collected − refunds = store share + ZenWe keeps + rider pay, checked order by order.',
+    rule: 'Collected − refunds = store share + ZenWe keeps, checked order by order.',
   };
 
   const stores = [...byStore.entries()].map(([id, s]) => {
@@ -431,6 +439,8 @@ const buildRevenueReport = async ({ sequelize, period = 'day', date = null, stor
       isActive: st ? !!st.isActive : false,
       settlementCycle: cycleOf(st),
       payoutUpiId: st ? st.payoutUpiId || null : null,
+      // Where to send the money (masked; never the full account number): UPI and / or bank, canPay.
+      payment: storeCompliance.paymentDetails(st),
       currentCommission: st ? { rate: Number(st.commissionRate) || 0, type: String(st.commissionType || '') === 'flat' ? 'flat' : 'percentage' } : null,
       ratesAtOrderTime: [...rates].map((r) => { const [type, rate] = r.split(':'); return { type, rate: Number(rate) }; }),
       effectiveCommissionPct: sums.itemsPaise > 0 ? Math.round((sums.commissionPaise / sums.itemsPaise) * 10000) / 100 : 0,
@@ -440,15 +450,14 @@ const buildRevenueReport = async ({ sequelize, period = 'day', date = null, stor
 
   const keepsLines = [
     { key: 'commission', label: 'Commission from stores', paise: totals.commissionPaise, sign: 1 },
-    { key: 'deliveryFees', label: 'Delivery fees charged', paise: totals.deliveryFeesPaise, sign: 1 },
+    { key: 'deliveryFees', label: 'Delivery fees (ZenWe income)', paise: totals.deliveryFeesPaise, sign: 1 },
     { key: 'platformFees', label: 'Platform fees', paise: totals.platformFeesPaise, sign: 1 },
-    { key: 'packagingFees', label: 'Packaging fees (not passed to stores today)', paise: totals.packagingFeesPaise, sign: 1 },
+    { key: 'packagingFees', label: 'Packaging fees (kept by ZenWe)', paise: totals.packagingFeesPaise, sign: 1 },
     ...(totals.taxesPaise ? [{ key: 'taxes', label: 'Taxes on bills', paise: totals.taxesPaise, sign: 1 }] : []),
     { key: 'discountCoupon', label: 'Coupons (ZenWe pays)', paise: -totals.discounts.coupon, sign: -1 },
     { key: 'discountPerks', label: 'Member perks (ZenWe pays)', paise: -totals.discounts.perks, sign: -1 },
     { key: 'discountSharedRide', label: 'Shared-ride discounts (ZenWe pays)', paise: -totals.discounts.sharedRide, sign: -1 },
     ...(totals.discounts.other ? [{ key: 'discountOther', label: 'Other discounts (ZenWe pays)', paise: -totals.discounts.other, sign: -1 }] : []),
-    { key: 'riderPay', label: 'Rider pay (delivery fee, or ₹30 when 0)', paise: -totals.riderPayPaise, sign: -1 },
     ...(totals.refundsPaise ? [{ key: 'refunds', label: 'Refunds on delivered orders', paise: -totals.refundsPaise, sign: -1 }] : []),
   ];
 
@@ -468,9 +477,11 @@ const buildRevenueReport = async ({ sequelize, period = 'day', date = null, stor
     series: [...seriesMap.values()],
     excluded,
     commissionEstimated: { orders: totals.commissionEstimatedOrders, sample: estimatedOrders },
+    // Rider orders marked Delivered with no rider on them: no rider pay; COD cash is not on any rider's cash count.
+    noRider: { orders: totals.noRiderOrders, sample: noRiderSample },
     context: { riderCashHeldNowPaise },
     tracked: {
-      riderPay: 'rule', // earnings rule, not a record of transfers
+      riderPay: 'separate', // riders are not paid out of delivery fees (owner, 6 Nov 2026)
       tips: 'excluded',
       gatewayFees: 'none', // COD + Wallet only, no online gateway
     },
@@ -479,10 +490,13 @@ const buildRevenueReport = async ({ sequelize, period = 'day', date = null, stor
 };
 
 // ── Settle all ───────────────────────────────────────────────────────────────────────────────────
+// The payment-detail columns this database has (older test schemas may lack the newest ones).
+const paymentAttrs = (Restaurant) => storeCompliance.PAYMENT_ATTRS.filter((a) => Restaurant.rawAttributes[a]);
+
 const storesInCycle = async (sequelize, cycle) => {
   const Restaurant = sequelize.models.Restaurant;
   const where = cycle === DEFAULT_CYCLE ? { [Op.or]: [{ settlementCycle: cycle }, { settlementCycle: null }] } : { settlementCycle: cycle };
-  return Restaurant.findAll({ where, attributes: ['id', 'name', 'vendorType', 'payoutUpiId', 'isTestData', 'settlementCycle'], order: [['name', 'ASC']], raw: true });
+  return Restaurant.findAll({ where, attributes: ['id', 'name', 'vendorType', 'isTestData', 'settlementCycle', ...paymentAttrs(Restaurant)], order: [['name', 'ASC']], raw: true });
 };
 
 /** Hash of exactly what a Settle all would create (shown to the admin, compared on confirm). */
@@ -500,7 +514,7 @@ const settlePreview = async ({ sequelize, cycle, now = new Date() }) => {
     const s = await payouts.buildStatement({ sequelize, partnerType: payouts.storeKind(st), partnerId: st.id, to: cut.cutoff });
     if (!s.orderCount) continue;
     rows.push({
-      storeId: String(st.id), name: st.name, kind: payouts.storeKind(st), payoutUpiId: st.payoutUpiId || null,
+      storeId: String(st.id), name: st.name, kind: payouts.storeKind(st), payoutUpiId: st.payoutUpiId || null, payment: storeCompliance.paymentDetails(st),
       orderCount: s.orderCount, grossPaise: s.grossPaise, commissionPaise: s.commissionPaise, adjustmentsPaise: s.adjustmentsPaise, netPaise: s.netPaise,
       direction: s.netPaise > 0 ? 'zenwe_pays_store' : s.netPaise < 0 ? 'store_pays_zenwe' : 'nothing',
       firstDeliveredAt: s.periodStart, orderIdsHash: idsHash(s.orderIds),
@@ -511,6 +525,8 @@ const settlePreview = async ({ sequelize, cycle, now = new Date() }) => {
     order: [['createdAt', 'DESC']], limit: 500,
   });
   const sum = (k) => rows.reduce((a, r) => a + r[k], 0);
+  const upiOf = new Map(stores.map((s) => [String(s.id), s.payoutUpiId || null]));
+  const payOf = new Map(stores.map((s) => [String(s.id), storeCompliance.paymentDetails(s)]));
   return {
     cycle: cut.cycle,
     cutoff: cut.cutoff.toISOString(),
@@ -530,7 +546,8 @@ const settlePreview = async ({ sequelize, cycle, now = new Date() }) => {
       storesPayZenwePaise: rows.filter((r) => r.netPaise < 0).reduce((a, r) => a - r.netPaise, 0),
     },
     planHash: planHash(rows),
-    pendingStatements: pending.map((p) => payouts.payoutJson(p)),
+    // Each with the store's payout UPI ID today (null = not set: add it in the store's details before paying).
+    pendingStatements: pending.map((p) => ({ ...payouts.payoutJson(p), payoutUpiId: upiOf.get(String(p.partnerId)) || null, payment: payOf.get(String(p.partnerId)) || storeCompliance.paymentDetails(null) })),
   };
 };
 
@@ -605,7 +622,20 @@ const markAllPaid = async ({ sequelize, items, adminId = null }) => {
     ids.add(id);
   }
   const out = { paid: [], alreadyPaid: [], failed: [] };
+  const Payout = sequelize.models.Payout;
+  const Restaurant = sequelize.models.Restaurant;
   for (const it of items) {
+    // Owner rule (6 Nov 2026): ZenWe cannot record paying a store that has no UPI ID and no bank account on file
+    // (the money had nowhere known to go). Statements where the store pays ZenWe, and already paid ones, are not
+    // affected.
+    const p = await Payout.findByPk(String(it.payoutId), { attributes: ['id', 'status', 'partnerType', 'partnerId', 'netPaise'], raw: true });
+    if (p && p.status === 'PENDING' && Number(p.netPaise) > 0 && ['restaurant', 'vendor'].includes(p.partnerType)) {
+      const st = await Restaurant.findByPk(p.partnerId, { attributes: ['id', ...paymentAttrs(Restaurant)], raw: true });
+      if (!storeCompliance.paymentDetails(st).canPay) {
+        out.failed.push({ payoutId: String(it.payoutId), code: 'NO_PAYMENT_DETAILS', message: 'Add this store\'s payment details (UPI ID or bank account) first, then mark it paid.' });
+        continue;
+      }
+    }
     try {
       const r = await payouts.markPaid({ sequelize, payoutId: it.payoutId, utr: it.utr, method: it.method || 'upi', notes: it.notes || null, adminId });
       (r.alreadyPaid ? out.alreadyPaid : out.paid).push({ ...payouts.payoutJson(r.payout), settledOrders: r.settledOrders || 0 });

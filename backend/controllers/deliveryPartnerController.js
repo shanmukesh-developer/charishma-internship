@@ -1091,7 +1091,7 @@ const getLeaderboard = async (req, res) => {
           { deliveredAt: null, updatedAt: { [Op.gte]: startOfDay } }
         ]
       },
-      attributes: ['deliveryPartnerId', 'finalPrice', 'totalPrice', 'deliveryFee']
+      attributes: ['deliveryPartnerId', 'finalPrice', 'totalPrice', 'deliveryFee', 'fulfilment', 'priceBreakdown']
     });
 
     const earningsMap = {};
@@ -1163,7 +1163,7 @@ const deliveredSince = (riderId, since) => getOrderModel().findAll({
       { deliveredAt: null, updatedAt: { [Op.gte]: since } }
     ]
   },
-  attributes: ['id', 'deliveryFee', 'finalPrice', 'paymentMethod', 'fulfilment', 'deliveredAt', 'updatedAt']
+  attributes: ['id', 'deliveryFee', 'priceBreakdown', 'finalPrice', 'paymentMethod', 'fulfilment', 'deliveredAt', 'updatedAt']
 });
 
 // @desc    Get today's stats for current rider ("today" = IST calendar day)
@@ -1258,7 +1258,7 @@ const getStatsRange = async (req, res) => {
           { deliveredAt: null, updatedAt: { [Op.gte]: start, [Op.lt]: end } },
         ],
       },
-      attributes: ['id', 'deliveryFee', 'finalPrice', 'paymentMethod', 'fulfilment', 'deliveredAt', 'updatedAt'],
+      attributes: ['id', 'deliveryFee', 'priceBreakdown', 'finalPrice', 'paymentMethod', 'fulfilment', 'deliveredAt', 'updatedAt'],
     });
     const { earningPaise } = require('../utils/riderEarnings');
     const days = [];

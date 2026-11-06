@@ -68,3 +68,39 @@ test('rider app (today / history), admin payout list and rider statement agree; 
   assert.equal(Number(sqlRow.s), expectPaise);
   assert.equal(orders.length, FEES.length);
 });
+
+test('a ₹0 delivery fee on an order with a saved bill earns ₹0 (owner, 6 Nov 2026); legacy rows keep ₹30; every view agrees', async () => {
+  const E = H.r('utils/riderEarnings');
+  const bill = { subtotal: 100, deliveryFee: 0, platformFee: 4, packagingFee: 0, taxes: 0, discounts: [], totalDiscount: 0, finalPrice: 104 };
+  assert.equal(E.earningPaise({ deliveryFee: 0, priceBreakdown: bill }), 0);
+  assert.equal(E.earningPaise({ deliveryFee: 0, priceBreakdown: JSON.stringify(bill) }), 0);
+  assert.equal(E.earningPaise({ deliveryFee: 25, priceBreakdown: bill }), 2500);
+  assert.equal(E.earningPaise({ deliveryFee: 0, priceBreakdown: null }), 3000); // legacy (before the saved bill)
+  assert.equal(E.earningPaise({ deliveryFee: 0 }), 3000); // a row without the column reads as legacy
+
+  const d = await H.mkRider();
+  const { store } = await H.mkStore({ price: 100 });
+  const u = await H.mkUser();
+  const now = Date.now();
+  const mk = (fee, withBill, i) => H.ctx.M('Order').create({
+    userId: u.id, restaurantId: store.id, items: [], totalPrice: 100, deliveryFee: fee, finalPrice: 104 + fee, paymentMethod: 'Wallet', paymentStatus: 'Completed',
+    status: 'Delivered', deliveryPartnerId: d.id, deliveredAt: new Date(now - (i + 1) * 60 * 1000), fulfilment: 'ZENVY',
+    ...(withBill ? { priceBreakdown: { ...bill, deliveryFee: fee, finalPrice: 104 + fee } } : {}),
+  });
+  await mk(0, true, 0); // ₹0 store with a saved bill -> ₹0
+  await mk(19, true, 1); // -> ₹19
+  await mk(0, false, 2); // legacy -> ₹30
+  const expectPaise = 0 + 1900 + 3000;
+
+  const today = await api('GET', '/api/delivery/stats/today', d.token);
+  assert.equal(H.toPaise(today.body.earnings), expectPaise);
+  const hist = await api('GET', '/api/delivery/orders/history', d.token);
+  const histRows = Array.isArray(hist.body) ? hist.body : hist.body.orders;
+  assert.equal(H.toPaise(histRows.reduce((s, o) => s + o.riderEarning, 0)), expectPaise);
+  const fleet = await api('GET', '/api/admin/fleet/payouts', admin.token);
+  assert.equal(fleet.body.find((x) => x.riderId === d.id).earningsPaise, expectPaise);
+  const prev = await api('GET', `/api/admin/payouts/preview?partnerType=rider&partnerId=${d.id}`, admin.token);
+  assert.equal(prev.body.grossPaise, expectPaise);
+  const [sqlRow] = await H.ctx.sequelize.query(`SELECT SUM(${E.earningPaiseSql('sqlite')}) AS s FROM "Orders" WHERE "deliveryPartnerId" = :id`, { replacements: { id: d.id }, type: 'SELECT' });
+  assert.equal(Number(sqlRow.s), expectPaise);
+});

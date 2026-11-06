@@ -538,7 +538,10 @@ const connectDB = async () => {
           { name: 'minOrderValue', type: 'FLOAT DEFAULT 0' },
           { name: 'logoUrl', type: 'TEXT' },
           { name: 'deliveryFeeOverride', type: 'INTEGER' },
-          { name: 'settlementCycle', type: "VARCHAR(8) NOT NULL DEFAULT 'weekly'" }
+          { name: 'settlementCycle', type: "VARCHAR(8) NOT NULL DEFAULT 'weekly'" },
+          { name: 'bankAccountNumberEnc', type: 'TEXT' },
+          { name: 'bankName', type: 'VARCHAR(120)' },
+          { name: 'bankBranch', type: 'VARCHAR(120)' }
         ];
         for (const col of restCols) {
           try {
@@ -862,6 +865,17 @@ const connectDB = async () => {
         ['Restaurants', 'deliveryFeeOverride', 'INTEGER'],
         // 2026-11-06 Revenue: settlement cycle per store (utils/revenueReport). Existing stores read as weekly.
         ['Restaurants', 'settlementCycle', "VARCHAR(8) NOT NULL DEFAULT 'weekly'"],
+        // 2026-11-06 store bank transfer details (utils/storeCompliance, utils/payoutSecrets): encrypted account
+        // number, bank name, branch. Nullable: existing stores read as "not set".
+        ['Restaurants', 'bankAccountNumberEnc', 'TEXT'],
+        ['Restaurants', 'bankName', 'VARCHAR(120)'],
+        ['Restaurants', 'bankBranch', 'VARCHAR(120)'],
+        // 2026-11-06 Active testers (utils/appPresence): last / first customer-app use, version, build, platform.
+        ['Users', 'lastSeenAt', 'TIMESTAMP WITH TIME ZONE'],
+        ['Users', 'firstSeenAt', 'TIMESTAMP WITH TIME ZONE'],
+        ['Users', 'lastAppVersion', 'VARCHAR(32)'],
+        ['Users', 'lastAppBuild', 'VARCHAR(16)'],
+        ['Users', 'lastPlatform', 'VARCHAR(16)'],
       ];
       for (const [table, col, type] of pgNewCols) {
         try {

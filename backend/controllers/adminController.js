@@ -558,6 +558,7 @@ const publicRestaurant = (r) => {
   // C8: PAN never leaves the server unmasked; the compliance block carries the FSSAI status for badges.
   const compliance = require('../utils/storeCompliance').privateView(json);
   delete json.pan;
+  delete json.bankAccountNumberEnc; // masked in compliance.bankAccountMasked; full number only via the audited reveal
   return {
     ...json,
     _id: json.id,
@@ -1420,6 +1421,10 @@ exports.updateGlobalConfig = async (req, res) => {
     if (key === require('../utils/appVersionPolicy').POLICY_KEY) {
       return res.status(400).json({ message: 'App versions are edited on Config → App versions (PUT /api/admin/app-versions).' });
     }
+    // Closed-tester phones only through PUT /api/admin/active-users/testers (validated + audited).
+    if (key === require('../utils/activeUsers').TESTERS_KEY) {
+      return res.status(400).json({ message: 'Tester phone numbers are edited on Active testers (PUT /api/admin/active-users/testers).' });
+    }
     // C4: legal settings are only written through PUT /api/admin/legal-settings (validated + audited).
     if (key === require('../utils/legalSettings').KEY) {
       return res.status(400).json({ message: 'Legal settings are edited on Config → Legal (PUT /api/admin/legal-settings).' });
@@ -1641,7 +1646,7 @@ exports.getFinanceReport = async (req, res) => {
 
     const allDelivered = await Order.findAll({
       where: { status: 'Delivered' },
-      attributes: ['totalPrice', 'finalPrice', 'restaurantId', 'deliveryFee', 'platformFee', 'fulfilment', 'deliveryPartnerId', 'commissionAmountPaise'],
+      attributes: ['totalPrice', 'finalPrice', 'restaurantId', 'deliveryFee', 'platformFee', 'priceBreakdown', 'fulfilment', 'deliveryPartnerId', 'commissionAmountPaise'],
       raw: true,
     });
     const restaurants = await Restaurant.findAll({ attributes: ['id', 'name', 'commissionRate', 'commissionType'], raw: true });

@@ -42,6 +42,9 @@ const clearCachedUser = require('../utils/cacheBus').wrap('auth.user', (userId) 
   if (userId !== undefined && userId !== null) for (const cls of ACCOUNT_CLASSES) AUTH_CACHE.delete(cacheKey(cls, userId));
 }, { resync: () => AUTH_CACHE.clear() });
 
+// Active testers: last customer-app use on the User row (throttled, fire-and-forget, never fails a request).
+const noteSeen = (req) => { try { require('../utils/appPresence').noteSeen(req); } catch { /* never blocks sign-in */ } };
+
 const JWT_ERRORS = ['JsonWebTokenError', 'TokenExpiredError', 'NotBeforeError'];
 
 // An inactive account: deleted (role 'deleted', services/accountDeletion) -> 401 so every signed-in device signs out;
@@ -92,6 +95,7 @@ const protect = async (req, res, next) => {
       const { tokenVersion: _tv, twoFactorEnabled: _tf, ...user } = cached;
       // S1: an admin session without the 2-step claim has no admin powers when 2FA is on / required.
       req.user = tokenClass === 'user' ? require('../services/adminTwoFactor').applyTo(user, decoded, _tf) : user;
+      if (tokenClass === 'user') noteSeen(req);
       return next();
     }
     
@@ -151,6 +155,7 @@ const protect = async (req, res, next) => {
       const twoFactorEnabled = String(userPayload.role).toLowerCase() === 'admin' ? await tf.isEnabled(dbUser.id) : false;
       req.user = tf.applyTo(userPayload, decoded, twoFactorEnabled);
       setCachedUser('user', decoded.id, { ...userPayload, tokenVersion: Number(dbUser.tokenVersion) || 0, twoFactorEnabled });
+      noteSeen(req);
     } else {
       req.user = decoded;
     }

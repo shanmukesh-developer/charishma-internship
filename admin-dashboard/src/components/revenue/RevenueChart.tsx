@@ -8,9 +8,9 @@ import { rupees, type RevenueReport } from './revenueModel';
 
 type Metric = 'collectedPaise' | 'keepsPaise' | 'owedPaise';
 const METRICS: { value: Metric; label: string }[] = [
-  { value: 'collectedPaise', label: 'Collected' },
+  { value: 'collectedPaise', label: 'Customers paid' },
   { value: 'keepsPaise', label: 'ZenWe keeps' },
-  { value: 'owedPaise', label: 'Owed to stores' },
+  { value: 'owedPaise', label: 'Store gets' },
 ];
 
 export default function RevenueChart({ series, highlight }: { series: RevenueReport['series']; highlight?: { start: string; end: string } }) {
@@ -34,7 +34,7 @@ export default function RevenueChart({ series, highlight }: { series: RevenueRep
         <div className="max-h-72 overflow-auto rounded-md border border-line">
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-surface-2 text-xs text-fg-muted">
-              <tr><th className="px-3 py-1.5 text-left font-medium">Day</th><th className="px-3 py-1.5 text-right font-medium">Orders</th><th className="px-3 py-1.5 text-right font-medium">Collected</th><th className="px-3 py-1.5 text-right font-medium">ZenWe keeps</th><th className="px-3 py-1.5 text-right font-medium">Owed to stores</th></tr>
+              <tr><th className="px-3 py-1.5 text-left font-medium">Day</th><th className="px-3 py-1.5 text-right font-medium">Orders</th><th className="px-3 py-1.5 text-right font-medium">Customers paid</th><th className="px-3 py-1.5 text-right font-medium">ZenWe keeps</th><th className="px-3 py-1.5 text-right font-medium">Store gets</th></tr>
             </thead>
             <tbody className="divide-y divide-line">
               {series.map(d => (

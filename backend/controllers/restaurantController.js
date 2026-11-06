@@ -39,6 +39,7 @@ const publicStoreJson = (restaurant) => {
   // C8: the owner's own compliance details (PAN masked, never the full number).
   const compliance = require('../utils/storeCompliance').privateView(json);
   delete json.pan;
+  delete json.bankAccountNumberEnc;
   const state = getStoreOpenState(restaurant);
   return {
     ...json,

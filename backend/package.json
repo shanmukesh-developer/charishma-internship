@@ -32,7 +32,8 @@
     "test:tv": "node tests/tv/run.js",
     "test:promo": "node tests/promo/run.js",
     "test:ordernum": "node tests/ordernum/run.js",
-    "test:revenue": "node tests/revenue/run.js"
+    "test:revenue": "node tests/revenue/run.js",
+    "test:presence": "node tests/presence/run.js"
   },
   "keywords": [],
   "author": "",

@@ -80,21 +80,25 @@ test('mixed day: every number, COD vs Wallet vs stall cash, flat + percentage co
   assert.equal(t.storeSharePaise, 18000 + 8450 + 13200 + 7200 + 6000);
   assert.equal(t.counterPaidPaise, 6000);
   assert.equal(t.stallCashPaise, 8500);
-  assert.equal(t.riderPayPaise, 1900 + 1900 + 2500 + 1900);
+  // Delivery fees are ZenWe income (owner, 6 Nov 2026): no rider pay is taken off what ZenWe keeps.
+  assert.equal(t.riderPayPaise, undefined);
   assert.equal(t.deliveryFeesPaise, 1900 + 1900 + 2500 + 1900);
   assert.equal(t.platformFeesPaise, 400 * 4);
   assert.equal(t.packagingFeesPaise, 500);
   assert.equal(t.discounts.coupon, 3000);
   assert.equal(t.discounts.perks, 1000);
-  assert.equal(t.keepsPaise, 2400 + 900 - 800 + 1300 + 400);
+  // Per order (commission + fees - discounts): A 2000+1900+400, B 1500+1900+400-1000, S 800+500 (stall: no fees),
+  // R 0+1900+400 (buy-at-store), C 1800+2500+400-3000.
+  assert.equal(t.keepsPaise, (2000 + 1900 + 400) + (1500 + 1900 + 400 - 1000) + (800 + 500) + (1900 + 400) + (1800 + 2500 + 400 - 3000));
+  assert.equal(r.body.keepsLines.find((l) => l.key === 'riderPay'), undefined);
   assert.equal(t.owedPaise, 18000 + 8450 + 13200 - 1300);
   assert.equal(t.pendingPaise, t.owedPaise);
   assert.equal(t.settledPaise, 0);
-  // Reconciliation: collected - refunds = store share + keeps + rider pay, exactly.
+  // Reconciliation: collected - refunds = store share + keeps, exactly.
   assert.equal(r.body.reconciliation.ok, true, JSON.stringify(r.body.reconciliation));
   assert.equal(r.body.reconciliation.differencePaise, 0);
   assert.equal(r.body.reconciliation.mismatches.length, 0);
-  assert.equal(t.collectedPaise - t.refundsPaise, t.storeSharePaise + t.keepsPaise + t.riderPayPaise);
+  assert.equal(t.collectedPaise - t.refundsPaise, t.storeSharePaise + t.keepsPaise);
   // The keeps lines add up to the keeps total.
   assert.equal(r.body.keepsLines.reduce((s, l) => s + l.paise, 0), t.keepsPaise);
 
@@ -209,7 +213,7 @@ test('a wallet refund on a delivered order comes off collected and off what ZenW
   const t = r.body.totals;
   assert.equal(t.refundsPaise, 5000);
   assert.equal(t.storeSharePaise, 9000);
-  assert.equal(t.keepsPaise, 1000 + 1900 + 400 - 1900 - 5000);
+  assert.equal(t.keepsPaise, 1000 + 1900 + 400 - 5000);
   assert.equal(r.body.reconciliation.ok, true, JSON.stringify(r.body.reconciliation));
 });
 

@@ -49,6 +49,15 @@ export interface WizardState {
   commissionRate: string;
   /** How often ZenWe settles this store (Revenue > Settle all). */
   settlementCycle: 'daily' | 'weekly' | 'monthly';
+  /** Payment details: where ZenWe sends this store's money (validated + audited server side, utils/storeCompliance).
+   * The account number is write-only: typed twice, stored encrypted, shown only as ••••1234. */
+  payUpiId: string;
+  bankHolder: string;
+  bankNumber: string;
+  bankNumberAgain: string;
+  bankIfsc: string;
+  bankName: string;
+  bankBranch: string;
   /** "Add campus stall": created with In-Campus Booking on (create only; later changes live in the stall's
    * In-Campus Booking tab). Students pre-book and collect at the stall, paying it by UPI. */
   campusBooking: boolean;
@@ -85,6 +94,7 @@ const emptyState = (): WizardState => ({
   imageUrl: '', brandOn: false, logoUrl: '', primaryColor: '#E23744', secondaryColor: '#111111', accentColor: '#FFC72C',
   weekly: uniformWeekly('09:00', '22:00'), isOpenNow: true, deliveryTime: '30',
   managedByZenvy: false, password: '', loginPhone: '', packagingFee: '', minOrderValue: '', deliveryFeeOverride: '', commissionType: 'percentage', commissionRate: '10', settlementCycle: 'weekly',
+  payUpiId: '', bankHolder: '', bankNumber: '', bankNumberAgain: '', bankIfsc: '', bankName: '', bankBranch: '',
   campusBooking: false, upiId: '', upiName: '', prepMinutes: '',
 });
 
@@ -120,6 +130,8 @@ export function stateFromStore(s: Store): WizardState {
     commissionType: s.commissionType === 'flat' ? 'flat' : 'percentage',
     commissionRate: String(s.commissionRate ?? 10),
     settlementCycle: s.settlementCycle === 'daily' || s.settlementCycle === 'monthly' ? s.settlementCycle : 'weekly',
+    payUpiId: s.payoutUpiId || '', bankHolder: s.bankAccountHolder || '', bankNumber: '', bankNumberAgain: '',
+    bankIfsc: s.bankIfsc || '', bankName: s.bankName || '', bankBranch: s.bankBranch || '',
     // An existing In-Campus stall keeps its wording when edited (its booking settings live in its In-Campus tab).
     campusBooking: isBookingStall(s), upiId: '', upiName: '', prepMinutes: '',
   };
@@ -195,6 +207,17 @@ function validateStep(step: StepKey, s: WizardState, mode: 'create' | 'edit'): E
     const n = Number(s.commissionRate);
     const max = s.commissionType === 'flat' ? 1000 : 100;
     if (s.commissionRate.trim() === '' || !Number.isFinite(n) || n < 0 || n > max) e.commissionRate = s.commissionType === 'flat' ? 'Between ₹0 and ₹1,000 per order.' : 'Between 0% and 100%.';
+    // Payment details (mirrors backend utils/storeCompliance; the server checks again).
+    const upi = s.payUpiId.trim().toLowerCase();
+    if (upi && !UPI_RE.test(upi)) e.payUpiId = 'UPI ID must look like name@bank.';
+    const acct = s.bankNumber.replace(/[\s-]/g, '');
+    if (acct && !/^\d{9,18}$/.test(acct)) e.bankNumber = 'Bank account number must be 9 to 18 digits.';
+    else if (acct && s.bankNumberAgain.replace(/[\s-]/g, '') !== acct) e.bankNumberAgain = 'The two account numbers do not match.';
+    if (s.bankIfsc.trim() && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(s.bankIfsc.trim().toUpperCase())) e.bankIfsc = 'IFSC is 11 characters: 4 letters, 0, then 6 letters or digits (e.g. SBIN0001234).';
+    for (const k of ['bankHolder', 'bankName', 'bankBranch'] as const) {
+      const v = s[k].trim();
+      if (v && (v.length < 2 || v.length > 120)) e[k] = 'Must be 2 to 120 characters.';
+    }
   }
   return e;
 }
@@ -232,6 +255,19 @@ export function buildPayload(s: WizardState, existing: Store | null): Record<str
   };
   if (s.zone.trim()) body.zone = s.zone.trim();
   else if (existing && existing.zone) body.zone = null; // emptied: the server puts back the default zone
+  if (!local) {
+    // Payment details: only what changed (the server ignores no-op writes and audits the rest, masked).
+    const pay: [string, string, string | null | undefined][] = [
+      ['payoutUpiId', s.payUpiId.trim().toLowerCase(), existing?.payoutUpiId],
+      ['bankAccountHolder', s.bankHolder.trim().replace(/\s+/g, ' '), existing?.bankAccountHolder],
+      ['bankIfsc', s.bankIfsc.trim().toUpperCase(), existing?.bankIfsc],
+      ['bankName', s.bankName.trim().replace(/\s+/g, ' '), existing?.bankName],
+      ['bankBranch', s.bankBranch.trim().replace(/\s+/g, ' '), existing?.bankBranch],
+    ];
+    for (const [k, v, before] of pay) if (v !== (before || '')) body[k] = v || null;
+    const acct = s.bankNumber.replace(/[\s-]/g, '');
+    if (acct) { body.bankAccountNumber = acct; body.bankAccountNumberConfirm = s.bankNumberAgain.replace(/[\s-]/g, ''); }
+  }
   if (s.password.trim()) body.password = s.password.trim();
   return body;
 }
@@ -1004,7 +1040,44 @@ function CommissionStep({ s, set, errors }: StepProps) {
         </dl>
         <p className="mt-3 text-xs text-fg-muted">Payments are Cash on Delivery or ZenWe Wallet. Delivered orders are settled to the partner from Revenue → Settle all (or Finance → Payouts).</p>
       </section>
+      <PaymentDetailsFields s={s} set={set} errors={errors} />
     </div>
+  );
+}
+
+/** Where ZenWe sends this partner's money: UPI ID and / or bank account. Both optional; at least one is needed
+ * before a statement can be marked paid on the Revenue page. */
+function PaymentDetailsFields({ s, set, errors }: StepProps) {
+  const text = (k: 'payUpiId' | 'bankHolder' | 'bankIfsc' | 'bankName' | 'bankBranch', label: string, help?: string, extra: { maxLength?: number; upper?: boolean } = {}) => (
+    <Field label={label} optional error={errors[k]} help={help}>
+      {({ id, msgId, invalid }) => (
+        <input id={id} aria-describedby={msgId} aria-invalid={invalid} autoComplete="off" maxLength={extra.maxLength ?? 120} className={INPUT}
+          value={s[k]} onChange={e => set({ [k]: extra.upper ? e.target.value.toUpperCase() : e.target.value } as Partial<WizardState>)} />
+      )}
+    </Field>
+  );
+  return (
+    <section className="space-y-4 rounded-xl border border-line p-4" aria-labelledby="pay-details-title">
+      <div>
+        <h3 id="pay-details-title" className="text-sm font-semibold">Payment details</h3>
+        <p className="mt-0.5 text-xs text-fg-muted">Where ZenWe sends this partner&apos;s money. Add a UPI ID, a bank account, or both. Only admins can change these, and every change is recorded.</p>
+      </div>
+      {text('payUpiId', 'UPI ID', 'Like name@bank.', { maxLength: 256 })}
+      <div className="grid gap-4 sm:grid-cols-2">
+        {text('bankHolder', 'Account holder name')}
+        {text('bankIfsc', 'IFSC', '11 characters, e.g. SBIN0001234.', { maxLength: 11, upper: true })}
+        {text('bankName', 'Bank name', 'e.g. State Bank of India.')}
+        {text('bankBranch', 'Branch')}
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Account number" optional error={errors.bankNumber} help="9 to 18 digits. Saved encrypted; shown later as ••••1234. Leave empty to keep the one on file.">
+          {({ id, msgId, invalid }) => <input id={id} aria-describedby={msgId} aria-invalid={invalid} autoComplete="off" inputMode="numeric" maxLength={24} className={INPUT} value={s.bankNumber} onChange={e => set({ bankNumber: e.target.value.replace(/[^\d\s-]/g, '') })} />}
+        </Field>
+        <Field label="Account number again" optional error={errors.bankNumberAgain} help="Type it again to make sure it is right.">
+          {({ id, msgId, invalid }) => <input id={id} aria-describedby={msgId} aria-invalid={invalid} autoComplete="off" inputMode="numeric" maxLength={24} disabled={!s.bankNumber.trim()} className={INPUT} value={s.bankNumberAgain} onPaste={e => e.preventDefault()} onChange={e => set({ bankNumberAgain: e.target.value.replace(/[^\d\s-]/g, '') })} />}
+        </Field>
+      </div>
+    </section>
   );
 }
 

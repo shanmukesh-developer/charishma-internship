@@ -57,7 +57,7 @@ const deliveredBetween = (from, to) => {
 const storeKind = (store) => (isLocalVendorStore(store) ? 'vendor' : 'restaurant');
 
 const STORE_ORDER_ATTRS = ['id', 'restaurantId', 'fulfilment', 'finalPrice', 'totalPrice', 'commissionAmountPaise', 'storeNetPaise', 'commissionRate', 'commissionType', 'deliveredAt', 'updatedAt', 'paymentMethod'];
-const RIDER_ORDER_ATTRS = ['id', 'deliveryPartnerId', 'fulfilment', 'deliveryFee', 'finalPrice', 'paymentMethod', 'deliveredAt', 'updatedAt'];
+const RIDER_ORDER_ATTRS = ['id', 'deliveryPartnerId', 'fulfilment', 'deliveryFee', 'priceBreakdown', 'finalPrice', 'paymentMethod', 'deliveredAt', 'updatedAt'];
 
 /** One store order's statement line (paise). */
 const storeLine = (o) => {

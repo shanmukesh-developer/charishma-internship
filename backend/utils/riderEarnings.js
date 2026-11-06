@@ -2,8 +2,12 @@
 // history / order payloads / delivered reply), the admin rider payout list, rider payout statements and
 // DeliveryPartner.totalEarnings.
 //
-// Rule (unchanged from what the rider app has always shown, utils/riderDispatch.riderPayout):
-//   earning = the order's stored delivery fee when it is > 0, otherwise the base fee ₹30.
+// Rule:
+//   earning = the order's stored delivery fee.
+//   A fee of ₹0 earns ₹0 (owner, 6 Nov 2026: a store with a ₹0 special delivery price must not cost ZenWe ₹30
+//   per order). The old "₹30 when the fee is 0" fallback is kept ONLY for legacy orders saved before the
+//   server-computed bill existed (Order.priceBreakdown is null), so old history and old statements do not change.
+//   Callers must load 'priceBreakdown' with 'deliveryFee' (EARNING_ATTRS); a row without the key is read as legacy.
 //   Stall orders (fulfilment 'VENDOR') have no Zenvy rider and earn nothing.
 //   Tips are separate (rider wallet, C5 ledger) and are never part of the per-order earning.
 //   Cash a rider collects for COD orders is separate too (rider cash ledger, utils/riderCash): it is
@@ -28,11 +32,18 @@ const toPaise = (rupees) => {
 
 const isStallOrder = (order) => String((order && order.fulfilment) || '').toUpperCase() === 'VENDOR';
 
+/** The Order columns earningPaise reads (add them to every query whose rows are passed in). */
+const EARNING_ATTRS = ['deliveryFee', 'fulfilment', 'priceBreakdown'];
+
+/** True for an order saved before the server bill (Order.priceBreakdown) existed. */
+const isLegacyOrder = (order) => order.priceBreakdown === null || order.priceBreakdown === undefined || order.priceBreakdown === '';
+
 /** What the rider earns for this order, in paise. */
 const earningPaise = (order) => {
   if (!order || isStallOrder(order)) return 0;
   const fee = toPaise(order.deliveryFee);
-  return fee > 0 ? fee : BASE_DELIVERY_FEE_PAISE;
+  if (fee > 0) return fee;
+  return isLegacyOrder(order) ? BASE_DELIVERY_FEE_PAISE : 0;
 };
 
 /** Same, in rupees (the rider app and older code read rupees). */
@@ -45,10 +56,10 @@ const sumEarningsPaise = (orders) => (orders || []).reduce((s, o) => s + earning
  * The same rule as a SQL expression (per row, paise) for aggregates: SUM(<this>).
  * floor(x*100 + 0.5) like toPaise; SQLite has no FLOOR before 3.35 (CAST truncates toward zero).
  */
-const earningPaiseSql = (dialect, feeCol = '"deliveryFee"', fulfilmentCol = '"fulfilment"') => {
+const earningPaiseSql = (dialect, feeCol = '"deliveryFee"', fulfilmentCol = '"fulfilment"', billCol = '"priceBreakdown"') => {
   const v = `(COALESCE(${feeCol}, 0) * 100 + 0.5)`;
   const paise = dialect === 'postgres' ? `FLOOR(${v})` : `(CAST(${v} AS INTEGER) - (CASE WHEN ${v} < CAST(${v} AS INTEGER) THEN 1 ELSE 0 END))`;
-  return `(CASE WHEN UPPER(COALESCE(${fulfilmentCol}, '')) = 'VENDOR' THEN 0 WHEN ${paise} > 0 THEN ${paise} ELSE ${BASE_DELIVERY_FEE_PAISE} END)`;
+  return `(CASE WHEN UPPER(COALESCE(${fulfilmentCol}, '')) = 'VENDOR' THEN 0 WHEN ${paise} > 0 THEN ${paise} WHEN ${billCol} IS NULL THEN ${BASE_DELIVERY_FEE_PAISE} ELSE 0 END)`;
 };
 
-module.exports = { BASE_DELIVERY_FEE, BASE_DELIVERY_FEE_PAISE, toPaise, earningPaise, earningRupees, sumEarningsPaise, earningPaiseSql, isStallOrder };
+module.exports = { BASE_DELIVERY_FEE, BASE_DELIVERY_FEE_PAISE, EARNING_ATTRS, isLegacyOrder, toPaise, earningPaise, earningRupees, sumEarningsPaise, earningPaiseSql, isStallOrder };

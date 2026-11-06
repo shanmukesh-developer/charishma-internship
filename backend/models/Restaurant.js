@@ -109,7 +109,8 @@ const initRestaurantModel = (sequelize) => {
     fssaiVerifiedBy: { type: DataTypes.STRING(64), allowNull: true }, // admin user id
     gstin: { type: DataTypes.STRING(15), allowNull: true },
     // PRIVATE (never in public reads: utils/publicFields STORE_PRIVATE_FIELDS). PAN is shown masked only.
-    // Payout: UPI ID and bank last-4 + IFSC only. A full bank account number is never stored.
+    // Payout: UPI ID; bank account holder, number (ENCRYPTED in bankAccountNumberEnc, utils/payoutSecrets; owner
+    // decision 6 Nov 2026 so stores can be paid by bank transfer), its last 4 digits, IFSC, bank name, branch.
     pan: { type: DataTypes.STRING(10), allowNull: true },
     payoutUpiId: { type: DataTypes.STRING(120), allowNull: true },
     // Revenue (6 Nov 2026): how often ZenWe settles this store: 'daily' | 'weekly' | 'monthly' (utils/revenueReport
@@ -118,6 +119,9 @@ const initRestaurantModel = (sequelize) => {
     bankAccountHolder: { type: DataTypes.STRING(120), allowNull: true },
     bankAccountLast4: { type: DataTypes.STRING(4), allowNull: true },
     bankIfsc: { type: DataTypes.STRING(11), allowNull: true },
+    bankAccountNumberEnc: { type: DataTypes.TEXT, allowNull: true }, // 'pd1:...' AES-256-GCM; never sent to any client
+    bankName: { type: DataTypes.STRING(120), allowNull: true },
+    bankBranch: { type: DataTypes.STRING(120), allowNull: true },
     // ── In-Campus Booking (modules/campusBooking; all nullable, added on boot by addMissingColumns) ──
     // Admin switch per stall. While on (and a UPI ID is set) students can book the stall for pickup and pay
     // the stall directly by UPI. The UPI ID / QR are shown only on a student's own booking payment screen

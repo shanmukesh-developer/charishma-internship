@@ -33,6 +33,13 @@ const initUserModel = (sequelize) => {
     // Push categories this account switched off in the app (",offers,campus,"; utils/pushCategories).
     // Added on boot by addMissingColumns.
     pushMutes: { type: DataTypes.STRING(80), allowNull: true },
+    // Active testers (utils/appPresence): when this account last used the customer app and with which version.
+    // Admin-only (never in sanitizeUser or any public payload). Added on boot (config/db.js).
+    lastSeenAt: { type: DataTypes.DATE, allowNull: true },
+    firstSeenAt: { type: DataTypes.DATE, allowNull: true },
+    lastAppVersion: { type: DataTypes.STRING(32), allowNull: true },
+    lastAppBuild: { type: DataTypes.STRING(16), allowNull: true },
+    lastPlatform: { type: DataTypes.STRING(16), allowNull: true },
     address: { type: DataTypes.STRING, allowNull: true },
     city: { type: DataTypes.STRING, defaultValue: 'Amaravathi' },
     profileImage: { type: DataTypes.TEXT, allowNull: true },

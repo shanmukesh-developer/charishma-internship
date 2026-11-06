@@ -7,7 +7,7 @@ export type NavIcon =
   | 'home' | 'orders' | 'basket' | 'store' | 'catalogue' | 'rider' | 'pg' | 'events' | 'auto' | 'bike'
   | 'car' | 'services' | 'users' | 'school' | 'wallet' | 'ticket' | 'tag' | 'gift' | 'bell' | 'layout'
   | 'pulse' | 'pin' | 'trophy' | 'message' | 'image' | 'shield' | 'heart' | 'chart' | 'star'
-  | 'settings' | 'lock' | 'history' | 'revenue';
+  | 'settings' | 'lock' | 'history' | 'revenue' | 'testers';
 
 export interface NavItem {
   href: string;
@@ -77,6 +77,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: 'Customers & wallet',
     items: [
       { href: '/users', label: 'Customers', icon: 'users', description: 'Customer accounts, wallet balance and bans.', keywords: 'users students customers residents ban wallet' },
+      { href: '/active-users', label: 'Active testers', icon: 'testers', description: 'Who opened the customer app today or this week, on which version; Play closed testers by phone.', keywords: 'active users testers closed testing play store last seen opened installed app version build inactive' },
       { href: '/student-verification', label: 'Student verification', icon: 'school', description: 'College ID checks waiting for review.', keywords: 'student id verification college' },
       { href: '/finance', label: 'Payments and payouts', icon: 'wallet', description: 'Revenue, store and rider payouts, rider cash and disputes.', keywords: 'finance payouts settlements disputes refunds rider cash wallet ledger' },
       { href: '/tickets', label: 'Support tickets', icon: 'ticket', description: 'Help requests from customers, riders and stores.', keywords: 'support help tickets complaints' },

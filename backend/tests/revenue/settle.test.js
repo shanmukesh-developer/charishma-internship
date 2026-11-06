@@ -41,6 +41,7 @@ test('settle all (weekly): one statement per store up to last Sunday; idempotent
   const { store: D } = await H.mkStore({ rate: 10 });
   const { store: T } = await H.mkStore({ rate: 10 });
   await D.update({ settlementCycle: 'daily' });
+  await A.update({ payoutUpiId: 'storea@okaxis' }); // Mark paid needs somewhere to send the money (UPI or bank)
   await T.update({ isTestData: true });
   const a1 = await delivered({ store: A, user: u, total: 200, at: old });
   const a2 = await delivered({ store: A, user: u, total: 100, at: old });

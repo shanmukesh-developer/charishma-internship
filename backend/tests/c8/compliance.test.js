@@ -45,11 +45,15 @@ test('unit: GSTIN / PAN / UPI / IFSC / licence type / expiry formats', () => {
   assert.throws(() => normalizeField('legalName', '<b>x</b>'), ComplianceInputError);
 });
 
-test('unit: a full bank account number is reduced to its last 4 digits; PAN "" means unchanged', () => {
+test('unit: a full bank account number (typed twice) is stored encrypted + last 4 digits; PAN "" means unchanged', () => {
+  // Owner decision 6 Nov 2026: stores are paid by bank transfer too, so the full number is kept ENCRYPTED
+  // (utils/payoutSecrets). It was previously reduced to its last 4 digits.
   const { validateCompliance } = comp();
-  const { patch } = validateCompliance({ bankAccountNumber: '1234 5678 9012 3456' }, {}, { actor: 'admin' });
-  assert.deepStrictEqual(patch, { bankAccountLast4: '3456' });
+  const { patch } = validateCompliance({ bankAccountNumber: '1234 5678 9012 3456', bankAccountNumberConfirm: '1234567890123456' }, {}, { actor: 'admin' });
+  assert.strictEqual(patch.bankAccountLast4, '3456');
   assert.ok(!('bankAccountNumber' in patch));
+  assert.ok(/^pd1:/.test(patch.bankAccountNumberEnc) && !patch.bankAccountNumberEnc.includes('1234567890123456'));
+  assert.strictEqual(H.r('utils/payoutSecrets').decryptAccount(patch.bankAccountNumberEnc), '1234567890123456');
   const { patch: p2 } = validateCompliance({ pan: '' }, { pan: 'ABCDE1234F' }, { actor: 'admin' });
   assert.deepStrictEqual(p2, {});
   const { patch: p3 } = validateCompliance({ pan: null }, { pan: 'ABCDE1234F' }, { actor: 'admin' });
@@ -116,7 +120,7 @@ test('admin edit: every field, validated, audited with PAN / UPI masked; PAN nev
   const num = H.fakeFssai();
   const res = await H.api('PUT', `/api/admin/restaurants/${store.id}/compliance`, admin.token, {
     legalName: 'C8 Admin Foods LLP', fssaiLicenseNumber: num, fssaiLicenseType: 'STATE', fssaiExpiry: '2030-12-31', gstin: '37ABCDE1234F1Z5',
-    pan: 'PQRST6789K', payoutUpiId: 'c8kitchen@okaxis', bankAccountHolder: 'C8 Admin Foods', bankAccountNumber: '000123456789', bankIfsc: 'SBIN0001234',
+    pan: 'PQRST6789K', payoutUpiId: 'c8kitchen@okaxis', bankAccountHolder: 'C8 Admin Foods', bankAccountNumber: '000123456789', bankAccountNumberConfirm: '000123456789', bankIfsc: 'SBIN0001234',
   });
   assert.strictEqual(res.status, 200, JSON.stringify(res.body));
   assert.strictEqual(res.body.compliance.panMasked, 'XXXXXX789K');
@@ -126,7 +130,8 @@ test('admin edit: every field, validated, audited with PAN / UPI masked; PAN nev
   const row = await H.ctx.M('Restaurant').findByPk(store.id, { raw: true });
   assert.strictEqual(row.pan, 'PQRST6789K');
   assert.strictEqual(row.bankAccountLast4, '6789');
-  assert.ok(!Object.values(row).some((v) => String(v).includes('000123456789')), 'full account number never stored');
+  assert.ok(!Object.values(row).some((v) => String(v).includes('000123456789')), 'full account number never stored in clear');
+  assert.ok(/^pd1:/.test(row.bankAccountNumberEnc), 'stored encrypted');
 
   const logs = await H.auditRows('STORE_COMPLIANCE_UPDATED', store.id);
   assert.strictEqual(logs.length, 1);

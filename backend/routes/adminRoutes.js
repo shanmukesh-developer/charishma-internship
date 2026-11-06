@@ -98,6 +98,8 @@ router.use(admin);
 // Revenue (6 Nov 2026): period report (collected / ZenWe keeps / owed to stores, reconciled), settlement
 // cycles and Settle all (routes/revenueRoutes, utils/revenueReport). Admin only (protect + admin above).
 router.use('/revenue', require('./revenueRoutes'));
+// Active testers (6 Nov 2026): who uses the customer app, which version; the Play closed-tester phone list.
+router.use('/active-users', require('./activeUsersRoutes'));
 
 // Mailer check: sends one demo email through Brevo so the admin can confirm BREVO_API_KEY/MAIL_FROM work.
 router.post('/mail/test', async (req, res) => {

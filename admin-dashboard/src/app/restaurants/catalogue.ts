@@ -87,6 +87,8 @@ export interface Store {
   bankAccountHolder?: string | null;
   bankAccountLast4?: string | null;
   bankIfsc?: string | null;
+  bankName?: string | null;
+  bankBranch?: string | null;
   panMasked?: string | null;
   compliance?: StoreCompliance | null;
 }
@@ -113,6 +115,10 @@ export interface StoreCompliance {
   bankAccountHolder: string | null;
   bankAccountLast4: string | null;
   bankIfsc: string | null;
+  bankName?: string | null;
+  bankBranch?: string | null;
+  bankAccountMasked?: string | null;
+  hasFullBankAccount?: boolean;
 }
 
 export const FSSAI_STATUS_META: Record<FssaiStatus, { label: string; tone: 'green' | 'amber' | 'red' | 'sky'; help: string }> = {

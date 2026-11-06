@@ -45,7 +45,7 @@ const owedToRider = async (sequelize, riderId) => {
   const Order = sequelize.models.Order;
   const rows = await Order.findAll({
     where: { deliveryPartnerId: riderId, status: 'Delivered', riderPayoutSettled: { [Op.not]: true } },
-    attributes: ['id', 'deliveryFee', 'fulfilment', 'riderPayoutId'], raw: true,
+    attributes: ['id', 'deliveryFee', 'fulfilment', 'priceBreakdown', 'riderPayoutId'], raw: true,
   });
   const unsettled = rows.reduce((s, o) => s + earningPaise(o), 0);
   const onStatement = rows.filter((o) => o.riderPayoutId).reduce((s, o) => s + earningPaise(o), 0);
@@ -91,7 +91,7 @@ exports.getRiderCashHoldings = async (req, res) => {
     });
     const owedRows = await sequelize.models.Order.findAll({
       where: { deliveryPartnerId: { [Op.in]: riders.map((r) => r.id) }, status: 'Delivered', riderPayoutSettled: { [Op.not]: true } },
-      attributes: ['deliveryPartnerId', 'deliveryFee', 'fulfilment'], raw: true,
+      attributes: ['deliveryPartnerId', 'deliveryFee', 'fulfilment', 'priceBreakdown'], raw: true,
     });
     const owed = new Map();
     for (const o of owedRows) owed.set(String(o.deliveryPartnerId), (owed.get(String(o.deliveryPartnerId)) || 0) + earningPaise(o));
@@ -332,7 +332,7 @@ exports.getPayout = async (req, res) => {
     const col = p.partnerType === 'rider' ? 'riderPayoutId' : 'payoutId';
     const orders = await sequelize.models.Order.findAll({
       where: { [col]: p.id },
-      attributes: ['id', 'deliveredAt', 'updatedAt', 'totalPrice', 'finalPrice', 'deliveryFee', 'fulfilment', 'paymentMethod', 'commissionRate', 'commissionType', 'commissionAmountPaise', 'storeNetPaise'],
+      attributes: ['id', 'deliveredAt', 'updatedAt', 'totalPrice', 'finalPrice', 'deliveryFee', 'priceBreakdown', 'fulfilment', 'paymentMethod', 'commissionRate', 'commissionType', 'commissionAmountPaise', 'storeNetPaise'],
       order: [['deliveredAt', 'ASC']], raw: true,
     });
     const lines = orders.map((o) => (p.partnerType === 'rider'

@@ -1,7 +1,9 @@
 "use client";
 // C8 seller compliance: legal name, FSSAI licence, GSTIN, PAN (write-only, shown masked), payout UPI and bank
 // details. Saved with PUT /api/admin/restaurants/:id/compliance (validated + audited server side); FSSAI checked
-// with POST /api/admin/restaurants/:id/fssai-verification. The full PAN / bank account number is never shown.
+// with POST /api/admin/restaurants/:id/fssai-verification. The full PAN is never shown. The bank account number
+// (6 Nov 2026: stores are paid by bank too) is typed twice, stored encrypted and shown here only as ••••1234;
+// admins can reveal it on the Revenue page (audited).
 import { useEffect, useMemo, useState } from 'react';
 import {
   FSSAI_STATUS_META, FssaiLicenseType, Store, StoreCompliance, adminRequest, fssaiStatusOf, storeId,
@@ -9,11 +11,11 @@ import {
 import { ApiError } from '@/lib/api';
 import { Button, Callout, Chip, Field, INPUT, SELECT, cx, useToast } from './ui';
 
-type FormKey = 'legalName' | 'fssaiLicenseNumber' | 'fssaiLicenseType' | 'fssaiExpiry' | 'gstin' | 'payoutUpiId' | 'bankAccountHolder' | 'bankIfsc';
+type FormKey = 'legalName' | 'fssaiLicenseNumber' | 'fssaiLicenseType' | 'fssaiExpiry' | 'gstin' | 'payoutUpiId' | 'bankAccountHolder' | 'bankIfsc' | 'bankName' | 'bankBranch';
 type Form = Record<FormKey, string>;
-type ErrorKey = FormKey | 'pan' | 'bankAccountNumber' | 'bankAccountLast4';
+type ErrorKey = FormKey | 'pan' | 'bankAccountNumber' | 'bankAccountNumberConfirm' | 'bankAccountLast4';
 
-const FORM_KEYS: FormKey[] = ['legalName', 'fssaiLicenseNumber', 'fssaiLicenseType', 'fssaiExpiry', 'gstin', 'payoutUpiId', 'bankAccountHolder', 'bankIfsc'];
+const FORM_KEYS: FormKey[] = ['legalName', 'fssaiLicenseNumber', 'fssaiLicenseType', 'fssaiExpiry', 'gstin', 'payoutUpiId', 'bankAccountHolder', 'bankIfsc', 'bankName', 'bankBranch'];
 const FSSAI_KEYS: FormKey[] = ['fssaiLicenseNumber', 'fssaiLicenseType', 'fssaiExpiry'];
 const FSSAI_TYPES: { value: FssaiLicenseType; label: string }[] = [
   { value: 'BASIC', label: 'Basic (registration)' },
@@ -50,6 +52,8 @@ export function complianceOf(store: Store): StoreCompliance {
     bankAccountHolder: store.bankAccountHolder ?? null,
     bankAccountLast4: store.bankAccountLast4 ?? null,
     bankIfsc: store.bankIfsc ?? null,
+    bankName: store.bankName ?? null,
+    bankBranch: store.bankBranch ?? null,
   };
 }
 
@@ -62,6 +66,8 @@ const formFrom = (c: StoreCompliance): Form => ({
   payoutUpiId: c.payoutUpiId || '',
   bankAccountHolder: c.bankAccountHolder || '',
   bankIfsc: c.bankIfsc || '',
+  bankName: c.bankName || '',
+  bankBranch: c.bankBranch || '',
 });
 
 const norm = (k: FormKey, v: string) => {
@@ -69,11 +75,11 @@ const norm = (k: FormKey, v: string) => {
   if (k === 'fssaiLicenseNumber') return t.replace(/[\s-]/g, '');
   if (k === 'gstin' || k === 'bankIfsc') return t.toUpperCase().replace(/\s/g, '');
   if (k === 'payoutUpiId') return t.toLowerCase();
-  if (k === 'legalName' || k === 'bankAccountHolder') return t.replace(/\s+/g, ' ');
+  if (k === 'legalName' || k === 'bankAccountHolder' || k === 'bankName' || k === 'bankBranch') return t.replace(/\s+/g, ' ');
   return t;
 };
 
-function validate(form: Form, pan: string, bankAccount: string): Partial<Record<ErrorKey, string>> {
+function validate(form: Form, pan: string, bankAccount: string, bankAccountAgain: string): Partial<Record<ErrorKey, string>> {
   const e: Partial<Record<ErrorKey, string>> = {};
   const v = (k: FormKey) => norm(k, form[k]);
   if (v('legalName') && (v('legalName').length < 2 || v('legalName').length > 200)) e.legalName = 'Legal name must be 2 to 200 characters.';
@@ -85,7 +91,9 @@ function validate(form: Form, pan: string, bankAccount: string): Partial<Record<
   if (v('payoutUpiId') && (v('payoutUpiId').length > 256 || !UPI_RE.test(v('payoutUpiId')))) e.payoutUpiId = 'Payout UPI ID must look like name@bank.';
   if (v('bankAccountHolder') && (v('bankAccountHolder').length < 2 || v('bankAccountHolder').length > 120)) e.bankAccountHolder = 'Account holder name must be 2 to 120 characters.';
   const acct = bankAccount.replace(/[\s-]/g, '');
-  if (acct && !/^\d{6,20}$/.test(acct)) e.bankAccountNumber = 'Bank account number must be 6 to 20 digits.';
+  if (acct && !/^\d{9,18}$/.test(acct)) e.bankAccountNumber = 'Bank account number must be 9 to 18 digits.';
+  else if (acct && bankAccountAgain.replace(/[\s-]/g, '') !== acct) e.bankAccountNumberConfirm = 'The two account numbers do not match.';
+  for (const k of ['bankName', 'bankBranch'] as const) if (v(k) && (v(k).length < 2 || v(k).length > 120)) e[k] = 'Must be 2 to 120 characters.';
   if (v('bankIfsc') && !IFSC_RE.test(v('bankIfsc'))) e.bankIfsc = 'IFSC must be 11 characters (4 letters, 0, then 6 letters or digits), e.g. SBIN0001234.';
   return e;
 }
@@ -107,6 +115,7 @@ export function ComplianceTab({ store, onChanged }: { store: Store; onChanged: (
   const [pan, setPan] = useState('');
   const [clearPan, setClearPan] = useState(false);
   const [bankAccount, setBankAccount] = useState('');
+  const [bankAccountAgain, setBankAccountAgain] = useState('');
   const [clearBank, setClearBank] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<ErrorKey, string>>>({});
   const [formError, setFormError] = useState('');
@@ -128,13 +137,13 @@ export function ComplianceTab({ store, onChanged }: { store: Store; onChanged: (
       legalName: c.legalName, fssaiLicenseNumber: c.fssaiLicenseNumber, fssaiLicenseType: c.fssaiLicenseType, fssaiExpiry: c.fssaiExpiry,
       fssaiSubmittedAt: c.fssaiSubmittedAt, fssaiVerifiedAt: c.fssaiVerifiedAt, fssaiVerifiedBy: c.fssaiVerifiedBy, gstin: c.gstin,
       panMasked: c.panMasked, payoutUpiId: c.payoutUpiId, bankAccountHolder: c.bankAccountHolder, bankAccountLast4: c.bankAccountLast4,
-      bankIfsc: c.bankIfsc, compliance: c,
+      bankIfsc: c.bankIfsc, bankName: c.bankName, bankBranch: c.bankBranch, compliance: c,
     });
   };
 
   const save = async () => {
     if (saving || !dirty) return;
-    const e = validate(form, pan, bankAccount);
+    const e = validate(form, pan, bankAccount, bankAccountAgain);
     setErrors(e);
     setFormError('');
     if (Object.values(e).some(Boolean)) return;
@@ -144,11 +153,11 @@ export function ComplianceTab({ store, onChanged }: { store: Store; onChanged: (
     if (clearPan) body.pan = null;
     else if (pan.trim()) body.pan = pan.trim().toUpperCase().replace(/\s/g, '');
     if (clearBank) body.bankAccountLast4 = null;
-    else if (bankAccount.trim()) body.bankAccountNumber = bankAccount.replace(/[\s-]/g, '');
+    else if (bankAccount.trim()) { body.bankAccountNumber = bankAccount.replace(/[\s-]/g, ''); body.bankAccountNumberConfirm = bankAccountAgain.replace(/[\s-]/g, ''); }
     setSaving(true);
     try {
       const d = await adminRequest<ComplianceResponse>(`/api/admin/restaurants/${id}/compliance`, { method: 'PUT', body: JSON.stringify(body) });
-      setPan(''); setClearPan(false); setBankAccount(''); setClearBank(false);
+      setPan(''); setClearPan(false); setBankAccount(''); setBankAccountAgain(''); setClearBank(false);
       setForm(formFrom(d.compliance));
       apply(d.compliance);
       toast.success(d.changed === false ? 'No change to save.' : fssaiDirty && current.fssaiVerifiedAt ? 'Saved. The FSSAI details changed, so the licence needs checking again.' : 'Licences, tax and payout details saved.');
@@ -156,7 +165,7 @@ export function ComplianceTab({ store, onChanged }: { store: Store; onChanged: (
       const msg = err instanceof Error ? err.message : 'Could not save.';
       const field = err instanceof ApiError ? err.field : null;
       const key = field === 'bankAccountLast4' ? 'bankAccountNumber' : field;
-      if (key && (FORM_KEYS as string[]).concat(['pan', 'bankAccountNumber']).includes(key)) setErrors(prev => ({ ...prev, [key as ErrorKey]: msg }));
+      if (key && (FORM_KEYS as string[]).concat(['pan', 'bankAccountNumber', 'bankAccountNumberConfirm']).includes(key)) setErrors(prev => ({ ...prev, [key as ErrorKey]: msg }));
       else setFormError(msg);
     } finally {
       setSaving(false);
@@ -285,19 +294,31 @@ export function ComplianceTab({ store, onChanged }: { store: Store; onChanged: (
             {ids => input('bankIfsc', ids, { maxLength: 11, className: cx(INPUT, '') })}
           </Field>
         </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Bank name" optional error={errors.bankName} help="e.g. State Bank of India.">
+            {ids => input('bankName', ids, { maxLength: 120 })}
+          </Field>
+          <Field label="Branch" optional error={errors.bankBranch}>
+            {ids => input('bankBranch', ids, { maxLength: 120 })}
+          </Field>
+        </div>
         <Field
           label="Bank account number"
           optional
           error={errors.bankAccountNumber}
-          help={`Only the last 4 digits are stored; the full number is discarded.${current.bankAccountLast4 ? ` On file: ending ${current.bankAccountLast4}.` : ''} Leave empty to keep it.`}
+          help={`9 to 18 digits. Saved encrypted; shown as ••••1234.${current.bankAccountLast4 ? ` On file: ••••${current.bankAccountLast4}.` : ''} Leave empty to keep it.`}
         >
           {({ id: fid, msgId, invalid }) => (
             <div className="space-y-2">
               <input id={fid} aria-describedby={msgId} aria-invalid={invalid} autoComplete="off" inputMode="numeric" maxLength={24} disabled={clearBank} className={INPUT} value={bankAccount} onChange={e => { setBankAccount(e.target.value.replace(/[^\d\s-]/g, '')); setErrors(er => ({ ...er, bankAccountNumber: undefined })); }} />
+              {bankAccount.trim() && (
+                <input aria-label="Bank account number again" placeholder="Type the account number again" autoComplete="off" inputMode="numeric" maxLength={24} className={INPUT} value={bankAccountAgain} onPaste={e => e.preventDefault()} onChange={e => { setBankAccountAgain(e.target.value.replace(/[^\d\s-]/g, '')); setErrors(er => ({ ...er, bankAccountNumberConfirm: undefined })); }} />
+              )}
+              {errors.bankAccountNumberConfirm && <p className="text-xs text-danger-text">{errors.bankAccountNumberConfirm}</p>}
               {current.bankAccountLast4 && (
                 <label className="flex items-center gap-2 text-xs text-fg-muted">
                   <input type="checkbox" className="h-4 w-4 accent-[rgb(var(--accent))]" checked={clearBank} onChange={e => { setClearBank(e.target.checked); if (e.target.checked) setBankAccount(''); }} />
-                  Remove the account ending {current.bankAccountLast4}
+                  Remove the account ••••{current.bankAccountLast4}
                 </label>
               )}
             </div>
@@ -308,7 +329,7 @@ export function ComplianceTab({ store, onChanged }: { store: Store; onChanged: (
       {formError && <Callout tone="red">{formError}</Callout>}
       <div className="flex items-center gap-3">
         <Button variant="primary" loading={saving} disabled={!dirty} onClick={save}>{dirty ? 'Save details' : 'Saved'}</Button>
-        {dirty && <Button variant="ghost" onClick={() => { setForm(initial); setPan(''); setClearPan(false); setBankAccount(''); setClearBank(false); setErrors({}); setFormError(''); }}>Undo changes</Button>}
+        {dirty && <Button variant="ghost" onClick={() => { setForm(initial); setPan(''); setClearPan(false); setBankAccount(''); setBankAccountAgain(''); setClearBank(false); setErrors({}); setFormError(''); }}>Undo changes</Button>}
       </div>
     </div>
   );
