@@ -219,3 +219,57 @@ test('After Dark rooms: a kick takes the member\'s live socket out of the room',
     sa.close(); sb.close();
   }
 });
+
+// Bug hunt 6 Nov 2026 (M8): message:react, receipt:read and message:delete re-check the chat on every event
+// (participant + conversationGuard 'join'), so a socket that joined while the Connect match was live cannot
+// keep reacting, marking read or deleting after the match ends.
+test('Campus chat: react / read receipt / delete refused after the Connect match ends (socket still in the room)', async () => {
+  const ids = await evalIn(`
+    const U = require(B + '/models/User').getUserModel();
+    const C = require(B + '/models/Conversation').getConversationModel();
+    const Msg = require(B + '/models/Message').getMessageModel();
+    const { getModel } = require(B + '/modules/friends');
+    const a = await U.create({ name: 'Cx Alpha', phone: '7900000021', role: 'student', isActive: true, password: 'x-test-only-21' });
+    const b = await U.create({ name: 'Cx Beta', phone: '7900000022', role: 'student', isActive: true, password: 'x-test-only-22' });
+    const conv = await C.create({ isGroup: false, participants: [a.id, b.id], refType: 'connect' });
+    const [low, high] = [a.id, b.id].sort();
+    const match = await getModel('ConnectMatch').create({ userLowId: low, userHighId: high, status: 'active', conversationId: conv.id });
+    await conv.update({ refId: match.id });
+    const m1 = await Msg.create({ conversationId: conv.id, senderId: b.id, senderName: 'Cx Beta', text: 'hello match' });
+    const m2 = await Msg.create({ conversationId: conv.id, senderId: a.id, senderName: 'Cx Alpha', text: 'my own words' });
+    return { a: a.id, b: b.id, conv: conv.id, match: match.id, m1: m1.id, m2: m2.id };
+  `);
+  const tok = (id) => jwt.sign({ id, role: 'student', tv: 0 }, SECRET);
+  const sa = await new Promise((res, rej) => {
+    const s = ioc(`${BASE}/campus`, { transports: ['websocket'], auth: { token: tok(ids.a) }, forceNew: true, reconnection: false });
+    s.on('connect', () => res(s));
+    s.on('connect_error', rej);
+  });
+  try {
+    assert.strictEqual((await ack(sa, 'chat:join', { chatId: ids.conv })).status, 'joined');
+    // live match: a reaction works
+    assert.strictEqual((await ack(sa, 'message:react', { messageId: ids.m1, emoji: '👍' })).status, 'ok');
+
+    await evalIn(`await require(B + '/modules/friends').getModel('ConnectMatch').update({ status: 'unmatched' }, { where: { id: '${ids.match}' } }); return 1;`);
+    const react = await ack(sa, 'message:react', { messageId: ids.m1, emoji: '🔥' });
+    assert.ok(react.error, JSON.stringify(react));
+    const del = await ack(sa, 'message:delete', { messageId: ids.m2, forEveryone: true });
+    assert.ok(del.error, JSON.stringify(del));
+    const delMe = await ack(sa, 'message:delete', { messageId: ids.m1, forEveryone: false });
+    assert.ok(delMe.error, JSON.stringify(delMe));
+    sa.emit('receipt:read', { chatId: ids.conv, messageIds: [ids.m1] });
+    await sleep(400);
+    const rows = await evalIn(`
+      const Msg = require(B + '/models/Message').getMessageModel();
+      const m1 = await Msg.findByPk('${ids.m1}'); const m2 = await Msg.findByPk('${ids.m2}');
+      return { reactions: m1.reactions, readBy: m1.readBy, deletedFor: m1.deletedFor, m2Deleted: !!m2.isDeletedForEveryone, m2Text: m2.text };
+    `);
+    assert.deepStrictEqual(JSON.parse(rows.reactions), { [ids.a]: '👍' }, 'reaction changed after the match ended');
+    assert.ok(!(rows.readBy || []).some((r) => r.userId === ids.a), 'read receipt stored after the match ended');
+    assert.ok(!String(rows.deletedFor || '').includes(ids.a), 'delete-for-me applied after the match ended');
+    assert.strictEqual(rows.m2Deleted, false);
+    assert.strictEqual(rows.m2Text, 'my own words');
+  } finally {
+    sa.close();
+  }
+});

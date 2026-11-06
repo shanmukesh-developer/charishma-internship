@@ -204,3 +204,46 @@ test('substitutions + roster history + captain transfer + MEMBER tickets; locked
   assert.equal(await H.ctx.M('CeTeamMember').count({ where: { teamId: t2.id, exclusiveKey: { [H.Op.ne]: null } } }), 0);
   assert.equal((await H.api('POST', `/api/campus-events/${locked.id}/teams`, p2.token, { name: 'Fresh Start' })).status, 201, 'freed player can form a new team');
 });
+
+test('captain transfer moves the registration + TEAM ticket to the new captain; old captain loses cancel / gate QR; wallet refund back to the payer', async () => {
+  await H.setWallet(true);
+  try {
+    const { event } = await teamEvent({ priceType: 'PAID', price: 100, allowSubstitutions: true, paymentModes: ['WALLET'], cancellationPolicy: { userCancelUntilHours: 1, refundPct: 100 }, title: 'Handover Cup' });
+    const a = await H.mkStudent({ wallet: 300 });
+    const b = await H.mkStudent({ wallet: 0 });
+    const team = (await H.api('POST', `/api/campus-events/${event.id}/teams`, a.token, { name: 'Handover XI' })).body.team;
+    await respond((await invite(team, a, b)).body.invitation, b, true);
+    const sub = await H.api('POST', `/api/campus-events/teams/${team.id}/submit`, a.token, { acceptRules: true, rulesVersion: 1, paymentMode: 'WALLET' });
+    assert.equal(sub.status, 201, JSON.stringify(sub.body));
+    const regId = sub.body.registration.id;
+    assert.equal(Number((await H.ctx.M('User').findByPk(a.id)).walletBalance), 200);
+    const teamTicket = await H.ctx.M('CeTicket').findOne({ where: { registrationId: regId, kind: 'TEAM' } });
+    assert.equal(teamTicket.userId, a.id);
+
+    const mb = await H.ctx.M('CeTeamMember').findOne({ where: { teamId: team.id, userId: b.id, status: 'ACCEPTED' } });
+    assert.equal((await H.api('POST', `/api/campus-events/teams/${team.id}/captain`, a.token, { memberId: mb.id })).status, 200);
+    assert.equal((await H.ctx.M('CeRegistration').findByPk(regId)).userId, b.id, 'registration moved to the new captain');
+    assert.equal((await H.ctx.M('CeTicket').findByPk(teamTicket.id)).userId, b.id, 'TEAM ticket holder moved');
+    const hist = await H.ctx.M('CeAuditLog').findOne({ where: { teamId: team.id, action: 'team.captain.transfer' } });
+    assert.equal(hist.details.registrationMoved, true);
+    assert.equal(hist.details.teamTicketsMoved, 1);
+
+    // The old captain leaves: no cancel, no team ticket, no registration detail any more.
+    assert.equal((await H.api('POST', `/api/campus-events/teams/${team.id}/leave`, a.token)).status, 200);
+    assert.equal((await H.api('POST', `/api/campus-events/registrations/${regId}/cancel`, a.token, {})).status, 404);
+    assert.equal((await H.api('GET', `/api/campus-events/tickets/${teamTicket.id}`, a.token)).status, 404);
+    assert.equal((await H.api('GET', `/api/campus-events/registrations/${regId}`, a.token)).status, 404);
+    assert.equal((await H.ctx.M('CeRegistration').findByPk(regId)).status, 'CONFIRMED');
+
+    // The new captain manages it; the wallet refund goes back to whoever paid (the old captain).
+    assert.equal((await H.api('GET', `/api/campus-events/tickets/${teamTicket.id}`, b.token)).status, 200);
+    const c = await H.api('POST', `/api/campus-events/registrations/${regId}/cancel`, b.token, {});
+    assert.equal(c.status, 200, JSON.stringify(c.body));
+    await H.idle();
+    assert.equal((await H.ctx.M('CeRegistration').findByPk(regId)).paymentStatus, 'REFUNDED');
+    assert.equal(Number((await H.ctx.M('User').findByPk(a.id)).walletBalance), 300, 'payer refunded');
+    assert.equal(Number((await H.ctx.M('User').findByPk(b.id)).walletBalance), 0, 'new captain not paid for money they never spent');
+  } finally {
+    await H.setWallet(false);
+  }
+});

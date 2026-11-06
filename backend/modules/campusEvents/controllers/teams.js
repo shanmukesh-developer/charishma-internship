@@ -388,7 +388,18 @@ const transferCaptain = async (req, res) => {
     await M().Member.update({ role: E.MEMBER_ROLE.PLAYER }, { where: { teamId: team.id, userId: req.user.id, status: MS.ACCEPTED }, transaction: t });
     await target.update({ role: E.MEMBER_ROLE.CAPTAIN }, { transaction: t });
     await team.update({ captainUserId: target.userId }, { transaction: t });
-    await rosterChanged(req, t, team, 'team.captain.transfer', { toMemberId: target.id, role: 'CAPTAIN' });
+    // The team's registration and its TEAM ticket belong to the captain: they move with the captaincy (same
+    // transaction), so the old captain can no longer cancel / refund the registration or hold the team gate
+    // QR, and the new captain manages both. MEMBER tickets stay with each player. A wallet refund still goes
+    // back to whoever paid (payments.processRefund reads the payer from the wallet ledger).
+    let movedRegistration = false;
+    let movedTickets = 0;
+    if (team.registrationId) {
+      const [n] = await M().Reg.update({ userId: target.userId }, { where: { id: team.registrationId, teamId: team.id }, transaction: t });
+      movedRegistration = n > 0;
+      [movedTickets] = await M().Ticket.update({ userId: target.userId }, { where: { registrationId: team.registrationId, kind: E.TICKET_KIND.TEAM }, transaction: t });
+    }
+    await rosterChanged(req, t, team, 'team.captain.transfer', { toMemberId: target.id, role: 'CAPTAIN', registrationMoved: movedRegistration, teamTicketsMoved: movedTickets });
     return { team, target };
   });
   if (out.target) notify.toUsers([out.target.userId], 'You are the captain now', `You now lead ${out.team.name}.`, { type: N.TEAM_ROSTER_CHANGED, teamId: out.team.id, eventId: out.team.eventId, dedupe: 'captain' });

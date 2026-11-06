@@ -177,6 +177,17 @@ export default function ProfileScreen() {
   const sendingOtp = phoneOtp.sending;
   const resendIn = phoneOtp.countdown;
 
+  // Email change verification: a code to the NEW address (POST /api/users/profile/email-code), sent with the save.
+  const [emailCodeSent, setEmailCodeSent] = useState(false);
+  const [emailCode, setEmailCode] = useState('');
+  const [sendingEmailCode, setSendingEmailCode] = useState(false);
+  const [emailResendIn, setEmailResendIn] = useState(0);
+  useEffect(() => {
+    if (emailResendIn <= 0) return;
+    const t = setTimeout(() => setEmailResendIn((n) => Math.max(0, n - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [emailResendIn]);
+
   // Location suggestions
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -392,6 +403,8 @@ export default function ProfileScreen() {
     setEditProfileImage(user?.profileImage || null);
     setOtpSent(false);
     setOtpCode('');
+    setEmailCodeSent(false);
+    setEmailCode('');
     setSuggestions([]);
     setShowSuggestions(false);
     setIsEditing(true);
@@ -404,6 +417,8 @@ export default function ProfileScreen() {
     setOtpSent(false);
     setOtpCode('');
     phoneOtp.reset();
+    setEmailCodeSent(false);
+    setEmailCode('');
     setShowSuggestions(false);
   };
 
@@ -474,10 +489,43 @@ export default function ProfileScreen() {
     }
   };
 
+  const normalizedEditEmail = editEmail.trim().toLowerCase();
+  const emailChanged = !!normalizedEditEmail && normalizedEditEmail !== String(user?.email || '').trim().toLowerCase();
+
+  const sendEmailCode = async () => {
+    if (sendingEmailCode || emailResendIn > 0) return;
+    if (!EMAIL_RE.test(normalizedEditEmail)) {
+      Alert.alert('Check your email', "That email address doesn't look right.");
+      return;
+    }
+    setSendingEmailCode(true);
+    try {
+      const res = await apiFetch(`${API_URL}/api/users/profile/email-code`, {
+        method: 'POST',
+        body: JSON.stringify({ email: normalizedEditEmail }),
+      });
+      const data = await res.json().catch(() => ({} as any));
+      if (!mountedRef.current) return;
+      if (res.ok) {
+        setEmailCodeSent(true);
+        setEmailCode('');
+        setEmailResendIn(Number(data?.resendAfter) > 0 ? Number(data.resendAfter) : 60);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      } else {
+        if (Number(data?.retryAfter) > 0 && data?.code === 'OTP_COOLDOWN') setEmailResendIn(Math.min(Number(data.retryAfter), 120));
+        Alert.alert("Couldn't send the code", data?.message || 'Please try again in a minute.');
+      }
+    } catch {
+      if (mountedRef.current) Alert.alert("Couldn't send the code", 'Check your connection and try again.');
+    } finally {
+      if (mountedRef.current) setSendingEmailCode(false);
+    }
+  };
+
   const handleUpdateProfile = async () => {
     if (savingRef.current) return;
     const name = editName.trim();
-    const email = editEmail.trim().toLowerCase();
+    const email = normalizedEditEmail;
     if (name.length < 2) {
       Alert.alert('Add your name', 'Please enter your name (at least 2 letters).');
       return;
@@ -505,6 +553,17 @@ export default function ProfileScreen() {
         return;
       }
     }
+    // A new (or first) email is saved only with the code we email to it.
+    if (emailChanged) {
+      if (!emailCodeSent) {
+        sendEmailCode();
+        return;
+      }
+      if (!/^\d{6}$/.test(emailCode)) {
+        Alert.alert('Enter the email code', `Type the 6-digit code we emailed to ${email}.`);
+        return;
+      }
+    }
 
     const body: any = {
       name,
@@ -516,6 +575,7 @@ export default function ProfileScreen() {
       hostelBlock: cleanBlock(editHostelBlock),
       roomNumber: cleanRoom(editRoom),
       profileImage: editProfileImage || null,
+      ...(emailChanged ? { emailOtp: emailCode } : {}),
     };
 
     savingRef.current = true;
@@ -544,6 +604,10 @@ export default function ProfileScreen() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
         Alert.alert('Profile updated', 'Your changes are saved.');
       } else {
+        if (emailChanged && ['OTP_EXPIRED', 'OTP_LOCKED', 'EMAIL_VERIFICATION_REQUIRED'].includes(data?.code)) {
+          setEmailCodeSent(false);
+          setEmailCode('');
+        }
         if (data?.code === 'OTP_EXPIRED' || data?.code === 'OTP_LOCKED') {
           setOtpSent(false);
           setOtpCode('');
@@ -1445,7 +1509,10 @@ export default function ProfileScreen() {
               <Text style={[s.inputLabel, { color: txtSec }]}>Email (optional)</Text>
               <TextInput
                 value={editEmail}
-                onChangeText={setEditEmail}
+                onChangeText={(t) => {
+                  setEditEmail(t);
+                  if (emailCodeSent) { setEmailCodeSent(false); setEmailCode(''); }
+                }}
                 placeholder="you@example.com"
                 placeholderTextColor={txtSec}
                 keyboardType="email-address"
@@ -1454,6 +1521,37 @@ export default function ProfileScreen() {
                 maxLength={100}
                 style={[s.modalInput, { color: txt, backgroundColor: inputBg, borderColor: border }]}
               />
+              {emailChanged ? (
+                <View style={{ marginTop: -4, marginBottom: 8 }}>
+                  {emailCodeSent ? (
+                    <>
+                      <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600', marginBottom: 6 }}>
+                        Enter the 6-digit code we emailed to {normalizedEditEmail}
+                      </Text>
+                      <TextInput
+                        value={emailCode}
+                        onChangeText={(t) => setEmailCode(t.replace(/\D/g, '').slice(0, 6))}
+                        placeholder="6-digit code"
+                        placeholderTextColor={txtSec}
+                        keyboardType="number-pad"
+                        maxLength={6}
+                        textContentType="oneTimeCode"
+                        autoComplete="one-time-code"
+                        style={[s.modalInput, { color: txt, backgroundColor: inputBg, borderColor: goldColor, letterSpacing: 6, textAlign: 'center' }]}
+                      />
+                      <TouchableOpacity onPress={sendEmailCode} disabled={sendingEmailCode || emailResendIn > 0} style={{ alignSelf: 'flex-end', padding: 4 }}>
+                        <Text style={{ fontSize: 12, fontWeight: '600', color: emailResendIn > 0 ? txtSec : goldColor }}>
+                          {sendingEmailCode ? 'Sending…' : emailResendIn > 0 ? `Resend in ${emailResendIn}s` : 'Resend code'}
+                        </Text>
+                      </TouchableOpacity>
+                    </>
+                  ) : (
+                    <Text style={{ fontSize: 12, color: txtSec, fontWeight: '600' }}>
+                      We'll email a code to the new address to confirm it's yours.
+                    </Text>
+                  )}
+                </View>
+              ) : null}
 
               {/* Bio/About */}
               <Text style={[s.inputLabel, { color: txtSec }]}>About me</Text>
@@ -1562,14 +1660,14 @@ export default function ProfileScreen() {
                   <Text style={[s.modalCancelBtnText, { color: txt }]}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[s.modalSaveBtn, { backgroundColor: goldColor }, (savingProfile || sendingOtp) && { opacity: 0.7 }]}
+                  style={[s.modalSaveBtn, { backgroundColor: goldColor }, (savingProfile || sendingOtp || sendingEmailCode) && { opacity: 0.7 }]}
                   onPress={handleUpdateProfile}
-                  disabled={savingProfile || sendingOtp}
+                  disabled={savingProfile || sendingOtp || sendingEmailCode}
                 >
-                  {savingProfile || sendingOtp ? (
+                  {savingProfile || sendingOtp || sendingEmailCode ? (
                     <ActivityIndicator size="small" color="#000" />
                   ) : (
-                    <Text style={s.modalSaveBtnText}>{phoneChanged && !otpSent ? 'Verify number' : 'Save'}</Text>
+                    <Text style={s.modalSaveBtnText}>{phoneChanged && !otpSent ? 'Verify number' : emailChanged && !emailCodeSent ? 'Verify email' : 'Save'}</Text>
                   )}
                 </TouchableOpacity>
               </View>

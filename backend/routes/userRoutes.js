@@ -1,7 +1,7 @@
 const express = require('express');
 const {
   registerUser, authUser, saveFcmToken, removeFcmToken, getUserProfile, updateUserProfile, logoutUser,
-  sendOtp, sendEmailOtp, verifyOtp, googleLogin, googleComplete, resetPassword, refreshUserToken
+  sendOtp, sendEmailOtp, verifyOtp, googleLogin, googleComplete, resetPassword, refreshUserToken, sendEmailChangeCode
 } = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
 const rateLimit = require('express-rate-limit');
@@ -48,6 +48,21 @@ const otpSendIpLimiter = rateLimit({
   message: { message: 'Too many codes requested from this network. Please try again in a few minutes or log in with your password.', code: 'RATE_LIMITED' },
   ...require('../utils/sharedRateLimit').expressStore('user.otpSendIpLimiter'),
 });
+// Bug hunt 6 Nov 2026 (M3): budget-aware per-IP guard for SMS send-otp only. Below 50 % of today's SMS cap it
+// allows the same OTP_SEND_IP_MAX (no change for hostels on one NAT IP); above 50 % 100 per IP per 15 min, above
+// 80 % 20 (utils/smsBudget sendOtpIpLimit; OTP_SEND_IP_MAX_WARN / _HIGH override). Usage is cached 15 s, and a
+// counter outage keeps the normal limit. Same loadtest bypass as above; email codes don't spend SMS budget.
+const otpBudgetIpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: async () => {
+    const smsBudget = require('../utils/smsBudget');
+    const u = await smsBudget.usage();
+    return smsBudget.sendOtpIpLimit(OTP_SEND_IP_MAX, u.ratio);
+  },
+  skip: (req) => require('../utils/loadtestBypass').skipRateLimit(req),
+  message: { message: 'Too many codes requested from this network right now. Please try again in a few minutes, or sign in with Google or your password.', code: 'RATE_LIMITED' },
+  ...require('../utils/sharedRateLimit').expressStore('user.otpBudgetIpLimiter'),
+});
 
 const { accountLockout } = require('../middleware/lockoutMiddleware');
 
@@ -90,7 +105,7 @@ router.post('/login', authLimiter, passwordLockout, loginValidation, validate, a
 router.post('/login/mfa', authIpLimiter, require('../services/adminTwoFactor').loginMfa);
 // Email-code method: a new code for the open sign-in step (one a minute, 10 an hour per admin).
 router.post('/login/mfa/resend', authIpLimiter, require('../services/adminTwoFactor').loginMfaResend);
-router.post('/send-otp', authLimiter, otpSendIpLimiter, sendOtp);
+router.post('/send-otp', authLimiter, otpSendIpLimiter, otpBudgetIpLimiter, sendOtp);
 // Email backup when the SMS code cannot be sent (same limits as the SMS code; 503 while email is not set up).
 router.post('/send-email-otp', authLimiter, otpSendIpLimiter, sendEmailOtp);
 router.post('/verify-otp', authLimiter, verifyOtp);
@@ -109,6 +124,9 @@ router.get('/profile', protect, getUserProfile);
 router.get('/legal/status', protect, require('../controllers/legalController').getMyLegalStatus);
 router.post('/legal/accept', protect, require('../controllers/legalController').acceptTerms);
 router.put('/profile', protect, updateUserProfile);
+// Email change / first email, step 1: a code to the NEW address (step 2: PUT /profile { email, emailOtp }).
+// Same per-number cooldown / daily cap / attempt lockout as every other code.
+router.post('/profile/email-code', authIpLimiter, protect, sendEmailChangeCode);
 // C5: my wallet history (newest first, paginated, human labels + order / booking links).
 router.get('/wallet/transactions', protect, require('../controllers/walletController').getMyWalletTransactions);
 // Customer polish: favourite stores and saved addresses, synced to the account (the app keeps a local copy).

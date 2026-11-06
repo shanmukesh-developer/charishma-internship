@@ -24,6 +24,13 @@ const requireMember = async (conversationId, user) => {
   if (!conversation) throw new AccessError(404, 'Class or group not found');
   const isMember = (conversation.participants || []).includes(user.id);
   if (!isMember && !isPlatformAdmin(user)) throw new AccessError(403, 'You are not a member of this class or group');
+  // Linked chats (Connect match / Friends task) follow the same rules as chat:join: an ended match or a
+  // replaced helper loses access here too. Plain classes and groups are unaffected.
+  if (conversation.refType && !isPlatformAdmin(user)) {
+    const { conversationGuard } = require('../friends/guards');
+    const guard = await conversationGuard(conversation, user.id, 'join');
+    if (!guard.ok) throw new AccessError(403, guard.error || 'This chat is not available');
+  }
   const isGroupAdmin = (conversation.adminIds || []).includes(user.id) || isPlatformAdmin(user);
   return { conversation, isGroupAdmin };
 };

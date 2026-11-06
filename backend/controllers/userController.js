@@ -695,6 +695,36 @@ const updateUserProfile = async (req, res) => {
       user.name = name;
     }
 
+    // The email receives password-reset and account-deletion codes, so a new (or first) address is saved only with
+    // the code emailed to it by POST /api/users/profile/email-code ({ emailOtp }, bound to that exact address).
+    // Removing the email needs no code. The previous address is told either way (after the save).
+    let emailChange = null;
+    if (req.body.email !== undefined) {
+      const cleanEmail = cleanEmailInput(req.body.email);
+      if (cleanEmail === undefined) {
+        return res.status(400).json({ code: 'INVALID_EMAIL', message: 'Please enter a valid email address, or leave it blank.' });
+      }
+      if (cleanEmail !== (user.email || null)) {
+        if (cleanEmail) {
+          const existing = await User.findOne({ where: { email: cleanEmail } });
+          if (existing && existing.id !== user.id) {
+            return res.status(409).json({ code: 'EMAIL_TAKEN', message: 'This email address is already registered to another user.' });
+          }
+          const emailOtp = req.body.emailOtp;
+          if (emailOtp === undefined || emailOtp === null || emailOtp === '') {
+            return res.status(400).json({ code: 'EMAIL_VERIFICATION_REQUIRED', message: 'Confirm your new email with the code we email to it before saving.' });
+          }
+          const checked = await consumeOtp(normalizePhone(user.phone), CHANGE_EMAIL_PURPOSE, emailOtp, { bind: cleanEmail });
+          if (!checked.ok) {
+            if (checked.body && checked.body.code === 'OTP_EXPIRED') checked.body.message = 'This code has expired or was for a different email. Tap "Resend code" to get a new one.';
+            return res.status(checked.status).json(checked.body);
+          }
+        }
+        emailChange = { from: user.email || null, to: cleanEmail };
+        user.email = cleanEmail;
+      }
+    }
+
     // Phone is the login identity: changing it requires proof of owning the NEW number
     if (req.body.phone && typeof req.body.phone === 'string') {
       const cleanPhone = normalizePhone(req.body.phone);
@@ -722,21 +752,6 @@ const updateUserProfile = async (req, res) => {
       }
     }
 
-    if (req.body.email !== undefined) {
-      const cleanEmail = cleanEmailInput(req.body.email);
-      if (cleanEmail === undefined) {
-        return res.status(400).json({ code: 'INVALID_EMAIL', message: 'Please enter a valid email address, or leave it blank.' });
-      }
-      if (cleanEmail !== (user.email || null)) {
-        if (cleanEmail) {
-          const existing = await User.findOne({ where: { email: cleanEmail } });
-          if (existing && existing.id !== user.id) {
-            return res.status(409).json({ code: 'EMAIL_TAKEN', message: 'This email address is already registered to another user.' });
-          }
-        }
-        user.email = cleanEmail;
-      }
-    }
     // Free-text fields are bounded (a 10 MB JSON body used to land in the row as is).
     const trimmed = (v, max = 500) => (typeof v === 'string' ? v.trim().slice(0, max) : (v === null ? null : undefined));
     if (req.body.statusText !== undefined) user.statusText = trimmed(req.body.statusText);
@@ -766,6 +781,10 @@ const updateUserProfile = async (req, res) => {
     // protect() caches name / phone / email / hostel for 60 s: drop it so the next request (an
     // order, a wish, a friend request) uses the new details at once.
     require('../middleware/authMiddleware').clearCachedUser(user.id);
+    if (emailChange && emailChange.from) {
+      console.log(`[PROFILE_EMAIL_CHANGED] user ${user.id}: ${maskEmailAddress(emailChange.from)} -> ${emailChange.to ? maskEmailAddress(emailChange.to) : '(removed)'}`);
+      notifyOldEmail(emailChange.from, emailChange.to); // background: never delays or fails the save
+    }
     // The session token is NOT re-issued here: the app keeps its SecureStore token.
     res.json(sanitizeUser(user));
   } catch (error) {
@@ -1112,7 +1131,6 @@ const maskEmailAddress = (email) => {
 };
 const emailOtpInFlight = new Set();
 const sendEmailOtp = async (req, res) => {
-  let release = () => {};
   try {
     const body = req.body || {};
     const cleanPhone = normalizePhone(body.phone);
@@ -1133,21 +1151,32 @@ const sendEmailOtp = async (req, res) => {
 
     const User = getUserModel();
     const account = await User.findOne({ where: { phone: cleanPhone } });
-    const storedPurpose = purpose;
-    const bind = null;
     if (!account) return res.status(404).json({ code: 'ACCOUNT_NOT_FOUND', message: 'No ZenWe account uses this number.' });
     const to = String(account.email || '').trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
       return res.status(404).json({ code: 'NO_EMAIL_ON_FILE', message: "This account has no email address, so we can't email a code. Please try the SMS code again later." });
     }
+    const what = purpose === 'reset_password' ? 'reset your ZenWe password' : 'confirm deleting your ZenWe account';
+    return await deliverEmailCode(req, res, { phone: cleanPhone, purpose, to, bind: null, what });
+  } catch (error) {
+    console.error('[SEND_EMAIL_OTP_ERROR]', error.message);
+    return res.status(500).json({ message: "We couldn't send the code right now. Please try again." });
+  }
+};
 
-    if (emailOtpInFlight.has(cleanPhone)) {
-      res.set('Retry-After', String(Math.round(OTP_RESEND_COOLDOWN_MS / 1000)));
-      return res.status(429).json({ code: 'OTP_COOLDOWN', retryAfter: Math.round(OTP_RESEND_COOLDOWN_MS / 1000), message: 'A code is already on its way. Please wait a moment.' });
-    }
-    emailOtpInFlight.add(cleanPhone);
-    release = () => emailOtpInFlight.delete(cleanPhone);
-
+/**
+ * Emails a 6-digit code to `to` and answers the request. Shared by the email backup code (above) and the
+ * email-change check (below). The code is stored only as an HMAC (bound to `bind` when given), on the account's
+ * phone number, so the SMS rules apply as one budget: 60 s cooldown, daily cap, 5-attempt lockout, 5-minute expiry.
+ */
+const deliverEmailCode = async (req, res, { phone: cleanPhone, purpose, to, bind, what }) => {
+  if (emailOtpInFlight.has(cleanPhone)) {
+    res.set('Retry-After', String(Math.round(OTP_RESEND_COOLDOWN_MS / 1000)));
+    return res.status(429).json({ code: 'OTP_COOLDOWN', retryAfter: Math.round(OTP_RESEND_COOLDOWN_MS / 1000), message: 'A code is already on its way. Please wait a moment.' });
+  }
+  emailOtpInFlight.add(cleanPhone);
+  try {
+    const mailer = require('../utils/mailer');
     const OtpCode = await getOtpModel();
     const { Op } = require('sequelize');
     const now = Date.now();
@@ -1168,8 +1197,8 @@ const sendEmailOtp = async (req, res) => {
       }
       const record = await OtpCode.create({
         phone: cleanPhone,
-        purpose: storedPurpose,
-        codeHash: hashOtp(cleanPhone, storedPurpose, bind ? `${code}|${bind}` : code),
+        purpose,
+        codeHash: hashOtp(cleanPhone, purpose, bind ? `${code}|${bind}` : code),
         expiresAt: new Date(now + OTP_TTL_MS),
         ip: (req.ip || '').slice(0, 64) || null,
       }, tx);
@@ -1183,9 +1212,6 @@ const sendEmailOtp = async (req, res) => {
     const { record } = reserved;
 
     const minutes = Math.round(OTP_TTL_MS / 60000);
-    const what = purpose === 'reset_password' ? 'reset your ZenWe password'
-      : purpose === 'delete_account' ? 'confirm deleting your ZenWe account'
-        : 'verify your new ZenWe account';
     const text = [
       'Hi,',
       '',
@@ -1211,7 +1237,7 @@ const sendEmailOtp = async (req, res) => {
       if (sent && sent.reason === 'not_configured') return res.status(503).json(EMAIL_OTP_UNAVAILABLE);
       return res.status(502).json({ code: 'EMAIL_UNAVAILABLE', message: "We couldn't send the email right now. Please try again in a minute." });
     }
-    await OtpCode.update({ consumedAt: new Date() }, { where: { phone: cleanPhone, purpose: storedPurpose, consumedAt: null, id: { [Op.ne]: record.id } } }).catch(() => {});
+    await OtpCode.update({ consumedAt: new Date() }, { where: { phone: cleanPhone, purpose, consumedAt: null, id: { [Op.ne]: record.id } } }).catch(() => {});
     console.log(`[SEND_EMAIL_OTP] Code emailed for ${maskPhone(cleanPhone)} (${purpose})`);
     return res.json({
       success: true,
@@ -1221,11 +1247,72 @@ const sendEmailOtp = async (req, res) => {
       expiresIn: Math.round(OTP_TTL_MS / 1000),
       resendAfter: Math.round(OTP_RESEND_COOLDOWN_MS / 1000),
     });
-  } catch (error) {
-    console.error('[SEND_EMAIL_OTP_ERROR]', error.message);
-    return res.status(500).json({ message: "We couldn't send the code right now. Please try again." });
   } finally {
-    release();
+    emailOtpInFlight.delete(cleanPhone);
+  }
+};
+
+// @desc    Email change, step 1 (bug hunt 6 Nov 2026, M1): POST /api/users/profile/email-code { email }  (signed in)
+//   Sends a code to the NEW address. Step 2 is PUT /api/users/profile { email, emailOtp }: the email is saved only
+//   when the code matches (it is bound to that exact address), and the old address (if any) is told about it.
+//   Adding a first email works the same way.
+const CHANGE_EMAIL_PURPOSE = 'change_email';
+const sendEmailChangeCode = async (req, res) => {
+  try {
+    const cleanEmail = cleanEmailInput((req.body || {}).email);
+    if (!cleanEmail) {
+      return res.status(400).json({ code: 'INVALID_EMAIL', message: 'Please enter a valid email address.' });
+    }
+    const User = getUserModel();
+    const user = await User.findByPk(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (cleanEmail === (user.email || null)) {
+      return res.status(400).json({ code: 'EMAIL_UNCHANGED', message: 'This is already your email address.' });
+    }
+    const existing = await User.findOne({ where: { email: cleanEmail } });
+    if (existing && existing.id !== user.id) {
+      return res.status(409).json({ code: 'EMAIL_TAKEN', message: 'This email address is already registered to another user.' });
+    }
+    if (!otpSecret()) return res.status(500).json({ message: 'Server configuration error. Please try again later.' });
+    if (!require('../utils/mailer').isMailerConfigured()) {
+      return res.status(503).json({ code: 'EMAIL_OTP_UNAVAILABLE', message: "We can't send email codes right now, so your email can't be changed yet. Please try again later." });
+    }
+    const cleanPhone = normalizePhone(user.phone);
+    if (!cleanPhone) return res.status(400).json({ code: 'INVALID_PHONE', message: 'Add your mobile number first.' });
+    return await deliverEmailCode(req, res, { phone: cleanPhone, purpose: CHANGE_EMAIL_PURPOSE, to: cleanEmail, bind: cleanEmail, what: 'confirm this email address for your ZenWe account' });
+  } catch (error) {
+    console.error('[SEND_EMAIL_CHANGE_CODE_ERROR]', error.message);
+    return res.status(500).json({ message: "We couldn't send the code right now. Please try again." });
+  }
+};
+
+/** Tells the previous address that the account email was changed or removed. Best effort, never throws. */
+const notifyOldEmail = async (oldEmail, newEmail) => {
+  try {
+    const mailer = require('../utils/mailer');
+    if (!oldEmail || !mailer.isMailerConfigured()) return;
+    const change = newEmail ? `changed to ${maskEmailAddress(newEmail)}` : 'removed';
+    const text = [
+      'Hi,',
+      '',
+      `The email address on your ZenWe account was just ${change}. This address will no longer get ZenWe account codes.`,
+      '',
+      'If this was you, there is nothing to do.',
+      'If it was not you, sign in to ZenWe with your mobile number, reset your password and contact ZenWe support from the app right away.',
+      '',
+      'Team ZenWe',
+    ].join('\n');
+    const html = `<!doctype html><html><body style="margin:0;padding:24px 12px;background:#f4f4f7;font-family:Arial,Helvetica,sans-serif;color:#1d1d1f">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:460px;background:#ffffff;border-radius:16px;padding:28px">
+<tr><td style="font-size:20px;font-weight:bold;padding-bottom:16px">ZenWe</td></tr>
+<tr><td style="font-size:15px;line-height:22px;padding-bottom:16px">The email address on your ZenWe account was just ${change}.</td></tr>
+<tr><td style="font-size:13px;line-height:20px;color:#555">If this was you, there is nothing to do. If it was not you, sign in to ZenWe with your mobile number, reset your password and contact ZenWe support from the app right away.</td></tr>
+</table></td></tr></table></body></html>`;
+    const sent = await mailer.sendMail({ to: oldEmail, subject: 'Your ZenWe email address was changed', html, text });
+    if (!sent || !sent.ok) console.warn('[EMAIL_CHANGE_NOTICE_WARN]', sent && sent.reason);
+  } catch (err) {
+    console.warn('[EMAIL_CHANGE_NOTICE_WARN]', err.message);
   }
 };
 
@@ -1341,6 +1428,7 @@ const logoutUser = async (req, res) => {
 
 module.exports = {
   registerUser,
+  sendEmailChangeCode,
   authUser,
   saveFcmToken,
   removeFcmToken,

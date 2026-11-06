@@ -135,8 +135,14 @@ const processRefund = async (regId) => {
       if (!n) return 0;
       // C5: credit + EVENT_REFUND ledger row, in the transaction that flipped REFUND_PENDING -> REFUNDED.
       if (amt > 0) {
+        // Back to whoever paid: a team registration moves to the new captain on a captaincy hand-over
+        // (teams.transferCaptain), but the wallet debit was the old captain's.
+        const paid = await getSequelize().models.WalletTransaction.findOne({
+          where: { ownerType: 'user', type: walletLedger.TYPES.EVENT_PAYMENT, refType: 'EVENT_REGISTRATION', refId: String(reg.id) },
+          attributes: ['ownerId'], order: [['createdAt', 'ASC']], transaction: t,
+        }).catch(() => null);
         await walletLedger.applyWalletChange({
-          t, ownerType: 'user', ownerId: reg.userId, amountPaise: walletLedger.toPaise(amt), type: walletLedger.TYPES.EVENT_REFUND,
+          t, ownerType: 'user', ownerId: (paid && paid.ownerId) || reg.userId, amountPaise: walletLedger.toPaise(amt), type: walletLedger.TYPES.EVENT_REFUND,
           ref: { type: 'EVENT_REGISTRATION', id: reg.id }, actor: { type: 'system' },
         });
       }

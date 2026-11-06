@@ -247,12 +247,16 @@ const initCampusSocket = (io) => {
 
     // Presence is not broadcast to every campus user (privacy); nothing in the app consumes it.
 
-    // Membership: only participants of a conversation may join it or act on its messages.
-    const isMember = async (chatId) => {
+    // Membership: only participants of a conversation may join it or act on its messages. Checked from the
+    // database on every react / read receipt / delete (never from socket room membership, which outlives an
+    // ended Connect match or a replaced task helper), with the same linked-chat rules as chat:join.
+    const canActIn = async (chatId) => {
       if (!chatId) return false;
       try {
         const conversation = await getConversationModel().findByPk(chatId);
-        return !!conversation && (conversation.participants || []).includes(userId);
+        if (!conversation || !(conversation.participants || []).includes(userId)) return false;
+        const guard = await conversationGuard(conversation, userId, 'join');
+        return !!guard.ok;
       } catch {
         return false;
       }
@@ -528,7 +532,7 @@ const initCampusSocket = (io) => {
       try {
         const Message = getMessageModel();
         const msg = await Message.findByPk(messageId);
-        if (!msg || !(inChatRoom(msg.conversationId) || await isMember(msg.conversationId))) {
+        if (!msg || !(await canActIn(msg.conversationId))) {
           if (ack) ack({ error: 'Message not found' });
           return;
         }
@@ -575,7 +579,7 @@ const initCampusSocket = (io) => {
       let messageIds = rawIds;
       try {
         if (!chatId || !Array.isArray(messageIds) || !messageIds.length) return;
-        if (!(inChatRoom(chatId) || await isMember(chatId))) return;
+        if (!(await canActIn(chatId))) return;
         messageIds = [...new Set(messageIds.filter((id) => typeof id === 'string' && id.length <= 64))].slice(0, MAX_RECEIPT_IDS);
         if (!messageIds.length) return;
         const Message = getMessageModel();
@@ -688,7 +692,7 @@ const initCampusSocket = (io) => {
       try {
         const Message = getMessageModel();
         const msg = await Message.findByPk(messageId);
-        if (!msg || !(inChatRoom(msg.conversationId) || await isMember(msg.conversationId))) {
+        if (!msg || !(await canActIn(msg.conversationId))) {
           if (ack) ack({ error: 'Message not found' });
           return;
         }
