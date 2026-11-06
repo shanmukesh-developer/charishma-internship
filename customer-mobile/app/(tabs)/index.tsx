@@ -111,6 +111,9 @@ const RotatingSearchInput = React.memo(function RotatingSearchInput({ search, co
   );
 });
 
+/** Short area line for a store card: the first two comma parts of its address, without PIN codes. */
+const shortArea = (loc: any): string => String(loc || "").split(",").map((x) => x.replace(/\b\d{6}\b/g, '').trim()).filter((x) => x && !/^[A-Z0-9]{4,8}\+[A-Z0-9]{2,3}$/i.test(x)).slice(0, 2).join(', '); // drops map plus-codes like CHJ8+XGP
+
 const { width: SW } = Dimensions.get('window');
 
 const FILTERS: { key: string; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
@@ -1195,10 +1198,10 @@ export default function HomeScreen() {
         <View style={s.grid} onLayout={(e) => { gridBottom.current = e.nativeEvent.layout.y + e.nativeEvent.layout.height; }}>
           {loading ? (
             <>
-              <View style={{ width: '48.5%' }}><RestaurantCardSkeleton /></View>
-              <View style={{ width: '48.5%' }}><RestaurantCardSkeleton /></View>
-              <View style={{ width: '48.5%' }}><RestaurantCardSkeleton /></View>
-              <View style={{ width: '48.5%' }}><RestaurantCardSkeleton /></View>
+              <View style={{ width: '100%' }}><RestaurantCardSkeleton /></View>
+              <View style={{ width: '100%' }}><RestaurantCardSkeleton /></View>
+              <View style={{ width: '100%' }}><RestaurantCardSkeleton /></View>
+              <View style={{ width: '100%' }}><RestaurantCardSkeleton /></View>
             </>
           ) : loadError && restaurants.length === 0 ? (
             <View style={[s.emptyFilterBox, { backgroundColor: cardBg, borderColor: isDark ? goldBorderColor : COLORS.borderLight }]}>
@@ -1284,8 +1287,10 @@ export default function HomeScreen() {
 
             const activeOffer: string | null = r.promoOffer || null;
             const cuisineText = Array.isArray(r.tags) && r.tags.length
-              ? r.tags.slice(0, 3).map((t: any) => String(t)).join(', ')
+              ? r.tags.slice(0, 4).map((t: any) => String(t)).join(' · ')
               : (r.cuisine || r.description || '');
+            const areaText = shortArea(r.location || r.address || '');
+            const slotText: string | null = isOpen && r.nextSlotLabel ? String(r.nextSlotLabel) : null;
             const isFav = isFavoriteIn(favorites, id);
             const isPremium = r.subscriptionTier === 'premium' || r.isFeatured;
             // "New" only for a recently listed store; an old store without ratings shows no badge.
@@ -1297,7 +1302,7 @@ export default function HomeScreen() {
                 key={id || i} 
                 delay={50 + (i % 6) * 60} 
                 direction="up"
-                style={{ width: '48.5%' }}
+                style={{ width: '100%' }}
               >
               <CardPressable 
                 accessibilityRole="button"
@@ -1409,7 +1414,7 @@ export default function HomeScreen() {
                 </View>
                 <View style={s.rInfo}>
                   <View style={s.rTitleRow}>
-                    <Text style={[s.rName, { color: txt }]} numberOfLines={1}>{r.name}</Text>
+                    <Text style={[s.rName, { color: txt }]} numberOfLines={2}>{r.name}</Text>
                     {rating > 0 ? (
                       <View style={s.ratingBadge}>
                         <Text style={s.ratingText} maxFontSizeMultiplier={1.3}>{rating.toFixed(1)}</Text>
@@ -1431,6 +1436,24 @@ export default function HomeScreen() {
                     </View>
                   )}
  
+                  {/* Area and next delivery slot: real data only (owner, 6 Nov 2026: wide cards, full photo + full name) */}
+                  {(!!areaText || !!slotText) && (
+                    <View style={s.rMetaRow}>
+                      {!!areaText && (
+                        <View style={s.rMetaLeft}>
+                          <Ionicons name="location-outline" size={13} color={txtSec} />
+                          <Text style={[s.rMetaText, { color: txtSec, flexShrink: 1 }]} numberOfLines={1}>{areaText}</Text>
+                        </View>
+                      )}
+                      {!!slotText && (
+                        <View style={s.rMetaRight}>
+                          <Ionicons name="time-outline" size={13} color={COLORS.greenRating} />
+                          <Text style={[s.rMetaText, { color: COLORS.greenRating, fontWeight: '700', flexShrink: 1 }]} numberOfLines={1} accessibilityLabel={`Next delivery ${slotText}`}>{slotText}</Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+
                   {/* Zomato style dashed offer line */}
                   {activeOffer && (
                     <View style={{ 
@@ -1788,7 +1811,7 @@ const s = StyleSheet.create({
   // Grid
   grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, justifyContent: 'space-between', rowGap: 12 },
   rCard: { width: '100%', borderRadius: 16, overflow: 'hidden', ...SHADOWS.card },
-  rImgWrap: { width: '100%', aspectRatio: 4/3, position: 'relative' },
+  rImgWrap: { width: '100%', aspectRatio: 16/9, position: 'relative' },
   rImg: { width: '100%', height: '100%' },
   heartBtn: { position: 'absolute', top: 8, right: 8, width: 32, height: 32, borderRadius: 16, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', ...SHADOWS.card },
   promotedBadge: { position: 'absolute', top: 8, left: 8, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
@@ -1797,12 +1820,16 @@ const s = StyleSheet.create({
   timeText: { fontSize: 12, fontWeight: '700', color: '#fff' },
   offerRibbon: { position: 'absolute', bottom: 8, left: 0, backgroundColor: COLORS.blueOffer, paddingHorizontal: 8, paddingVertical: 4, borderTopRightRadius: 6, borderBottomRightRadius: 6 },
   offerText: { fontSize: 12, fontWeight: '700', color: '#fff' },
-  rInfo: { padding: 10 },
+  rInfo: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 14 },
   rTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  rName: { fontSize: 13, fontWeight: '700', color: '#111', flex: 1, marginRight: 4 },
+  rName: { fontSize: 17, fontWeight: '800', color: '#111', flex: 1, marginRight: 8, lineHeight: 22 },
   ratingBadge: { flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: COLORS.greenRating, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 6 },
   ratingText: { fontSize: 12, fontWeight: '700', color: '#fff' },
-  rCuisine: { fontSize: 12, color: '#888', fontWeight: '600' },
+  rCuisine: { fontSize: 13, color: '#888', fontWeight: '600' },
+  rMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 8, paddingTop: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(127,127,127,0.25)' },
+  rMetaLeft: { flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1, minWidth: 0 },
+  rMetaRight: { flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1, maxWidth: '60%' },
+  rMetaText: { fontSize: 12, fontWeight: '600' },
   // BlockWars & Modals styles
   blockwarsBanner: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginHorizontal: 16, padding: 14, borderRadius: 16, borderWidth: 1, marginBottom: 20 },
   blockwarsIcon: { width: 38, height: 38, borderRadius: 10, backgroundColor: COLORS.goldMuted, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.goldBorder },
