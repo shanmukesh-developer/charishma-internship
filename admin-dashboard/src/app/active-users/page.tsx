@@ -4,12 +4,13 @@
 // the account (at most every 10 minutes, utils/appPresence). This page reads it: who opened the app today / this
 // week / not for 2+ days / never, on which version, and the owner's closed-tester phone list with each one's status.
 // Backend: GET /api/admin/active-users, GET + PUT /api/admin/active-users/testers (routes/activeUsersRoutes.js).
+// 'Notify users on older versions': GET + POST /api/admin/app-update/notify (routes/appUpdateRoutes.js).
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { adminRequest, ApiError } from '@/lib/api';
 import { useAdminAuth } from '@/utils/useAdminAuth';
 import {
   Badge, Button, Card, CardBody, CardHeader, DataTable, Field, Notice, PageHeader, SearchInput, Select, StatTile, Tabs,
-  Textarea, Toolbar, useToast, type Column, type Tone, IconRefresh, IconEdit,
+  Textarea, Toolbar, useToast, useConfirm, Input, type Column, type Tone, IconRefresh, IconEdit, IconBell,
 } from '@/components/ui';
 import { formatDate, formatDateTime, formatPhone, formatRelative } from '@/lib/format';
 
@@ -92,6 +93,158 @@ function parsePhones(text: string): { phones: string[]; invalid: string[] } {
     if (!phones.includes(d)) phones.push(d);
   }
   return { phones, invalid };
+}
+
+interface NotifyPreview {
+  version: string;
+  versionSource: 'policy' | 'given';
+  behind: number;
+  withDevice: number;
+  versions: { version: string; count: number }[];
+  lastSent: { sentAt: string; targeted: number | null; sent: number | null } | null;
+  title: string;
+  body: string;
+}
+interface NotifyResult { version: string; targeted: number; withDevice: number; devices: number; sent: number; failed: number; resend: boolean }
+
+const STRICT_VERSION = /^(0|[1-9]\d{0,5})\.(0|[1-9]\d{0,5})\.(0|[1-9]\d{0,5})$/;
+
+/**
+ * "Notify users on older versions": one push ("ZenWe update available") to every customer whose last recorded app
+ * version is older than the latest (Settings and fees > App versions) or a version typed here. Sent once per version;
+ * sending again needs a second, explicit confirmation. Opening it shows the in-app update banner (Play).
+ */
+function UpdateNotifyCard({ onSent }: { onSent: () => void }) {
+  const toast = useToast();
+  const confirm = useConfirm();
+  const [custom, setCustom] = useState('');
+  const [preview, setPreview] = useState<NotifyPreview | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const req = useRef(0);
+
+  const typed = custom.trim();
+  const typedInvalid = !!typed && !STRICT_VERSION.test(typed);
+
+  const loadPreview = useCallback(async () => {
+    if (typedInvalid) return;
+    const id = ++req.current;
+    setLoading(true);
+    try {
+      const q = typed ? `?${new URLSearchParams({ version: typed })}` : '';
+      const r = await adminRequest<NotifyPreview>(`/api/admin/app-update/notify${q}`);
+      if (id !== req.current) return;
+      setPreview(r);
+      setError(null);
+    } catch (e) {
+      if (id !== req.current) return;
+      setPreview(null);
+      setError(errText(e, 'Could not count users on older versions.'));
+    } finally {
+      if (id === req.current) setLoading(false);
+    }
+  }, [typed, typedInvalid]);
+
+  useEffect(() => {
+    const t = setTimeout(loadPreview, typed ? 400 : 0);
+    return () => clearTimeout(t);
+  }, [loadPreview, typed]);
+
+  const send = async () => {
+    if (!preview) return;
+    const n = preview.withDevice;
+    const ok = await confirm({
+      title: `Notify ${n} user${n === 1 ? '' : 's'} about version ${preview.version}?`,
+      description: (
+        <span className="block space-y-2">
+          <span className="block">Everyone on a version older than {preview.version} with notifications on gets this push once:</span>
+          <span className="block rounded-md border border-line bg-surface-2 px-3 py-2 text-sm"><b>{preview.title}</b><br />{preview.body}</span>
+          {preview.behind > n && <span className="block text-fg-muted">{preview.behind - n} more on an older version have no device registered for notifications.</span>}
+          <span className="block text-fg-muted">Publish {preview.version} on Google Play first: the update only appears in the app once Play offers it.</span>
+        </span>
+      ),
+      confirmLabel: 'Send notification',
+    });
+    if (!ok) return;
+    setSending(true);
+    const body = (confirmResend: boolean) => JSON.stringify({ ...(typed ? { minVersion: typed } : {}), ...(confirmResend ? { confirmResend: true } : {}) });
+    try {
+      let r: NotifyResult;
+      try {
+        r = await adminRequest<NotifyResult>('/api/admin/app-update/notify', { method: 'POST', body: body(false) });
+      } catch (e) {
+        if (!(e instanceof ApiError && e.code === 'ALREADY_SENT')) throw e;
+        const again = await confirm({
+          title: `Users were already notified about ${preview.version}`,
+          description: preview.lastSent
+            ? `Sent ${formatDateTime(preview.lastSent.sentAt)} IST${preview.lastSent.sent !== null ? ` to ${preview.lastSent.sent} device${preview.lastSent.sent === 1 ? '' : 's'}` : ''}. Send the same notification again?`
+            : 'Send the same notification again?',
+          confirmLabel: 'Send again',
+          tone: 'danger',
+        });
+        if (!again) return;
+        r = await adminRequest<NotifyResult>('/api/admin/app-update/notify', { method: 'POST', body: body(true) });
+      }
+      toast.success(`Version ${r.version}: ${r.targeted} user${r.targeted === 1 ? '' : 's'} on older versions, sent to ${r.sent} of ${r.devices} device${r.devices === 1 ? '' : 's'}.`);
+      loadPreview();
+      onSent();
+    } catch (e) {
+      toast.error(errText(e, 'Could not send the notification.'));
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const p = preview;
+  return (
+    <Card className="mb-4">
+      <CardHeader
+        title="Notify users on older versions"
+        description="Sends “ZenWe update available” to customers on an older app version. Tapping it opens ZenWe, which offers the update inside the app (Google Play in-app update)."
+      />
+      <CardBody>
+        <div className="flex flex-col gap-4 md:flex-row md:items-end">
+          <div className="min-w-0 flex-1">
+            {error && !typedInvalid && <Notice tone="danger" className="mb-3" action={<Button size="sm" onClick={loadPreview}>Try again</Button>}>{error}</Notice>}
+            {p && !typedInvalid && (
+              <div className="space-y-2">
+                <p className="text-sm text-fg">
+                  <span className="text-2xl font-semibold tabular-nums">{p.behind}</span>{' '}
+                  user{p.behind === 1 ? ' is' : 's are'} on a version older than <span className="font-mono">{p.version}</span>
+                  {p.versionSource === 'policy' ? ' (latest in Settings and fees > App versions)' : ''}
+                  {p.behind > 0 ? ` · ${p.withDevice} can get notifications` : ''}
+                </p>
+                {p.versions.length > 0 && (
+                  <ul className="flex flex-wrap gap-1.5" aria-label="Users behind, per version">
+                    {p.versions.map(v => <li key={v.version}><Badge tone="warning"><span className="font-mono">{v.version}</span> · {v.count}</Badge></li>)}
+                  </ul>
+                )}
+                {p.lastSent && (
+                  <p className="text-xs text-fg-muted">Already sent for {p.version} on {formatDateTime(p.lastSent.sentAt)} IST{p.lastSent.sent !== null ? ` (${p.lastSent.sent} device${p.lastSent.sent === 1 ? '' : 's'})` : ''}. Sending again asks for confirmation.</p>
+                )}
+              </div>
+            )}
+            {loading && !p && <p className="text-sm text-fg-muted">Counting users on older versions…</p>}
+          </div>
+          <div className="flex flex-wrap items-end gap-2">
+            <Field label="Version" optional hint="Empty = latest version" error={typedInvalid ? 'Use x.y.z, for example 1.0.68' : undefined}>
+              <Input value={custom} onChange={e => setCustom(e.target.value)} placeholder={p && p.versionSource === 'policy' ? p.version : '1.0.68'} invalid={typedInvalid} className="w-32 font-mono" inputMode="decimal" aria-label="Version to compare against" />
+            </Field>
+            <Button
+              variant="primary"
+              leftIcon={<IconBell size={14} />}
+              loading={sending}
+              disabled={!p || typedInvalid || loading || p.withDevice === 0}
+              onClick={send}
+            >
+              Notify users
+            </Button>
+          </div>
+        </div>
+      </CardBody>
+    </Card>
+  );
 }
 
 /** "2 h ago" with the exact IST time on hover; "Not seen yet" when empty. */
@@ -315,6 +468,9 @@ export default function ActiveTestersPage() {
           </CardBody>
         </Card>
       )}
+
+      {/* 'ZenWe update available' push */}
+      <UpdateNotifyCard onSent={load} />
 
       {/* Closed testers */}
       <Card className="mb-4">

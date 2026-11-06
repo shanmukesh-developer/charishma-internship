@@ -100,6 +100,8 @@ router.use(admin);
 router.use('/revenue', require('./revenueRoutes'));
 // Active testers (6 Nov 2026): who uses the customer app, which version; the Play closed-tester phone list.
 router.use('/active-users', require('./activeUsersRoutes'));
+// 'ZenWe update available' push to customers on an older app version (utils/appUpdateNotify). Admin only.
+router.use('/app-update', require('./appUpdateRoutes'));
 
 // Mailer check: sends one demo email through Brevo so the admin can confirm BREVO_API_KEY/MAIL_FROM work.
 router.post('/mail/test', async (req, res) => {

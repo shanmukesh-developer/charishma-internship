@@ -278,7 +278,12 @@ export default function GlobalAnnouncement() {
         const autoRideHref = autoRideHrefForNotification(data.type, data);
         const campusEventHref = campusEventHrefForNotification(data.type, data);
         const corideHref = corideHrefForNotification(data.type, data);
-        if (data.type === 'CAMPUS_BOOKING') {
+        if (data.type === 'APP_UPDATE') {
+          // "ZenWe update available" (admin, Active testers): Home, then ask Play now (skips the 6-hour wait) so the
+          // in-app update banner shows; without Play's in-app API the store-link banner stays (utils/inAppUpdate).
+          go('/(tabs)');
+          require('../utils/inAppUpdate').onUpdatePushOpened();
+        } else if (data.type === 'CAMPUS_BOOKING') {
           // In-Campus Booking: payment reviewed, accepted, preparing, ready for pickup, collected, cancelled
           const bid = safeId(data.bookingId);
           go(bid ? `/campus-booking/order/${bid}` : '/campus-booking/bookings');

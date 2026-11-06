@@ -32,6 +32,12 @@ import ErrorBoundary from '../components/ErrorBoundary';
 import { preloadSounds, loadSoundSetting } from '../utils/sounds';
 import { scheduleApiEndpointCheck } from '../constants/api';
 import UpdateGate from '../utils/UpdateGate';
+import InAppUpdateBanner from '../components/InAppUpdateBanner';
+import { initInAppUpdates } from '../utils/inAppUpdate';
+
+// Google Play in-app updates (Android, installed from Play): immediate flow when this version is below the
+// server minimum, otherwise the "new version is ready" banner. No-op on iOS / web / sideloaded builds.
+initInAppUpdates();
 
 // Global interceptor to theme all native Alert.alert calls across the codebase automatically
 const originalAlert = Alert.alert;
@@ -115,6 +121,8 @@ const AppTree = React.memo(function AppTree({ isDark, onSettled }: { isDark: boo
             <OfflineBanner />
             {/* Backend cold start: calm "waking up" banner while apiFetch retries (utils/serverWake.ts) */}
             <ServerWakeBanner />
+            {/* "A new version of ZenWe is ready" (Play in-app update); waits while on /checkout */}
+            <InAppUpdateBanner />
             <SettleSignal onSettled={onSettled} />
           </OptionsSheetProvider>
           </CartProvider>
