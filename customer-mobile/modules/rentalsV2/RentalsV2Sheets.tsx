@@ -77,7 +77,7 @@ function BookSheet({ item, duration }: { item: RItem; duration: Duration }) {
 
   return (
     <Sheet visible onClose={nav.closeSheet} title={`${words.verb} ${item.title}`}
-      footer={gate ? <CTA label={gate.a} onPress={() => { nav.closeSheet(); router.push(gate.go as any); }} />
+      footer={gate ? <CTA label={gate.a} sub="Needed before you can send a request" onPress={() => { nav.closeSheet(); router.push(gate.go as any); }} />
         : <CTA label="Send request" sub={quote ? `${inr(quote.payAtHandover)} at pickup · nothing paid now` : undefined} onPress={send} busy={busy} disabled={!agree || !quote || !!why} />}>
       {gate ? <View style={b.gate}><IInfo size={18} color={DAY.accent} strokeWidth={1.7} /><Text style={b.gateText}>{gate.t}</Text></View> : null}
       <SheetLabel>Pickup day</SheetLabel>
@@ -108,10 +108,16 @@ function BookSheet({ item, duration }: { item: RItem; duration: Duration }) {
       <SheetLabel>Note for the {words.giver} (optional)</SheetLabel>
       <TextInput value={note} onChangeText={setNote} placeholder="Pickup spot, ride plan…" placeholderTextColor={DAY.faint} maxLength={200} style={b.input} multiline />
 
-      <Press onPress={() => setAgree(!agree)} label="I agree to the rental terms" style={b.agree}>
-        <View style={[b.box, agree ? b.boxOn : null]}>{agree ? <ICheck size={14} color="#FFFFFF" strokeWidth={2.4} /> : null}</View>
-        <Text style={b.agreeText}>I will show my licence at pickup, return on time, and pay any agreed extra km or damage charges.</Text>
-      </Press>
+      {/* The agreement belongs to "Send request" only. While a gate is shown (sign in / verify college / add licence),
+          the footer button just opens that step, so a checkbox here looked like it controlled that button and didn't
+          (tester report, 6 Nov 2026). It appears once the person can actually send a request; Send request stays
+          disabled until it is ticked, and the server also refuses requests without acceptTerms. */}
+      {!gate ? (
+        <Press onPress={() => setAgree(!agree)} label="I agree to the rental terms" style={b.agree}>
+          <View style={[b.box, agree ? b.boxOn : null]}>{agree ? <ICheck size={14} color="#FFFFFF" strokeWidth={2.4} /> : null}</View>
+          <Text style={b.agreeText}>I will show my licence at pickup, return on time, and pay any agreed extra km or damage charges.</Text>
+        </Press>
+      ) : null}
       {err ? <Text style={[b.muted, { color: DAY.red, marginTop: 10 }]}>{err}</Text> : null}
     </Sheet>
   );
