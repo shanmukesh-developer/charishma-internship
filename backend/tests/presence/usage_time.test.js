@@ -184,7 +184,7 @@ test('delete: usage cleared and active-day rows kept; with history: every row de
   assert.equal(JSON.parse(logs[1].details).includeDailyHistory, true);
 });
 
-test('admin report: minutes today, sessions, 7-day average per day opened, today\'s totals', async () => {
+test('admin report: minutes today, sessions, 7-day average per day, today\'s totals', async () => {
   const u = await H.mkUser({ name: 'Usage Report' });
   const now = new Date();
   const today = dt.istDay(now);
@@ -195,7 +195,7 @@ test('admin report: minutes today, sessions, 7-day average per day opened, today
   const r = await api('GET', `/api/admin/active-users?search=${encodeURIComponent('Usage Report')}`, admin.token);
   assert.equal(r.status, 200, JSON.stringify(r.body));
   const row = r.body.users.find((x) => x.id === String(u.id));
-  assert.deepEqual(row.usage, { minutesToday: 10, sessionsToday: 2, avgMinutes7d: 15, daysActive7d: 2 });
+  assert.deepEqual(row.usage, { minutesToday: 10, sessionsToday: 2, avgMinutes7d: 4, daysActive7d: 2 });
   assert.equal(r.body.usageToday.totalMinutes, 10, 'admins left out');
   assert.equal(r.body.usageToday.usersWithTime, 1);
   assert.equal(r.body.usageToday.avgMinutesPerActiveUser, 10);

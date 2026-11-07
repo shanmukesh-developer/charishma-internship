@@ -242,10 +242,18 @@ const deleteAccount = async ({ sequelize, user, reason = null }) => {
   await purgeConversations(sequelize, userId, summary);
   await purgeTables(sequelize, userId, summary);
 
-  // 3. Login codes for the old number.
-  const { OtpCode } = sequelize.models;
+  // 3. Login codes for the old number, and closed-test usage/daily activity rows.
+  const { OtpCode, UserDailyActivity } = sequelize.models;
   if (OtpCode && phone) {
     try { await OtpCode.destroy({ where: { phone } }); } catch (err) { safeLog('otp codes failed', err); }
+  }
+  if (UserDailyActivity) {
+    try {
+      const n = await UserDailyActivity.destroy({ where: { userId: String(userId) } });
+      if (n) summary.deleted.UserDailyActivity = (summary.deleted.UserDailyActivity || 0) + n;
+    } catch (err) {
+      safeLog('user daily activity failed', err);
+    }
   }
 
   // 4. Firebase Auth user for the phone (best effort; the account is already closed).

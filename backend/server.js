@@ -1397,6 +1397,10 @@ const initializeApp = async () => {
     inBootQueue(() => require('./scripts/owner_menu_fixes_v2').runOwnerMenuFixes())
       .then((r) => console.log('🍜 [OWNER_MENU_FIXES]', JSON.stringify(r)))
       .catch((err) => console.warn('⚠️ [OWNER_MENU_FIXES] failed:', err.message));
+    // 🍛 Star Dum Biryani reorder, once (STAR_DUM_BIRYANI_REORDER_V1_DONE): Biryanis section first, chicken / budget on top.
+    inBootQueue(() => require('./scripts/star_dum_biryani_reorder').runStarDumBiryaniReorder())
+      .then((r) => console.log('🍛 [STAR_DUM_BIRYANI_REORDER]', JSON.stringify(r)))
+      .catch((err) => console.warn('⚠️ [STAR_DUM_BIRYANI_REORDER] failed:', err.message));
     // 🧪 Owner-only test data (owner, 3 Nov 2026): restaurants, stalls, grocery and service stores and deals with
     // isTestData, seen only by the phones in TEST_VIEWER_PHONES (utils/testView). Each part once; Admin > Config >
     // Test data removes it. scripts/test_data_v2_seed.js; DISABLE_TEST_DATA_V2=true skips it.

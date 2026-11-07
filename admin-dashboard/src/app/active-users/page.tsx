@@ -272,12 +272,12 @@ function VersionCell({ u }: { u: ActiveUser }) {
 }
 
 const minsText = (n: number) => (n >= 60 ? `${Math.floor(n / 60)} h ${n % 60} m` : `${n} min`);
-/** CLOSED-TEST ONLY: "12 min · 2 sessions" today, 7-day average per day opened on hover / second line. */
+/** CLOSED-TEST ONLY: "12 min · 2 sessions" today, 7-day average per day on hover / second line. */
 function UsageCell({ u }: { u: ActiveUser }) {
   const x = u.usage;
   if (!x) return <span className="text-fg-subtle">–</span>;
   return (
-    <span className="whitespace-nowrap text-xs tabular-nums" title={`Today: ${x.minutesToday} min in ${x.sessionsToday} session(s). Last 7 days: ${x.avgMinutes7d} min a day on the ${x.daysActive7d} day(s) the app was opened.`}>
+    <span className="whitespace-nowrap text-xs tabular-nums" title={`Today: ${x.minutesToday} min in ${x.sessionsToday} session(s). Last 7 days: ${x.avgMinutes7d} min/day across 7 days (${x.daysActive7d} active day(s)).`}>
       <span className="text-fg">{minsText(x.minutesToday)}</span>
       <span className="text-fg-muted"> · {x.sessionsToday} sess.</span>
       <span className="block text-fg-muted">7-day avg {minsText(x.avgMinutes7d)}/day</span>

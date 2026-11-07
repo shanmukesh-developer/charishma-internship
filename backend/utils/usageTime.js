@@ -159,8 +159,8 @@ const usageDataStats = async () => {
 };
 
 /**
- * Per user: today's seconds + sessions and the 7-day average minutes per day opened (days with a row in the last
- * 7 IST days, today included). Map userId -> { minutesToday, sessionsToday, avgMinutes7d, daysActive7d }.
+ * Per user: today's seconds + sessions and the 7-day average minutes per day (total minutes across the last 7 IST days
+ * divided by 7). Map userId -> { minutesToday, sessionsToday, avgMinutes7d, daysActive7d }.
  */
 const usageFor = async (userIds, { now = new Date() } = {}) => {
   const out = new Map();
@@ -186,7 +186,7 @@ const usageFor = async (userIds, { now = new Date() } = {}) => {
     out.set(id, {
       minutesToday: Math.round(e.secondsToday / 60),
       sessionsToday: e.sessionsToday,
-      avgMinutes7d: e.daysActive7d ? Math.round(e.seconds7d / 60 / e.daysActive7d) : 0,
+      avgMinutes7d: Math.round(e.seconds7d / 60 / 7),
       daysActive7d: e.daysActive7d,
     });
   }
