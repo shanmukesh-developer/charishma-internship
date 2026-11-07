@@ -487,13 +487,21 @@ class AdminInputError extends Error {}
 // kept; inline base64 is sniffed and moved to the media table (short URL stored); anything else
 // (data:text/html, SVG, huge strings) is rejected. `existing` = the row being edited: its current
 // photo links pass unchanged (an old temporary link never blocks a price edit; the list flags it).
-const mediaizeImageFields = async (out, req, keys, purpose, existing = null) => {
-  const { storeImageRef } = require('../utils/imageStore');
+// importExternal: a NEW photo link to another website is downloaded into our own media store (CSV imports,
+// 7 Nov 2026: share links such as Google Drive open a web page, not a picture, and showed "photo does not load").
+const mediaizeImageFields = async (out, req, keys, purpose, existing = null, { importExternal = false } = {}) => {
+  const { storeImageRef, mediaIdOf } = require('../utils/imageStore');
   for (const key of keys) {
     if (out[key] === undefined) continue;
     const keep = existing ? (typeof existing.get === 'function' ? existing.get(key) : existing[key]) : null;
     const r = await storeImageRef(out[key], { req, ownerId: req.user && req.user.id, purpose, keep });
     if (!r.ok) throw new AdminInputError(`${key === 'logoUrl' ? 'Logo' : 'Photo'}: ${r.message}`);
+    if (importExternal && r.value && /^https?:\/\//i.test(r.value) && !mediaIdOf(r.value) && r.value !== keep) {
+      const got = await require('../utils/imageImport').importImageFromUrl(r.value, { req, purpose });
+      if (!got.ok) throw new AdminInputError(`${key === 'logoUrl' ? 'Logo' : 'Photo'}: ${got.message}`);
+      out[key] = got.value;
+      continue;
+    }
     out[key] = r.value;
   }
   return out;
@@ -1040,7 +1048,7 @@ exports.upsertMenuItem = async (req, res) => {
       if (!menuItem) return res.status(404).json({ message: 'Product not found.' });
       const store = await Restaurant.findByPk(menuItem.restaurantId, { attributes: ['id', 'vendorType'] });
       const allowFree = !!store && isServiceVendorType(store.vendorType);
-      await menuItem.update(await mediaizeImageFields(pickMenuItemFields(req.body, menuItem, { allowFree }), req, ['imageUrl'], 'menu', menuItem));
+      await menuItem.update(await mediaizeImageFields(pickMenuItemFields(req.body, menuItem, { allowFree }), req, ['imageUrl'], 'menu', menuItem, { importExternal: req.body.importPhoto === true }));
     } else {
       const restaurantId = String(req.body.restaurantId || '');
       const store = UUID_RE.test(restaurantId) ? await Restaurant.findByPk(restaurantId, { attributes: ['id', 'vendorType'] }) : null;
@@ -1048,7 +1056,7 @@ exports.upsertMenuItem = async (req, res) => {
         return res.status(400).json({ message: 'Pick the store this product belongs to.' });
       }
       const allowFree = isServiceVendorType(store.vendorType);
-      menuItem = await MenuItem.create({ ...(await mediaizeImageFields(pickMenuItemFields(req.body, null, { allowFree }), req, ['imageUrl'], 'menu')), restaurantId });
+      menuItem = await MenuItem.create({ ...(await mediaizeImageFields(pickMenuItemFields(req.body, null, { allowFree }), req, ['imageUrl'], 'menu', null, { importExternal: req.body.importPhoto === true })), restaurantId });
     }
     clearRestaurantsCache();
     realtime.publish('product', id && id !== 'new' ? 'updated' : 'created', menuItem.id, { storeId: menuItem.restaurantId });
@@ -2847,16 +2855,23 @@ exports.bulkCreateMenuItems = async (req, res) => {
         errors.push({ index, name: raw && raw.name ? String(raw.name).slice(0, 80) : null, message: err instanceof AdminInputError ? err.message : 'Invalid product.' });
       }
     });
-    for (let i = 0; i < rows.length; i++) {
-      try {
-        await mediaizeImageFields(rows[i], req, ['imageUrl'], 'menu');
-      } catch (err) {
-        errors.push({ index: i, name: rows[i].name || null, message: err instanceof AdminInputError ? err.message : 'Invalid photo.' });
+    // Photo links are downloaded into our own store (4 at a time); a link that gives no picture names its row.
+    let next = 0;
+    const worker = async () => {
+      for (;;) {
+        const i = next++;
+        if (i >= rows.length) return;
+        try {
+          await mediaizeImageFields(rows[i], req, ['imageUrl'], 'menu', null, { importExternal: true });
+        } catch (err) {
+          errors.push({ index: i, name: rows[i].name || null, message: err instanceof AdminInputError ? err.message : 'Invalid photo.' });
+        }
       }
-    }
+    };
+    await Promise.all(Array.from({ length: Math.min(4, rows.length) }, worker));
+    errors.sort((a, b) => a.index - b.index);
     if (errors.length) return res.status(400).json({ message: `${errors.length} row(s) need fixing. Nothing was saved.`, errors });
-    const { getSequelize } = require('../config/db');
-    const created = await getSequelize().transaction((t) => MenuItem.bulkCreate(rows, { transaction: t }));
+    const created = await MenuItem.sequelize.transaction((t) => MenuItem.bulkCreate(rows, { transaction: t }));
     clearRestaurantsCache();
     realtime.publish('product', 'updated', null, { storeId: restaurantId, scope: 'bulk' });
     broadcastSystemUpdate(req, 'MENU_UPDATED', { id: null, restaurantId });

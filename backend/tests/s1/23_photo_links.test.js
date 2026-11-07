@@ -6,6 +6,9 @@ const assert = require('node:assert');
 const H = require('./helpers');
 
 test.before(() => H.setup());
+// The bulk import downloads photo links (utils/imageImport): never touch the network here.
+test.before(() => require('../../utils/imageImport')._setNetForTests({ lookup: async () => { throw new Error('offline'); }, fetch: async () => { throw new Error('offline'); } }));
+test.after(() => require('../../utils/imageImport')._setNetForTests(null));
 test.after(() => H.teardown());
 
 const FLOW = 'https://flow-content.google/image/d5c46c00-6d02-4088-9a1e-8d7d158767ce?Expires=1793277743&Signature=abc&Key-Pair-Id=K1';

@@ -216,7 +216,8 @@ export function MenuManager({ store }: { store: Store }) {
   const saveItem = async (payload: Record<string, unknown>, existing: Product | null) => {
     const saved = await adminRequest<Product>(`/api/admin/menu-items/${existing ? itemId(existing) : 'new'}`, {
       method: 'POST',
-      body: JSON.stringify(existing ? payload : { ...payload, restaurantId: id }),
+      // importPhoto: a newly pasted link to another website is downloaded into ZenWe's own photo store.
+      body: JSON.stringify(existing ? { ...payload, importPhoto: true } : { ...payload, restaurantId: id, importPhoto: true }),
     });
     setProducts(prev => (existing ? prev.map(p => (itemId(p) === itemId(existing) ? { ...p, ...saved } : p)) : [...prev, saved]));
     markFresh([itemId(saved)]);
@@ -354,6 +355,7 @@ export function MenuManager({ store }: { store: Store }) {
           allowFree={bookingOnly}
           onClose={() => setCsvOpen(false)}
           onImported={items => { setProducts(prev => [...prev, ...items]); markFresh(items.map(itemId)); }}
+          onUpdated={items => { const byId = new Map(items.map(x => [itemId(x), x])); setProducts(prev => prev.map(p => (byId.has(itemId(p)) ? { ...p, ...byId.get(itemId(p)) } : p))); markFresh(items.map(itemId)); }}
         />
       )}
       {confirmDelete && (
@@ -728,7 +730,7 @@ async function fetchBulk(restaurantId: string, items: Record<string, unknown>[])
   return Array.isArray(data?.items) ? (data.items as Product[]) : [];
 }
 
-interface CsvRow { line: number; data: Record<string, unknown>; errors: string[]; duplicate: boolean; status?: 'done' | 'failed'; failReason?: string }
+interface CsvRow { line: number; data: Record<string, unknown>; errors: string[]; duplicate: boolean; existingId?: string; status?: 'done' | 'failed' | 'photo'; failReason?: string }
 
 // Cells are read strictly: a value the import does not recognise is a row error, never a silent default
 // ("Out of stock" was read as in stock and "Non-Veg Pickle" as veg).
@@ -756,8 +758,8 @@ const dietFromCell = (v: string): DietType | null => {
   return null;
 };
 
-function CsvImportModal({ storeId: sid, existing, allowFree, onClose, onImported }: {
-  storeId: string; existing: Product[]; allowFree: boolean; onClose: () => void; onImported: (items: Product[]) => void;
+function CsvImportModal({ storeId: sid, existing, allowFree, onClose, onImported, onUpdated }: {
+  storeId: string; existing: Product[]; allowFree: boolean; onClose: () => void; onImported: (items: Product[]) => void; onUpdated: (items: Product[]) => void;
 }) {
   const toast = useToast();
   const [text, setText] = useState('');
@@ -768,6 +770,7 @@ function CsvImportModal({ storeId: sid, existing, allowFree, onClose, onImported
   const [progress, setProgress] = useState(0);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const existingNames = useMemo(() => new Set(existing.map(p => p.name.trim().toLowerCase())), [existing]);
+  const existingByName = useMemo(() => new Map(existing.map(p => [p.name.trim().toLowerCase(), p])), [existing]);
 
   const parse = (src: string) => {
     const table = parseCsv(src);
@@ -801,8 +804,11 @@ function CsvImportModal({ storeId: sid, existing, allowFree, onClose, onImported
       else if (image && photoLinkNote(image)?.tone === 'danger') errors.push(`Image: ${photoLinkNote(image)?.text}`);
       const key = name.toLowerCase();
       const duplicate = !!name && (existingNames.has(key) || seen.has(key));
+      // An item already on the menu with a photo link in the CSV: its photo is added instead of skipping the row.
+      const onMenu = !!name && existingNames.has(key) && !seen.has(key) ? existingByName.get(key) : undefined;
       seen.add(key);
       return {
+        existingId: onMenu ? itemId(onMenu) : undefined,
         line: i + (hasHeader ? 2 : 1),
         errors,
         duplicate,
@@ -818,11 +824,13 @@ function CsvImportModal({ storeId: sid, existing, allowFree, onClose, onImported
   };
 
   const importable = (rows || []).filter(r => !r.errors.length && !(skipDupes && r.duplicate) && r.status !== 'done');
+  const photoUpdates = (rows || []).filter(r => skipDupes && !r.errors.length && r.existingId && r.data.imageUrl && r.status !== 'photo');
+  const total = importable.length + photoUpdates.length;
   const errorCount = (rows || []).filter(r => r.errors.length).length;
   const dupeCount = (rows || []).filter(r => r.duplicate).length;
 
   const run = async () => {
-    if (!importable.length || importing) return;
+    if (!total || importing) return;
     setImporting(true);
     setProgress(0);
     let order = existing.reduce((m, p) => Math.max(m, Number.isFinite(sortOrderOf(p)) ? sortOrderOf(p) : 0), 0);
@@ -847,12 +855,33 @@ function CsvImportModal({ storeId: sid, existing, allowFree, onClose, onImported
       }
       setProgress(Math.min(queue.length, i + chunk.length));
     }
-    setRows(prev => (prev || []).map(r => (results.has(r.line) ? { ...r, ...results.get(r.line) } : r)));
+    // Items already on the menu: add the CSV photo (the server downloads it into ZenWe's own store), 4 at a time.
+    const photoResults = new Map<number, { status: 'photo' | 'failed'; failReason?: string }>();
+    const updated: Product[] = [];
+    let nextPhoto = 0;
+    const photoWorker = async () => {
+      for (;;) {
+        const r = photoUpdates[nextPhoto++];
+        if (!r) return;
+        try {
+          const saved = await adminRequest<Product>(`/api/admin/menu-items/${r.existingId}`, { method: 'POST', body: JSON.stringify({ imageUrl: r.data.imageUrl, importPhoto: true }) });
+          updated.push(saved);
+          photoResults.set(r.line, { status: 'photo' });
+        } catch (e) {
+          photoResults.set(r.line, { status: 'failed', failReason: (e as Error).message || 'Photo not saved' });
+        }
+        setProgress(p => p + 1);
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(4, photoUpdates.length) }, photoWorker));
+    setRows(prev => (prev || []).map(r => (results.has(r.line) ? { ...r, ...results.get(r.line) } : photoResults.has(r.line) ? { ...r, ...photoResults.get(r.line) } : r)));
     setImporting(false);
     if (added.length) onImported(added);
-    const failed = queue.length - added.length;
-    if (!failed) { toast.success(`${added.length} item${added.length === 1 ? '' : 's'} added to the menu.`); onClose(); }
-    else toast.error(`${added.length} added, ${failed} not saved. Rows are marked below; fix them and import again.`);
+    if (updated.length) onUpdated(updated);
+    const failed = queue.length - added.length + (photoUpdates.length - updated.length);
+    const done = [added.length ? `${added.length} item${added.length === 1 ? '' : 's'} added` : '', updated.length ? `${updated.length} photo${updated.length === 1 ? '' : 's'} added to items already on the menu` : ''].filter(Boolean).join(', ') || 'Nothing saved';
+    if (!failed) { toast.success(`${done}.`); onClose(); }
+    else toast.error(`${done}; ${failed} not saved. Rows are marked below; fix them and import again.`);
   };
 
   const loadFile = async (file?: File | null) => {
@@ -870,11 +899,13 @@ function CsvImportModal({ storeId: sid, existing, allowFree, onClose, onImported
       size="xl"
       onClose={importing ? () => undefined : onClose}
       footer={<>
-        {rows && <span className="mr-auto text-xs text-fg-muted">{importable.length} ready · {errorCount} with errors{dupeCount ? ` · ${dupeCount} duplicate${dupeCount === 1 ? '' : 's'}` : ''}</span>}
+        {rows && <span className="mr-auto text-xs text-fg-muted">{importable.length} ready{photoUpdates.length ? ` · ${photoUpdates.length} photo${photoUpdates.length === 1 ? '' : 's'} for items on the menu` : ''} · {errorCount} with errors{dupeCount ? ` · ${dupeCount} duplicate${dupeCount === 1 ? '' : 's'}` : ''}</span>}
         <Button onClick={onClose} disabled={importing}>Cancel</Button>
         {rows ? (
-          <Button variant="primary" loading={importing} disabled={!importable.length} onClick={run}>
-            {importing ? `Adding ${progress}/${importable.length}…` : `Add ${importable.length} item${importable.length === 1 ? '' : 's'}`}
+          <Button variant="primary" loading={importing} disabled={!total} onClick={run}>
+            {importing ? `Saving ${progress}/${total}…` : importable.length
+              ? `Add ${importable.length} item${importable.length === 1 ? '' : 's'}${photoUpdates.length ? ` + ${photoUpdates.length} photo${photoUpdates.length === 1 ? '' : 's'}` : ''}`
+              : `Add ${photoUpdates.length} photo${photoUpdates.length === 1 ? '' : 's'}`}
           </Button>
         ) : (
           <Button variant="primary" disabled={!text.trim()} onClick={() => parse(text)}>Preview</Button>
@@ -899,7 +930,7 @@ function CsvImportModal({ storeId: sid, existing, allowFree, onClose, onImported
           <div className="flex items-center gap-3">
             <Button size="sm" onClick={() => fileRef.current?.click()}>Choose CSV file</Button>
             <input ref={fileRef} type="file" accept=".csv,text/csv,text/plain" className="hidden" onChange={e => { loadFile(e.target.files?.[0]); e.target.value = ''; }} aria-label="CSV file" />
-            <span className="text-xs text-fg-muted">Photos can be added per item afterwards.</span>
+            <span className="text-xs text-fg-muted">Photo links are copied into ZenWe so they keep working. Google Drive photos must be shared as &quot;Anyone with the link&quot;. A row for an item already on the menu adds its photo.</span>
           </div>
         </div>
       ) : (
@@ -934,8 +965,10 @@ function CsvImportModal({ storeId: sid, existing, allowFree, onClose, onImported
                         <td className="p-2">{d.isAvailable ? 'In' : 'Out'}</td>
                         <td className="p-2">
                           {r.status === 'done' ? <Chip tone="green">Added</Chip>
+                            : r.status === 'photo' ? <Chip tone="green">Photo added</Chip>
                             : r.status === 'failed' ? <Chip tone="red" title={r.failReason}>Failed: {r.failReason}</Chip>
                             : r.errors.length ? <span className="text-danger-text">{r.errors.join(' · ')}</span>
+                            : skipped && r.existingId && r.data.imageUrl ? <Chip tone="green">On the menu · photo will be added</Chip>
                             : r.duplicate ? <Chip tone="amber">{skipped ? 'Duplicate, skipped' : 'Duplicate'}</Chip>
                             : <Chip tone="green">Ready</Chip>}
                         </td>
@@ -947,8 +980,8 @@ function CsvImportModal({ storeId: sid, existing, allowFree, onClose, onImported
             </div>
           )}
           {importing && (
-            <div className="h-1.5 overflow-hidden rounded-full bg-surface-2" role="progressbar" aria-valuemin={0} aria-valuemax={importable.length} aria-valuenow={progress} aria-label="Import progress">
-              <div className="h-full bg-success transition-all" style={{ width: `${importable.length ? (progress / importable.length) * 100 : 0}%` }} />
+            <div className="h-1.5 overflow-hidden rounded-full bg-surface-2" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={progress} aria-label="Import progress">
+              <div className="h-full bg-success transition-all" style={{ width: `${total ? (progress / total) * 100 : 0}%` }} />
             </div>
           )}
         </div>
