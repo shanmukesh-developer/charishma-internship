@@ -127,7 +127,7 @@ const sectionFromParam = (t?: string): string | null => {
   if (t === 'food' || t === 'basket') return 'food';
   if (t === 'rentals' || t === 'rental' || t === 'vehicles') return 'rentals';
   if (t === 'events' || t === 'campus-events') return 'events';
-  if (t === 'services') return 'services';
+  if (t === 'services' || t === 'tech' || t === 'repairs' || t === 'repair') return 'services';
   return null;
 };
 const hubOf = (section: string): Hub => (HUB_SECTIONS.services.includes(section) ? 'services' : 'explore');
@@ -633,10 +633,10 @@ export function HubScreen({ hub }: { hub: Hub }) {
     }
     if (tab) {
       // A pill tap or a link into a section counts as using it (orders Home's feature cards).
-      recordSectionUse(tab === 'rides' ? 'coride' : tab === 'stays' ? 'pg' : tab === 'offers' ? 'promos' : tab === 'campus-events' ? 'events' : tab === 'rental' || tab === 'vehicles' ? 'rentals' : tab);
+      { const usedSection = sectionFromParam(String(tab)); if (usedSection) recordSectionUse(usedSection); }
       if (tab === 'rides' || tab === 'coride') {
         setActiveTab('coride');
-      } else if (tab === 'services') {
+      } else if (tab === 'services' || tab === 'tech' || tab === 'repairs' || tab === 'repair') {
         setActiveTab('services');
       } else if (tab === 'pg' || tab === 'stays') {
         setActiveTab('pg');
@@ -680,7 +680,8 @@ export function HubScreen({ hub }: { hub: Hub }) {
   // tap still opens PG stays, and the chip order is unchanged.
   const autoStartDoneRef = useRef(false);
   useEffect(() => {
-    if (hub !== 'services' || autoStartDoneRef.current || tab) return;
+    // An unknown ?tab= (typo, old link) counts as none, so it still gets the PG-empty start (7 Nov 2026).
+    if (hub !== 'services' || autoStartDoneRef.current || sectionFromParam(tab as any)) return;
     const pgInfo = (sectionsSWR.data?.sections as Record<string, { live?: boolean; count?: number }> | undefined)?.pg;
     if (!pgInfo) return;
     autoStartDoneRef.current = true;

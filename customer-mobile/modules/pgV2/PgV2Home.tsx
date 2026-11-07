@@ -95,10 +95,11 @@ export function PgV2HomeBody() {
             const n = countFor(t.g);
             return (
               <PressScale key={t.g} haptic scaleTo={0.97} onPress={() => setGender(on ? null : t.g)} accessibilityRole={BUTTON_ROLE} accessibilityState={{ selected: on }}
-                accessibilityLabel={`${t.label}, ${n} PGs`} style={[st.tile, { width: tileW }, on && st.tileOn]}>
+                accessibilityLabel={listState === 'ready' && n === 0 ? `${t.label}, coming soon` : `${t.label}, ${n} PGs`} style={[st.tile, { width: tileW }, on && st.tileOn]}>
                 <t.icon size={20} color={on ? PG2.primary : SLATE} strokeWidth={1.6} />
                 <Text style={[st.tileText, on && { color: PG2.primary }]} numberOfLines={1}>{t.label}</Text>
-                <Text style={st.tileCount}>{listState === 'ready' ? `${n} PG${n === 1 ? '' : 's'}` : ' '}</Text>
+                {/* "0 PGs" read as broken; with none listed yet it says Coming soon (owner, 7 Nov 2026). */}
+                <Text style={st.tileCount}>{listState === 'ready' ? (n === 0 ? 'Coming soon' : `${n} PG${n === 1 ? '' : 's'}`) : ' '}</Text>
               </PressScale>
             );
           })}
@@ -114,7 +115,7 @@ export function PgV2HomeBody() {
             );
           })}
         </ScrollView>
-        <PrimaryButton label={listState === 'ready' ? `Search PGs · ${count}` : 'Search PGs'} icon={ISearch}
+        <PrimaryButton label={listState === 'ready' && count > 0 ? `Search PGs · ${count}` : 'Search PGs'} icon={ISearch}
           onPress={() => nav.push({ name: 'list', gender: gender || undefined, budget })} style={{ marginTop: 18 }} />
       </View>
 
