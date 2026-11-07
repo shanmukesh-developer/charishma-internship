@@ -87,7 +87,8 @@ function PasswordInput({ value, onChange }: { value: string; onChange: (v: strin
   );
 }
 
-export function OwnersPanel({ pgs }: { pgs: PGHostel[] }) {
+/** liveTick: bumped by the page on admin:changed 'pg_owner' / 'pg_complaint' (and on a socket reconnect): quiet reload. */
+export function OwnersPanel({ pgs, liveTick = 0 }: { pgs: PGHostel[]; liveTick?: number }) {
   const confirm = useConfirm();
   const prompt = usePrompt();
   const [owners, setOwners] = useState<PgOwnerRow[]>([]);
@@ -133,6 +134,8 @@ export function OwnersPanel({ pgs }: { pgs: PGHostel[] }) {
     }
   }, [q, status]);
   useEffect(() => { const t = setTimeout(() => load(), q ? 250 : 0); return () => clearTimeout(t); }, [load, q]);
+  // Owner accounts / complaints changed elsewhere (another admin, the PG Partner app, a student's complaint).
+  useEffect(() => { if (liveTick > 0) load(true); }, [liveTick]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openCreate = () => {
     setForm({ name: '', phone: '', email: '', password: makeTempPassword() });

@@ -539,20 +539,36 @@ export default function OrdersScreen() {
     .map(o => String(o._id || o.id))
     .sort()
     .join(',');
+  // The ids are read through a ref: the server also sends every status change to this customer's own room
+  // (user_<id>), so the listener stays on even with no active order joined (a just-placed order, or one that is not
+  // in the list yet, still updates the screen). One emit covers both rooms, and a repeated status is harmless.
+  const activeIdsRef = useRef<string[]>([]);
+  activeIdsRef.current = activeIdsKey ? activeIdsKey.split(',') : [];
+  const unknownRefetchAtRef = useRef(0);
   useEffect(() => {
-    if (!user || !activeIdsKey) return;
-    const ids = activeIdsKey.split(',');
+    if (!user) return;
     let socket: any;
     try {
       socket = connectSocket();
     } catch {
       return;
     }
-    const join = () => ids.forEach(id => socket.emit('joinOrder', id));
+    const join = () => activeIdsRef.current.forEach(id => socket.emit('joinOrder', id));
     join();
     const onStatus = (payload: any) => {
       const pid = String(payload?.id || payload?.orderId || '');
-      if (!pid || !ids.includes(pid) || !payload?.status || !mountedRef.current) return;
+      if (!pid || !payload?.status || !mountedRef.current) return;
+      if (!activeIdsRef.current.includes(pid)) {
+        // An order this list does not show as active (new, or loaded before it existed): read the list again,
+        // at most every 3 s so a burst of events is one request.
+        const now = Date.now();
+        if (now - unknownRefetchAtRef.current > 3000) {
+          unknownRefetchAtRef.current = now;
+          if (payload.status === 'Cancelled' && Number(payload.refundedToWallet) > 0) refreshUser?.().catch(() => {});
+          fetchOrdersRef.current?.('silent');
+        }
+        return;
+      }
       // A store timeout / cancel refunds Wallet orders: keep the balance on Profile and Checkout current.
       if (payload.status === 'Cancelled' && Number(payload.refundedToWallet) > 0) refreshUser?.().catch(() => {});
       setOrders(prev => prev.map(o => (
@@ -579,6 +595,18 @@ export default function OrdersScreen() {
       socket.off('statusUpdated', onStatus);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  // Join the room of every order that becomes active (the listener above is already on).
+  useEffect(() => {
+    if (!user || !activeIdsKey) return;
+    let socket: any;
+    try {
+      socket = connectSocket();
+    } catch {
+      return;
+    }
+    activeIdsKey.split(',').forEach(id => socket.emit('joinOrder', id));
   }, [user, activeIdsKey]);
 
   // Admin / partner stage changes and quotes arrive live (server: serviceStatusUpdate to this user's room).

@@ -6,7 +6,7 @@ import { useAdminAuth } from '@/utils/useAdminAuth';
 import { adminRequest } from '@/lib/api';
 import { getAuthState } from '@/lib/session';
 import { useLiveSync } from '@/lib/useLiveSync';
-import { orderCode } from '@/lib/format';
+import { formatDateTime, orderCode } from '@/lib/format';
 
 interface SOSData {
   riderId: string;
@@ -22,35 +22,85 @@ interface SOSData {
   orderId?: string | null;
   /** Its human order ID (ZEN-123) when the live alert carried it. */
   orderCode?: string | null;
+  /**
+   * Server (deliveryPartnerController.triggerSos): true when the rider tapped SOS again within 30 s of an active
+   * SOS. Carries the refreshed location / note; it is the same emergency, not a new one. Absent on older servers.
+   */
+  repeat?: boolean;
 }
 
 /**
  * Siren drawn with Web Audio (no third-party audio file: nothing leaks the admin's IP / Referer,
- * and the CSP keeps media-src to 'self'). Browsers may block it until the page has been clicked.
+ * and the CSP keeps media-src to 'self').
+ *
+ * Browsers start an AudioContext "suspended" unless it is created / resumed during a user gesture, so a
+ * context made only when the SOS arrives (in a tab nobody had clicked since it loaded) stayed silent. One
+ * context is shared: unlockAudio() creates and resumes it on the admin's first click / key press
+ * (SOSAlertModal registers it), and playSiren() resumes it again before scheduling the sound.
  */
+let audioCtx: AudioContext | null = null;
+function getAudioContext(): AudioContext | null {
+  if (typeof window === 'undefined') return null;
+  if (audioCtx && audioCtx.state !== 'closed') return audioCtx;
+  const Ctx: typeof AudioContext | undefined = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!Ctx) return null;
+  try { audioCtx = new Ctx(); } catch { audioCtx = null; }
+  return audioCtx;
+}
+function unlockAudio() {
+  const ctx = getAudioContext();
+  if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
+}
+
+function scheduleSiren(ctx: AudioContext) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'sawtooth';
+  gain.gain.value = 0.08;
+  const t0 = ctx.currentTime;
+  for (let i = 0; i < 6; i++) {
+    osc.frequency.setValueAtTime(700, t0 + i * 0.5);
+    osc.frequency.linearRampToValueAtTime(1200, t0 + i * 0.5 + 0.25);
+    osc.frequency.linearRampToValueAtTime(700, t0 + i * 0.5 + 0.5);
+  }
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(t0);
+  osc.stop(t0 + 3);
+  osc.onended = () => { try { osc.disconnect(); gain.disconnect(); } catch { /* already gone */ } };
+}
+
 function playSiren() {
   try {
-    const Ctx: typeof AudioContext | undefined = typeof window !== 'undefined'
-      ? (window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)
-      : undefined;
-    if (!Ctx) return;
-    const ctx = new Ctx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sawtooth';
-    gain.gain.value = 0.08;
-    const t0 = ctx.currentTime;
-    for (let i = 0; i < 6; i++) {
-      osc.frequency.setValueAtTime(700, t0 + i * 0.5);
-      osc.frequency.linearRampToValueAtTime(1200, t0 + i * 0.5 + 0.25);
-      osc.frequency.linearRampToValueAtTime(700, t0 + i * 0.5 + 0.5);
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    if (ctx.state === 'suspended') {
+      // Still locked (no click since load): resume() resolves only if the browser allows it; the browser
+      // notification below is the fallback for a tab that is not being watched.
+      ctx.resume().then(() => { if (ctx.state === 'running') scheduleSiren(ctx); }).catch(() => {});
+      return;
     }
-    osc.connect(gain).connect(ctx.destination);
-    osc.start(t0);
-    osc.stop(t0 + 3);
-    osc.onended = () => { ctx.close().catch(() => {}); };
+    scheduleSiren(ctx);
   } catch {
-    /* autoplay blocked or no audio device */
+    /* no audio device */
+  }
+}
+
+/**
+ * Desktop notification for an SOS while the dashboard tab is in the background (the siren alone is missed when
+ * the admin is in another tab or window). One per rider (tag), only with permission already granted.
+ */
+function notifyDesktop(data: SOSData) {
+  try {
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
+    if (Notification.permission !== 'granted' || !document.hidden) return;
+    const n = new Notification('🚨 Rider SOS', {
+      body: `${data.riderName || 'A rider'} needs help${data.riderPhone ? ` · ${data.riderPhone}` : ''}`,
+      tag: `sos-${data.riderId}`,
+      requireInteraction: true,
+    });
+    n.onclick = () => { try { window.focus(); n.close(); } catch { /* ignore */ } };
+  } catch {
+    /* notifications unavailable (e.g. insecure origin) */
   }
 }
 
@@ -84,6 +134,28 @@ export default function SOSAlertModal() {
   const { socket } = useAdminSocket();
   const { isAuthed } = useAdminAuth();
   const hidden = useRef<Set<string>>(new Set());
+  const queueRef = useRef<SOSData[]>([]);
+  queueRef.current = queue;
+
+  // First click / key press after sign-in: unlock the shared AudioContext (so a later SOS siren is audible) and,
+  // once, ask for desktop-notification permission (a browser only shows that prompt from a user gesture).
+  useEffect(() => {
+    if (!isAuthed || typeof document === 'undefined') return;
+    const onGesture = () => {
+      unlockAudio();
+      try {
+        if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission().catch(() => {});
+      } catch { /* ignore */ }
+      document.removeEventListener('pointerdown', onGesture, true);
+      document.removeEventListener('keydown', onGesture, true);
+    };
+    document.addEventListener('pointerdown', onGesture, true);
+    document.addEventListener('keydown', onGesture, true);
+    return () => {
+      document.removeEventListener('pointerdown', onGesture, true);
+      document.removeEventListener('keydown', onGesture, true);
+    };
+  }, [isAuthed]);
 
   const push = useCallback((data: SOSData) => {
     const riderId = String(data?.riderId || '');
@@ -150,8 +222,21 @@ export default function SOSAlertModal() {
     if (!socket) return;
     const handleSos = (data: SOSData) => {
       if (getAuthState().status !== 'authed') return;
+      const riderId = String(data?.riderId || '');
+      if (!riderId) return;
+      if (data.repeat === true) {
+        // The same emergency tapped again (new location / note): never re-open an alert the admin hid, never
+        // replay the siren, and keep its place in the queue.
+        if (hidden.current.has(riderId)) return;
+        if (queueRef.current.some(s => s.riderId === riderId)) {
+          setQueue(prev => prev.map(s => (s.riderId === riderId ? { ...s, ...data, riderId, timestamp: s.timestamp || data.timestamp } : s)));
+          return;
+        }
+        // Not on this screen yet (the first tap was missed, e.g. tab opened meanwhile): show it like a new one.
+      }
       push(data);
       playSiren();
+      notifyDesktop({ ...data, riderId });
     };
     const handleReset = (evt: { type?: string; data?: { id?: string } } | undefined) => {
       if (evt?.type === 'RIDER_SOS_RESET' && evt.data?.id) {
@@ -196,7 +281,7 @@ export default function SOSAlertModal() {
   // Not a live fix (old phone fix, or the rider's last GPS from before the SOS): say how old it is.
   const fixAt = current.location?.at ? new Date(current.location.at) : null;
   const staleText = current.location?.stale
-    ? `Last known location${fixAt && !Number.isNaN(fixAt.getTime()) ? ` (${fixAt.toLocaleString()})` : ''}, may be out of date ↗`
+    ? `Last known location${fixAt && !Number.isNaN(fixAt.getTime()) ? ` (${formatDateTime(fixAt)})` : ''}, may be out of date ↗`
     : null;
 
   return (
@@ -209,7 +294,7 @@ export default function SOSAlertModal() {
         {current.riderPhone && <a className="block text-lg text-fg underline mb-1" href={`tel:${current.riderPhone}`}>Call {current.riderPhone}</a>}
         {current.note && <p className="text-base text-fg font-semibold mb-1 break-words">“{String(current.note).slice(0, 200)}”</p>}
         {current.orderId && <p className="text-sm text-fg font-semibold mb-1">Carrying order {orderCode({ orderCode: current.orderCode }, current.orderId)}</p>}
-        <p className="text-sm text-danger-text mb-2 font-mono break-all">ID: {current.riderId}{when && !Number.isNaN(when.getTime()) ? ` · ${when.toLocaleString()}` : ''}</p>
+        <p className="text-sm text-danger-text mb-2 font-mono break-all">ID: {current.riderId}{when && !Number.isNaN(when.getTime()) ? ` · ${formatDateTime(when)} IST` : ''}</p>
         {where && (
           <a className="block text-sm text-fg underline mb-6" target="_blank" rel="noreferrer" href={`https://www.google.com/maps?q=${where.lat},${where.lng}`}>
             {staleText || 'Open location on the map ↗'}

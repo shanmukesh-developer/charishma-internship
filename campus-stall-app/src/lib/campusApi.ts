@@ -106,6 +106,16 @@ export const timeIST = (iso?: string | null): string => {
   return `${h % 12 === 0 ? 12 : h % 12}:${String(ist.getUTCMinutes()).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
 };
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+/** "5 Nov, 2:15 PM" (IST): for lists that span several days (earnings), where a time alone is ambiguous. */
+export const dateTimeIST = (iso?: string | null): string => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const ist = new Date(d.getTime() + 5.5 * 3600 * 1000);
+  return `${ist.getUTCDate()} ${MONTHS[ist.getUTCMonth()]}, ${timeIST(iso)}`;
+};
+
 /** Rupees with paise only when there are some: "₹80", "₹1.20". */
 export const inr = (n: number | null | undefined): string => {
   const v = Math.round((Number(n) || 0) * 100) / 100;

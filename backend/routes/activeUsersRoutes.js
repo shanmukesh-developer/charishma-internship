@@ -3,6 +3,10 @@
 //   GET /            ?filter=all|today|week|inactive2d|never&search=&page=&sort=lastSeen_desc|lastSeen_asc|signedUp_desc|signedUp_asc
 //   GET /testers     the closed-tester phone list, each phone with its account's status
 //   PUT /testers     { phones: "one per line or comma separated" | string[], ifUpdatedAt? }   validated, audited
+//   GET /daily-target?days=14   "did 12+ testers use ZenWe today?" + streak (utils/testerDailyTarget)
+//   PUT /daily-target { target?: 1..500, streakStart?: 'YYYY-MM-DD', ifUpdatedAt? }   validated, audited
+//   CLOSED-TEST ONLY (utils/usageTime): GET/PUT /usage-tracking { enabled }, POST /usage-data/delete
+//     { confirm: 'DELETE', includeDailyHistory? }   both audited
 const express = require('express');
 const au = require('../utils/activeUsers');
 const { sendServerError } = require('../utils/httpErrors');
@@ -82,6 +86,97 @@ router.put('/testers', async (req, res) => {
     res.json({ ...(await au.testerStatus()), changed: true, added: added.length, removed: removed.length });
   } catch (err) {
     sendServerError(res, err, '[ACTIVE_TESTERS_SAVE_ERROR]');
+  }
+});
+
+const audit = async (req, targetId, action, details) => {
+  try {
+    await require('../models/VerificationLog').getVerificationLogModel().create({
+      adminId: adminOf(req), targetId, action, details: JSON.stringify(details).slice(0, 8000),
+    });
+  } catch (e) { console.error('[AUDIT_LOG_ERROR]', e.message); }
+};
+
+// ─── Daily target + streak (Play closed test) ─────────────────────────────────
+const daily = require('../utils/testerDailyTarget');
+const usage = require('../utils/usageTime'); // CLOSED-TEST ONLY
+
+const dailyPayload = async (req) => {
+  const q = req.query || {};
+  const [report, sw] = await Promise.all([
+    daily.dailyTarget({ goalDays: typeof q.days === 'string' ? q.days : undefined }),
+    usage.readSwitch({ fresh: true }),
+  ]);
+  return { ...report, usageTracking: { enabled: sw.enabled, updatedAt: sw.updatedAt } };
+};
+
+router.get('/daily-target', async (req, res) => {
+  try {
+    res.json(await dailyPayload(req));
+  } catch (err) {
+    sendServerError(res, err, '[TESTER_DAILY_TARGET_ERROR]');
+  }
+});
+
+router.put('/daily-target', async (req, res) => {
+  try {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const before = await daily.readSettings();
+    if (typeof body.ifUpdatedAt === 'string' && body.ifUpdatedAt && before.updatedAt && !sameTime(before.updatedAt, body.ifUpdatedAt)) {
+      return res.status(409).json({ code: 'CONFIG_CONFLICT', message: 'Someone else changed the target since you loaded it. Reload and make your change again.' });
+    }
+    const v = daily.validateSettings(body, before);
+    if (v.error) return res.status(400).json({ code: 'INVALID_DAILY_TARGET', message: v.error });
+    const changed = v.value.target !== before.target || v.value.streakStart !== before.streakStart || !before.saved;
+    if (changed) {
+      await daily.saveSettings(v.value);
+      await audit(req, 'tester_daily_target', 'TESTER_DAILY_TARGET_UPDATED', {
+        before: { target: before.target, streakStart: before.streakStart }, after: v.value,
+      });
+    }
+    res.json({ ...(await dailyPayload(req)), changed });
+  } catch (err) {
+    sendServerError(res, err, '[TESTER_DAILY_TARGET_SAVE_ERROR]');
+  }
+});
+
+// ─── CLOSED-TEST ONLY: usage time switch + delete (utils/usageTime) ───────────
+router.get('/usage-tracking', async (req, res) => {
+  try {
+    const [sw, stats] = await Promise.all([usage.readSwitch({ fresh: true }), usage.usageDataStats()]);
+    res.json({ enabled: sw.enabled, updatedAt: sw.updatedAt, ...stats });
+  } catch (err) {
+    sendServerError(res, err, '[USAGE_TRACKING_ERROR]');
+  }
+});
+
+router.put('/usage-tracking', async (req, res) => {
+  try {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    if (typeof body.enabled !== 'boolean') return res.status(400).json({ code: 'INVALID_USAGE_SWITCH', message: 'Send enabled: true or false.' });
+    const before = await usage.readSwitch({ fresh: true });
+    let sw = before;
+    if (before.enabled !== body.enabled || !before.updatedAt) {
+      sw = await usage.setSwitch(body.enabled);
+      await audit(req, 'usage_tracking', 'USAGE_TRACKING_SWITCHED', { before: before.enabled, after: sw.enabled });
+    }
+    res.json({ enabled: sw.enabled, updatedAt: sw.updatedAt, changed: before.enabled !== sw.enabled, ...(await usage.usageDataStats()) });
+  } catch (err) {
+    sendServerError(res, err, '[USAGE_TRACKING_SAVE_ERROR]');
+  }
+});
+
+router.post('/usage-data/delete', async (req, res) => {
+  try {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    if (body.confirm !== 'DELETE') return res.status(400).json({ code: 'CONFIRM_REQUIRED', message: 'Type DELETE to confirm.' });
+    const includeDailyHistory = body.includeDailyHistory === true;
+    const before = await usage.usageDataStats();
+    const result = await usage.deleteUsageData({ includeDailyHistory });
+    await audit(req, 'usage_data', 'USAGE_DATA_DELETED', { includeDailyHistory, before, ...result });
+    res.json({ ok: true, includeDailyHistory, ...result, ...(await usage.usageDataStats()) });
+  } catch (err) {
+    sendServerError(res, err, '[USAGE_DATA_DELETE_ERROR]');
   }
 });
 

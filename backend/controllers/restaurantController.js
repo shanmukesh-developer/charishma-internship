@@ -219,6 +219,7 @@ const { customerFirstName: firstName, campusLabel } = require('../utils/publicFi
 
 // @desc    Get orders for restaurant
 // @route   GET /api/restaurants/:id/orders
+const { storeAcceptByIso } = require('../utils/orderTimeouts');
 const getRestaurantOrders = async (req, res) => {
   try {
     const isOwner = req.user.id === req.params.id;
@@ -261,6 +262,8 @@ const getRestaurantOrders = async (req, res) => {
     res.json(orders.map(o => {
       // The customer's exact pin (dropLat/dropLng) is for the assigned rider only, not the kitchen.
       const { deliveryPin, deliveryPinAttempts, dropLat, dropLng, idempotencyKey, user, ...rest } = o.toJSON();
+      // The accept deadline of a Pending order (server time): the partner apps keep ringing until it (PF-04).
+      rest.storeAcceptBy = storeAcceptByIso(rest);
       // Decided per order, never from the store's current type: a store switched between stall and
       // restaurant keeps showing its older orders with the flow they were placed with.
       const isStallOrder = rest.fulfilment === 'VENDOR';

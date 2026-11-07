@@ -262,10 +262,28 @@ const vendorReject = (booking, { code, note }, now = new Date()) => {
 };
 const vendorPreparing = (booking, now = new Date()) => transition(booking, STATUS.PREPARING, 'vendor', { preparingAt: booking.preparingAt || now });
 const vendorReady = (booking, now = new Date()) => transition(booking, STATUS.READY, 'vendor', { preparingAt: booking.preparingAt || now, readyAt: now });
+/** When the student may cancel a booking whose payment is under review (Date), or null when not in review. */
+const reviewCancelFrom = (booking) => {
+  if (!booking || booking.status !== STATUS.PAYMENT_REVIEW || !booking.proofSubmittedAt) return null;
+  return new Date(new Date(booking.proofSubmittedAt).getTime() + LIMITS.reviewStudentCancelMin * 60000);
+};
 const cancel = (booking, actor, { code, note } = {}, now = new Date()) => {
+  const inReview = booking.status === STATUS.PAYMENT_REVIEW;
+  // PF-03: the student may cancel a payment under review once the stall had reviewStudentCancelMin to check it
+  // (the stall is reminded meanwhile); earlier, the stall may be confirming it right now.
+  if (actor === 'student' && inReview) {
+    const from = reviewCancelFrom(booking);
+    if (from && now < from) {
+      const time = from.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
+      throw fail(409, 'REVIEW_IN_PROGRESS', `The stall is checking your payment. If it has not answered by ${time}, you can cancel the booking then.`, { status: booking.status, canCancelFrom: from.toISOString() });
+    }
+  }
   const r = actor === 'vendor' ? reasonFrom(CANCEL_REASONS, code, note)
-    : actor === 'system' ? { code: 'NO_PAYMENT', reason: booking.status === 'REJECTED' ? 'No new payment proof arrived in time.' : 'No payment proof arrived in time.' }
-      : { code: 'BY_STUDENT', reason: 'Cancelled by the student.' };
+    : actor === 'system'
+      ? (inReview
+        ? { code: 'REVIEW_TIMEOUT', reason: 'The stall did not check the payment in time.' }
+        : { code: 'NO_PAYMENT', reason: booking.status === 'REJECTED' ? 'No new payment proof arrived in time.' : 'No payment proof arrived in time.' })
+      : { code: 'BY_STUDENT', reason: inReview ? 'Cancelled by the student while the stall was checking the payment.' : 'Cancelled by the student.' };
   return transition(booking, STATUS.CANCELLED, actor, { cancelledAt: now, cancelledBy: actor, cancelCode: r.code, cancelReason: r.reason });
 };
 
@@ -326,5 +344,5 @@ const vendorCollect = async (booking, { code }, now = new Date()) => {
 
 module.exports = {
   Booking, commissionFor, parseLines, createBooking, transition, submitProof, checkProof, vendorConfirm, vendorReject,
-  vendorPreparing, vendorReady, vendorCollect, cancel, transitionMessage,
+  vendorPreparing, vendorReady, vendorCollect, cancel, reviewCancelFrom, transitionMessage,
 };

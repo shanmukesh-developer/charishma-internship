@@ -74,6 +74,33 @@ export function SocketProvider({ token, restaurantId, onAuthError, children }: {
       if (offlineTimer) clearTimeout(offlineTimer);
       offlineTimer = null;
     };
+    // Room join with a checked ack. The ack used to be ignored: a refused join ({ ok:false }) or no answer was
+    // treated as joined, and live booking events stopped silently (only the 30 s poll was left). Now a refusal or
+    // a timeout retries with backoff for as long as this connection lives; the catch-up refetch still runs on the
+    // first answer (or timeout) so the screens are never stale while the join is retried.
+    let joinTimer: ReturnType<typeof setTimeout> | null = null;
+    let joinAttempt = 0;
+    const clearJoin = () => {
+      if (joinTimer) clearTimeout(joinTimer);
+      joinTimer = null;
+    };
+    const joinRoom = () => {
+      clearJoin();
+      if (!s.connected) return;
+      const attempt = ++joinAttempt;
+      s.timeout(JOIN_ACK_TIMEOUT_MS).emit('joinRestaurant', restaurantId, (err: unknown, ack?: { ok?: boolean }) => {
+        if (!s.connected || attempt !== joinAttempt) return;
+        if (attempt === 1) setConnectCount((n) => n + 1); // catch-up refetch once per connect
+        if (!err && ack && ack.ok === true) return;
+        const wait = Math.min(2000 * 2 ** Math.min(attempt - 1, 4), 30000) + Math.floor(Math.random() * 500);
+        joinTimer = setTimeout(() => {
+          joinTimer = null;
+          if (!s.connected) return;
+          joinRoom();
+        }, wait);
+      });
+    };
+
     armOffline(); // first connect taking too long (server asleep / no internet) also shows offline
 
     s.on('connect', () => {
@@ -85,11 +112,11 @@ export function SocketProvider({ token, restaurantId, onAuthError, children }: {
       // The catch-up refetch (driven by connectCount) must run only after the server has put us in the
       // restaurant room, or an order created in between is in neither the refetch nor the socket stream.
       // Wait for the join ack; until the server acks it, the timeout stands in (the join takes well under it).
-      s.timeout(JOIN_ACK_TIMEOUT_MS).emit('joinRestaurant', restaurantId, () => {
-        if (s.connected) setConnectCount((n) => n + 1);
-      });
+      joinAttempt = 0;
+      joinRoom();
     });
     s.on('disconnect', (reason) => {
+      clearJoin();
       setStatus((prev) => (prev === 'offline' ? 'offline' : 'reconnecting'));
       armOffline();
       // The server closed us on purpose: socket.io will not retry by itself.
@@ -113,16 +140,22 @@ export function SocketProvider({ token, restaurantId, onAuthError, children }: {
     });
 
     const appSub = AppState.addEventListener('change', (st) => {
-      if (st === 'active' && !s.connected) {
+      if (st !== 'active') return;
+      if (!s.connected) {
         clearRetry();
-        s.connect();
+        s.connect(); // the connect handler joins + bumps connectCount (catch-up refetch)
+        return;
       }
+      // Still connected after the background (Android paused the JS, so events may have been missed while the
+      // socket stayed up): refetch now instead of waiting for the 30 s timer.
+      setConnectCount((n) => n + 1);
     });
 
     setSocket(s);
     return () => {
       clearOffline();
       clearRetry();
+      clearJoin();
       appSub.remove();
       s.removeAllListeners();
       s.disconnect();

@@ -3,6 +3,7 @@
 import { API_URL } from '../config';
 import { reportUpgradeRequired, versionHeaders } from './forceUpdate';
 import { withWakeRetry, coldStartWait, WakeVerdict } from './serverWake';
+import { noteServerDate } from './serverClock';
 
 export class ApiError extends Error {
   status: number;
@@ -167,6 +168,7 @@ async function apiFetchOnce<T = unknown>(endpoint: string, opts: RequestOptions 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   let res: Response;
+  const sentAt = Date.now();
   try {
     res = await fetch(`${apiBase}${endpoint}`, {
       method,
@@ -181,6 +183,7 @@ async function apiFetchOnce<T = unknown>(endpoint: string, opts: RequestOptions 
     clearTimeout(timer);
   }
   onReachability?.(true);
+  noteServerDate(res, sentAt);
 
   const text = await res.text().catch(() => '');
   let data: any = null;

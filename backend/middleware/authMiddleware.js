@@ -45,6 +45,9 @@ const clearCachedUser = require('../utils/cacheBus').wrap('auth.user', (userId) 
 // Active testers: last customer-app use on the User row (throttled, fire-and-forget, never fails a request).
 const noteSeen = (req) => { try { require('../utils/appPresence').noteSeen(req); } catch { /* never blocks sign-in */ } };
 
+// Rider heartbeat for the stalled-claim job (utils/riderSeen; throttled, fire-and-forget).
+const noteRiderSeen = (id) => { try { require('../utils/riderSeen').noteRiderSeen(id); } catch { /* never blocks a request */ } };
+
 const JWT_ERRORS = ['JsonWebTokenError', 'TokenExpiredError', 'NotBeforeError'];
 
 // An inactive account: deleted (role 'deleted', services/accountDeletion) -> 401 so every signed-in device signs out;
@@ -96,6 +99,7 @@ const protect = async (req, res, next) => {
       // S1: an admin session without the 2-step claim has no admin powers when 2FA is on / required.
       req.user = tokenClass === 'user' ? require('../services/adminTwoFactor').applyTo(user, decoded, _tf) : user;
       if (tokenClass === 'user') noteSeen(req);
+      else if (tokenClass === 'rider') noteRiderSeen(user.id);
       return next();
     }
     
@@ -127,6 +131,7 @@ const protect = async (req, res, next) => {
            return res.status(401).json({ message: 'Your password was changed. Please sign in again.', code: 'SESSION_REVOKED' });
          }
          req.user = { id: dbRider.id, role: 'rider', name: dbRider.name };
+         noteRiderSeen(dbRider.id);
          return next();
        }
     }

@@ -54,6 +54,14 @@ export function formatDate(value: unknown): string {
   return d ? dateFmt.format(d) : EMPTY;
 }
 
+const ymdFmt = new Intl.DateTimeFormat('en-CA', { timeZone: IST, year: 'numeric', month: '2-digit', day: '2-digit' });
+
+/** 2026-10-19: the IST calendar day (CSV columns, file names, date inputs). '' for missing / invalid input. */
+export function formatYmd(value: unknown = new Date()): string {
+  const d = toDate(value);
+  return d ? ymdFmt.format(d) : '';
+}
+
 /** 3:45 pm (IST). */
 export function formatTime(value: unknown): string {
   const d = toDate(value);

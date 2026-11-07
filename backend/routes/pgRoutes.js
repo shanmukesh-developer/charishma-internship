@@ -363,6 +363,20 @@ router.put('/bookings/:bookingId/cancel', protect, async (req, res) => {
     realtime.notifyAdmin('pg_booking', 'updated', result.booking.id);
     publishPg('updated', result.booking.hostelId, { scope: 'availability' });
     res.json({ message: 'Booking request cancelled.', booking: result.booking });
+    // PF-08: the PG's owner is told (push + inbox row + live event), so they do not hold a bed or call a student who
+    // already withdrew. Not for an owner-only test PG (utils/testView), like the new-request push. After the reply.
+    try {
+      const [room, hostel] = await Promise.all([
+        getPGRoomModel().findByPk(result.booking.roomId, { attributes: ['id', 'roomNumber', 'isTestData'] }),
+        getPGHostelModel().findByPk(result.booking.hostelId, { attributes: ['id', 'name', 'isTestData'] }),
+      ]);
+      if (!(room && room.isTestData) && !(hostel && hostel.isTestData)) {
+        const student = await getUserModel().findByPk(req.user.id, { attributes: ['id', 'name'] });
+        await require('../modules/pgOwner/services/notify').toListingOwnersAboutCancel(result.booking.hostelId, result.booking.id, 'Booking request withdrawn',
+          `${pgContent.firstNameOf(student ? student.name : '')} cancelled their request${room ? ` for room ${room.roomNumber}` : ''}${hostel ? ` at ${hostel.name}` : ''}.`,
+          { type: 'PG_OWNER_BOOKING_CANCELLED', bookingId: String(result.booking.id), hostelId: String(result.booking.hostelId), status: result.booking.status });
+      }
+    } catch (e) { console.warn('[PG_OWNER_CANCEL_NOTIFY_WARN]', e.message); }
   } catch (err) {
     console.error('[PG_CANCEL_ERROR]', err);
     res.status(500).json({ message: 'Could not cancel right now.' });
@@ -485,6 +499,8 @@ router.put('/admin/bookings/:bookingId/status', protect, admin, async (req, res)
     publishPg('updated', result.booking.hostelId, { scope: 'availability' });
     // The student's open "My PG bookings" reloads at once, as for a PG owner's decision (utils/pgBookings).
     try { realtime.toUser(result.booking.userId, 'pg:changed', { bookingId: String(result.booking.id), status: result.booking.status }); } catch { /* live update only */ }
+    // The PG's owner app too (PF-07/PF-08): a request support confirmed or cancelled leaves their "New" list now.
+    require('../modules/pgOwner/services/notify').liveToListingOwners(result.booking.hostelId, { type: 'PG_OWNER_BOOKING_STATUS', bookingId: result.booking.id, status: result.booking.status }).catch(() => {});
     try {
       const student = await getUserModel().findByPk(result.booking.userId, { attributes: ['id', 'fcmTokens'] });
       if (student) {

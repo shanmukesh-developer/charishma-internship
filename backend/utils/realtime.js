@@ -185,6 +185,19 @@ const toDriver = (driverId, event, payload = {}) => {
   }
 };
 
+// Event to one ZenWe PG Partner owner's sockets (room `pgowner_<id>`, joined on connect of a 'pg_owner' token: server.js;
+// PF-07). Not debounced. Payloads ids / statuses only (no student names). Never throws.
+const PG_OWNER_EVENT = 'pg:changed';
+const toPgOwner = (ownerId, event, payload = {}) => {
+  try {
+    const id = safeId(ownerId);
+    if (!ioRef || id === null || typeof event !== 'string') return;
+    ioRef.to(`pgowner_${id}`).emit(event, { ...payload, at: new Date().toISOString() });
+  } catch (err) {
+    console.error('[REALTIME_PGOWNER_EMIT_ERROR]', err.message);
+  }
+};
+
 // C2: one event to every connected socket of the main namespace (e.g. community_post_deleted when a
 // moderator hides a post). Payloads must stay ids only. Never throws.
 const broadcast = (event, payload = {}) => {
@@ -297,7 +310,7 @@ const disconnectRevokedSockets = (accountId, tokenVersion = null) => {
       // B1 (Redis adapter): ask every instance, but only for this account's personal rooms (never a
       // dump of every socket); a Redis failure falls back to this instance's sockets.
       const id = String(accountId);
-      const mainRooms = [`user_${id}`, `rider_${id}`, `autodriver_${id}`, `restaurant_${id}`];
+      const mainRooms = [`user_${id}`, `rider_${id}`, `autodriver_${id}`, `restaurant_${id}`, `pgowner_${id}`];
       pending = Promise.all([
         cluster.fetchSockets(ioRef.in(mainRooms)),
         campus ? cluster.fetchSockets(campus.in(`user:${id}`)).catch(() => []) : Promise.resolve([]),
@@ -326,7 +339,7 @@ const disconnectRevokedSockets = (accountId, tokenVersion = null) => {
 
 module.exports = {
   disconnectRevokedSockets,
-  init, publish, notifyAdmin, toUser, toStore, toDriver, broadcast, PUBLIC_EVENT, ADMIN_EVENT, ADMIN_ROOM,
+  init, publish, notifyAdmin, toUser, toStore, toDriver, toPgOwner, PG_OWNER_EVENT, broadcast, PUBLIC_EVENT, ADMIN_EVENT, ADMIN_ROOM,
   setRiderOnline, deliveryRequest, deliveryRequestGone, leaveOrderRoom, riderJob, RIDER_JOB_EVENT,
   RIDERS_ONLINE_ROOM, DELIVERY_REQUEST_EVENT, DELIVERY_REQUEST_GONE_EVENT, CLAIMABLE_STATUSES,
 };

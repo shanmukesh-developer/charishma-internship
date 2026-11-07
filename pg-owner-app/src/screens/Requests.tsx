@@ -32,7 +32,7 @@ const STATUS: Record<BookingStatus, { text: string; fg: string; bg: string }> = 
 
 export default function RequestsScreen({ navigation, route }: ScreenProps<'Requests'>) {
   const { current, detail, reload: reloadListing } = useListing();
-  const { refresh: refreshHome } = useHome();
+  const { refresh: refreshHome, changes } = useHome();
   const toast = useToast();
   const [tab, setTab] = useState<Tab>(route.params?.status || 'Pending');
   const [list, setList] = useState<Booking[] | null>(null);
@@ -73,6 +73,14 @@ export default function RequestsScreen({ navigation, route }: ScreenProps<'Reque
     const t = setInterval(() => { if (AppState.currentState === 'active') load(true); }, HOME_POLL_MS);
     return () => clearInterval(t);
   }, [load, focused]);
+
+  // A push or a live server event about bookings (new request, student cancel, support decision): refetch now (PF-09).
+  const seenChanges = useRef(changes.bookings);
+  useEffect(() => {
+    if (changes.bookings === seenChanges.current) return;
+    seenChanges.current = changes.bookings;
+    load(true);
+  }, [changes.bookings, load]);
 
   const afterChange = (msg: string) => {
     toast.show(msg, 'success');

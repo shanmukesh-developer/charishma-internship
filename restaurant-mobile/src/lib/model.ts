@@ -157,6 +157,19 @@ export function acceptAnchorMs(o: { createdAt?: string | null; slotStart?: strin
   return known.length ? Math.max(...known) : NaN;
 }
 
+/** Backend STORE_ACCEPT_TIMEOUT_MIN default: used only when the server did not send storeAcceptBy (older server). */
+const DEFAULT_ACCEPT_TIMEOUT_MS = 60 * 60 * 1000;
+/**
+ * Server-clock ms until which a Pending order must be accepted (the server auto-cancels it then): the server's
+ * storeAcceptBy, else acceptAnchorMs + 60 min. NaN when unknown.
+ */
+export function acceptDeadlineMs(o: { createdAt?: string | null; slotStart?: string | null; storeAcceptBy?: string | null }): number {
+  const by = o.storeAcceptBy ? new Date(o.storeAcceptBy).getTime() : NaN;
+  if (Number.isFinite(by)) return by;
+  const anchor = acceptAnchorMs(o);
+  return Number.isFinite(anchor) ? anchor + DEFAULT_ACCEPT_TIMEOUT_MS : NaN;
+}
+
 /** Delivery slot of an order payload: the server label, or nothing for older 'ASAP' orders. */
 export function slotOf(raw: any): { slotLabel: string | null; slotStart: string | null } {
   const label = typeof raw?.slotLabel === 'string' && raw.slotLabel.trim() ? raw.slotLabel.trim()
@@ -211,6 +224,7 @@ export function normalizeOrder(raw: any): Order | null {
     customerName: firstName(raw.user?.name),
     customerPhone: typeof raw.user?.phone === 'string' && raw.user.phone.trim() ? raw.user.phone : null,
     ...slotOf(raw),
+    storeAcceptBy: typeof raw.storeAcceptBy === 'string' && raw.storeAcceptBy ? raw.storeAcceptBy : null,
     riderName: typeof raw.deliveryPartner?.name === 'string' ? raw.deliveryPartner.name : null,
     riderPhone: typeof raw.deliveryPartner?.phone === 'string' && raw.deliveryPartner.phone.trim() ? raw.deliveryPartner.phone : null,
     partial: !!raw.__partial,

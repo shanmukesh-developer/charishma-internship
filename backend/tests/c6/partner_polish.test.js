@@ -159,9 +159,11 @@ test('waiting-order reminders: Pending only, at most N per order, gap respected,
 
   // The store accepts the newer order: it is never reminded.
   await fresh.update({ status: 'Accepted' });
-  // Same tick again: the gap holds it back. Later: second reminder, then the cap (2) stops it.
+  // The schedule for a 7-minute window is minutes 1.5 and 5 (utils/storeOrderReminder reminderOffsetsMin): the same
+  // tick again and minute 4 send nothing, minute 5 sends the second, minute 6 is past the end of the schedule.
   assert.equal(await R.remindPendingStoreOrders({ now: now + 30 * 1000, push }), 0);
-  assert.equal(await R.remindPendingStoreOrders({ now: now + 120 * 1000, push }), 1);
+  assert.equal(await R.remindPendingStoreOrders({ now: now + 120 * 1000, push }), 0);
+  assert.equal(await R.remindPendingStoreOrders({ now: now + 180 * 1000, push }), 1);
   assert.equal(await R.remindPendingStoreOrders({ now: now + 240 * 1000, push }), 0);
   assert.equal(calls.length, 2);
   assert.ok(calls.every((c) => c[3].orderId === String(waiting.id)));
@@ -180,6 +182,58 @@ test('waiting-order reminders: Pending only, at most N per order, gap respected,
   R._resetReminders();
   assert.equal(await R.remindPendingStoreOrders({ now }), 1);
   if (prevTimeout === undefined) delete process.env.STORE_ACCEPT_TIMEOUT_MIN; else process.env.STORE_ACCEPT_TIMEOUT_MIN = prevTimeout;
+});
+
+test('PF-04: reminders keep coming across the whole 60-minute accept window, until accept or the auto-cancel', async () => {
+  const R = H.r('utils/storeOrderReminder');
+  R._resetReminders();
+  delete process.env.STORE_ACCEPT_TIMEOUT_MIN;
+  delete process.env.STORE_ORDER_REMINDER_MAX;
+  delete process.env.STORE_ORDER_REMINDER_PUSH;
+  assert.deepEqual(R.reminderOffsetsMin(60), [1.5, 5, 10, 15, 20, 30, 40, 50, 55]);
+  const { store } = await H.mkStore();
+  const u = await H.mkUser();
+  const Order = H.ctx.M('Order');
+  const t0 = Date.now();
+  const o = await Order.create({ userId: u.id, restaurantId: store.id, items: [{ name: 'Idli', quantity: 1 }], totalPrice: 60, deliveryFee: 0, finalPrice: 60, paymentMethod: 'COD', paymentStatus: 'Pending', status: 'Pending' });
+  await Order.update({ createdAt: new Date(t0) }, { where: { id: o.id }, silent: true });
+  const at = [];
+  const push = async (rid, title, body, data) => { if (data.orderId === String(o.id)) at.push({ min: null, body }); return { successCount: 1 }; };
+  // The job ticks every 2 minutes for the whole hour.
+  const minutes = [];
+  for (let m = 0; m <= 60; m += 2) {
+    const before = at.length;
+    await R.remindPendingStoreOrders({ now: t0 + m * 60 * 1000, push });
+    if (at.length > before) minutes.push(m);
+  }
+  assert.deepEqual(minutes, [2, 6, 10, 16, 20, 30, 40, 50, 56], 'one reminder per schedule point, the last 4 min before the cancel');
+  assert.ok(minutes.every((m, i) => i === 0 || m - minutes[i - 1] <= 10), 'never more than 10 minutes of silence');
+  assert.match(at[at.length - 1].body, /Accept it in the next 4 min/);
+  // Accepted: no more reminders.
+  R._resetReminders();
+  await o.update({ status: 'Accepted' });
+  at.length = 0;
+  await R.remindPendingStoreOrders({ now: t0 + 30 * 60 * 1000, push });
+  assert.equal(at.length, 0);
+});
+
+test('PF-04: the store gets storeAcceptBy (the accept deadline) in the new-order event and in its order list', async () => {
+  const { item, store } = await H.mkStore({ price: 100 });
+  const u = await H.mkUser();
+  H.ctx.emitted.length = 0;
+  const order = await H.placeOrder({ item, user: u });
+  await new Promise((r) => setTimeout(r, 200));
+  const ev = H.ctx.emitted.find((e) => e.ev === 'restaurant_newOrder' && e.room === `restaurant_${store.id}`);
+  assert.ok(ev, 'restaurant_newOrder sent');
+  const placed = new Date((await H.ctx.M('Order').findByPk(order.id)).createdAt).getTime();
+  assert.equal(new Date(ev.p.storeAcceptBy).getTime(), placed + 60 * 60 * 1000);
+  const list = await api('GET', `/api/restaurants/${store.id}/orders?scope=active`, store.token);
+  assert.equal(list.status, 200);
+  const row = list.body.find((x) => String(x.id) === String(order.id));
+  assert.equal(new Date(row.storeAcceptBy).getTime(), placed + 60 * 60 * 1000);
+  await H.ctx.M('Order').update({ status: 'Accepted', acceptedAt: new Date() }, { where: { id: order.id } });
+  const after = await api('GET', `/api/restaurants/${store.id}/orders?scope=active`, store.token);
+  assert.equal(after.body.find((x) => String(x.id) === String(order.id)).storeAcceptBy, null);
 });
 
 test('store push carries the per-order tag; the new-order title has no emoji', () => {

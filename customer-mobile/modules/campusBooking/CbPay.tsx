@@ -14,12 +14,13 @@ import QRCode from 'react-native-qrcode-svg';
 import SafeImage from '../../components/SafeImage';
 import { KeyboardAvoidingView } from '../../components/KeyboardAvoidingView';
 import { alertUploadError, pickImageAsset, prepareAndUploadImage, resolveMediaUrl, type UploadedImage } from '../../utils/imageUpload';
+import { serverNow } from '../../utils/serverClock';
 import { cbApi, type CbBooking } from './cbApi';
 import { COLORS, inr, useCbTheme } from './cbTheme';
 import { CbHeader, EmptyCard, OutlineButton, PlaceButton, StaggeredSection, useCbLive } from './cbKit';
 
 const MAX_PROOF_BYTES = 5 * 1024 * 1024;
-const minutesLeft = (iso: string | null) => (iso ? Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 60000)) : null);
+const minutesLeft = (iso: string | null) => (iso ? Math.max(0, Math.ceil((new Date(iso).getTime() - serverNow()) / 60000)) : null);
 
 export default function CbPay({ id }: { id: string }) {
   const p = useCbTheme();

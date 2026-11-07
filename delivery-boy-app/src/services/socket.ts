@@ -4,13 +4,16 @@ import { io, Socket } from 'socket.io-client';
 import { SOCKET_URL } from '../config';
 import { reportSocketError, socketVersionAuth } from './forceUpdate';
 
+/** How an order left this rider without them finishing it (server release / support hand-over). */
+export type HandOverKind = 'released' | 'inactive' | 'reassigned';
+
 export interface RiderSocketHandlers {
   onOrderCancelled?: (p: { orderId: string; reason?: string }) => void;
   onOrderReady?: (p: { orderId: string }) => void;
   /** Any status change on an order room we joined (kitchen ready, admin changes, cancellations). */
   onStatusUpdated?: (p: { orderId: string; status: string | null }) => void;
   /** The order was taken off this rider without a cancellation: released (not picked up in time) or reassigned. */
-  onHandedOver?: (p: { orderId: string; kind: 'released' | 'reassigned' }) => void;
+  onHandedOver?: (p: { orderId: string; kind: HandOverKind }) => void;
   onTip?: (p: { amount: number; from?: string; orderId?: string }) => void;
   onTicketUpdated?: (p: { id: string; status: string; adminResponse?: string | null }) => void;
   /** A new order entered the pool (server room 'riders_online': approved + on duty). Ids only. */
@@ -159,8 +162,10 @@ export function connectSocket(token: string): void {
     if (id && p?.reassigned) handlers.onHandedOver?.({ orderId: String(id), kind: 'reassigned' });
     if (id) handlers.onStatusUpdated?.({ orderId: String(id), status: p?.status ? String(p.status) : null });
   });
+  // The server took a claimed order back (PICKUP_TIMEOUT: ready but not picked up; RIDER_INACTIVE: no sign of the
+  // rider's app for a while). Any other / missing reason reads as a pickup timeout.
   s.on('orderReleased', (p: any) => {
-    if (p?.orderId) handlers.onHandedOver?.({ orderId: String(p.orderId), kind: 'released' });
+    if (p?.orderId) handlers.onHandedOver?.({ orderId: String(p.orderId), kind: p?.reason === 'RIDER_INACTIVE' ? 'inactive' : 'released' });
   });
   s.on('delivery_request', (p: any) => {
     if (p?.orderId) handlers.onDeliveryRequest?.({ orderId: String(p.orderId) });

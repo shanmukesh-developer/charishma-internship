@@ -13,6 +13,8 @@ import {
   Textarea, Toolbar, useToast, useConfirm, Input, type Column, type Tone, IconRefresh, IconEdit, IconBell,
 } from '@/components/ui';
 import { formatDate, formatDateTime, formatPhone, formatRelative } from '@/lib/format';
+import DailyTargetCard from './DailyTargetCard';
+import UsageTrackingCard from './UsageTrackingCard'; // CLOSED-TEST ONLY
 
 type Filter = 'all' | 'today' | 'week' | 'inactive2d' | 'never';
 type Sort = 'lastSeen_desc' | 'lastSeen_asc' | 'signedUp_desc' | 'signedUp_asc';
@@ -33,6 +35,8 @@ interface ActiveUser {
   orders: number;
   ownerTestAccount: boolean;
   olderThanLatest: boolean;
+  /** CLOSED-TEST ONLY (backend utils/usageTime): null when nothing is recorded in the last 7 days. */
+  usage?: { minutesToday: number; sessionsToday: number; avgMinutes7d: number; daysActive7d: number } | null;
 }
 
 interface VersionCount { version: string; count: number; isLatest: boolean; olderThanLatest: boolean }
@@ -50,6 +54,8 @@ interface ActiveReport {
   total: number;
   pageSize: number;
   users: ActiveUser[];
+  /** CLOSED-TEST ONLY: today's app time over customers. */
+  usageToday?: { totalMinutes: number; usersWithTime: number; avgMinutesPerActiveUser: number; trackingEnabled: boolean } | null;
 }
 
 type TesterStatus = 'today' | 'recent' | 'inactive' | 'never_opened' | 'not_signed_up';
@@ -265,6 +271,20 @@ function VersionCell({ u }: { u: ActiveUser }) {
   );
 }
 
+const minsText = (n: number) => (n >= 60 ? `${Math.floor(n / 60)} h ${n % 60} m` : `${n} min`);
+/** CLOSED-TEST ONLY: "12 min · 2 sessions" today, 7-day average per day opened on hover / second line. */
+function UsageCell({ u }: { u: ActiveUser }) {
+  const x = u.usage;
+  if (!x) return <span className="text-fg-subtle">–</span>;
+  return (
+    <span className="whitespace-nowrap text-xs tabular-nums" title={`Today: ${x.minutesToday} min in ${x.sessionsToday} session(s). Last 7 days: ${x.avgMinutes7d} min a day on the ${x.daysActive7d} day(s) the app was opened.`}>
+      <span className="text-fg">{minsText(x.minutesToday)}</span>
+      <span className="text-fg-muted"> · {x.sessionsToday} sess.</span>
+      <span className="block text-fg-muted">7-day avg {minsText(x.avgMinutes7d)}/day</span>
+    </span>
+  );
+}
+
 function PersonCell({ u }: { u: ActiveUser }) {
   return (
     <div className="min-w-0">
@@ -290,6 +310,7 @@ export default function ActiveTestersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const reqId = useRef(0);
+  const [targetKey, setTargetKey] = useState(0);
 
   const [testers, setTesters] = useState<TesterReport | null>(null);
   const [testersError, setTestersError] = useState<string | null>(null);
@@ -339,7 +360,7 @@ export default function ActiveTestersPage() {
   useEffect(() => { if (isAuthed) load(); }, [isAuthed, load]);
   useEffect(() => { if (isAuthed) loadTesters(); }, [isAuthed, loadTesters]);
 
-  const refreshAll = () => { load(); loadTesters(); };
+  const refreshAll = () => { load(); loadTesters(); setTargetKey(k => k + 1); };
 
   const draftCheck = useMemo(() => parsePhones(draft), [draft]);
 
@@ -389,6 +410,7 @@ export default function ActiveTestersPage() {
     { key: 'version', header: 'Version', cell: u => <VersionCell u={u} /> },
     { key: 'signedUp', header: 'Signed up', hideBelow: 'md', cell: u => <span className="whitespace-nowrap" title={`${formatDateTime(u.createdAt)} IST`}>{formatDate(u.createdAt)}</span> },
     { key: 'firstSeen', header: 'First opened', hideBelow: 'lg', cell: u => <When at={u.firstSeenAt} empty="–" /> },
+    { key: 'usage', header: 'App time today', hideBelow: 'md', cell: u => <UsageCell u={u} /> },
     { key: 'orders', header: 'Orders', align: 'right', cell: u => <span className="tabular-nums">{u.orders}</span> },
   ];
 
@@ -407,6 +429,7 @@ export default function ActiveTestersPage() {
     { key: 'signedUp', header: 'Signed up?', hideBelow: 'md', cell: t => (t.user ? <span className="whitespace-nowrap" title={`${formatDateTime(t.user.createdAt)} IST`}>Yes, {formatDate(t.user.createdAt)}</span> : <span className="text-fg-subtle">No</span>) },
     { key: 'lastSeen', header: 'Last opened', cell: t => (t.user ? <When at={t.user.lastSeenAt} /> : <span className="text-fg-subtle">–</span>) },
     { key: 'version', header: 'Version', cell: t => (t.user ? <VersionCell u={t.user} /> : <span className="text-fg-subtle">–</span>) },
+    { key: 'usage', header: 'App time today', hideBelow: 'md', cell: t => (t.user ? <UsageCell u={t.user} /> : <span className="text-fg-subtle">–</span>) },
     { key: 'orders', header: 'Orders', align: 'right', hideBelow: 'lg', cell: t => <span className="tabular-nums">{t.user ? t.user.orders : '–'}</span> },
   ];
   const tc = testers?.counts;
@@ -418,6 +441,9 @@ export default function ActiveTestersPage() {
         description="Who is using the customer app: when each signed-in account last opened it, on which version, and how your Play closed testers are doing."
         actions={<Button leftIcon={<IconRefresh size={14} />} loading={loading || testersLoading} onClick={refreshAll}>Refresh</Button>}
       />
+
+      {/* Play closed test: 12+ testers a day for 14 days */}
+      <DailyTargetCard refreshKey={targetKey} />
 
       <Notice tone="info" className="mb-4">
         {report?.trackingStartedAt
@@ -435,6 +461,14 @@ export default function ActiveTestersPage() {
         <StatTile label="This week" loading={loading && !s} value={s ? s.seenWeek : null} hint="opened in the last 7 days" />
         <StatTile label="Not seen 2+ days" loading={loading && !s} tone={s && s.inactive2d > 0 ? 'warning' : 'neutral'} value={s ? s.inactive2d : null} hint={s ? `${s.neverSeen} not seen yet` : undefined} />
       </section>
+
+      {/* CLOSED-TEST ONLY: today's app time */}
+      {report?.usageToday && (report.usageToday.trackingEnabled || report.usageToday.totalMinutes > 0) && (
+        <section className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="App time today">
+          <StatTile label="App time today" value={minsText(report.usageToday.totalMinutes)} hint="all customers, since midnight IST" />
+          <StatTile label="Per active user" value={minsText(report.usageToday.avgMinutesPerActiveUser)} hint={`${report.usageToday.usersWithTime} with time recorded today`} />
+        </section>
+      )}
 
       {/* Versions */}
       {report && (
@@ -529,6 +563,9 @@ export default function ActiveTestersPage() {
           )}
         </CardBody>
       </Card>
+
+      {/* CLOSED-TEST ONLY: usage-time switch + delete */}
+      <UsageTrackingCard onChanged={refreshAll} />
 
       {/* Everyone */}
       <section className="mb-6" aria-label="Customers">

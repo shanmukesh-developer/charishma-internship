@@ -25,15 +25,23 @@ export const RING_SOUND_MS = 2600;
 
 const isNative = Platform.OS === 'android' || Platform.OS === 'ios';
 
+/** Orders the in-app Announcer is ringing right now (set by state/Announcer). */
+let ringingInApp: ReadonlySet<string> = new Set();
+export function setRingingOrders(ids: Iterable<string>): void {
+  ringingInApp = new Set(ids);
+}
+
 if (isNative) {
   try {
     Notifications.setNotificationHandler({
       handleNotification: async (n) => {
         const data = (n?.request?.content?.data as any) || {};
         const ring = data.ring === true;
-        // App open + order push: the socket, the order card, the ring and the voice already cover it. Not a reminder
-        // (reminder '1': the order is still waiting while its accept clock runs; the in-app ring may be off by then).
-        const coveredInApp = (data.type === 'NEW_ORDER' && String(data.reminder || '') !== '1') || data.type === 'ORDER_CANCELLED';
+        // App open + order push: the socket, the order card, the ring and the voice already cover it. A waiting-order
+        // reminder (reminder '1') is covered only while the app is ringing that very order: once it was put off
+        // ("Later") or the app never got it, the reminder must still sound before the order is auto-cancelled.
+        const reminder = data.type === 'NEW_ORDER' && String(data.reminder || '') === '1';
+        const coveredInApp = (data.type === 'NEW_ORDER' && (!reminder || ringingInApp.has(String(data.orderId || '')))) || data.type === 'ORDER_CANCELLED';
         return {
           shouldShowBanner: !ring && !coveredInApp,
           shouldShowList: !coveredInApp,

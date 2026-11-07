@@ -12,6 +12,9 @@
  *   - only the customer app (partner apps, the web admin and web builds send another or no X-App-Name);
  *   - never for load-test traffic (utils/loadtestBypass);
  *   - silent: the row's updatedAt is not touched and no model hooks run.
+ * Daily target + streak (utils/testerDailyTarget): the same write also upserts today's UserDailyActivities row (IST
+ * day; inserted once per day, then lastAt refreshed). A new IST day bypasses the 10-minute throttle so the first use
+ * after midnight is counted on the new day.
  * Called from middleware/authMiddleware protect() once req.user is a User-table account.
  * The columns are admin-only: utils/publicFields + userController sanitizeUser are allow-lists that leave them out.
  */
@@ -56,7 +59,8 @@ const write = async (userId, { version, build, platform, now = new Date() }) => 
   if (!User || !User.rawAttributes.lastSeenAt) return 0;
   const cutoff = new Date(now.getTime() - THROTTLE_MS);
   const sequelize = User.sequelize;
-  const due = [{ lastSeenAt: null }, { lastSeenAt: { [Op.lt]: cutoff } }];
+  // A new IST day is always due (the first use after midnight counts on the new day).
+  const due = [{ lastSeenAt: null }, { lastSeenAt: { [Op.lt]: cutoff } }, { lastSeenAt: { [Op.lt]: require('./testerDailyTarget').istDayStart(now) } }];
   // A different app version is written at once (the version breakdown is right just after an update).
   if (version) due.push({ lastAppVersion: null }, { lastAppVersion: { [Op.ne]: version } });
   const [n] = await User.update({
@@ -73,7 +77,7 @@ const write = async (userId, { version, build, platform, now = new Date() }) => 
  * Records a "seen" for this request when it qualifies. Synchronous, returns at once; the write runs in the background.
  * Returns the background promise (resolves to rows written, never rejects) for tests, or null when skipped.
  */
-const noteSeen = (req) => {
+const noteSeen = (req, nowMs = Date.now()) => {
   try {
     const user = req && req.user;
     if (!user || !user.id) return null;
@@ -85,17 +89,27 @@ const noteSeen = (req) => {
     const version = versionOf(h);
     const build = buildOf(h);
     const id = String(user.id);
-    const nowMs = Date.now();
+    const daily = require('./testerDailyTarget');
+    const day = daily.istDay(nowMs);
     const last = recent.get(id);
     const versionChanged = !!(last && version && last.version !== version);
-    if (last && nowMs - last.at < THROTTLE_MS && !versionChanged) return null;
-    remember(id, { at: nowMs, version });
+    const dayChanged = !!(last && last.day !== day);
+    if (last && nowMs - last.at < THROTTLE_MS && !versionChanged && !dayChanged) return null;
+    remember(id, { at: nowMs, version, day });
     const platform = platformOf(h);
-    return write(id, { version, build, platform, now: new Date(nowMs) })
+    const now = new Date(nowMs);
+    const user$ = write(id, { version, build, platform, now })
       .catch((err) => {
         console.warn('[APP_PRESENCE_WARN]', err && err.message);
         return 0;
       });
+    // Today's active-day row (daily target + streak). Its failure never touches the request or the User write.
+    const day$ = daily.recordDay(id, { version, now })
+      .catch((err) => {
+        console.warn('[APP_PRESENCE_DAY_WARN]', err && err.message);
+        return false;
+      });
+    return Promise.all([user$, day$]).then(([n]) => n);
   } catch (err) {
     console.warn('[APP_PRESENCE_WARN]', err && err.message);
     return null;

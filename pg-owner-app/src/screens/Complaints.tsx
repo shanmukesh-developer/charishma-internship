@@ -1,6 +1,6 @@
 // Complaints raised by tenants about the PG (POST /api/pg-tenant/complaints from the customer app). The owner
 // replies and marks them in progress or resolved; the student gets a push + in-app notification.
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { color, font, radius, space } from '../theme';
@@ -29,7 +29,7 @@ const STATUS: Record<ComplaintStatus, { text: string; fg: string; bg: string }> 
 
 export default function ComplaintsScreen({ navigation }: ScreenProps<'Complaints'>) {
   const { current } = useListing();
-  const { refresh: refreshHome } = useHome();
+  const { refresh: refreshHome, changes } = useHome();
   const toast = useToast();
   const [tab, setTab] = useState<'open' | 'resolved'>('open');
   const [list, setList] = useState<Complaint[] | null>(null);
@@ -53,6 +53,13 @@ export default function ComplaintsScreen({ navigation }: ScreenProps<'Complaints
     }
   }, [tab, current]);
   useEffect(() => { setList(null); load(); }, [load]);
+  // A push or a live server event about complaints (a tenant raised one): refetch now (PF-09).
+  const seenChanges = useRef(changes.complaints);
+  useEffect(() => {
+    if (changes.complaints === seenChanges.current) return;
+    seenChanges.current = changes.complaints;
+    load();
+  }, [changes.complaints, load]);
 
   return (
     <Screen title="Complaints" subtitle={current?.name} onBack={() => navigation.goBack()} right={<ListingSwitcher />} refreshing={loading && !!list} onRefresh={load}>

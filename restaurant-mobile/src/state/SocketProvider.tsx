@@ -17,8 +17,10 @@ interface SocketCtx {
 }
 
 const FIRST_CONNECT_GRACE_MS = 60000;
-/** Max wait for the server's joinRestaurant ack before the catch-up refetch runs anyway. */
+/** Max wait for the server's joinRestaurant ack; no answer counts as not joined (retried). */
 const JOIN_ACK_TIMEOUT_MS = 2500;
+/** Room join retries after a refusal / no answer: 2 s, 4 s, ... up to 30 s, for as long as the socket is up. */
+const JOIN_RETRY_MAX_MS = 30000;
 
 const Ctx = createContext<SocketCtx>({ socket: null, status: 'connecting', connectCount: 0, retry: () => {} });
 
@@ -46,6 +48,13 @@ export function SocketProvider({ token, restaurantId, onAuthError, children }: {
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
     let retryAttempt = 0;
     let everConnected = false;
+    let joinTimer: ReturnType<typeof setTimeout> | null = null;
+    let joinAttempt = 0;
+    let caughtUp = false; // this connection already ran its catch-up refetch
+    const clearJoin = () => {
+      if (joinTimer) clearTimeout(joinTimer);
+      joinTimer = null;
+    };
     const clearRetry = () => {
       if (retryTimer) clearTimeout(retryTimer);
       retryTimer = null;
@@ -76,20 +85,49 @@ export function SocketProvider({ token, restaurantId, onAuthError, children }: {
     };
     armOffline(); // first connect taking too long (server asleep / no internet) also shows offline
 
+    // Live orders only flow once the server has put this socket in restaurant_<id>. The server answers the join
+    // with { ok: true } or { ok: false, message }; a refusal or no answer used to count as joined, and live
+    // events stopped without a sign (only the slow poll kept the list current). Now: we are 'online' only
+    // after { ok: true }; otherwise the connection shows as reconnecting / offline and the join is retried.
+    const joinRoom = () => {
+      clearJoin();
+      if (!s.connected) return;
+      s.timeout(JOIN_ACK_TIMEOUT_MS).emit('joinRestaurant', restaurantId, (err: Error | null, ack?: { ok?: boolean; message?: string }) => {
+        if (!s.connected) return;
+        if (!err && ack && ack.ok === true) {
+          joinAttempt = 0;
+          caughtUp = true;
+          clearOffline();
+          setStatus('online');
+          // The catch-up refetch (driven by connectCount) runs only now that we are in the room, so an order
+          // created in between is in the refetch or in the socket stream.
+          setConnectCount((n) => n + 1);
+          return;
+        }
+        console.warn(`[socket] joinRestaurant ${err ? 'got no answer' : `refused: ${ack?.message || 'no reason'}`}; retrying`);
+        // Still refresh once from the server, so the list is current while live events are not flowing.
+        if (!caughtUp) {
+          caughtUp = true;
+          setConnectCount((n) => n + 1);
+        }
+        setStatus((prev) => (prev === 'offline' ? 'offline' : 'reconnecting'));
+        armOffline();
+        const wait = Math.min(2000 * 2 ** joinAttempt, JOIN_RETRY_MAX_MS);
+        joinAttempt = Math.min(joinAttempt + 1, 6);
+        joinTimer = setTimeout(joinRoom, wait + Math.floor(Math.random() * 500));
+      });
+    };
+
     s.on('connect', () => {
-      clearOffline();
       clearRetry();
       retryAttempt = 0;
       everConnected = true;
-      setStatus('online');
-      // The catch-up refetch (driven by connectCount) must run only after the server has put us in the
-      // restaurant room, or an order created in between is in neither the refetch nor the socket stream.
-      // Wait for the join ack; until the server acks it, the timeout stands in (the join takes well under it).
-      s.timeout(JOIN_ACK_TIMEOUT_MS).emit('joinRestaurant', restaurantId, () => {
-        if (s.connected) setConnectCount((n) => n + 1);
-      });
+      joinAttempt = 0;
+      caughtUp = false;
+      joinRoom();
     });
     s.on('disconnect', (reason) => {
+      clearJoin();
       setStatus((prev) => (prev === 'offline' ? 'offline' : 'reconnecting'));
       armOffline();
       // The server closed us on purpose: socket.io will not retry by itself.
@@ -123,6 +161,7 @@ export function SocketProvider({ token, restaurantId, onAuthError, children }: {
     return () => {
       clearOffline();
       clearRetry();
+      clearJoin();
       appSub.remove();
       s.removeAllListeners();
       s.disconnect();

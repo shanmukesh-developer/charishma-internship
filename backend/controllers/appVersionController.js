@@ -10,7 +10,10 @@ exports.getPublicAppVersion = async (req, res) => {
     const app = avp.normalizeApp(String((req.query && req.query.app) || ''));
     if (!app) return res.status(400).json({ success: false, code: 'UNKNOWN_APP', message: `Pass ?app= one of: ${avp.APPS.join(', ')}.` });
     const policy = await avp.getPolicy();
-    res.json({ success: true, ...avp.publicAppPolicy(policy, app) });
+    const body = { success: true, ...avp.publicAppPolicy(policy, app) };
+    // CLOSED-TEST ONLY (utils/usageTime): the customer app sends usage heartbeats only while this is true.
+    if (app === 'customer') body.usageTracking = await require('../utils/usageTime').isEnabled();
+    res.json(body);
   } catch (error) {
     sendServerError(res, error, '[APP_VERSION_PUBLIC_ERROR]');
   }

@@ -1,5 +1,6 @@
 const { getRestaurantModel } = require('../models/Restaurant');
 const orderNumbers = require('../utils/orderNumbers');
+const { emitOrderStatus } = require('../utils/orderStatusEmit');
 const { getMenuItemModel } = require('../models/MenuItem');
 const { getUserModel } = require('../models/User');
 const { getDeliveryPartnerModel } = require('../models/DeliveryPartner');
@@ -1421,9 +1422,10 @@ exports.updateGlobalConfig = async (req, res) => {
     if (key === require('../utils/appVersionPolicy').POLICY_KEY) {
       return res.status(400).json({ message: 'App versions are edited on Config → App versions (PUT /api/admin/app-versions).' });
     }
-    // Closed-tester phones only through PUT /api/admin/active-users/testers (validated + audited).
-    if (key === require('../utils/activeUsers').TESTERS_KEY) {
-      return res.status(400).json({ message: 'Tester phone numbers are edited on Active testers (PUT /api/admin/active-users/testers).' });
+    // Closed-tester phones, the daily tester target and the usage-time switch only through Active testers
+    // (PUT /api/admin/active-users/testers | /daily-target | /usage-tracking; validated + audited).
+    if (require('../utils/activeUsers').OWN_KEYS.includes(key)) {
+      return res.status(400).json({ message: 'This setting is edited on Active testers (Admin > Active testers).' });
     }
     // C4: legal settings are only written through PUT /api/admin/legal-settings (validated + audited).
     if (key === require('../utils/legalSettings').KEY) {
@@ -2125,12 +2127,8 @@ exports.batchUpdateOrders = async (req, res) => {
     }
 
     const io = req.app.get('io');
-    const emitStatus = (order, payload) => {
-      if (!io) return;
-      io.to(String(order.id)).emit('statusUpdated', payload);
-      io.to('admin-room').emit('statusUpdated', payload);
-      if (order.restaurantId) io.to(`restaurant_${order.restaurantId}`).emit('statusUpdated', payload);
-    };
+    // Order room + the customer's own room + admins + store (utils/orderStatusEmit).
+    const emitStatus = (order, payload) => emitOrderStatus(io, order, payload);
     const matched = await Order.findAll({ where: { status: targetStatus }, order: [['createdAt', 'ASC']], limit: 200 });
     let updatedCount = 0;
     const skipped = { stall: 0, unpaidUpi: 0 };
@@ -2454,6 +2452,17 @@ exports.processManualRefund = async (req, res) => {
 
     const fresh = await User.findByPk(user.id, { attributes: ['walletBalance'] });
     res.json({ message: 'Refund successful', refundAmount, walletBalance: fresh ? fresh.walletBalance : undefined });
+    // PF-32: the customer's open app refreshes its Wallet (refundedToWallet on statusUpdated, as for a cancel refund)
+    // and the phone is told even with the app closed.
+    emitOrderStatus(req.app.get('io'), order, { id: order.id, ...orderNumbers.fields(order), status: 'Cancelled', refundedToWallet: refundAmount });
+    try {
+      const customer = await User.findByPk(user.id, { attributes: ['id', 'fcmTokens'] });
+      if (customer) {
+        await require('../utils/push').sendPushToTokens(customer.fcmTokens, 'Refund added to your Wallet',
+          `₹${refundAmount} for order ${orderNumbers.label(order)} is now in your ZenWe Wallet.`,
+          { orderId: String(order.id), type: 'ORDER_UPDATE' }, { recipients: [customer.id] });
+      }
+    } catch (pushErr) { console.warn('[MANUAL_REFUND_PUSH_WARN]', pushErr.message); }
   } catch (error) {
     sendServerError(res, error, '[ADMINCONTROLLER_ERROR]');
   }
@@ -3123,39 +3132,43 @@ const ADMIN_ASSIGNABLE = ['Accepted', 'Preparing', 'ReadyForPickup', 'Picking'];
  * cancel / other change landed first (nothing done), true when the rider was removed.
  * opts: { io, reason, extraWhere }
  */
-const releaseOrderRider = async (order, { io = null, reason = 'Removed by ZenWe support', extraWhere = null } = {}) => {
+const releaseOrderRider = async (order, { io = null, reason = 'Removed by ZenWe support', extraWhere = null, notifyOldRider = true } = {}) => {
   const Order = getOrderModel();
   const oldRiderId = order.deliveryPartnerId || null;
   if (!oldRiderId) return false;
   const nextStatus = order.status === 'Picking' ? (order.readyAt ? 'ReadyForPickup' : 'Preparing') : order.status;
+  const releasedAt = new Date();
   const [n] = await Order.update(
-    { deliveryPartnerId: null, status: nextStatus },
+    // riderReleasedAt restarts the "no rider" clock and the re-push rounds (orderController.unclaimedClockStart), so the
+    // order gets a full window to find a new rider instead of being cancelled on the next job run.
+    { deliveryPartnerId: null, status: nextStatus, riderClaimedAt: null, riderReleasedAt: releasedAt },
     { where: { id: order.id, deliveryPartnerId: oldRiderId, status: order.status, ...(extraWhere || {}) } }
   );
   if (!n) return false;
   order.deliveryPartnerId = null;
   order.status = nextStatus;
+  order.riderClaimedAt = null;
+  order.riderReleasedAt = releasedAt;
 
   const { refreshRiderCurrentOrder, pushNearestRiders } = require('../utils/riderDispatch');
   realtime.leaveOrderRoom(oldRiderId, order.id);
   await refreshRiderCurrentOrder(oldRiderId);
   // The old rider's app drops the order on its refetch (it vanished from their active list).
   if (io) io.to(`rider_${oldRiderId}`).emit('statusUpdated', { id: order.id, ...orderNumbers.fields(order), status: order.status, reassigned: true });
-  if (oldRiderId) {
+  // notifyOldRider false: the caller (the stalled-claim job) sends the rider its own push with the real reason
+  // (PF-12: a rider who missed a pickup used to get "ZenWe support gave order X to another rider" as well).
+  if (notifyOldRider) {
     const rd = require('../utils/riderDispatch');
     rd.pushAssignedRider(oldRiderId, 'Order given to another rider', `ZenWe support gave order ${orderNumbers.label(order)} to another rider. You do not need to pick it up.`, { orderId: order.id, type: 'ORDER_REASSIGNED' });
   }
   realtime.deliveryRequest(order.id); // back in the pool for every online rider
   if (io) {
-    const payload = { id: order.id, ...orderNumbers.fields(order), status: order.status, riderAssigned: false };
-    io.to(String(order.id)).emit('statusUpdated', payload);
-    io.to('admin-room').emit('statusUpdated', payload);
-    if (order.restaurantId) io.to(`restaurant_${order.restaurantId}`).emit('statusUpdated', payload);
+    emitOrderStatus(io, order, { id: order.id, ...orderNumbers.fields(order), status: order.status, riderAssigned: false }, { notifyAdmin: false });
     io.to('admin-room').emit('order_unassigned', { orderId: order.id, ...orderNumbers.fields(order), reason });
   }
   realtime.notifyAdmin('order', 'updated', order.id);
   try {
-    const restaurant = order.restaurantId ? await getRestaurantModel().findByPk(order.restaurantId, { attributes: ['id', 'name', 'location'] }) : null;
+    const restaurant = order.restaurantId ? await getRestaurantModel().findByPk(order.restaurantId, { attributes: ['id', 'name', 'location', 'lat', 'lon'] }) : null;
     await pushNearestRiders({ restaurant, orderId: order.id, limit: 5, excludeRiderId: oldRiderId, title: '🛵 Order needs a rider', body: `${restaurant?.name || 'A store'} has an order waiting for a rider.` });
   } catch (pushErr) {
     console.warn('[ADMIN_ASSIGN_PUSH_WARN]', pushErr.message);
@@ -3215,7 +3228,8 @@ exports.assignOrderRider = async (req, res) => {
     }
     const nextStatus = order.status === 'Picking' ? (order.readyAt ? 'ReadyForPickup' : 'Preparing') : order.status;
     const [n] = await Order.update(
-      { deliveryPartnerId: newRiderId, status: nextStatus },
+      // A fresh claim clock for the new rider (the stalled-claim job times it from here).
+      { deliveryPartnerId: newRiderId, status: nextStatus, riderClaimedAt: new Date() },
       { where: { id: order.id, deliveryPartnerId: oldRiderId, status: order.status } }
     );
     if (!n) return res.status(409).json({ message: 'This order was just updated (claimed, picked up or cancelled). Refresh and try again.', code: 'ORDER_CHANGED' });
@@ -3242,13 +3256,10 @@ exports.assignOrderRider = async (req, res) => {
       realtime.deliveryRequest(order.id); // back in the pool for every online rider
     }
     if (io) {
-      const payload = { id: order.id, ...orderNumbers.fields(order), status: order.status, riderAssigned: !!newRiderId };
-      io.to(String(order.id)).emit('statusUpdated', payload);
-      io.to('admin-room').emit('statusUpdated', payload);
-      if (order.restaurantId) io.to(`restaurant_${order.restaurantId}`).emit('statusUpdated', payload);
-      // The new rider is not in the order room yet: tell their own room, so the app refetches its active
-      // orders now instead of on the next poll (or never, with no working push token).
-      if (newRiderId) io.to(`rider_${newRiderId}`).emit('statusUpdated', payload);
+      // Order room + customer's own room + admins + store; the new rider is not in the order room yet: their own room
+      // too (same emit), so the app refetches its active orders now instead of on the next poll.
+      emitOrderStatus(io, order, { id: order.id, ...orderNumbers.fields(order), status: order.status, riderAssigned: !!newRiderId },
+        { notifyAdmin: false, extraRooms: newRiderId ? [`rider_${newRiderId}`] : [] });
       if (!newRiderId) io.to('admin-room').emit('order_unassigned', { orderId: order.id, ...orderNumbers.fields(order), reason: 'Removed by ZenWe support' });
     }
     realtime.notifyAdmin('order', 'updated', order.id);

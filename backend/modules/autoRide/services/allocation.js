@@ -508,7 +508,18 @@ const acceptPrivateRequest = async ({ requestId, driverId }) => {
     if (trip.status === T.FULL && !trip.fullNotifiedAt) await Trip.update({ fullNotifiedAt: now }, { where: { id: trip.id }, transaction: t });
     return { request: r, booking, trip, others };
   });
-  if (out.gone) throw fail(410, 'REQUEST_EXPIRED', 'This request expired before you answered.');
+  if (out.gone) {
+    // PF-16: this accept is what expired it (the job only scans REQUESTED rows), so tell the customer exactly as the
+    // job would; they were left waiting on a dead request.
+    try {
+      const notify = require('./notify');
+      const r = out.request;
+      notify.toCustomers([r.userId], 'Full-auto request expired', 'The driver did not answer in time. Nothing was charged. Try another auto.', { type: 'AUTO_PRIVATE_EXPIRED', requestId: r.id });
+      notify.nudgeCustomers([r.userId], 'private_request', r.id, E.PRIVATE_STATUS.EXPIRED);
+      notify.nudgeDriver(r.driverId, 'private_request', r.id, E.PRIVATE_STATUS.EXPIRED);
+    } catch (err) { console.warn('[AUTO_PRIVATE_EXPIRE_NOTIFY_WARN]', err.message); }
+    throw fail(410, 'REQUEST_EXPIRED', 'This request expired before you answered.');
+  }
   return out;
 };
 

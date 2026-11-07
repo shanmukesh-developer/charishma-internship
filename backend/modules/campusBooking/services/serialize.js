@@ -102,6 +102,8 @@ const base = (b) => ({
   readyAt: iso(b.readyAt),
   collectedAt: iso(b.collectedAt),
   cancelledAt: iso(b.cancelledAt),
+  // PF-03: a payment under review is cancelled by the system at this time if the stall has not confirmed or rejected it.
+  reviewDeadline: b.status === 'PAYMENT_REVIEW' && b.proofSubmittedAt ? iso(new Date(new Date(b.proofSubmittedAt).getTime() + LIMITS.reviewWindowMin * 60000)) : null,
   version: Number(b.version) || 0,
 });
 
@@ -121,7 +123,10 @@ const forStudent = (row, store) => {
   out.pickupCode = CODE_VISIBLE.has(b.status) ? b.pickupCode : null;
   out.paymentDeadline = deadlineOf(b);
   out.canSubmitProof = (b.status === 'PAYMENT_PENDING' || b.status === 'REJECTED') && (Number(b.proofAttempts) || 0) < LIMITS.proofMaxAttempts;
-  out.canCancel = b.status === 'PAYMENT_PENDING' || b.status === 'REJECTED';
+  // Under review (PF-03): from reviewStudentCancelMin after the proof (services/bookings.cancel says the same).
+  const reviewFrom = b.status === 'PAYMENT_REVIEW' && b.proofSubmittedAt ? new Date(b.proofSubmittedAt).getTime() + LIMITS.reviewStudentCancelMin * 60000 : null;
+  out.canCancel = b.status === 'PAYMENT_PENDING' || b.status === 'REJECTED' || (reviewFrom !== null && Date.now() >= reviewFrom);
+  out.canCancelFrom = reviewFrom !== null ? iso(new Date(reviewFrom)) : null;
   return out;
 };
 

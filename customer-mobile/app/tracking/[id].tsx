@@ -393,7 +393,10 @@ export default function TrackingScreen() {
       const lat = Number(data.lat);
       const lng = Number(data.lng);
       if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return;
-      setRiderFix({ lat, lng, at: Number(data.ts) || Date.now() });
+      // `at` is when THIS phone received the fix, on its own clock: the age below is measured against Date.now(),
+      // so the server's `ts` (another clock) made the dot vanish on any phone running 2+ minutes fast. The server
+      // relays a fix as soon as it gets it, so the receive time is the fix time to within the network delay.
+      setRiderFix({ lat, lng, at: Date.now() });
     };
 
     socket.on('statusUpdated', handleStatus);

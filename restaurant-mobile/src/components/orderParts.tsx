@@ -3,7 +3,7 @@ import React from 'react';
 import { Linking, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NEW_ORDER_LATE_MIN, NEW_ORDER_WARN_MIN } from '../config';
-import { agoText, clockIST, minutesSince, rupees } from '../lib/model';
+import { acceptAnchorMs, agoText, clockIST, minutesSince, rupees } from '../lib/model';
 import { useNow, useStore } from '../state/StoreProvider';
 import { color, font, radius, space } from '../theme';
 import { Badge, Button, IconButton } from '../ui/kit';
@@ -28,7 +28,11 @@ export function PaymentBadge({ order, withAmount }: { order: Order; withAmount?:
 
 export function Elapsed({ order, onDark }: { order: Order; onDark?: boolean }) {
   const now = useNow();
-  const mins = minutesSince(order.createdAt, now);
+  // Urgency counts from when the store must act (lib/model acceptAnchorMs: placement, or 60 min before a delivery
+  // slot), not from placement: a 9:00 order for the 12:30 slot is not "3 h late, accept now" at 9:00. The label
+  // still says when it was placed.
+  const anchor = acceptAnchorMs(order);
+  const mins = Number.isFinite(anchor) ? Math.max(0, Math.floor((now - anchor) / 60000)) : minutesSince(order.createdAt, now);
   const isNew = order.stage === 'new';
   const tint = onDark ? color.textInverse
     : isNew && mins >= NEW_ORDER_LATE_MIN ? color.alert

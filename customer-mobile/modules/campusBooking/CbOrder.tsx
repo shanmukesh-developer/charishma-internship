@@ -10,6 +10,7 @@ import { Linking, Modal, RefreshControl, ScrollView, StyleSheet, Text, Touchable
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import Clipboard from '@react-native-clipboard/clipboard';
+import { serverNow } from '../../utils/serverClock';
 import { cbApi, type CbBooking } from './cbApi';
 import { COLORS, SHADOWS, inr, timeIST, whenIST, useCbTheme } from './cbTheme';
 import { CbHeader, EmptyCard, NoticeBar, PlaceButton, StaggeredSection, StatusTag, useCbLive } from './cbKit';
@@ -58,10 +59,11 @@ export default function CbOrder({ id }: { id: string }) {
 
   const ready = b.status === 'READY';
   const live = ['ACCEPTED', 'PREPARING', 'READY'].includes(b.status);
-  const minsToReady = b.estimatedReadyAt ? Math.round((new Date(b.estimatedReadyAt).getTime() - Date.now()) / 60000) : null;
+  const minsToReady = b.estimatedReadyAt ? Math.round((new Date(b.estimatedReadyAt).getTime() - serverNow()) / 60000) : null;
   const cancelAfterPay = b.status === 'CANCELLED' && b.paymentVerified;
-  // Cancelled by the stall while it was still checking a payment the student had already sent.
-  const cancelInReview = b.status === 'CANCELLED' && !b.paymentVerified && b.cancellation?.by === 'vendor' && !!b.proof?.submittedAt;
+  // Cancelled while the stall was still checking a payment the student had already sent: by the stall, by the
+  // student (allowed while the payment is in review), or by the review deadline. The money goes back the same way.
+  const cancelInReview = b.status === 'CANCELLED' && !b.paymentVerified && !!b.proof?.submittedAt;
   const stallName = b.stall?.name || 'the stall';
   // The stall's reasons have no full stop, the student / system ones do: end with exactly one before the refund line.
   const cancelReason = `${(b.cancellation?.reason || 'This booking was cancelled').trim().replace(/\.+$/, '')}.`;

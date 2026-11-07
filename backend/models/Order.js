@@ -60,6 +60,12 @@ const initOrderModel = (sequelize) => {
     slotEnd: { type: DataTypes.DATE, allowNull: true },
     // When the 'orders.slotDispatch' job released a held-back slot order to riders (null = not yet / not needed).
     slotDispatchedAt: { type: DataTypes.DATE, allowNull: true },
+    // Rider claim clock (6 Nov 2026, PF-01): when the current rider took the order (rider claim or admin assign) and
+    // when the last rider was taken off it (rider release, admin remove, pickup / inactivity timeout). The stalled-claim
+    // job times a claim from riderClaimedAt; the "no rider" cancel and the re-push rounds restart at riderReleasedAt,
+    // so an order put back in the pool gets a full window to find a new rider. Null on older rows.
+    riderClaimedAt: { type: DataTypes.DATE, allowNull: true },
+    riderReleasedAt: { type: DataTypes.DATE, allowNull: true },
     deliveryAddress: { type: DataTypes.TEXT },
     // Customer's delivery notes, e.g. ["Call on arrival", "No plastic cutlery"] (also kept in deliveryAddress for older rider apps)
     deliveryInstructions: { type: DataTypes.JSON, allowNull: true },

@@ -218,6 +218,22 @@ test('S12 driver declines a private request (nothing booked, customer told)', as
   assert.equal((await api('POST', `/api/auto-ride/driver/private-requests/${r.body.request.id}/accept`, t.token)).status, 409);
 });
 
+test('PF-16: a private request that expires just as the driver accepts is reported to the customer', async () => {
+  const t = await H.mkTrip({ capacity: 3, seatFare: 40, fullAutoFare: 300, privateBookingEnabled: true });
+  const u = await H.mkUser();
+  const r = await api('POST', `/api/auto-ride/trips/${t.trip.id}/private-requests`, u.token, { passengers: 2 });
+  assert.equal(r.status, 201);
+  // The answer window ran out a moment ago; the job has not run yet.
+  await H.ctx.M('AutoPrivateRequest').update({ respondBy: new Date(H.now() - 1000) }, { where: { id: r.body.request.id } });
+  const acc = await api('POST', `/api/auto-ride/driver/private-requests/${r.body.request.id}/accept`, t.token);
+  assert.equal(acc.status, 410);
+  assert.equal(acc.body.code, 'REQUEST_EXPIRED');
+  await new Promise((res) => setTimeout(res, 150));
+  const n = await H.notificationsFor(u.id);
+  assert.ok(n.some((x) => x.type === 'AUTO_PRIVATE_EXPIRED'), JSON.stringify(n.map((x) => x.type)));
+  assert.ok(H.emitted.some((e) => e.room === `user_${u.id}` && JSON.stringify(e.p).includes('EXPIRED')));
+});
+
 test('S11 private request refused when seats are already booked (request and accept)', async () => {
   const t = await H.mkTrip({ capacity: 6, seatFare: 30, fullAutoFare: 400, privateBookingEnabled: true });
   const u = await H.mkUser();

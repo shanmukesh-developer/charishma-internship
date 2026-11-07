@@ -1,4 +1,5 @@
 // Money, IST day keys and relative times.
+import { serverNow } from './serverClock';
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 
 /** ₹ with paise only when there are any ("₹124", "₹123.50"): cash to collect must match the customer's bill exactly. */
@@ -65,7 +66,8 @@ export function minutesAgo(d: string | null | undefined): string | null {
   if (!d) return null;
   const t = new Date(d).getTime();
   if (!Number.isFinite(t)) return null;
-  const mins = Math.max(0, Math.round((Date.now() - t) / 60000));
+  // Server time: the order times are server times (a phone clock minutes off made orders look late / new).
+  const mins = Math.max(0, Math.round((serverNow() - t) / 60000));
   if (mins < 1) return 'Just now';
   if (mins < 60) return `${mins} min ago`;
   const h = Math.floor(mins / 60);

@@ -15,6 +15,7 @@ const realtime = require('../utils/realtime');
 const walletLedger = require('../utils/walletLedger');
 const { pushNearestRiders, riderPayout, refreshRiderCurrentOrder } = require('../utils/riderDispatch');
 const deliverySlots = require('../utils/deliverySlots');
+const { emitOrderStatus } = require('../utils/orderStatusEmit');
 
 // Money transactions (wallet debit / refund, coupon claim). IMMEDIATE takes the SQLite write lock up
 // front: a DEFERRED transaction that reads then writes fails with SQLITE_BUSY when a parallel request
@@ -53,19 +54,16 @@ const broadcastOrderStatus = (req, orderOrId, payload) => {
   try {
     const io = req.app.get('io');
     if (!io) return;
-    const isObj = orderOrId && typeof orderOrId === 'object';
-    const room = String(isObj ? orderOrId.id : orderOrId);
-    // Also the customer's own room (joined on every connect): the orders list rejoins order rooms only after
-    // it loads, so a status change while the phone slept was missed until a manual refresh. One emit over both
-    // rooms, so a socket in both gets it once.
-    const userRoom = isObj && orderOrId.userId ? `user_${orderOrId.userId}` : null;
-    // Human order ID (ZEN-<n>) on every status event when the order row is at hand.
-    if (isObj && payload && typeof payload === 'object' && payload.orderCode === undefined) payload = { ...orderNumbers.fields(orderOrId), ...payload };
-    io.to(userRoom ? [room, userRoom] : room).emit('statusUpdated', payload);
+    // The order row at hand: order room + the customer's own room + admins + the store (utils/orderStatusEmit, the
+    // same path every rider / job / admin status change uses).
+    if (orderOrId && typeof orderOrId === 'object') {
+      emitOrderStatus(io, orderOrId, payload);
+      return;
+    }
+    const room = String(orderOrId);
+    io.to(room).emit('statusUpdated', payload);
     io.to('admin-room').emit('statusUpdated', payload);
     require('../utils/realtime').notifyAdmin('order', 'updated', room);
-    // The restaurant portal joins `restaurant_<id>`; no global broadcast of other people's orders.
-    if (isObj && orderOrId.restaurantId) io.to(`restaurant_${orderOrId.restaurantId}`).emit('statusUpdated', payload);
   } catch (err) {
     console.warn('[SOCKET_BROADCAST_WARN]', err.message);
   }
@@ -600,6 +598,8 @@ const createOrder = async (req, res) => {
       estDuration: createdOrder.estDuration || null,
       // Delivery slot: the kitchen gets slot orders at once (to plan) with the slot shown on the card.
       ...deliverySlots.slotFields(createdOrder),
+      // The accept deadline: the partner apps keep ringing until it (PF-04).
+      storeAcceptBy: storeAcceptBy(createdOrder),
     };
 
     if (isVendorOrder) {
@@ -879,11 +879,7 @@ const customerCancelRule = (o) => {
 
 // When the store must have accepted a Pending order (slot orders: counted from an hour before the slot,
 // so a night order for tomorrow is not cancelled at night). Null once the order is past Pending.
-const storeAcceptBy = (o) => {
-  if (!o || o.status !== 'Pending') return null;
-  const t = deliverySlots.acceptAnchorMs(o) + storeAcceptTimeoutMinutes() * 60 * 1000;
-  return Number.isFinite(t) ? new Date(t).toISOString() : null;
-};
+const storeAcceptBy = (o) => require('../utils/orderTimeouts').storeAcceptByIso(o);
 // Never sent to the customer / rider on the single-order view either (admin only).
 const ORDER_INTERNAL_FIELDS = ['deliveryPinAttempts', 'upiUTR', 'upiScreenshot', 'upiStatus', 'payoutSettled', 'riderPayoutSettled',
   // C6 settlement internals (commission snapshot, payout statements).
@@ -1306,11 +1302,15 @@ const STORE_TIMEOUT_TEXT = "We're sorry, we couldn't get this order placed becau
 // The "no rider" clock starts when the food can actually go: the later of acceptance + the store's own prep
 // estimate (capped at 4 h) and the moment it was marked ready. A 40-minute dish used to be cancelled and
 // refunded at 30 minutes while it was still cooking, because riders wait until an order is nearly ready.
+// An order a rider gave back (or that support / the stalled-claim job took off a rider) restarts the clock at
+// riderReleasedAt: it used to be cancelled on the next job run, because its clock had long run out while the rider
+// held it.
 const unclaimedClockStart = (o) => {
   const accepted = o.acceptedAt ? new Date(o.acceptedAt).getTime() : new Date(o.createdAt).getTime();
   const prepMin = Math.min(240, Math.max(0, Number(o.estDuration) || 0));
   const ready = o.readyAt ? new Date(o.readyAt).getTime() : 0;
-  return Math.max(accepted + prepMin * 60 * 1000, ready);
+  const released = o.riderReleasedAt ? new Date(o.riderReleasedAt).getTime() : 0;
+  return Math.max(accepted + prepMin * 60 * 1000, ready, Number.isFinite(released) ? released : 0);
 };
 
 // Unclaimed orders are pushed again, wider each time, before the "no rider" cancel: the first push reached
@@ -1323,6 +1323,7 @@ const ESCALATION_ROUNDS = [
   { atMin: 18, limit: 100, title: '⏰ Order about to be cancelled', alertAdmins: true },
 ];
 const escalated = new Map(); // orderId -> rounds already sent (a restart re-sends at most the current one)
+const escalatedRelease = new Map(); // orderId -> riderReleasedAt (ms) the rounds were counted for
 const escalateUnclaimedOrders = async (io) => {
   const Order = getOrderModel();
   const since = new Date(Date.now() - ESCALATION_ROUNDS[0].atMin * 60 * 1000);
@@ -1336,19 +1337,28 @@ const escalateUnclaimedOrders = async (io) => {
         { createdAt: { [Op.lt]: since } },
       ],
     },
-    attributes: ['id', 'restaurantId', 'acceptedAt', 'createdAt', 'readyAt', 'estDuration', 'slotStart', 'distance'],
+    attributes: ['id', 'orderNumber', 'restaurantId', 'acceptedAt', 'createdAt', 'readyAt', 'estDuration', 'slotStart', 'distance', 'riderReleasedAt'],
     order: [['createdAt', 'ASC']],
     limit: 100,
   });
   const live = new Set(rows.map((o) => String(o.id)));
   for (const id of escalated.keys()) if (!live.has(id)) escalated.delete(id);
+  // A rider release starts the rounds again (a new "no rider" window: unclaimedClockStart).
+  for (const order of rows) {
+    const rel = order.riderReleasedAt ? new Date(order.riderReleasedAt).getTime() : 0;
+    const prev = escalatedRelease.get(String(order.id)) || 0;
+    if (rel > prev) { escalatedRelease.set(String(order.id), rel); escalated.delete(String(order.id)); }
+  }
+  for (const id of escalatedRelease.keys()) if (!live.has(id)) escalatedRelease.delete(id);
   let sent = 0;
   for (const order of rows) {
     try {
       if (!deliverySlots.isDispatchDue(order)) continue;
-      // Minutes since riders could first see it (a slot order: since its dispatch window opened).
+      // Minutes on the same clock as the "no rider" cancel (PF-17: the rounds were timed from acceptance while the
+      // cancel waits for acceptance + prep time, so a long-prep order got "about to be cancelled" far too early):
+      // the later of unclaimedClockStart (food due / ready / rider release) and, for a slot order, its rider window.
       const opens = deliverySlots.dispatchOpensAt(order);
-      const from = Math.max(order.acceptedAt ? new Date(order.acceptedAt).getTime() : new Date(order.createdAt).getTime(), opens ? opens.getTime() : 0);
+      const from = Math.max(unclaimedClockStart(order), opens ? opens.getTime() : 0);
       const ageMin = (Date.now() - from) / 60000;
       const done = escalated.get(String(order.id)) || 0;
       let due = 0;
@@ -1424,9 +1434,7 @@ const autoCancelStalePendingOrders = async (io) => {
       count++;
       const payload = { id: order.id, ...orderNumbers.fields(order), status: 'Cancelled', reason: code, refundedToWallet: refunded };
       if (io) {
-        io.to(String(order.id)).emit('statusUpdated', payload);
-        io.to('admin-room').emit('statusUpdated', payload);
-        if (order.restaurantId) io.to(`restaurant_${order.restaurantId}`).emit('statusUpdated', payload);
+        emitOrderStatus(io, order, payload); // order room + the customer's own room + admins + store
         if (order.restaurantId) io.to(`restaurant_${order.restaurantId}`).emit('orderCancelled', { orderId: order.id, ...orderNumbers.fields(order), reason: code });
         io.to(String(order.id)).emit('orderCancelled', { orderId: order.id, ...orderNumbers.fields(order), reason: code });
         io.to('admin-room').emit('orderCancelled', { orderId: order.id, ...orderNumbers.fields(order), reason: code });
@@ -1458,72 +1466,214 @@ const autoCancelStalePendingOrders = async (io) => {
   return count;
 };
 
-// C1-5: a rider claimed the order but never picked it up. Once the store has marked it ready
-// (readyAt) and RIDER_PICKUP_TIMEOUT_MIN (default 20) have passed with no change to the order since
-// (updatedAt: the claim itself also writes the row, so a late claim gets the full window), the rider
-// is taken off it and it goes back to the rider pool through the same code as an admin "Remove rider"
-// (adminController.releaseOrderRider: sockets, pool, nearest-rider pushes). Admins are pushed; the
-// rider has no counter column, so it is logged per rider. 'Picking' (rider at the counter) is left
-// alone. Runs inside the 'orders.autoCancel' job (single runner); the conditional release makes a
-// repeat or a pickup that lands meanwhile a no-op.
+// Stalled rider claims (C1-5, extended 6 Nov 2026 for PF-01 / PF-12). A rider who took an order must not hold it
+// forever: the customer cannot cancel while a rider is on it (customerCancelRule), the "no rider" cancel skips
+// claimed orders, and the rider app keeps it as their current job. Two rules, both through the same release as an
+// admin "Remove rider" (adminController.releaseOrderRider: back to the pool, live events, nearest-rider pushes, the
+// "no rider" clock restarts at riderReleasedAt):
+//
+//  1. Ready, not picked up: the store marked it ready (readyAt) and RIDER_PICKUP_TIMEOUT_MIN (default 20) passed
+//     with no change to the order since (updatedAt: the claim itself also writes the row, so a late claim gets the
+//     full window). Released whatever the rider's app is doing: the food is waiting at the counter.
+//  2. Never marked ready (buy-at-store shops start 'Accepted' and never get readyAt; a kitchen that forgot "Ready"):
+//     the pickup deadline is RIDER_PICKUP_TIMEOUT_MIN after the later of the claim (riderClaimedAt; older rows:
+//     updatedAt) and the time the food should be ready (unclaimedClockStart: acceptance + the store's prep estimate).
+//     Past the deadline:
+//       • the rider's app has shown no sign of life for RIDER_INACTIVE_MIN (default 10; utils/riderSeen: API calls,
+//         socket connects, GPS) or the rider is off duty: released now (reason RIDER_INACTIVE);
+//       • the rider is still active: one reminder push to the rider and one alert to the admins, then released
+//         RIDER_CLAIM_HARD_EXTRA_MIN (default 20) later if still not picked up (reason PICKUP_TIMEOUT).
+// 'Picking' (rider at the counter) and later steps are never touched. Stall (VENDOR) orders have no rider.
+//
+// On a release: the rider gets `orderReleased` + one push with the real reason (no "ZenWe support gave it to another
+// rider" push on top: PF-12), the customer is told a new rider is being found (and, for a buy-at-store order, may
+// cancel again: no rider is on it), a store with a partner login is told, and the admins get one summary push.
+// Runs inside the 'orders.autoCancel' job (single runner); every release is conditional, so a pickup or cancel that
+// lands meanwhile wins and a repeat run is a no-op.
 const RIDER_PICKUP_TIMEOUT_MIN = () => Math.max(5, parseInt(process.env.RIDER_PICKUP_TIMEOUT_MIN, 10) || 20);
+const RIDER_INACTIVE_MIN = () => Math.max(5, parseInt(process.env.RIDER_INACTIVE_MIN, 10) || 10);
+const RIDER_CLAIM_HARD_EXTRA_MIN = () => Math.max(5, parseInt(process.env.RIDER_CLAIM_HARD_EXTRA_MIN, 10) || 20);
 const PICKUP_WAIT_STATUSES = ['Accepted', 'Preparing', 'ReadyForPickup'];
-const releaseStalledRiderClaims = async (io) => {
+const claimStartMs = (o) => {
+  const t = o.riderClaimedAt ? new Date(o.riderClaimedAt).getTime() : new Date(o.updatedAt).getTime();
+  return Number.isFinite(t) ? t : Date.now();
+};
+/** Rule 2 pickup deadline (ms) for a claimed order the store never marked ready. */
+const claimPickupDeadlineMs = (o) => Math.max(claimStartMs(o), unclaimedClockStart(o)) + RIDER_PICKUP_TIMEOUT_MIN() * 60 * 1000;
+
+/**
+ * What to do with a claimed, not-ready order now: { action: 'release', reason } | { action: 'nudge' } | { action: null }.
+ * `rider`: { isOnline, lastSeenAt, liveLocation } of the rider on it (null = account gone).
+ */
+const stalledClaimVerdict = (order, rider, now = Date.now()) => {
+  if (!order || !order.deliveryPartnerId || order.readyAt || !PICKUP_WAIT_STATUSES.includes(order.status) || isVendorFulfilled(order)) return { action: null };
+  const deadline = claimPickupDeadlineMs(order);
+  if (now < deadline) return { action: null };
+  const quiet = require('../utils/riderSeen').riderQuietMs(rider, now);
+  if (!rider || rider.isOnline === false || quiet >= RIDER_INACTIVE_MIN() * 60 * 1000) return { action: 'release', reason: 'RIDER_INACTIVE' };
+  if (now >= deadline + RIDER_CLAIM_HARD_EXTRA_MIN() * 60 * 1000) return { action: 'release', reason: 'PICKUP_TIMEOUT' };
+  return { action: 'nudge' };
+};
+
+const RELEASE_TEXT = {
+  PICKUP_TIMEOUT: (min) => `You did not pick up this order within ${min} minutes, so it went back to other riders.`,
+  RIDER_INACTIVE: () => 'ZenWe lost contact with your app before you picked up this order, so it went back to other riders.',
+};
+
+/**
+ * Take a stalled claim off its rider and tell everyone. Conditional (see releaseOrderRider + extraWhere).
+ * Resolves true when released. Never throws.
+ */
+const releaseStalledClaim = async (order, { io = null, reason, minutes, extraWhere = null, notifyCustomer = true } = {}) => {
+  const riderId = order.deliveryPartnerId;
+  try {
+    const { releaseOrderRider } = require('./adminController');
+    const ok = await releaseOrderRider(order, {
+      io,
+      reason: reason === 'RIDER_INACTIVE' ? 'Rider app went quiet before pickup' : `Rider did not pick up within ${minutes} min`,
+      extraWhere,
+      notifyOldRider: false, // the rider gets the push below, with the real reason (PF-12)
+    });
+    if (!ok) return false;
+    console.warn(`[RIDER_PICKUP_TIMEOUT] rider ${riderId} released order ${order.id} (${reason})`);
+    const fields = orderNumbers.fields(order);
+    // Rider: live event + one push with the real reason.
+    try {
+      if (io) io.to(`rider_${riderId}`).emit('orderReleased', { orderId: order.id, ...fields, reason });
+      const rider = await getDeliveryPartnerModel().findByPk(riderId, { attributes: ['id', 'fcmTokens'] });
+      const tokens = (rider && Array.isArray(rider.fcmTokens) ? rider.fcmTokens : []).map((t) => (typeof t === 'string' ? t : t && t.token)).filter(Boolean);
+      if (tokens.length) {
+        await sendPushToTokens(tokens, 'Order released', `${orderNumbers.label(order)}: ${RELEASE_TEXT[reason](minutes)}`, { orderId: String(order.id), type: 'ORDER_RELEASED', reason }, { persist: false });
+      }
+    } catch (pushErr) {
+      console.warn('[RIDER_PICKUP_TIMEOUT_PUSH_WARN]', pushErr.message);
+    }
+    // Customer: a new rider is being found (the statusUpdated with riderAssigned:false went out with the release).
+    const buyAtStore = order.storePaidByRider === true || order.storePaidByRider === 1;
+    if (notifyCustomer) await pushCustomer(order, 'Finding you a new rider', buyAtStore
+      ? 'Your rider could not make it, so we are finding another one. You can still cancel the order until a new rider takes it.'
+      : 'Your rider could not make it, so we are finding another one for your order.');
+    // Store with a partner login (a buy-at-store shop has none): the rider on the card changes.
+    if (order.restaurantId && !buyAtStore) {
+      try {
+        const { pushToStore } = require('../utils/storePush');
+        await pushToStore(order.restaurantId, 'Rider changed', `Order ${orderNumbers.label(order)}: the rider could not come. A new rider will collect it.`, { orderId: order.id, type: 'ORDER_UPDATE' }, { tag: `order-${order.id}` });
+      } catch (storeErr) {
+        console.warn('[RIDER_PICKUP_TIMEOUT_STORE_PUSH_WARN]', storeErr.message);
+      }
+    }
+    return true;
+  } catch (e) {
+    console.error('[RIDER_PICKUP_TIMEOUT_ERROR]', order.id, e.message);
+    return false;
+  }
+};
+
+const claimNudged = new Map(); // `${orderId}:${claimStartMs}` -> ms sent (one reminder per claim)
+const releaseStalledRiderClaims = async (io, { now = Date.now() } = {}) => {
   const Order = getOrderModel();
   const minutes = RIDER_PICKUP_TIMEOUT_MIN();
-  const cutoff = new Date(Date.now() - minutes * 60 * 1000);
-  const stalled = await Order.findAll({
+  const cutoff = new Date(now - minutes * 60 * 1000);
+  const notStall = { [Op.or]: [{ fulfilment: null }, { fulfilment: { [Op.ne]: 'VENDOR' } }] };
+  const released = [];
+
+  // Rule 1: ready at the counter, not picked up.
+  const readyStalled = await Order.findAll({
     where: {
       status: { [Op.in]: PICKUP_WAIT_STATUSES },
       deliveryPartnerId: { [Op.ne]: null },
       readyAt: { [Op.ne]: null, [Op.lt]: cutoff },
       updatedAt: { [Op.lt]: cutoff },
-      [Op.and]: [{ [Op.or]: [{ fulfilment: null }, { fulfilment: { [Op.ne]: 'VENDOR' } }] }],
+      [Op.and]: [notStall],
     },
     order: [['readyAt', 'ASC']],
     limit: 50,
   });
-  if (!stalled.length) return 0;
-  const { releaseOrderRider } = require('./adminController');
-  const released = [];
-  for (const order of stalled) {
+  for (const order of readyStalled) {
     const riderId = order.deliveryPartnerId;
+    const ok = await releaseStalledClaim(order, { io, reason: 'PICKUP_TIMEOUT', minutes, extraWhere: { readyAt: { [Op.lt]: cutoff }, updatedAt: { [Op.lt]: cutoff } } });
+    if (ok) released.push({ order, riderId, reason: 'PICKUP_TIMEOUT' });
+  }
+
+  // Rule 2: claimed, never marked ready. Pre-filter on the claim being at least the pickup window old.
+  const notReady = await Order.findAll({
+    where: {
+      status: { [Op.in]: PICKUP_WAIT_STATUSES },
+      deliveryPartnerId: { [Op.ne]: null },
+      readyAt: null,
+      [Op.and]: [notStall, { [Op.or]: [{ riderClaimedAt: { [Op.lt]: cutoff } }, { riderClaimedAt: null, updatedAt: { [Op.lt]: cutoff } }] }],
+    },
+    order: [['createdAt', 'ASC']],
+    limit: 100,
+  });
+  const live = new Set();
+  for (const order of notReady) {
+    const key = `${order.id}:${claimStartMs(order)}`;
+    live.add(key);
     try {
-      const ok = await releaseOrderRider(order, {
-        io,
-        reason: `Rider did not pick up within ${minutes} min of the order being ready`,
-        extraWhere: { readyAt: { [Op.lt]: cutoff }, updatedAt: { [Op.lt]: cutoff } },
-      });
-      if (!ok) continue;
-      released.push({ order, riderId });
-      console.warn(`[RIDER_PICKUP_TIMEOUT] rider ${riderId} released order ${order.id} (ready ${minutes}+ min, not picked up)`);
-      try {
-        if (io) io.to(`rider_${riderId}`).emit('orderReleased', { orderId: order.id, ...orderNumbers.fields(order), reason: 'PICKUP_TIMEOUT' });
-        const rider = await getDeliveryPartnerModel().findByPk(riderId, { attributes: ['id', 'fcmTokens'] });
+      const rider = await getDeliveryPartnerModel().findByPk(order.deliveryPartnerId, { attributes: ['id', 'name', 'isOnline', 'lastSeenAt', 'liveLocation', 'fcmTokens'] });
+      const verdict = stalledClaimVerdict(order, rider, now);
+      if (verdict.action === 'release') {
+        const riderId = order.deliveryPartnerId;
+        // Conditional on the claim read here: a re-claim / "Ready" / pickup that lands meanwhile wins.
+        const ok = await releaseStalledClaim(order, { io, reason: verdict.reason, minutes, extraWhere: { readyAt: null, riderClaimedAt: order.riderClaimedAt || null } });
+        if (ok) { released.push({ order, riderId, reason: verdict.reason }); claimNudged.delete(key); }
+      } else if (verdict.action === 'nudge' && !claimNudged.has(key)) {
+        claimNudged.set(key, now);
+        const label = orderNumbers.label(order);
+        const extra = RIDER_CLAIM_HARD_EXTRA_MIN();
         const tokens = (rider && Array.isArray(rider.fcmTokens) ? rider.fcmTokens : []).map((t) => (typeof t === 'string' ? t : t && t.token)).filter(Boolean);
         if (tokens.length) {
-          await sendPushToTokens(tokens, 'Order released', `You did not pick up an order within ${minutes} minutes of it being ready, so it went back to other riders.`, { orderId: String(order.id), type: 'ORDER_RELEASED' }, { persist: false });
+          await sendPushToTokens(tokens, '⏰ Pick up your order', `${label} is waiting for you. Pick it up in the next ${extra} minutes or it goes back to other riders.`, { orderId: String(order.id), type: 'PICKUP_REMINDER' }, { persist: false });
         }
-      } catch (pushErr) {
-        console.warn('[RIDER_PICKUP_TIMEOUT_PUSH_WARN]', pushErr.message);
+        await require('../utils/adminAlert').pushAdmins(
+          'Rider has not picked up',
+          `${(rider && rider.name) || 'A rider'} took order ${label} ${Math.round((now - claimStartMs(order)) / 60000)} min ago and has not picked it up. It goes back to the rider pool in ${extra} min.`,
+          { orderId: String(order.id), type: 'RIDER_PICKUP_LATE' },
+          { io }
+        ).catch(() => {});
       }
     } catch (e) {
       console.error('[RIDER_PICKUP_TIMEOUT_ERROR]', order.id, e.message);
     }
   }
+  for (const k of claimNudged.keys()) if (!live.has(k)) claimNudged.delete(k);
+
   if (released.length) {
     const perRider = released.reduce((m, r) => m.set(r.riderId, (m.get(r.riderId) || 0) + 1), new Map());
     for (const [rid, n] of perRider) console.warn(`[RIDER_PICKUP_TIMEOUT] rider ${rid}: ${n} order(s) released this run`);
+    const inactive = released.filter((r) => r.reason === 'RIDER_INACTIVE').length;
     await require('../utils/adminAlert').pushAdmins(
       '⏱️ Rider did not pick up',
       released.length === 1
-        ? `An order waited ${minutes}+ min at the store after it was ready; the rider was removed and it is back in the rider pool.`
-        : `${released.length} orders waited ${minutes}+ min at the store after they were ready; the riders were removed and they are back in the rider pool.`,
+        ? (inactive
+          ? `Order ${orderNumbers.label(released[0].order)}: the rider's app went quiet before pickup; the rider was removed and it is back in the rider pool.`
+          : `Order ${orderNumbers.label(released[0].order)} was not picked up in time; the rider was removed and it is back in the rider pool.`)
+        : `${released.length} orders were not picked up in time${inactive ? ` (${inactive} with the rider's app gone quiet)` : ''}; the riders were removed and they are back in the rider pool.`,
       { type: 'RIDER_PICKUP_TIMEOUT', orderId: String(released[0].order.id) },
       { io }
     );
   }
   return released.length;
+};
+
+/**
+ * Customer cancel of a buy-at-store order whose rider has stalled (stalledClaimVerdict says release): take the rider
+ * off first, exactly as the job would on its next run, so the customer's cancel is not refused for up to 2 minutes
+ * on a rider who is no longer there. Resolves true when the rider was released. Never throws.
+ */
+const releaseIfStalledForCancel = async (order, io) => {
+  try {
+    if (!order || !order.deliveryPartnerId || order.readyAt) return false;
+    const rider = await getDeliveryPartnerModel().findByPk(order.deliveryPartnerId, { attributes: ['id', 'name', 'isOnline', 'lastSeenAt', 'liveLocation'] });
+    const verdict = stalledClaimVerdict(order, rider);
+    if (verdict.action !== 'release') return false;
+    // The customer is cancelling: no "finding you a new rider" push.
+    return await releaseStalledClaim(order, { io, reason: verdict.reason, minutes: RIDER_PICKUP_TIMEOUT_MIN(), extraWhere: { readyAt: null, riderClaimedAt: order.riderClaimedAt || null }, notifyCustomer: false });
+  } catch (e) {
+    console.warn('[CANCEL_STALLED_RELEASE_WARN]', e.message);
+    return false;
+  }
 };
 
 // Delivery slots: a slot order that became claimable before its rider window (DISPATCH_WINDOW_MIN before the
@@ -1602,7 +1752,12 @@ const cancelOrder = async (req, res) => {
     // after. A buy-at-store shop (no partner login, the rider buys at the counter; these start Accepted): until a
     // delivery partner takes the order. No timed grace window any more.
     const ownerCancel = isOwner && !isAdmin;
-    const rule = customerCancelRule(order);
+    let rule = customerCancelRule(order);
+    // A buy-at-store order (cancellable until a rider takes it) whose rider has stalled past the pickup deadline and
+    // gone quiet: the stalled-claim job would release it on its next run; do it now, then apply the normal rule (PF-01).
+    if (ownerCancel && !rule.canCancel && order.deliveryPartnerId && rule.statuses.includes(order.status)) {
+      if (await releaseIfStalledForCancel(order, req.app.get('io'))) rule = customerCancelRule(order);
+    }
     if (ownerCancel && !rule.canCancel) {
       return res.status(400).json({ message: rule.message, code: 'CANCEL_WINDOW_CLOSED' });
     }
@@ -2460,4 +2615,4 @@ const approveBill = async (req, res) => {
   }
 };
 
-module.exports = { customerCancelRule, pushCustomer, pushStoreCancelled, customerOrderJson, restaurantUpdateOrderStatus, autoCancelStalePendingOrders, escalateUnclaimedOrders, unclaimedClockStart, releaseStalledRiderClaims, releaseDueSlotOrders, cancelAndRefund, createOrder, quoteOrder, getServiceability, getDeliverySlots, getOrderById, getMyOrders, rateOrder, getAllOrders, cancelOrder, updateOrderStatus, getSurgeStatus, restaurantAcceptOrder, verifyUPIPayment, restaurantReadyOrder, getOrderStats, uploadItemPhoto, approvePurchase, uploadBillProof, approveBill };
+module.exports = { customerCancelRule, pushCustomer, pushStoreCancelled, customerOrderJson, restaurantUpdateOrderStatus, autoCancelStalePendingOrders, escalateUnclaimedOrders, unclaimedClockStart, releaseStalledRiderClaims, stalledClaimVerdict, claimPickupDeadlineMs, releaseDueSlotOrders, cancelAndRefund, createOrder, quoteOrder, getServiceability, getDeliverySlots, getOrderById, getMyOrders, rateOrder, getAllOrders, cancelOrder, updateOrderStatus, getSurgeStatus, restaurantAcceptOrder, verifyUPIPayment, restaurantReadyOrder, getOrderStats, uploadItemPhoto, approvePurchase, uploadBillProof, approveBill };

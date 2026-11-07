@@ -8,8 +8,8 @@ import { useEffect, useRef, useState } from 'react';
 import { AppState, Platform, Vibration } from 'react-native';
 import { RING_REPEAT_MS } from '../config';
 import { serverNow } from '../lib/http';
-import { TIMED_OUT_REASON, acceptAnchorMs } from '../lib/model';
-import { playRing, RING_SOUND_MS } from '../lib/push';
+import { TIMED_OUT_REASON, acceptDeadlineMs } from '../lib/model';
+import { playRing, RING_SOUND_MS, setRingingOrders } from '../lib/push';
 import { cancelNativeOrderAlert, nativeOrderAlert } from '../voice/kitchenService';
 import { announce, cancelAnnouncements, forgetAnnouncement, getVoiceSnapshot, voiceEnabled } from '../voice/voice';
 import { useStore } from './StoreProvider';
@@ -17,17 +17,16 @@ import type { Order } from '../types';
 
 const RING_PATTERN = [0, 600, 250, 600, 250, 600];
 /**
- * Stop re-ringing an order this long after its accept clock started (placement, or 60 minutes before its delivery
- * slot: lib/model acceptAnchorMs). The server auto-cancels a Pending order a few minutes after that; if the app
- * never hears about it (offline, missed event) the order would otherwise ring every RING_REPEAT_MS forever. It stays
- * on screen in New. Aged from placement, a 9:00 order for the 12:30 slot stopped ringing at 9:20 and was silent at
- * 11:30 when it had to be accepted.
+ * Keep re-ringing a waiting order until its accept deadline (lib/model acceptDeadlineMs: the server's storeAcceptBy,
+ * else the accept clock + 60 min), when the server auto-cancels it. Accept / reject / cancel take it off the alert
+ * list sooner. The cap only stops an order the app never heard was cancelled (offline, missed event) from ringing
+ * forever; it stays on screen in New. A fixed 20-minute cap used to leave the kitchen in silence for the last
+ * 40 minutes before the 60-minute auto-cancel.
  */
-const RING_MAX_AGE_MS = 20 * 60 * 1000;
 const stillFresh = (o: Order) => {
-  const t = acceptAnchorMs(o);
+  const until = acceptDeadlineMs(o);
   // Server times: compare with the server's clock, not a phone clock that may be minutes off.
-  return !Number.isFinite(t) || serverNow() - t < RING_MAX_AGE_MS;
+  return !Number.isFinite(until) || serverNow() < until;
 };
 const PRE_PICKUP = ['Pending', 'Accepted', 'Preparing', 'ReadyForPickup'];
 const BEFORE_HANDOVER = ['Pending', 'Accepted', 'Preparing', 'ReadyForPickup', 'Picking'];
@@ -89,6 +88,8 @@ export function Announcer() {
         rung.current.delete(id);
       }
     }
+    // What the app rings now (a waiting-order reminder push for these is not shown twice: lib/push).
+    setRingingOrders(alertRef.current.filter(stillFresh).map((o) => o.id));
     // Brand-new orders ring right away (newest first, each once).
     const fresh = alertRef.current.filter((o) => !rung.current.has(o.id));
     for (const o of fresh.slice().reverse()) {
@@ -103,9 +104,11 @@ export function Announcer() {
   useEffect(() => {
     if (!hasAlerts) {
       if (Platform.OS !== 'web') Vibration.cancel();
+      setRingingOrders([]);
       return;
     }
     const t = setInterval(() => {
+      setRingingOrders(alertRef.current.filter(stillFresh).map((o) => o.id)); // an order past its deadline stops
       const oldest = alertRef.current.find(stillFresh);
       if (oldest) {
         lastRingAt.current = Date.now();
@@ -177,6 +180,7 @@ export function Announcer() {
   // Unmount (logout / store switch): stop the vibration, any queued ring voice and the heads-up notifications.
   useEffect(() => () => {
     if (Platform.OS !== 'web') Vibration.cancel();
+    setRingingOrders([]);
     for (const [id, shortId] of rung.current) {
       cancelAnnouncements(`new:${id}`);
       cancelNativeOrderAlert(shortId);

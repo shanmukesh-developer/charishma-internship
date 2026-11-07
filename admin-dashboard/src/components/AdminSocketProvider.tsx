@@ -2,7 +2,7 @@
 import React, { useEffect, useState, createContext, useContext, useRef, useCallback, useMemo } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { SOCKET_URL } from '@/lib/config';
-import { getToken, subscribe } from '@/lib/session';
+import { getToken, subscribe, verifySession } from '@/lib/session';
 import { invalidateRequestCache } from '@/lib/requestCache';
 
 // High-frequency events that do not change anything the REST reads return.
@@ -27,6 +27,19 @@ const SocketContext = createContext<SocketContextType>({
 interface LiveToast { id: number; text: string }
 
 export const useAdminSocket = () => useContext(SocketContext);
+
+/**
+ * A handshake the server refused because of the session itself (backend server.js socket auth middleware):
+ * "Authentication error: Account not found" (deleted account or password changed), "...: Invalid token"
+ * (expired / malformed JWT), "...: Account suspended". Not "...: Please retry" (account lookup failed on the
+ * server) and not SERVER_STARTING (redeploy): those are temporary.
+ */
+const isAuthRefusal = (err: Error & { data?: { code?: string } }) => {
+  const msg = String(err?.message || '');
+  if (!/^Authentication error/i.test(msg)) return false;
+  if (/retry/i.test(msg) || err?.data?.code === 'SERVER_STARTING') return false;
+  return true;
+};
 
 export default function AdminSocketProvider({ children }: { children: React.ReactNode }) {
   const socketRef = useRef<Socket | null>(null);
@@ -107,8 +120,31 @@ export default function AdminSocketProvider({ children }: { children: React.Reac
     let manualRetries = 0;
     let manualRetryTimer: ReturnType<typeof setTimeout> | null = null;
     socket.on('connect', () => { manualRetries = 0; });
-    socket.on('connect_error', (err: Error & { data?: { retryAfter?: number } }) => {
+    socket.on('connect_error', (err: Error & { data?: { retryAfter?: number; code?: string } }) => {
       console.warn('[ADMIN_SOCKET] Connection error:', err.message);
+      // The server refused this session ("Authentication error: Account not found / Invalid token / Account
+      // suspended"): retrying with the same token can never work, and the dashboard used to show "Reconnecting"
+      // forever. Confirm with GET /api/admin/me (the session's own check): a 401 / 403 there runs the normal
+      // sign-out (session.clearSession, login page with the reason). Only if the REST check still accepts the
+      // session (e.g. a password change on another tab already gave this tab a new token) do we retry below.
+      // "Authentication error: Please retry" is a server-side lookup hiccup, not a refusal: retried as before.
+      if (isAuthRefusal(err) && socketRef.current === socket) {
+        if (manualRetryTimer) { clearTimeout(manualRetryTimer); manualRetryTimer = null; }
+        socket.disconnect();
+        verifySession().then((st) => {
+          if (st.status !== 'authed' || socketRef.current !== socket || !getToken()) return;
+          const wait = Math.min(30000, 2000 * 2 ** manualRetries);
+          manualRetries++;
+          manualRetryTimer = setTimeout(() => {
+            manualRetryTimer = null;
+            if (socketRef.current === socket && getToken() && !socket.connected) {
+              socket.auth = { token: getToken() };
+              socket.connect();
+            }
+          }, wait);
+        }).catch(() => {});
+        return;
+      }
       if (socket.active || manualRetryTimer) return;
       const hinted = Number(err?.data?.retryAfter) * 1000;
       const wait = Number.isFinite(hinted) && hinted > 0 ? hinted : Math.min(30000, 2000 * 2 ** manualRetries);

@@ -199,8 +199,14 @@ test('admin manual refund of a cancelled UPI order: ORDER_REFUND by the admin, e
   const { store } = await H.mkStore();
   const u = await H.mkUser({ wallet: 0 });
   const o = await H.ctx.M('Order').create({ userId: u.id, restaurantId: store.id, items: [], totalPrice: 150, deliveryFee: 0, finalPrice: 150, paymentMethod: 'UPI', paymentStatus: 'Completed', status: 'Cancelled' });
+  H.ctx.emitted.length = 0;
   const rs = await Promise.all([1, 2, 3, 4].map(() => api('POST', `/api/admin/finance/refund/${o.id}`, admin.token, {})));
   assert.equal(rs.filter((x) => x.status === 200).length, 1, rs.map((x) => `${x.status}`).join(','));
+  // PF-32: the customer's own room hears about it once (their app refreshes the Wallet from refundedToWallet).
+  await new Promise((r) => setTimeout(r, 100));
+  const live = H.ctx.emitted.filter((e) => e.ev === 'statusUpdated' && Array.isArray(e.room) && e.room.includes(`user_${u.id}`));
+  assert.equal(live.length, 1);
+  assert.equal(live[0].p.refundedToWallet, 150);
   const ok = rs.find((x) => x.status === 200);
   assert.equal(ok.body.refundAmount, 150);
   assert.equal(Number(ok.body.walletBalance), 150);

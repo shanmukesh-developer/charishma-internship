@@ -807,12 +807,14 @@ export function useStore() {
 }
 
 /** One shared clock tick for elapsed times / countdowns (instead of one interval per card). */
-const NowCtx = createContext<number>(Date.now());
+const NowCtx = createContext<number>(serverNow());
+// Server clock (lib/http serverNow): every "x min ago", "accept now" and prep countdown compares server times, so a
+// phone clock a few minutes off must not make orders look late or new.
 export function NowProvider({ children, everyMs = 15000 }: { children: React.ReactNode; everyMs?: number }) {
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(serverNow());
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), everyMs);
-    const sub = AppState.addEventListener('change', (s) => { if (s === 'active') setNow(Date.now()); });
+    const t = setInterval(() => setNow(serverNow()), everyMs);
+    const sub = AppState.addEventListener('change', (s) => { if (s === 'active') setNow(serverNow()); });
     return () => { clearInterval(t); sub.remove(); };
   }, [everyMs]);
   return <NowCtx.Provider value={now}>{children}</NowCtx.Provider>;

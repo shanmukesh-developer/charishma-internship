@@ -13,4 +13,14 @@ const storeAcceptTimeoutMinutes = (env = process.env) => {
   return Math.min(120, Math.max(3, raw));
 };
 
-module.exports = { storeAcceptTimeoutMinutes };
+// When the store must have accepted a Pending order (ISO, server time): the accept clock start (placement, or for a
+// slot order an hour before its slot: utils/deliverySlots acceptAnchorMs) + storeAcceptTimeoutMinutes. Null once the
+// order is past Pending. Sent to the customer (order JSON) and to the store apps (order list + restaurant_newOrder),
+// which keep ringing until it (PF-04).
+const storeAcceptByIso = (o, env = process.env) => {
+  if (!o || o.status !== 'Pending') return null;
+  const t = require('./deliverySlots').acceptAnchorMs(o) + storeAcceptTimeoutMinutes(env) * 60 * 1000;
+  return Number.isFinite(t) ? new Date(t).toISOString() : null;
+};
+
+module.exports = { storeAcceptTimeoutMinutes, storeAcceptByIso };

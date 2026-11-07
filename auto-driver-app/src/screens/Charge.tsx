@@ -17,7 +17,7 @@ import { useToast } from '../ui/Toast';
 import { useLoad } from '../state/useLoad';
 import { useDriverEvents } from '../state/SocketProvider';
 import { driverApi } from '../api/driverApi';
-import { errorMessage } from '../lib/http';
+import { errorMessage, serverNow } from '../lib/http';
 import { rupees } from '../lib/format';
 import type { BookingDriver, LineEntry, SeatMapResponse, Trip } from '../types';
 import type { ScreenProps } from '../nav';
@@ -59,9 +59,11 @@ const mmss = (ms: number) => {
 
 /** "Arrives within 12:40" for one confirmed app booking (ticks every second; the server releases the seat at 0). */
 function ArrivalCountdown({ arriveBy }: { arriveBy: string }) {
-  const [now, setNow] = useState(Date.now());
+  // Server time: arriveBy is a server time and the server releases the seat by its own clock (a phone clock
+  // minutes off showed time the driver no longer had, or "seat being released" too early).
+  const [now, setNow] = useState(serverNow());
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000);
+    const t = setInterval(() => setNow(serverNow()), 1000);
     return () => clearInterval(t);
   }, []);
   const left = new Date(arriveBy).getTime() - now;

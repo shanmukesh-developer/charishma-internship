@@ -3,10 +3,12 @@
 // Reports: GET /reports?from&to (default: last 30 days → next 365 days, by event start). Per event: registrations,
 // confirmed, checked in, money collected by mode, still due at the venue, refunded. Real counts only.
 import { useState } from 'react';
+import { formatTime, formatYmd } from '@/lib/format';
 import { campusEventsApi, type Reports } from '@/lib/campusEventsApi';
 import { Btn, Empty, ErrorBox, Field, Loading, Msg, Pill, StatCard, Toolbar, catLabel, inputCls, inr, useLoader, when, type Notice } from './shared';
 
-const ymd = (d: Date) => d.toISOString().slice(0, 10);
+// The IST calendar day (toISOString gave the UTC day: before 05:30 IST the range started a day early).
+const ymd = (d: Date) => formatYmd(d);
 
 export default function ReportsTab({ tick }: { tick: number }) {
   const [from, setFrom] = useState(() => ymd(new Date(Date.now() - 30 * 86400000)));
@@ -74,14 +76,16 @@ export default function ReportsTab({ tick }: { tick: number }) {
   );
 }
 
+const query0 = (v: unknown) => String(v ?? '').slice(0, 10);
+
 function downloadCsv(r: Reports) {
   const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const head = ['Event', 'Starts', 'Status', 'Category', 'Format', 'Registrations', 'Confirmed', 'Checked in', 'Venue', 'Wallet', 'Online', 'Due at venue', 'Refunded'];
-  const lines = r.events.map((e) => [e.title, e.startAt, e.status, e.category, e.format, e.total, e.confirmed, e.checkedIn, e.collected.VENUE, e.collected.WALLET, e.collected.ONLINE, e.dueAtVenue, e.refunded].map(esc).join(','));
+  const lines = r.events.map((e) => [e.title, e.startAt ? `${formatYmd(e.startAt)} ${formatTime(e.startAt)} IST` : '', e.status, e.category, e.format, e.total, e.confirmed, e.checkedIn, e.collected.VENUE, e.collected.WALLET, e.collected.ONLINE, e.dueAtVenue, e.refunded].map(esc).join(','));
   const blob = new Blob([[head.map(esc).join(','), ...lines].join('\n')], { type: 'text/csv' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `campus-events-report-${r.from.slice(0, 10)}-${r.to.slice(0, 10)}.csv`;
+  a.download = `campus-events-report-${formatYmd(r.from) || query0(r.from)}-${formatYmd(r.to) || query0(r.to)}.csv`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }

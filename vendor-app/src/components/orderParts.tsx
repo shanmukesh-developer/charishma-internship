@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Linking, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CANCEL_REASONS, NEW_ORDER_LATE_MIN, NEW_ORDER_WARN_MIN, REJECT_REASONS } from '../config';
-import { agoText, clockIST, istDayKey, isTodayIST, minutesSince, rupees, telDigits, waDigits } from '../lib/model';
+import { acceptAnchorMs, agoText, clockIST, istDayKey, isTodayIST, minutesSince, rupees, telDigits, waDigits } from '../lib/model';
 import { useNow, useStore } from '../state/StoreProvider';
 import { color, font, radius, space } from '../theme';
 import { Badge, Button, Chip, Sheet } from '../ui/kit';
@@ -30,7 +30,10 @@ function doneWhen(d: string | null): string {
 
 export function Elapsed({ order, onDark }: { order: Order; onDark?: boolean }) {
   const now = useNow();
-  const mins = minutesSince(order.createdAt, now);
+  // Urgency counts from when the store must act (lib/model acceptAnchorMs: placement, or 60 min before a delivery
+  // slot), not from placement: a 9:00 order for the 12:30 slot is not "3 h late" at 12:00. The label stays "x ago".
+  const anchor = acceptAnchorMs(order);
+  const mins = Number.isFinite(anchor) ? Math.max(0, Math.floor((now - anchor) / 60000)) : minutesSince(order.createdAt, now);
   const isNew = order.stage === 'new';
   const tint = onDark ? color.textInverse
     : isNew && mins >= NEW_ORDER_LATE_MIN ? color.alert

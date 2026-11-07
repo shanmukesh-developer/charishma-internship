@@ -38,6 +38,8 @@ import { initInAppUpdates } from '../utils/inAppUpdate';
 // Google Play in-app updates (Android, installed from Play): immediate flow when this version is below the
 // server minimum, otherwise the "new version is ready" banner. No-op on iOS / web / sideloaded builds.
 initInAppUpdates();
+// CLOSED-TEST ONLY: app usage time heartbeats while signed in, only when the server switch is on (utils/usageTime).
+require('../utils/usageTime').startUsageTime();
 
 // Global interceptor to theme all native Alert.alert calls across the codebase automatically
 const originalAlert = Alert.alert;

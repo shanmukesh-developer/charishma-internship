@@ -186,7 +186,7 @@ export default function AutoBookingScreen() {
             </View>
             <Row label="From" value={t.pickup?.name || t.route?.origin || '—'} />
             <Row label="To" value={t.destination || t.route?.destination || '—'} />
-            <Row label="Departure" value={`${fmtDeparture(t.departureAt)}${fromNow(t.departureAt, Date.now()) && !exception ? ` (${fromNow(t.departureAt)})` : ''}`} strong />
+            <Row label="Departure" value={`${fmtDeparture(t.departureAt)}${fromNow(t.departureAt) && !exception ? ` (${fromNow(t.departureAt)})` : ''}`} strong />
             <Row label="Driver" value={t.driver?.name || 'Driver'} />
             <View style={{ alignItems: 'flex-end', marginTop: -2 }}><VerifiedBadge verified={!!t.driver?.verified} /></View>
             <Row label="Auto" value={`${t.vehicle?.registration || '—'}${[t.vehicle?.colour, t.vehicle?.make, t.vehicle?.model].filter(Boolean).length ? ` · ${[t.vehicle?.colour, t.vehicle?.make, t.vehicle?.model].filter(Boolean).join(' ')}` : ''}`} />

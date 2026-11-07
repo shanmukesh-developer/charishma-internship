@@ -28,7 +28,10 @@ test('transition table: only the listed actor may make each move', () => {
   assert.ok(!E.canTransition('PAYMENT_REVIEW', 'COLLECTED', 'vendor'));
   assert.ok(!E.canTransition('PAYMENT_PENDING', 'COLLECTED', 'vendor'));
   assert.ok(!E.canTransition('ACCEPTED', 'CANCELLED', 'student'));
-  assert.ok(!E.canTransition('PAYMENT_REVIEW', 'CANCELLED', 'student'));
+  // PF-03: a review the stall never answers can be cancelled by the student (after LIMITS.reviewStudentCancelMin,
+  // checked in services/bookings.cancel) and by the system (LIMITS.reviewWindowMin).
+  assert.ok(E.canTransition('PAYMENT_REVIEW', 'CANCELLED', 'student'));
+  assert.ok(E.canTransition('PAYMENT_REVIEW', 'CANCELLED', 'system'));
   assert.ok(E.canTransition('PAYMENT_PENDING', 'CANCELLED', 'system'));
   assert.ok(E.canTransition('REJECTED', 'CANCELLED', 'system'));
   assert.ok(!E.canTransition('ACCEPTED', 'CANCELLED', 'system'));
@@ -131,8 +134,10 @@ test('refused moves: collect before ready, double confirm, student cancel after 
   const collectUnpaid = await T.cb('POST', `${V}/bookings/${id}/collect`, s.store.token, { code: 'ABC2' });
   assert.strictEqual(collectUnpaid.status, 409);
   assert.match(collectUnpaid.body.message, /Confirm the payment/);
+  // The stall had no time to check the payment yet: the student cannot cancel it under its feet.
   const studentCancel = await T.cb('POST', `/api/campus-booking/bookings/${id}/cancel`, u.token, {});
   assert.strictEqual(studentCancel.status, 409);
+  assert.strictEqual(studentCancel.body.code, 'REVIEW_IN_PROGRESS');
   await T.cb('POST', `${V}/bookings/${id}/confirm-payment`, s.store.token, {});
   const twice = await T.cb('POST', `${V}/bookings/${id}/confirm-payment`, s.store.token, {});
   assert.strictEqual(twice.status, 409);
@@ -171,7 +176,7 @@ test('two taps at once: exactly one confirm wins (version check)', async () => {
   assert.strictEqual(row.version, 2);
 });
 
-test('lifecycle job: unpaid after 20 min and rejected after 2 h are cancelled by the system; others untouched', async () => {
+test('lifecycle job: unpaid after 20 min, rejected after 2 h and unchecked review after 30 min are cancelled by the system', async () => {
   const s = await T.mkStall();
   const u = await T.mkUser();
   const u2 = await T.mkUser();
@@ -182,7 +187,7 @@ test('lifecycle job: unpaid after 20 min and rejected after 2 h are cancelled by
   const review = (await T.book(u2, s)).body.booking.id;
   await T.cb('POST', `/api/campus-booking/bookings/${review}/proof`, u2.token, { upiRef: 'EEE111222334', imageUrl: await T.uploadProof(u2) });
   const { runCampusBookingJobs } = T.r('modules/campusBooking/jobs');
-  const early = await runCampusBookingJobs({ now: new Date(Date.now() + 5 * 60000) });
+  const early = await runCampusBookingJobs({ now: new Date(Date.now() + 4 * 60000) });
   assert.ok(early.idle);
   const r = await runCampusBookingJobs({ now: new Date(Date.now() + 3 * 3600 * 1000) });
   assert.ok(r.expiredUnpaid >= 1 && r.expiredRejected >= 1, JSON.stringify(r));
@@ -190,7 +195,10 @@ test('lifecycle job: unpaid after 20 min and rejected after 2 h are cancelled by
   assert.strictEqual((await M.findByPk(unpaid)).status, 'CANCELLED');
   assert.strictEqual((await M.findByPk(unpaid)).cancelledBy, 'system');
   assert.strictEqual((await M.findByPk(rejected)).status, 'CANCELLED');
-  assert.strictEqual((await M.findByPk(review)).status, 'PAYMENT_REVIEW', 'a payment under review is never auto-cancelled');
+  // PF-03: a payment the stall never checked no longer waits forever.
+  assert.strictEqual((await M.findByPk(review)).status, 'CANCELLED');
+  assert.strictEqual((await M.findByPk(review)).cancelCode, 'REVIEW_TIMEOUT');
+  assert.ok(r.expiredReview >= 1, JSON.stringify(r));
 });
 
 test('idempotent create: the same key returns the same booking; open-booking cap per student', async () => {

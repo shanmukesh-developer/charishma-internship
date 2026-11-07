@@ -465,7 +465,9 @@ export function RiderProvider({ children }: { children: React.ReactNode }) {
 
   // Orders taken off this rider WITHOUT a cancellation (released after a pickup timeout, or given to another rider by
   // ZCS support): the vanished-order check below says so instead of "cancelled, do not pick it up".
-  const handedOver = useRef<Map<string, 'released' | 'reassigned'>>(new Map());
+  /** Last refetch triggered by a status event for an order not on our list (throttle). */
+  const unknownStatusAt = useRef<Map<string, number>>(new Map());
+  const handedOver = useRef<Map<string, sock.HandOverKind>>(new Map());
   const noteCancelled = useCallback((o: RiderOrder, reason?: string) => {
     finishedIds.current.add(o.id);
     queue.removeForOrder(o.id);
@@ -504,7 +506,9 @@ export function RiderProvider({ children }: { children: React.ReactNode }) {
             handedOver.current.delete(o.id);
             showToast(how === 'released'
               ? `Order ${o.orderCode} went back to other riders: it was not picked up in time.`
-              : `Order ${o.orderCode} was given to another rider by ZenWe support.`, 'info');
+              : how === 'inactive'
+                ? `Order ${o.orderCode} went back to other riders: ZenWe lost contact with your app before pickup.`
+                : `Order ${o.orderCode} was given to another rider by ZenWe support.`, 'info');
             setDeliveryId((cur) => (cur === o.id ? null : cur));
           } else if (hist?.some((h) => h.id === o.id)) {
             showToast(`Order ${o.orderCode} was marked delivered by ZenWe support.`, 'success');
@@ -746,7 +750,18 @@ export function RiderProvider({ children }: { children: React.ReactNode }) {
         refetchSoon();
       },
       onStatusUpdated: ({ orderId, status }) => {
-        if (!activeRef.current.some((x) => x.id === orderId)) return;
+        if (!activeRef.current.some((x) => x.id === orderId)) {
+          // Not on our list: support just assigned it to us (rider_<id> room), possibly while we were off duty with
+          // nothing being polled. Refetch the active list (debounced by refetchSoon; at most once per order per 5 s,
+          // never for an order we already finished or that is ending).
+          if (finishedIds.current.has(orderId) || status === 'Cancelled' || status === 'Delivered') return;
+          const last = unknownStatusAt.current.get(orderId) || 0;
+          if (Date.now() - last < 5000) return;
+          unknownStatusAt.current.set(orderId, Date.now());
+          if (unknownStatusAt.current.size > 50) unknownStatusAt.current.clear();
+          refetchSoon();
+          return;
+        }
         if (status === 'Cancelled') {
           const o = activeRef.current.find((x) => x.id === orderId);
           if (o && !finishedIds.current.has(orderId)) noteCancelled(o);
@@ -901,7 +916,10 @@ export function RiderProvider({ children }: { children: React.ReactNode }) {
       if (data?.type === 'OFF_DUTY') { refreshProfile(); return; } // the server took us off duty: show it
       reoffer(data);
       if (data?.orderId && (data?.type === 'ORDER_RELEASED' || data?.type === 'ORDER_REASSIGNED')) {
-        handedOver.current.set(String(data.orderId), data.type === 'ORDER_RELEASED' ? 'released' : 'reassigned');
+        handedOver.current.set(
+          String(data.orderId),
+          data.type === 'ORDER_RELEASED' ? (data?.reason === 'RIDER_INACTIVE' ? 'inactive' : 'released') : 'reassigned',
+        );
       }
       if (data?.type === 'NEW_ORDER' || data?.orderId) refetchSoon();
     });

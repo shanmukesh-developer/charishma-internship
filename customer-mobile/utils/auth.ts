@@ -169,6 +169,7 @@ export const removeUser = async (): Promise<void> => {
 import { API_URL } from '../constants/api';
 import { reportUpgradeRequired, versionHeaders } from './forceUpdate';
 import { withWakeRetry, noteServerResponse, noteNetworkFailure } from './serverWake';
+import { noteServerDate } from './serverClock';
 
 // ── Request helpers ───────────────────────────────────────────────────────────
 // Android's OkHttp client has no default timeout, so a dead connection would spin forever.
@@ -248,6 +249,7 @@ const apiFetchRaw = async (
   const fullUrl = url.startsWith('http') ? url : `${API_URL}${url}`;
   // No silent dev -> production retry: a dev build must never write test data to production.
   let res: Response;
+  const sentAt = Date.now();
   try {
     res = await fetchWithTimeout(fullUrl, { ...options, headers });
   } catch (e) {
@@ -255,6 +257,7 @@ const apiFetchRaw = async (
     throw e;
   }
   noteServerResponse();
+  try { noteServerDate(res.headers.get('date'), sentAt, Date.now()); } catch { /* no header: keep the last offset */ }
   // This app version was retired by the owner: show the Update screen (utils/UpdateGate.tsx).
   if (res.status === 426) {
     try { reportUpgradeRequired(await res.clone().json()); } catch { /* not JSON */ }

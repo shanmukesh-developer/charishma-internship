@@ -20,6 +20,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { ACCENTS, SURFACE, shadow as othersShadow } from '../others/othersTheme';
 import { connectSocket } from '../../utils/socket';
 import { readCache, writeCache } from '../../utils/swrCache';
+import { serverNow } from '../../utils/serverClock';
 import { autoRideApi, availabilityChip, type PaymentMethod, type PublicSettings, type TripStatusBlock } from './autoRideApi';
 
 export const AUTO_BLUE = ACCENTS.auto.solid;
@@ -339,14 +340,14 @@ export function AutoTile({ size = 56 }: { size?: number }) {
 
 /** Re-renders every `ms` (countdowns). */
 export function useNow(ms = 1000, enabled = true) {
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState(() => serverNow());
   // Paused while the app is in the background (no 1 s re-renders nobody sees); jumps to the current
   // time as soon as the app is back.
   const appActive = useAppActive();
   useEffect(() => {
     if (!enabled || !appActive) return;
-    setNow(Date.now());
-    const t = setInterval(() => setNow(Date.now()), ms);
+    setNow(serverNow());
+    const t = setInterval(() => setNow(serverNow()), ms);
     return () => clearInterval(t);
   }, [ms, enabled, appActive]);
   return now;

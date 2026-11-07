@@ -143,6 +143,10 @@ const setState = (next: UpdateState) => {
   if (changed) listeners.forEach((fn) => { try { fn(state); } catch { /* ignore */ } });
 };
 
+// CLOSED-TEST ONLY: GET /api/config/app-version answers usageTracking (customer app); null until the first answer.
+let usageTrackingFlag: boolean | null = null;
+/** The server's usage-time switch as of the last version check (null = not known yet: send nothing). */
+export const getUsageTrackingFlag = (): boolean | null => usageTrackingFlag;
 export const getClientInfo = (): ClientInfo | null => client;
 export const getUpdateState = (): UpdateState => state;
 export function subscribeUpdateState(fn: (s: UpdateState) => void): () => void {
@@ -276,6 +280,8 @@ export function checkForUpdate(opts: { fetchImpl?: FetchFn } = {}): Promise<Upda
       const res = await f(url, { method: 'GET', headers: { Accept: 'application/json', ...versionHeadersFor(c) }, signal: ctrl ? ctrl.signal : undefined });
       if (!res || !res.ok) return state;
       const body = await res.json();
+      // CLOSED-TEST ONLY (utils/usageTime.ts): the server's usage-time switch rides on this answer.
+      if (body && typeof body.usageTracking === 'boolean') usageTrackingFlag = body.usageTracking;
       const policy = policyFromBody(body, c.app);
       if (!policy) return state;
       setState({ status: evaluatePolicy(policy, c), policy, checkedAt: Date.now() });
@@ -328,4 +334,5 @@ export function resetForceUpdateForTests(): void {
   listeners.clear();
   checking = null;
   baseFetch = null;
+  usageTrackingFlag = null;
 }

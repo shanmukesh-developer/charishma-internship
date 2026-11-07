@@ -1,5 +1,7 @@
-// GET /api/pg-owner/home kept fresh while the app is open (poll + push nudges + resume): the dashboard tiles
-// and the badges on the tab bar / menu rows (new booking requests, open complaints, rent due) all read it.
+// GET /api/pg-owner/home kept fresh while the app is open (poll + push nudges + live socket + resume): the dashboard
+// tiles and the badges on the tab bar / menu rows (new booking requests, open complaints, rent due) all read it.
+// It also carries the "something changed" counters the lists watch (PF-09): a push or a live `pg:changed` event
+// bumps them, so an open Requests / Complaints screen refetches at once instead of on its 30 s timer.
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { ownerApi } from '../api/ownerApi';
@@ -12,6 +14,10 @@ interface HomeCtx {
   error: string | null;
   refreshing: boolean;
   refresh: () => Promise<void>;
+  /** Bumped when bookings / complaints changed on the server (push or live event). */
+  changes: { bookings: number; complaints: number };
+  /** Something changed: refresh the dashboard quietly and bump the matching counter(s). */
+  nudge: (kind: 'bookings' | 'complaints' | 'all') => void;
 }
 const Ctx = createContext<HomeCtx | null>(null);
 
@@ -20,6 +26,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const inFlight = useRef(false);
+  const [changes, setChanges] = useState({ bookings: 0, complaints: 0 });
 
   const load = useCallback(async (loud: boolean) => {
     if (inFlight.current) return;
@@ -44,7 +51,14 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   }, [load]);
 
   const refresh = useCallback(() => load(true), [load]);
-  const value = useMemo(() => ({ home, error, refreshing, refresh }), [home, error, refreshing, refresh]);
+  const nudge = useCallback((kind: 'bookings' | 'complaints' | 'all') => {
+    load(false);
+    setChanges((c) => ({
+      bookings: kind === 'complaints' ? c.bookings : c.bookings + 1,
+      complaints: kind === 'bookings' ? c.complaints : c.complaints + 1,
+    }));
+  }, [load]);
+  const value = useMemo(() => ({ home, error, refreshing, refresh, changes, nudge }), [home, error, refreshing, refresh, changes, nudge]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

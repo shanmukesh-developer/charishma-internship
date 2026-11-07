@@ -66,6 +66,7 @@ const changePassword = async (req, res) => {
   const pw = checkPassword(body.newPassword, 'newPassword');
   if (await bcrypt.compare(pw, o.password)) throw fail(400, 'SAME_PASSWORD', 'Choose a new password, not the one you have now.', { field: 'newPassword' });
   await o.update({ password: await bcrypt.hash(pw, 10), tokenVersion: (Number(o.tokenVersion) || 0) + 1, mustChangePassword: false, passwordChangedAt: new Date() });
+  require('../../../utils/realtime').disconnectRevokedSockets(o.id, o.tokenVersion); // other phones' live sockets too
   await auditOwner(req, o.id, 'PG_OWNER_PASSWORD_CHANGED', { firstChange: !!body.firstChange });
   res.json({ token: signOwnerToken(o), owner: S.ownerSelf(o, await listingBriefs(o.id)), message: 'Password changed. Other phones were signed out.' });
 };

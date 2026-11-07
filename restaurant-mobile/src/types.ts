@@ -74,6 +74,11 @@ export interface Order {
   slotLabel: string | null;
   /** Slot start (ISO). Riders see the order from 45 min before it. */
   slotStart: string | null;
+  /**
+   * When a Pending order must be accepted before the server auto-cancels it (ISO, server clock: backend
+   * storeAcceptBy = accept anchor + STORE_ACCEPT_TIMEOUT_MIN). Null when not Pending or from an older server.
+   */
+  storeAcceptBy?: string | null;
   riderName: string | null;
   riderPhone: string | null;
   /** Card built from a socket event before the full order was fetched. */

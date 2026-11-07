@@ -11,6 +11,7 @@ const { sendWhatsAppMessage } = require('../utils/whatsappUtil');
 
 const { normalizePhone } = require('../utils/phoneUtils');
 const realtime = require('../utils/realtime');
+const { emitOrderStatus } = require('../utils/orderStatusEmit');
 const riderCash = require('../utils/riderCash');
 const { Transaction } = require('sequelize');
 
@@ -364,7 +365,8 @@ const claimForRider = async (riderId, orderId, opts = {}) => {
   if (cashBlocked) return { activeCount, updatedRows: 0, cashBlocked };
   // Atomic Claim: Only orders already accepted by restaurant/system can be claimed
   const [updatedRows] = await Order.update(
-    { deliveryPartnerId: riderId },
+    // riderClaimedAt: the stalled-claim job (orderController.releaseStalledRiderClaims) times the claim from here.
+    { deliveryPartnerId: riderId, riderClaimedAt: new Date() },
     { where: { id: orderId, deliveryPartnerId: null, status: { [Op.in]: CLAIMABLE_STATUSES }, [Op.and]: [...NOT_STALL_ORDER[Op.and], require('../utils/deliverySlots').dispatchDueWhere()] }, ...tx }
   );
   return { activeCount, updatedRows };
@@ -440,24 +442,34 @@ const acceptOrderLocked = async (req, res) => {
           riderVisibleFrom: opens.toISOString(),
         });
       }
+      // Say which one it was (PF-35): the losing rider of a race used to read "claimed by another rider OR not
+      // yet accepted by the merchant". Same 400 as before, plus a code.
+      if (current && current.deliveryPartnerId) {
+        return res.status(400).json({ code: 'ALREADY_CLAIMED', message: 'Another rider has already taken this order.' });
+      }
+      if (current && ['Cancelled', 'Delivered'].includes(current.status)) {
+        return res.status(400).json({ code: 'ORDER_CLOSED', message: current.status === 'Cancelled' ? 'This order was cancelled.' : 'This order was already delivered.' });
+      }
+      if (current && current.status === 'Pending') {
+        return res.status(400).json({ code: 'NOT_ACCEPTED', message: 'The store has not accepted this order yet.' });
+      }
       return res.status(400).json({ message: 'Order was already claimed by another rider or is not yet accepted by the merchant.' });
     }
 
     // The count above and the claim are two statements: parallel claims by the same rider (several
     // taps on different cards) could each pass the check. Re-count now that this claim is in and
     // undo it if the rider went over the limit (only the claim fields are reverted, conditionally).
-    const heldNow = await Order.count({
-      where: { deliveryPartnerId: req.user.id, status: { [Op.notIn]: ['Delivered', 'Cancelled'] } },
-    });
-    if (heldNow > MAX_ACTIVE_ORDERS) {
-      await Order.update(
-        { deliveryPartnerId: null },
+    // Same count as the first check (utils/riderLoad: orders, shopping lists and service pickups together).
+    const loadNow = await riderLoad.activeJobs(req.user.id);
+    if (loadNow.total > MAX_ACTIVE_ORDERS) {
+      const [undone] = await Order.update(
+        { deliveryPartnerId: null, riderClaimedAt: null },
         { where: { id: req.params.orderId, deliveryPartnerId: req.user.id, status: { [Op.in]: ['Accepted', 'Preparing', 'ReadyForPickup'] } } }
       );
-      return res.status(409).json({
-        code: 'MAX_ACTIVE',
-        message: `You already have ${MAX_ACTIVE_ORDERS} active orders. Deliver one before taking another.`,
-      });
+      // Back in the pool: the riders who dropped it on this claim's delivery_request_gone see it again now (PF-22).
+      if (undone) realtime.deliveryRequest(req.params.orderId);
+      // The message counts what they hold without this (undone) claim.
+      return res.status(409).json(riderLoad.fullBody({ ...loadNow, orders: Math.max(0, loadNow.orders - 1), total: Math.max(0, loadNow.total - 1) }));
     }
 
     // Since we successfully updated, we fetch the updated order object
@@ -477,10 +489,8 @@ const acceptOrderLocked = async (req, res) => {
     const io = req.app.get('io');
     if (io) {
       // Claiming does not change the order status: report the real one (it may already be Preparing/Ready).
-      const claimPayload = { id: updatedOrder.id, status: updatedOrder.status, riderAssigned: true };
-      io.to(updatedOrder.id.toString()).emit('statusUpdated', claimPayload);
-      io.to('admin-room').emit('statusUpdated', claimPayload);
-      if (updatedOrder.restaurantId) io.to(`restaurant_${updatedOrder.restaurantId}`).emit('statusUpdated', claimPayload);
+      // Order room + the customer's own room + admins + store (utils/orderStatusEmit).
+      emitOrderStatus(io, updatedOrder, { id: updatedOrder.id, status: updatedOrder.status, riderAssigned: true });
       io.to('admin-room').emit('admin_order_accepted', { orderId: updatedOrder.id, riderName: partner?.name || 'Rider' });
     }
 
@@ -791,9 +801,7 @@ const updateOrderStatus = async (req, res) => {
         status: status,
         newBadges: status === 'Delivered' ? (order.newBadges || []) : [] 
       };
-      io.to(order.id.toString()).emit('statusUpdated', payload);
-      io.to('admin-room').emit('statusUpdated', payload);
-      if (order.restaurantId) io.to(`restaurant_${order.restaurantId}`).emit('statusUpdated', payload);
+      emitOrderStatus(io, order, payload);
       if (status === 'Delivered') {
         io.to('admin-room').emit('admin_delivery_complete', { orderId: order.id, ...orderNumbers.fields(order) });
       }
@@ -855,7 +863,8 @@ const cancelOrderByRider = async (req, res) => {
     // A kitchen that already marked the food ready (readyAt) stays ReadyForPickup.
     const nextStatus = order.status === 'Picking' ? (order.readyAt ? 'ReadyForPickup' : 'Preparing') : order.status;
     const [released] = await Order.update(
-      { deliveryPartnerId: null, status: nextStatus },
+      // riderReleasedAt: the "no rider" clock restarts, so the order gets a full window to find a new rider.
+      { deliveryPartnerId: null, status: nextStatus, riderReleasedAt: new Date() },
       { where: { id: order.id, deliveryPartnerId: req.user.id, status: order.status } }
     );
     if (released === 0) return res.status(409).json({ message: 'This order was just cancelled or updated. Please refresh.' });
@@ -868,12 +877,8 @@ const cancelOrderByRider = async (req, res) => {
 
     const io = req.app.get('io');
     if (io) {
-      const payload = { id: order.id, ...orderNumbers.fields(order), status: order.status };
-      // Notify customer tracking page
-      io.to(order.id.toString()).emit('statusUpdated', payload);
-      // Notify admin
-      io.to('admin-room').emit('statusUpdated', payload);
-      if (order.restaurantId) io.to(`restaurant_${order.restaurantId}`).emit('statusUpdated', payload);
+      // Customer (order room + own room), admins and the store (utils/orderStatusEmit).
+      emitOrderStatus(io, order, { id: order.id, ...orderNumbers.fields(order), status: order.status, riderAssigned: false });
       io.to('admin-room').emit('order_unassigned', { orderId: order.id, ...orderNumbers.fields(order), reason: 'Rider emergency cancel' });
       // Re-list for dispatch (riders poll the available-orders list; admins see it live)
       const relisted = { ...order.toJSON(), id: order.id, _id: order.id };
@@ -884,7 +889,7 @@ const cancelOrderByRider = async (req, res) => {
     // Riders with the app in the background only hear about it by push (never the rider who released it).
     try {
       const restaurant = order.restaurantId
-        ? await getRestaurantModel().findByPk(order.restaurantId, { attributes: ['id', 'name', 'location'] })
+        ? await getRestaurantModel().findByPk(order.restaurantId, { attributes: ['id', 'name', 'location', 'lat', 'lon'] })
         : null;
       await pushNearestRiders({
         restaurant,
@@ -940,11 +945,42 @@ const saveRiderLocation = async (req, res) => {
     if (now - (lastHttpGpsSave.get(id) || 0) < 10000) return res.json({ saved: false });
     lastHttpGpsSave.set(id, now);
     if (lastHttpGpsSave.size > 5000) lastHttpGpsSave.clear();
+    const heading = Number(body.heading) || null;
+    const speed = Number(body.speed) || null;
     await getDeliveryPartnerModel().update(
-      { liveLocation: { lat, lng, heading: Number(body.heading) || null, speed: Number(body.speed) || null, ts: new Date(now).toISOString() } },
+      { liveLocation: { lat, lng, heading, speed, ts: new Date(now).toISOString() } },
       { where: { id } }
     );
+    require('../utils/riderSeen').noteRiderSeen(id, now);
     res.json({ saved: true });
+    // PF-05: the same relay as the socket path (server.js rider_location_update), at the same 10 s rate (the throttle
+    // above): each order this rider carries gets `riderLocation` in its room (the customer's tracking map), and the
+    // admin map gets `admin_rider_location`. The rider app uses this path while its socket is down, i.e. while the rider
+    // navigates in Google Maps with ZenWe in the background: the customer's rider dot used to vanish on the way.
+    const io = req.app.get('io');
+    if (io) {
+      try {
+        const active = await getOrderModel().findAll({
+          where: { deliveryPartnerId: id, status: { [Op.notIn]: ['Delivered', 'Cancelled'] } },
+          attributes: ['id'],
+          limit: 10,
+        });
+        for (const o of active) {
+          io.to(String(o.id)).emit('riderLocation', { orderId: String(o.id), lat, lng, heading, speed, ts: now });
+        }
+        const duty = await getDeliveryPartnerModel().findByPk(id, { attributes: ['id', 'isOnline'] });
+        io.to('admin-room').emit('admin_rider_location', {
+          riderId: id,
+          riderName: String((req.user && req.user.name) || '').slice(0, 60) || undefined,
+          activeOrderCount: active.length,
+          isOnline: !!(duty && duty.isOnline),
+          lat, lng, heading, ts: now,
+          timestamp: now,
+        });
+      } catch (relayErr) {
+        console.warn('[RIDER_HTTP_LOCATION_RELAY_WARN]', relayErr.message);
+      }
+    }
   } catch (error) {
     serverError(res, '[RIDER_HTTP_LOCATION_ERROR]', error);
   }
@@ -1542,9 +1578,7 @@ const notifyArrivalAtGate = async (req, res) => {
         ...orderNumbers.fields(order),
         status: 'ArrivedAtGate'
       };
-      io.to(order.id.toString()).emit('statusUpdated', gatePayload);
-      io.to('admin-room').emit('statusUpdated', gatePayload);
-      if (order.restaurantId) io.to(`restaurant_${order.restaurantId}`).emit('statusUpdated', gatePayload);
+      emitOrderStatus(io, order, gatePayload);
     }
 
     // Answer the rider first (B28); the push and WhatsApp messages can take seconds.
@@ -1678,6 +1712,8 @@ const triggerSos = async (req, res) => {
         ? orderNumbers.fields(await getOrderModel().findByPk(partner.currentOrderId, { attributes: ['id', 'orderNumber'] }).catch(() => null)).orderCode
         : null,
       note: note || undefined,
+      // PF-15: a repeat tap within 30 s only refreshes the alert on the dashboard (no siren replay, same place).
+      repeat: !!repeat,
     };
     const io = req.app.get('io');
     if (io) io.to('admin-room').emit('sos_received', payload);

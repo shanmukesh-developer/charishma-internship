@@ -120,6 +120,17 @@ router.post('/fcm-token', protect, saveFcmToken);
 router.delete('/fcm-token', protect, removeFcmToken);
 router.post('/fcm-token/remove', protect, removeFcmToken);
 router.get('/profile', protect, getUserProfile);
+// CLOSED-TEST ONLY (utils/usageTime): foreground seconds from the customer app, about one beat a minute.
+// 10 per minute per account is plenty (the server credits at most real time anyway).
+const usageBeatLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  keyGenerator: (req) => `user:${req.user && req.user.id}`,
+  skip: (req) => require('../utils/loadtestBypass').skipRateLimit(req),
+  message: { code: 'RATE_LIMITED', message: 'Too many heartbeats.' },
+  ...require('../utils/sharedRateLimit').expressStore('user.usageBeatLimiter'),
+});
+router.post('/usage-heartbeat', protect, usageBeatLimiter, require('../utils/usageTime').heartbeatHandler);
 // C4 legal: has this account accepted the current Terms? / record acceptance (never blocks the account).
 router.get('/legal/status', protect, require('../controllers/legalController').getMyLegalStatus);
 router.post('/legal/accept', protect, require('../controllers/legalController').acceptTerms);

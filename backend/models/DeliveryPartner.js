@@ -26,6 +26,10 @@ const initDeliveryPartnerModel = (sequelize) => {
       set(val) { this.setDataValue('liveLocation', JSON.stringify(val)); }
     },
     isOnline: { type: DataTypes.BOOLEAN, defaultValue: false },
+    // Last sign of life from the rider's app (any signed-in API call, socket connect or GPS ping; throttled,
+    // utils/riderSeen). The stalled-claim job (PF-01) uses it with liveLocation.ts to tell a rider who vanished
+    // from one who is standing still (the GPS task sends nothing while the phone does not move).
+    lastSeenAt: { type: DataTypes.DATE, allowNull: true },
     isAvailable: { type: DataTypes.BOOLEAN, defaultValue: true },
     walletBalance: { type: DataTypes.FLOAT, defaultValue: 0 },
     completedDeliveries: { type: DataTypes.INTEGER, defaultValue: 0 },

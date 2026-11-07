@@ -261,6 +261,13 @@ ${officerHtml(f)}
 };
 
 // ─── Privacy Policy ───────────────────────────────────────────────────────────
+// DRAFT FOR THE OWNER - NOT PUBLISHED (closed-test usage time, utils/usageTime.js). Owner: review, then paste this row
+// into the "1. Data we collect" table below (after "Device and app data") while usage tracking is ON, and remove it
+// again when tracking is switched off at production:
+//   <tr><td>App usage time (testing period)</td><td>While the app is in testing, we record how long you use the
+//   ZenWe app each day (minutes in the foreground and the number of sessions), linked to your account. We use it
+//   only for analytics: to understand whether testers are using the app and to improve it. It is not shared with
+//   anyone, not used for advertising, and it is deleted when the testing period ends.</td></tr>
 const PRIVACY = (f) => {
   const s = f.settings;
   const biz = esc(s.businessName);

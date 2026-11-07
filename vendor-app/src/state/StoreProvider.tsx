@@ -5,7 +5,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { AppState } from 'react-native';
 import { FALLBACK_POLL_MS, SAFETY_POLL_MS, STORAGE } from '../config';
 import * as api from '../lib/api';
-import { ApiError, NetworkError, errorMessage } from '../lib/http';
+import { ApiError, NetworkError, errorMessage, serverNow } from '../lib/http';
 import { cancelledByFromCode, isEggTag, isTodayIST, normalizeOrder, rupees, stageOf, TIMEOUT_REASON_TEXT, todayNumbers } from '../lib/model';
 import { onOrderPush, onPushTokenChange, registerStorePush, type PushState } from '../lib/push';
 import { safeGet, safeSet } from '../lib/storage';
@@ -384,12 +384,19 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (e.type === 'product' && (e.storeId === rid || (e.bulk && !e.storeId))) debounce('menu', 600, refreshMenu);
       if (e.type === 'store' && (e.id === rid || e.id === null)) debounce('store', 600, refreshStore);
     };
+    // An order still open hours after it was placed (backend utils/stallStuckJob, { orderId, restaurantId, status,
+    // hours }): refetch so the card shows its current state; the 'Order still open' push tells the vendor why.
+    const onStuck = (p: any) => {
+      if (p?.restaurantId && p.restaurantId !== rid) return;
+      debounce('orders', 300, () => { refreshOrdersRef.current({ full: true }); });
+    };
     socket.on('restaurant_newOrder', onNewOrder);
     socket.on('statusUpdated', onStatus);
     socket.on('orderCancelled', onCancelled);
     socket.on('inventory_updated', onInventory);
     socket.on('store_status_changed', onStoreStatus);
     socket.on('data:changed', onDataChanged);
+    socket.on('stallOrderStuck', onStuck);
     return () => {
       socket.off('restaurant_newOrder', onNewOrder);
       socket.off('statusUpdated', onStatus);
@@ -397,6 +404,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       socket.off('inventory_updated', onInventory);
       socket.off('store_status_changed', onStoreStatus);
       socket.off('data:changed', onDataChanged);
+      socket.off('stallOrderStuck', onStuck);
     };
   }, [socket, rid, scheduleOrders, debounce, refreshStore, refreshMenu]);
 
@@ -756,12 +764,14 @@ export function useStore() {
 }
 
 /** One shared clock tick for elapsed times (instead of one interval per card). */
-const NowCtx = createContext<number>(Date.now());
+const NowCtx = createContext<number>(serverNow());
+// Server clock (lib/http serverNow): every "x min ago", "accept now" and prep countdown compares server times, so a
+// phone clock a few minutes off must not make orders look late or new.
 export function NowProvider({ children, everyMs = 15000 }: { children: React.ReactNode; everyMs?: number }) {
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(serverNow());
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), everyMs);
-    const sub = AppState.addEventListener('change', (s) => { if (s === 'active') setNow(Date.now()); });
+    const t = setInterval(() => setNow(serverNow()), everyMs);
+    const sub = AppState.addEventListener('change', (s) => { if (s === 'active') setNow(serverNow()); });
     return () => { clearInterval(t); sub.remove(); };
   }, [everyMs]);
   return <NowCtx.Provider value={now}>{children}</NowCtx.Provider>;

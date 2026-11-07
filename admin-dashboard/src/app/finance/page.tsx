@@ -8,7 +8,7 @@ import {
   Badge, Button, DataTable, DescriptionList, Drawer, Notice as NoticeBox, PageHeader, SearchInput, StatTile, Tabs, Toolbar,
   useConfirm, type Column, IconDownload, IconRefresh,
 } from '@/components/ui';
-import { formatDate, formatINR, humanize, orderCode } from '@/lib/format';
+import { formatDate, formatINR, formatYmd, humanize, orderCode } from '@/lib/format';
 
 // ─── Types (GET /api/admin/finance, /finance/payouts, /finance/disputes) ───
 interface Transaction {
@@ -168,14 +168,14 @@ export default function FinanceConsole() {
     const headers = ['Order', 'Store', 'Order value (INR)', 'Commission (INR)', 'Delivery fee (INR)', 'Date'];
     const rows = report.transactions.map(tx => [
       txCode(tx), tx.restaurantName, tx.totalAmount, tx.commissionEarned, tx.deliveryFee,
-      // toISOString() throws on an invalid date, which would abort the whole export.
-      (() => { const d = new Date(tx.timestamp); return Number.isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10); })(),
+      // The IST day (toISOString gave the UTC day: orders delivered 00:00-05:29 IST landed on the day before).
+      formatYmd(tx.timestamp),
     ]);
     const csv = [headers, ...rows].map(r => r.map(csvCell).join(',')).join('\n');
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
     const link = document.createElement('a');
     link.href = url;
-    link.download = `zenwe_ledger_page${currentPage}_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `zenwe_ledger_page${currentPage}_${formatYmd()}.csv`;
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -218,7 +218,7 @@ export default function FinanceConsole() {
   const refundableCount = disputes.filter(d => refundState(d).refundable).length;
 
   const ledgerColumns: Column<Transaction>[] = [
-    { key: 'order', header: 'Order', width: '110px', cell: tx => <a href={`/orders?order=${encodeURIComponent(tx.orderId)}`} className="font-mono text-xs text-fg-muted hover:text-fg hover:underline">{txCode(tx)}</a> },
+    { key: 'order', header: 'Order', width: '110px', cell: tx => <a href={`/orders?order=${encodeURIComponent(tx._id)}`} className="font-mono text-xs text-fg-muted hover:text-fg hover:underline">{txCode(tx)}</a> },
     { key: 'store', header: 'Store', sortValue: tx => tx.restaurantName, cell: tx => <span className="font-medium text-fg">{tx.restaurantName}</span> },
     { key: 'value', header: 'Order value', align: 'right', sortValue: tx => tx.totalAmount, cell: tx => <span className="tabular-nums">{rupees(tx.totalAmount)}</span> },
     { key: 'commission', header: 'Commission', align: 'right', sortValue: tx => tx.commissionEarned, cell: tx => <span className="tabular-nums text-success-text">{rupees(tx.commissionEarned)}</span> },

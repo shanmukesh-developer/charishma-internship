@@ -22,6 +22,8 @@ export const TRUSTED_API_HOSTS = trustedHostsFrom(BUILT_IN_API_URL, process.env.
 // advertised on an earlier launch (src/lib/endpointOverride.ts). Never changes mid-session.
 const ACTIVE_ENDPOINT = resolveEndpoint({ builtIn: BUILT_IN_API_URL, devOverride: process.env.EXPO_PUBLIC_API_URL, trusted: TRUSTED_API_HOSTS });
 export const API_URL = ACTIVE_ENDPOINT.api;
+/** Socket.IO address (live `pg:changed` nudges, src/lib/live.ts): same host as the API unless the backend advertised another. */
+export const SOCKET_URL = ACTIVE_ENDPOINT.socket;
 
 // Force update (src/lib/forceUpdate.ts, identical in every ZCS app): version headers on every API call +
 // 426 UPGRADE_REQUIRED handling. The backend knows this app as 'pgowner' (utils/appVersionPolicy.js); the

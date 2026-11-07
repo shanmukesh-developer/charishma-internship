@@ -38,6 +38,12 @@ test('booking pushes go to ZenWe Campus Stall devices only; delivery pushes skip
   assert.match(toStall[0].title, /payment to review/i);
   assert.strictEqual(toStall[0].data.bookingId, id);
 
+  // PF-26: no push to the student about the proof they just sent themselves.
+  assert.strictEqual(sent.filter((x) => x.tokens.includes(tok('student'))).length, 0);
+  // The next step (the stall confirms) reaches the student, with bookingId and never an orderId.
+  sent.length = 0;
+  await T.cb('POST', `/api/campus-booking/vendor/bookings/${id}/confirm-payment`, s.store.token, {});
+  await settle();
   const toStudent = sent.filter((x) => x.tokens.includes(tok('student')));
   assert.strictEqual(toStudent.length, 1);
   assert.strictEqual(toStudent[0].data.type, 'CAMPUS_BOOKING');

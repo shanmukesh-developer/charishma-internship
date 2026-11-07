@@ -5,6 +5,7 @@ import { useAdminSocket } from '@/components/AdminSocketProvider';
 import dynamic from 'next/dynamic';
 import { API_URL } from '@/lib/config';
 import { useVisibleInterval } from '@/lib/useVisibleInterval';
+import { useLiveSync } from '@/lib/useLiveSync';
 import {
   Badge, Button, DataTable, DescriptionList, Drawer, Field, Input, Modal, Notice as NoticeBox, PageHeader, SearchInput, SegmentedControl,
   Select, StatusDot, Tabs, Toolbar, useConfirm, type Column, IconPlus, IconRefresh,
@@ -146,14 +147,18 @@ export default function FleetManagement() {
     fetchPayouts();
   }, isConnected ? 60000 : 20000, isAuthed);
 
+  // Realtime sync: `admin:changed` { type: 'rider' } (approvals, profile, duty changes) and every socket reconnect
+  // (events sent while the socket was down are not replayed): one quiet refetch. Without the reconnect refetch the
+  // list stayed stale for up to the 60 s poll after a reconnect.
+  useLiveSync(['rider'], () => {
+    if (!isAuthed) return;
+    fetchRiders(currentPage, false);
+    fetchPayouts();
+  }, { enabled: isAuthed });
+
   // Real-time fleet socket events
   useEffect(() => {
     if (!socket) return;
-
-    const handleRiderOnline = (data: { riderId: string }) => {
-      const riderId = String(data.riderId);
-      setRiders(prev => prev.map(r => String(r._id) === riderId ? { ...r, isOnline: true } : r));
-    };
 
     const handleRiderOffline = (data: { riderId: string }) => {
       const riderId = String(data.riderId);
@@ -181,14 +186,12 @@ export default function FleetManagement() {
       }, 1500);
     };
 
-    socket.on('admin_rider_online', handleRiderOnline);
     socket.on('admin_rider_offline', handleRiderOffline);
     socket.on('admin_rider_status', handleRiderStatus);
     socket.on('sos_received', handleSos);
     socket.on('admin_delivery_complete', handleDeliveryComplete);
 
     return () => {
-      socket.off('admin_rider_online', handleRiderOnline);
       socket.off('admin_rider_offline', handleRiderOffline);
       socket.off('admin_rider_status', handleRiderStatus);
       socket.off('sos_received', handleSos);

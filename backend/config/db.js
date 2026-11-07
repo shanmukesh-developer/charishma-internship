@@ -49,6 +49,7 @@ const { initCatalogueImportLedgerModel } = require('../models/CatalogueImportLed
 const { initNotificationModel } = require('../models/Notification');
 const { initIdempotencyKeyModel } = require('../models/IdempotencyKey');
 const { initSmsDailyCountModel } = require('../models/SmsDailyCount');
+const { initUserDailyActivityModel } = require('../models/UserDailyActivity');
 const { initWalletTransactionModel } = require('../models/WalletTransaction');
 const { initRiderCashEntryModel } = require('../models/RiderCashEntry');
 const { initPayoutModel } = require('../models/Payout');
@@ -114,6 +115,8 @@ const initializeAllModels = (instance) => {
   initNotificationModel(instance);
   initIdempotencyKeyModel(instance);
   initSmsDailyCountModel(instance);
+  // Play closed test: one row per customer per IST day used (daily target + streak, utils/testerDailyTarget).
+  initUserDailyActivityModel(instance);
   // C5 wallet ledger (WalletTransactions).
   initWalletTransactionModel(instance);
   // C6 rider cash ledger (RiderCashEntries) + payout statements (Payouts).
@@ -709,6 +712,9 @@ const connectDB = async () => {
       // Delivery slots: index on Orders / MegaBaskets slotStart for the rider dispatch job (additive,
       // idempotent; the columns come from the models via addMissingColumns). Never throws.
       await require('../utils/deliverySlots').runDeliverySlotMigrations(sequelize);
+      // Daily target + streak (Admin > Active testers): UserDailyActivities table (Postgres + SQLite) and today's row
+      // for every account already seen today (additive, idempotent: ON CONFLICT DO NOTHING). Never throws.
+      await require('../utils/testerDailyTarget').runDailyActivityMigrations(sequelize);
     } else {
       // Production: no sync({ alter: true }) on every boot. Sequelize v6 alter re-adds UNIQUE
       // constraints each run (duplicate *_key indexes pile up), slows startup (API is 503 until
@@ -801,6 +807,9 @@ const connectDB = async () => {
       // Delivery slots: index on Orders / MegaBaskets slotStart for the rider dispatch job (additive,
       // idempotent; the columns come from the models via addMissingColumns). Never throws.
       await require('../utils/deliverySlots').runDeliverySlotMigrations(sequelize);
+      // Daily target + streak (Admin > Active testers): UserDailyActivities table (Postgres + SQLite) and today's row
+      // for every account already seen today (additive, idempotent: ON CONFLICT DO NOTHING). Never throws.
+      await require('../utils/testerDailyTarget').runDailyActivityMigrations(sequelize);
       
       // Auto-check for empty DB to help user identify missing data
       const Restaurant = sequelize.models.Restaurant;
@@ -876,6 +885,10 @@ const connectDB = async () => {
         ['Users', 'lastAppVersion', 'VARCHAR(32)'],
         ['Users', 'lastAppBuild', 'VARCHAR(16)'],
         ['Users', 'lastPlatform', 'VARCHAR(16)'],
+        // 2026-11-06 stalled rider claims (PF-01): claim / release clock on orders, rider last-seen heartbeat.
+        ['Orders', 'riderClaimedAt', 'TIMESTAMP WITH TIME ZONE'],
+        ['Orders', 'riderReleasedAt', 'TIMESTAMP WITH TIME ZONE'],
+        ['DeliveryPartners', 'lastSeenAt', 'TIMESTAMP WITH TIME ZONE'],
       ];
       for (const [table, col, type] of pgNewCols) {
         try {

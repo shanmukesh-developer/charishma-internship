@@ -135,9 +135,14 @@ export default function CampusOrderScreen({ bookingId, onBack }: { bookingId: st
         ) : null}
         {b.status === 'CANCELLED' ? (
           <Card style={{ gap: 4 }}>
-            <Text style={[font.h3, { color: color.alertDark }]}>Cancelled{b.cancellation?.by === 'student' ? ' by the student' : b.cancellation?.by === 'system' ? ' (not paid in time)' : ''}</Text>
-            <Text style={[font.body, { color: color.textSecondary }]}>{b.cancellation?.reason}</Text>
-            {b.paymentVerifiedAt ? <Text style={[font.body, { color: color.warning, fontWeight: '700' }]}>You confirmed this payment. Return {inr(b.amount)} to the student.</Text> : null}
+            <Text style={[font.h3, { color: color.alertDark }]}>
+              Cancelled{b.cancellation?.by === 'student' ? ' by the student'
+                : b.cancellation?.by === 'system' ? (b.proof.submittedAt ? ' (payment not checked in time)' : ' (not paid in time)') : ''}
+            </Text>
+            {b.cancellation?.reason ? <Text style={[font.body, { color: color.textSecondary }]}>{b.cancellation.reason}</Text> : null}
+            {b.paymentVerifiedAt ? <Text style={[font.body, { color: color.warning, fontWeight: '700' }]}>You confirmed this payment. Return {inr(b.amount)} to the student.</Text>
+              : b.proof.submittedAt ? <Text style={[font.body, { color: color.warning, fontWeight: '700' }]}>The student sent a payment proof. If {inr(b.amount)} arrived in your UPI app, return it to the student.</Text>
+              : null}
           </Card>
         ) : null}
 

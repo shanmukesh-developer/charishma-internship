@@ -95,11 +95,15 @@ export default function PGAdminPage() {
   const [roomsTick, setRoomsTick] = useState(0);
   const [bookingsTick, setBookingsTick] = useState(0);
   const [promotionsTick, setPromotionsTick] = useState(0);
+  const [ownersTick, setOwnersTick] = useState(0);
   const managingIdRef = useRef<string | null>(null);
   managingIdRef.current = managing?.id ?? null;
 
   // Realtime sync: listings / rooms edited in another tab, and booking requests from the app.
-  useLiveSync(['pg', 'pg_booking'], (events, { reconnect }) => {
+  // pg_owner (owner account created / suspended / linked) and pg_complaint (a student's complaint or the owner's
+  // reply) reload the PG Owners panel; they were sent by the server but not subscribed, so it stayed stale.
+  useLiveSync(['pg', 'pg_booking', 'pg_owner', 'pg_complaint'], (events, { reconnect }) => {
+    if (reconnect || events.some(e => e.type === 'pg_owner' || e.type === 'pg_complaint')) setOwnersTick(t => t + 1);
     const pgEvents = events.filter(e => e.type === 'pg');
     const bookingEvents = events.filter(e => e.type === 'pg_booking');
     if (reconnect || pgEvents.length) {
@@ -301,7 +305,7 @@ export default function PGAdminPage() {
       ) : view === 'promotions' ? (
         <PromotionsPanel pgs={pgs} liveTick={promotionsTick} />
       ) : view === 'owners' ? (
-        <OwnersPanel pgs={pgs} />
+        <OwnersPanel pgs={pgs} liveTick={ownersTick} />
       ) : (
         <>
           <Toolbar end={<span className="text-sm text-fg-muted">{pgs.filter(p => p.isActive).length} listed, {pgs.filter(p => !p.isActive).length} hidden</span>} />

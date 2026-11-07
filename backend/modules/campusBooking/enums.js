@@ -21,7 +21,10 @@ const STATUS = Object.freeze({
 // (services/bookings.vendorCollect), so a wrong code never marks the order ready or tells the student it is.
 const TRANSITIONS = Object.freeze({
   PAYMENT_PENDING: { PAYMENT_REVIEW: ['student'], CANCELLED: ['student', 'system'] },
-  PAYMENT_REVIEW: { ACCEPTED: ['vendor'], REJECTED: ['vendor'], CANCELLED: ['vendor'] },
+  // PF-03 (6 Nov 2026): a review the stall never answers no longer holds the booking forever: the student may cancel
+  // once LIMITS.reviewStudentCancelMin passed since the proof (services/bookings.cancel checks the time), and the
+  // lifecycle job cancels it at LIMITS.reviewWindowMin.
+  PAYMENT_REVIEW: { ACCEPTED: ['vendor'], REJECTED: ['vendor'], CANCELLED: ['vendor', 'student', 'system'] },
   REJECTED: { PAYMENT_REVIEW: ['student'], CANCELLED: ['student', 'system'] },
   ACCEPTED: { PREPARING: ['vendor'], READY: ['vendor'], COLLECTED: ['vendor'], CANCELLED: ['vendor'] },
   PREPARING: { READY: ['vendor'], COLLECTED: ['vendor'], CANCELLED: ['vendor'] },
@@ -55,6 +58,13 @@ const LIMITS = Object.freeze({
   pickupCodeMaxTries: 6, // wrong pickup codes before the stall must wait (per booking, rolling 15 min)
   paymentWindowMin: 20, // PAYMENT_PENDING without proof -> cancelled by the system
   rejectedWindowMin: 120, // REJECTED without a new proof -> cancelled by the system
+  // PAYMENT_REVIEW the stall does not answer (minutes since the proof; jobs.js): the stall is reminded at
+  // reviewRemindMin and again at reviewStudentCancelMin (when the student may cancel and is told so), the admins at
+  // reviewAdminAlertMin, a last call reviewWindowMin - 5, and the system cancels it at reviewWindowMin.
+  reviewRemindMin: 5,
+  reviewStudentCancelMin: 10,
+  reviewAdminAlertMin: 15,
+  reviewWindowMin: 30,
   defaultPrepMin: 10,
   minPrepMin: 2,
   maxPrepMin: 90,

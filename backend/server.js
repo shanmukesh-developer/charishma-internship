@@ -551,6 +551,15 @@ async function loadSocketAccount(decoded) {
     if ((Number(decoded.tv) || 0) !== (Number(d.tokenVersion) || 0)) return null; // password changed / signed out
     return { id: d.id, role: 'auto_driver', suspended: d.status === 'SUSPENDED' };
   }
+  if (tokenRole === 'pg_owner') {
+    // ZenWe PG Partner app (modules/pgOwner, PF-07): own table, current tokenVersion (password change / admin reset /
+    // suspension bump it), suspended refused. The socket only ever joins pgowner_<id> (see the connection handler).
+    const Owner = require('./modules/pgOwner').getModel('PgOwner');
+    const o = Owner ? await Owner.findByPk(id, { attributes: ['id', 'tokenVersion', 'status'] }) : null;
+    if (!o) return null;
+    if ((Number(decoded.tv) || 0) !== (Number(o.tokenVersion) || 0)) return null;
+    return { id: o.id, role: 'pg_owner', suspended: o.status === 'SUSPENDED' };
+  }
   if (tokenRole === 'restaurant' || tokenRole === 'vendor') {
     const { getRestaurantModel } = require('./models/Restaurant');
     const r = await getRestaurantModel().findByPk(id, { attributes: ['id', 'tokenVersion'] });
@@ -1828,6 +1837,14 @@ const initializeApp = async () => {
         }
       });
 
+      // ZenWe PG Partner owner (PF-07): joins its own room `pgowner_<id>` (pg:changed nudges: utils/realtime.toPgOwner)
+      // and nothing else. No other handler is registered for this socket, so it can never join an order, cart, chat,
+      // store or admin room, or send anything.
+      if (String(socket.user?.role || '').toLowerCase() === 'pg_owner') {
+        socket.join(`pgowner_${socket.user.id}`);
+        return;
+      }
+
       // ── Per-socket access helpers ──────────────────────────────
       const socketRole = () => String(socket.user?.role || '').toLowerCase();
       const isGuestSocket = () => !socket.user || socket.user.id === 'anonymous' || socketRole() === 'guest';
@@ -1868,7 +1885,7 @@ const initializeApp = async () => {
 
       // Personal rooms so targeted events never need a global broadcast.
       if (!isGuestSocket()) {
-        if (socketRole() === 'rider') { socket.join(`rider_${socket.user.id}`); cancelRiderOfflineCheck(socket.user.id); }
+        if (socketRole() === 'rider') { socket.join(`rider_${socket.user.id}`); cancelRiderOfflineCheck(socket.user.id); require('./utils/riderSeen').noteRiderSeen(socket.user.id); }
         else if (socketRole() === 'auto_driver') socket.join(`autodriver_${socket.user.id}`);
         else if (socketRole() !== 'restaurant') socket.join(`user_${socket.user.id}`);
       }
@@ -2104,6 +2121,8 @@ const initializeApp = async () => {
               location,
               orderId: partner.currentOrderId || null,
               note: note || undefined,
+              // PF-15: a repeat tap within 30 s only refreshes the alert on the dashboard (no siren replay, same place).
+              repeat: !!repeat,
             };
             log(`[CRITICAL SOS] (legacy socket) rider ${partner.id} at ${payload.timestamp}`);
             io.to('admin-room').emit('sos_received', payload);
@@ -2763,6 +2782,7 @@ const initializeApp = async () => {
         if (!data.activeOrderId && data.orderId) data.activeOrderId = data.orderId; // newer rider app field name
         if (!data.riderId && socket.user) data.riderId = socket.user.id;
         if (socket.user && socket.user.role && socket.user.role.toLowerCase() === 'rider' && data.riderId === socket.user.id) {
+          require('./utils/riderSeen').noteRiderSeen(socket.user.id); // heartbeat (throttled)
           // Verify activeOrderId if provided
           if (data.activeOrderId) {
             try {
@@ -2848,7 +2868,9 @@ const initializeApp = async () => {
             const { getOrderModel } = require('./models/Order');
             const Order = getOrderModel();
             const order = await Order.findByPk(String(data.orderId).trim());
-            if (order && order.deliveryPartnerId === socket.user.id) {
+            // PF-30: only an order the server already marked Delivered (PIN checked) is announced; this legacy client
+            // event alone used to show any assigned order as Delivered on every admin dashboard.
+            if (order && order.deliveryPartnerId === socket.user.id && order.status === 'Delivered') {
               log(`[DELIVERED] ${data.riderName} completed order ${data.orderId} (+₹${data.earnings})`);
               io.to('admin-room').emit('admin_delivery_complete', {
                 orderId: order.id,
@@ -2859,7 +2881,7 @@ const initializeApp = async () => {
                 timestamp: new Date().toISOString()
               });
             } else {
-              console.warn(`[SOCKET_DENIED] Rider ${socket.user.id} not assigned to order ${data.orderId} for delivery completion`);
+              console.warn(`[SOCKET_DENIED] Rider ${socket.user.id}: order ${data.orderId} is not theirs or not Delivered (delivery completion ignored)`);
             }
           } catch (err) {
             console.error('[SOCKET_RIDER_DELIVERED_ERROR]', err.message);

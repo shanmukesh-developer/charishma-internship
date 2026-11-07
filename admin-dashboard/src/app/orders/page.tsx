@@ -398,7 +398,10 @@ export default function OrdersPage() {
       patchStatus(String(data?.id || data?.orderId || ''), String(data?.status || ''));
       scheduleRefresh();
     };
-    const handleOrderAccepted = (data: { orderId: string }) => { patchStatus(String(data?.orderId || ''), 'Accepted'); scheduleRefresh(); };
+    // A rider claimed the order. Claiming never changes the status (the server's statusUpdated carries the real one,
+    // e.g. Preparing / ReadyForPickup, and arrives first): only reload, so the rider column fills in. Patching
+    // 'Accepted' here moved a Ready order back to Accepted until the refetch (or the 60 s poll).
+    const handleOrderAccepted = () => scheduleRefresh();
     const handleDeliveryComplete = (data: { orderId: string }) => patchStatus(String(data?.orderId || ''), 'Delivered');
     const handleOrderCancelled = (data: { orderId: string }) => { patchStatus(String(data?.orderId || ''), 'Cancelled'); scheduleRefresh(); };
     const handleOrderUnassigned = () => scheduleRefresh();

@@ -5,6 +5,7 @@
  * Writes that create something (holds, confirmations, full-auto requests) carry an Idempotency-Key so a retry
  * after a dropped connection returns the same booking instead of a second one.
  */
+import { serverNow } from '../../utils/serverClock';
 import { apiFetch, readJson, SERVER_BUSY_MESSAGE, NETWORK_ERROR_MESSAGE } from '../../utils/auth';
 import { newIdempotencyKey } from '../../context/CartContext';
 
@@ -350,7 +351,7 @@ export const fmtHHMM = (hhmm: string) => {
   return `${h12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
 };
 /** 'in 12 min' / 'in 1 h 5 min' / 'now'. */
-export const fromNow = (iso?: string | null, nowMs = Date.now()) => {
+export const fromNow = (iso?: string | null, nowMs = serverNow()) => {
   if (!iso) return '';
   const ms = new Date(iso).getTime() - nowMs;
   if (ms <= 30000) return 'now';
@@ -400,7 +401,7 @@ export const PRIVATE_STATUS_META: Record<PrivateStatus, { label: string; color: 
  * Card / header chip for a trip, from the server's availability + real counts. Never invents a state:
  * 'Departure soon' is only added for a bookable trip whose server departure time is within 15 minutes.
  */
-export const availabilityChip = (t: Pick<TripStatusBlock, 'availability' | 'availabilityLabel' | 'delayMinutes' | 'departureAt' | 'remainingSeats'>, nowMs = Date.now()) => {
+export const availabilityChip = (t: Pick<TripStatusBlock, 'availability' | 'availabilityLabel' | 'delayMinutes' | 'departureAt' | 'remainingSeats'>, nowMs = serverNow()) => {
   const soon = !!t.departureAt && new Date(t.departureAt).getTime() - nowMs <= 15 * 60000 && new Date(t.departureAt).getTime() > nowMs;
   switch (t.availability) {
     case 'AVAILABLE': return soon ? { label: `Departure soon · ${t.remainingSeats} left`, color: '#F59E0B', icon: '⏱️' } : { label: `${t.remainingSeats} seat${t.remainingSeats === 1 ? '' : 's'} available`, color: '#10B981', icon: '🟢' };

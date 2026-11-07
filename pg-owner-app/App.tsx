@@ -15,6 +15,7 @@ import { ListingProvider } from './src/state/ListingProvider';
 import { HomeProvider, useHome } from './src/state/HomeProvider';
 import { flushQueue } from './src/lib/offlineQueue';
 import { onOwnerPush, takeLaunchPushTap, type PushData } from './src/lib/push';
+import { startLive } from './src/lib/live';
 import { color } from './src/theme';
 import type { RootStack } from './src/nav';
 import { FirstPasswordScreen, LoginScreen, SuspendedScreen } from './src/screens/Auth';
@@ -53,23 +54,41 @@ function QueueRunner() {
 
 const routePush = (data: PushData) => {
   if (data.type === 'PG_OWNER_COMPLAINT' || data.complaintId) navRef.navigate('Complaints');
+  // A request the student withdrew is under Closed.
+  else if (data.type === 'PG_OWNER_BOOKING_CANCELLED') navRef.navigate('Requests', { status: 'closed' });
   else if (data.type === 'PG_OWNER_BOOKING' || data.bookingId) navRef.navigate('Requests', { status: 'Pending' });
   else navRef.navigate('Notifications');
 };
 
+/** Live `pg:changed` events while signed in (src/lib/live.ts): the open list and the badges refetch at once. */
+function LiveRunner() {
+  const { token } = useSession();
+  const { nudge } = useHome();
+  const nudgeRef = useRef(nudge);
+  nudgeRef.current = nudge;
+  useEffect(() => {
+    if (!token) return undefined;
+    return startLive(token, (kind) => nudgeRef.current(kind));
+  }, [token]);
+  return null;
+}
+
+const pushKind = (data: PushData): 'bookings' | 'complaints' | 'all' =>
+  data.type === 'PG_OWNER_COMPLAINT' || data.complaintId ? 'complaints' : data.bookingId || String(data.type || '').includes('BOOKING') ? 'bookings' : 'all';
+
 /**
- * Push received -> refresh the badges; push tapped -> the right screen. A tap before the navigator is ready is kept
+ * Push received -> refresh the badges and the open list (PF-09); push tapped -> the right screen. A tap before the navigator is ready is kept
  * and routed on ready; the tap that launched a closed app is read once (takeLaunchPushTap).
  */
 function PushRouter({ navReady }: { navReady: boolean }) {
-  const { refresh } = useHome();
+  const { refresh, nudge } = useHome();
   const pending = useRef<PushData | null>(null);
   useEffect(() => onOwnerPush((data, tapped) => {
-    refresh();
+    nudge(pushKind(data));
     if (!tapped) return;
     if (!navRef.isReady()) { pending.current = data; return; }
     routePush(data);
-  }), [refresh]);
+  }), [nudge]);
   useEffect(() => {
     if (!navReady) return;
     if (pending.current) { const d = pending.current; pending.current = null; routePush(d); }
@@ -90,6 +109,7 @@ function SignedIn() {
     <ListingProvider>
       <HomeProvider>
         <QueueRunner />
+        <LiveRunner />
         <PushRouter navReady={navReady} />
         <NavigationContainer theme={navTheme} ref={navRef} onReady={() => setNavReady(true)}>
           <Stack.Navigator screenOptions={screenOpts}>

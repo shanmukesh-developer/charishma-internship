@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { adminRequest } from '@/lib/api';
 import { useAdminAuth } from '@/utils/useAdminAuth';
-import { formatDateTime } from '@/lib/format';
+import { formatDateTime, formatYmd } from '@/lib/format';
 import {
   Badge, Button, DataTable, Field, Input, Modal, Notice, PageHeader, Switch,
   type Column, IconPlus, IconRefresh,
@@ -38,10 +38,8 @@ interface Payout { id: string; amount: number; paidAt: string; note: string | nu
 const CODE_RE = /^[A-Z0-9]{4,16}$/;
 const errText = (e: unknown, fallback: string) => (e instanceof Error && e.message ? e.message : fallback);
 const rupees = (n: number) => `₹${(Number(n) || 0).toLocaleString('en-IN')}`;
-const todayInput = () => {
-  const d = new Date();
-  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-};
+// Today in IST (the browser's own time zone gave the wrong day for an admin outside India).
+const todayInput = () => formatYmd(new Date());
 
 function AddPromoterModal({ onClose, onSaved }: { onClose: () => void; onSaved: (p: Promoter) => void }) {
   const [name, setName] = useState('');
@@ -128,7 +126,7 @@ function PayModal({ promoter, onClose, onPaid }: { promoter: Promoter; onClose: 
     try {
       const r = await adminRequest<{ promoter: Promoter }>(`/api/admin/promoters/${promoter.id}/payouts`, {
         method: 'POST',
-        body: JSON.stringify({ amount: n, paidAt: paidAt ? new Date(`${paidAt}T12:00:00`).toISOString() : undefined, note: note.trim() }),
+        body: JSON.stringify({ amount: n, paidAt: paidAt ? new Date(`${paidAt}T12:00:00+05:30`).toISOString() : undefined, note: note.trim() }),
       });
       onPaid(r.promoter);
     } catch (e) {

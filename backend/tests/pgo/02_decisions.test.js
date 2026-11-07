@@ -177,3 +177,25 @@ test('an owner decision reaches the student live (pg:changed, ids and status onl
     realtime.init({ to: () => ({ emit: () => {} }), emit: () => {}, in: () => ({ socketsJoin() {}, socketsLeave() {}, fetchSockets: async () => [] }), fetchSockets: async () => [], of: () => ({ fetchSockets: async () => [], in: () => ({ fetchSockets: async () => [] }) }), sockets: { adapter: { rooms: new Map() }, sockets: new Map() } });
   }
 });
+
+test('PF-08: a student cancelling a request tells the owner (push + inbox row), not for an owner-only test PG', async () => {
+  const student = await H.mkUser({ name: 'Meena Rao' });
+  const res = await H.book(student, room.id, {});
+  assert.strictEqual(res.status, 201, JSON.stringify(res.body));
+  const titles = async () => (await H.notificationsFor(owner.id)).filter((n) => n.type === 'PG_OWNER_BOOKING_CANCELLED');
+  const before = (await titles()).length;
+  const c = await H.api('PUT', `/api/pg/bookings/${res.body.booking.id}/cancel`, student.token, {});
+  assert.strictEqual(c.status, 200, JSON.stringify(c.body));
+  for (let i = 0; i < 40 && (await titles()).length === before; i++) await new Promise((r) => setTimeout(r, 50));
+  const rows = await titles();
+  assert.strictEqual(rows.length, before + 1, 'one owner notice');
+  assert.match(rows[rows.length - 1].body, /^Meena cancelled their request for room /);
+  assert.doesNotMatch(rows[rows.length - 1].body, /Rao/, 'first name only');
+  // Sent again and withdrawn again within the "notify once" window: the owner was not pushed about the new request,
+  // so its cancel is not pushed either (no book -> cancel ringing loop).
+  const again = await H.book(student, room.id, {});
+  assert.strictEqual(again.status, 201, JSON.stringify(again.body));
+  assert.strictEqual((await H.api('PUT', `/api/pg/bookings/${again.body.booking.id}/cancel`, student.token, {})).status, 200);
+  await new Promise((r) => setTimeout(r, 300));
+  assert.strictEqual((await titles()).length, before + 1);
+});

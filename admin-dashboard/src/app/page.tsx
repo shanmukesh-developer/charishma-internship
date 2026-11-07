@@ -573,11 +573,6 @@ export default function AdminHome() {
       }));
     };
 
-    const handleRiderOnline = (data: any) => {
-      if (!data?.riderId) return;
-      upsertRider(String(data.riderId), { isOnline: true, ...(data.name ? { riderName: data.name } : {}) });
-    };
-
     const handleRiderOffline = (data: any) => {
       if (!data?.riderId) return;
       upsertRider(String(data.riderId), { isOnline: false });
@@ -662,7 +657,6 @@ export default function AdminHome() {
     socket.on('statusUpdated', handleStatusUpdated);
     socket.on('orderCancelled', handleOrderCancelled);
     socket.on('admin_rider_location', handleRiderLocation);
-    socket.on('admin_rider_online', handleRiderOnline);
     socket.on('admin_rider_offline', handleRiderOffline);
     socket.on('admin_rider_status', handleRiderStatus);
     socket.on('admin_order_accepted', handleOrderAccepted);
@@ -678,7 +672,6 @@ export default function AdminHome() {
       socket.off('statusUpdated', handleStatusUpdated);
       socket.off('orderCancelled', handleOrderCancelled);
       socket.off('admin_rider_location', handleRiderLocation);
-      socket.off('admin_rider_online', handleRiderOnline);
       socket.off('admin_rider_offline', handleRiderOffline);
       socket.off('admin_rider_status', handleRiderStatus);
       socket.off('admin_order_accepted', handleOrderAccepted);

@@ -196,6 +196,7 @@ const resetPassword = async (req, res) => {
   const o = await ownerById(req.params.id);
   const password = checkPassword((req.body || {}).password);
   await o.update({ password: await bcrypt.hash(password, 10), mustChangePassword: true, tokenVersion: (Number(o.tokenVersion) || 0) + 1 });
+  require('../../../utils/realtime').disconnectRevokedSockets(o.id, o.tokenVersion); // live sockets of old sessions too
   await audit(req, o.id, 'PG_OWNER_PASSWORD_RESET', { phoneLast4: String(o.phone).slice(-4) });
   notify.admin('pg_owner', 'updated', o.id);
   res.json({ owner: S.ownerAdmin(o, [], { fullPhone: true }), message: `Temporary password set. ${o.name} is signed out everywhere and must choose a new password at the next sign-in.` });
@@ -207,6 +208,7 @@ const suspend = async (req, res) => {
   const reason = cleanText((req.body || {}).reason, 300);
   if (reason.length < 5) throw fail(400, 'REASON_REQUIRED', 'Give a reason the owner will see (at least 5 characters).', { field: 'reason' });
   await o.update({ status: OWNER_STATUS.SUSPENDED, suspendedReason: reason, tokenVersion: (Number(o.tokenVersion) || 0) + 1 });
+  require('../../../utils/realtime').disconnectRevokedSockets(o.id, null); // a suspended owner gets no live events
   await audit(req, o.id, 'PG_OWNER_SUSPENDED', { reason });
   notify.admin('pg_owner', 'updated', o.id);
   res.json({ owner: S.ownerAdmin(o, [], { fullPhone: true }), message: `${o.name} is suspended and signed out.` });

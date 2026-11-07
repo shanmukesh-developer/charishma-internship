@@ -95,6 +95,8 @@ async function notifyStudentOfStatus(booking, { pgName, roomNumber, reason } = {
   try {
     // An open "My PG bookings" reloads at once (ids / status only; 31 Oct 2026), whatever the push does.
     require('./realtime').toUser(booking.userId, 'pg:changed', { bookingId: String(booking.id), status: booking.status });
+    // Every device of the PG's owner(s) too (PF-07): another phone signed in to the same owner account refreshes.
+    require('../modules/pgOwner/services/notify').liveToListingOwners(booking.hostelId, { type: 'PG_OWNER_BOOKING_STATUS', bookingId: booking.id, status: booking.status }).catch(() => {});
     const tpl = STATUS_PUSH[booking.status];
     if (!tpl) return false;
     const { getUserModel } = require('../models/User');

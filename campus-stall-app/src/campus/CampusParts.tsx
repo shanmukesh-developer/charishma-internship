@@ -19,6 +19,8 @@ export const STATUS_TEXT: Record<CbStatus, string> = {
   CANCELLED: 'Cancelled',
 };
 
+export const statusText = (s: string): string => (STATUS_TEXT as Record<string, string>)[s] || String(s || '').replace(/_/g, ' ').toLowerCase().replace(/^./, (c) => c.toUpperCase());
+
 export function StatusBadge({ status }: { status: CbStatus }) {
   const map: Record<CbStatus, { fg: string; bg: string }> = {
     PAYMENT_PENDING: { fg: color.textSecondary, bg: color.surfaceAlt },
@@ -30,8 +32,9 @@ export function StatusBadge({ status }: { status: CbStatus }) {
     REJECTED: { fg: color.alertDark, bg: color.alertTint },
     CANCELLED: { fg: color.alertDark, bg: color.alertTint },
   };
-  const t = map[status];
-  return <Badge text={STATUS_TEXT[status]} fg={t.fg} bg={t.bg} />;
+  // A status this build does not know yet (the server added one): neutral badge with the raw word, never a crash.
+  const t = map[status] || { fg: color.textSecondary, bg: color.surfaceAlt };
+  return <Badge text={statusText(status)} fg={t.fg} bg={t.bg} />;
 }
 
 export const itemsLine = (b: CbVendorBooking) => b.items.map((i) => `${i.quantity} ${i.name}`).join(' · ');
@@ -40,7 +43,7 @@ export function BookingCard({ b, onPress }: { b: CbVendorBooking; onPress: () =>
   const review = b.status === 'PAYMENT_REVIEW';
   const waiting = b.status === 'PAYMENT_PENDING' || b.status === 'REJECTED';
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`Booking ${b.ref}, ${STATUS_TEXT[b.status]}, ${inr(b.amount)}`} style={({ pressed }) => [pressed && { opacity: 0.85 }]}>
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`Booking ${b.ref}, ${statusText(b.status)}, ${inr(b.amount)}`} style={({ pressed }) => [pressed && { opacity: 0.85 }]}>
       <Card style={[{ gap: space.xs }, review && { borderColor: color.warning, borderWidth: 2 }, waiting && { opacity: 0.75 }]}>
         <View style={styles.row}>
           <Text style={[font.h3, { color: color.text, flex: 1, fontVariant: ['tabular-nums'] }]}>#{b.ref}</Text>

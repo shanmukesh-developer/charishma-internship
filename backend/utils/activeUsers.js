@@ -14,6 +14,8 @@
 const { Op, fn, col } = require('sequelize');
 
 const TESTERS_KEY = 'CLOSED_TESTER_PHONES';
+// Config keys written only through routes/activeUsersRoutes (the generic Config endpoint refuses them).
+const OWN_KEYS = Object.freeze([TESTERS_KEY, 'TESTER_DAILY_TARGET', 'USAGE_TRACKING_ENABLED']);
 const MAX_TESTERS = 500;
 const PAGE_SIZE = 50;
 const DAY = 24 * 60 * 60 * 1000;
@@ -142,6 +144,19 @@ const rowOf = (u, counts, testPhones, latest) => {
   };
 };
 
+/** CLOSED-TEST ONLY: today's app minutes over customer accounts (admins / deleted left out). */
+const usageTotals = async (now) => {
+  const usage = require('./usageTime');
+  const M = require('../models/UserDailyActivity').getUserDailyActivityModel();
+  if (!M) return null;
+  const today = require('./testerDailyTarget').istDay(now);
+  const rows = await M.findAll({ where: { day: today, activeSeconds: { [Op.gt]: 0 } }, attributes: ['userId'], raw: true });
+  const ids = rows.map((r) => String(r.userId));
+  const ok = ids.length ? new Set((await User().findAll({ where: and(CUSTOMER, { id: { [Op.in]: ids } }), attributes: ['id'], raw: true })).map((u) => String(u.id))) : new Set();
+  const sw = await usage.readSwitch().catch(() => ({ enabled: false }));
+  return { ...(await usage.todayTotals((id) => ok.has(id), { now })), trackingEnabled: sw.enabled };
+};
+
 const report = async ({ filter = 'all', search = '', page = 1, sort = 'lastSeen_desc', now = new Date() } = {}) => {
   const U = User();
   const f = FILTERS.includes(filter) ? filter : 'all';
@@ -170,6 +185,12 @@ const report = async ({ filter = 'all', search = '', page = 1, sort = 'lastSeen_
   const where = and(CUSTOMER, filterWhere(f, now), searchWhere(search));
   const { count: total, rows } = await U.findAndCountAll({ where, attributes: USER_ATTRS, order, limit: PAGE_SIZE, offset: (p - 1) * PAGE_SIZE });
   const [counts, testPhones] = await Promise.all([orderCounts(rows.map((u) => String(u.id))), ownerTestPhones()]);
+  // CLOSED-TEST ONLY (utils/usageTime): minutes today, sessions today, 7-day average per day opened; today's totals.
+  const usage = require('./usageTime');
+  const [usageMap, usageToday] = await Promise.all([
+    usage.usageFor(rows.map((u) => String(u.id)), { now }).catch(() => new Map()),
+    usageTotals(now).catch(() => null),
+  ]);
 
   const first = firstRow && firstRow.first ? new Date(firstRow.first) : null;
   return {
@@ -187,7 +208,8 @@ const report = async ({ filter = 'all', search = '', page = 1, sort = 'lastSeen_
     pageSize: PAGE_SIZE,
     total,
     pages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
-    users: rows.map((u) => rowOf(u.get({ plain: true }), counts, testPhones, latestVersion)),
+    users: rows.map((u) => ({ ...rowOf(u.get({ plain: true }), counts, testPhones, latestVersion), usage: usageMap.get(String(u.id)) || null })),
+    usageToday,
   };
 };
 
@@ -216,6 +238,8 @@ const testerStatus = async ({ now = new Date() } = {}) => {
   const counts = await orderCounts(users.map((u) => String(u.id)));
   const testPhones = await ownerTestPhones();
   const { latestVersion } = await latestVersionOf(users.map((u) => u.lastAppVersion).filter(Boolean));
+  // CLOSED-TEST ONLY (utils/usageTime)
+  const usageMap = await require('./usageTime').usageFor(users.map((u) => String(u.id)), { now }).catch(() => new Map());
   const todayStart = istDayStart(now).getTime();
   const weekStart = now.getTime() - 7 * DAY;
   const twoDays = now.getTime() - 2 * DAY;
@@ -226,7 +250,7 @@ const testerStatus = async ({ now = new Date() } = {}) => {
     const seen = u.lastSeenAt ? new Date(u.lastSeenAt).getTime() : null;
     let status = 'never_opened';
     if (seen !== null) status = seen >= todayStart ? 'today' : seen >= twoDays ? 'recent' : 'inactive';
-    return { phone, status, user: rowOf(u, counts, testPhones, latestVersion) };
+    return { phone, status, user: { ...rowOf(u, counts, testPhones, latestVersion), usage: usageMap.get(String(u.id)) || null } };
   });
   const c = (s) => testers.filter((t) => t.status === s).length;
   return {
@@ -246,6 +270,6 @@ const testerStatus = async ({ now = new Date() } = {}) => {
 };
 
 module.exports = {
-  TESTERS_KEY, MAX_TESTERS, PAGE_SIZE, FILTERS, SORTS,
+  TESTERS_KEY, OWN_KEYS, MAX_TESTERS, PAGE_SIZE, FILTERS, SORTS,
   istDayStart, parseTesterPhones, readTesterList, testerStatus, report,
 };

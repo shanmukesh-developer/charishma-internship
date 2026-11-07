@@ -4,7 +4,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { campusApi, inr, timeIST, type CbEarnings } from '../lib/campusApi';
+import { campusApi, dateTimeIST, inr, type CbEarnings } from '../lib/campusApi';
 import { errorMessage } from '../lib/http';
 import { color, font, radius, space, touch } from '../theme';
 import { Card, EmptyState, ErrorStrip, SkeletonCard } from '../ui/kit';
@@ -87,7 +87,7 @@ export default function CampusEarningsScreen({ onBack, onOpen }: { onBack?: () =
           <Pressable onPress={() => onOpen(b.id)} accessibilityRole="button" accessibilityLabel={`Booking ${b.ref}, ${inr(b.amount)}`} style={({ pressed }) => [pressed && { opacity: 0.85 }]}>
             <Card style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.sm }}>
               <View style={{ flex: 1, gap: 2 }}>
-                <Text style={[font.body, { color: color.text, fontWeight: '800' }]}>#{b.ref} · {timeIST(b.paymentVerifiedAt)}</Text>
+                <Text style={[font.body, { color: color.text, fontWeight: '800' }]}>#{b.ref} · {dateTimeIST(b.paymentVerifiedAt)}</Text>
                 <Text style={[font.small, { color: color.textMuted }]} numberOfLines={1}>{itemsLine(b)}</Text>
               </View>
               <View style={{ alignItems: 'flex-end', gap: 4 }}>

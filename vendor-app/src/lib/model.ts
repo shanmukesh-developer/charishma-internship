@@ -137,6 +137,32 @@ function profilePlace(v: string | null, address: string): string | null {
   return new RegExp(`(^|[^A-Za-z0-9])${esc}($|[^A-Za-z0-9])`, 'i').test(address) ? v.toUpperCase() : null;
 }
 
+/** Minutes before a delivery slot when the store's accept clock starts (backend STORE_ACCEPT_BEFORE_SLOT_MIN). */
+const ACCEPT_BEFORE_SLOT_MS = 60 * 60 * 1000;
+/**
+ * When the store's accept clock starts (backend utils/deliverySlots.acceptAnchorMs): when the order was placed, or
+ * 60 minutes before its delivery slot, whichever is later. NaN when unknown.
+ */
+export function acceptAnchorMs(o: { createdAt?: string | null; slotStart?: string | null }): number {
+  const created = o.createdAt ? new Date(o.createdAt).getTime() : NaN;
+  const fromSlot = o.slotStart ? new Date(o.slotStart).getTime() - ACCEPT_BEFORE_SLOT_MS : NaN;
+  const known = [created, fromSlot].filter(Number.isFinite);
+  return known.length ? Math.max(...known) : NaN;
+}
+
+/** Backend STORE_ACCEPT_TIMEOUT_MIN default: used only when the server did not send storeAcceptBy (older server). */
+const DEFAULT_ACCEPT_TIMEOUT_MS = 60 * 60 * 1000;
+/**
+ * Server-clock ms until which a Pending order must be accepted (the server auto-cancels it then): the server's
+ * storeAcceptBy, else acceptAnchorMs + 60 min. NaN when unknown.
+ */
+export function acceptDeadlineMs(o: { createdAt?: string | null; slotStart?: string | null; storeAcceptBy?: string | null }): number {
+  const by = o.storeAcceptBy ? new Date(o.storeAcceptBy).getTime() : NaN;
+  if (Number.isFinite(by)) return by;
+  const anchor = acceptAnchorMs(o);
+  return Number.isFinite(anchor) ? anchor + DEFAULT_ACCEPT_TIMEOUT_MS : NaN;
+}
+
 /** Delivery slot of an order payload: the server label, or nothing for older 'ASAP' orders. */
 export function slotOf(raw: any): { slotLabel: string | null; slotStart: string | null } {
   const label = typeof raw?.slotLabel === 'string' && raw.slotLabel.trim() ? raw.slotLabel.trim()
@@ -198,6 +224,7 @@ export function normalizeOrder(raw: any): Order | null {
     customerName,
     customerPhone,
     ...slotOf(raw),
+    storeAcceptBy: typeof raw.storeAcceptBy === 'string' && raw.storeAcceptBy ? raw.storeAcceptBy : null,
     partial: !!raw.__partial,
   };
 }
