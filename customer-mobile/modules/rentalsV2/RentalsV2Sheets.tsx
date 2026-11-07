@@ -62,8 +62,14 @@ function BookSheet({ item, duration }: { item: RItem; duration: Duration }) {
       : elig && elig.licence?.status !== 'VERIFIED' ? { t: elig.licence ? 'Your licence is being checked. You can send requests once it is verified.' : 'Add your driving licence once. The ZenWe team verifies it before your first trip.', a: elig.licence ? 'View licence' : 'Add licence', go: '/rentals/licence' }
         : null;
 
+  // Validation (owner, 7 Nov 2026: "it's about validation"): every button in this sheet first checks the agreement.
+  // Not ticked -> red box + message, nothing proceeds. The server also refuses a request without acceptTerms.
+  const [agreeErr, setAgreeErr] = useState(false);
+  const AGREE_MSG = 'Please tick the box to agree before continuing.';
+  const requireAgree = () => { if (agree) return true; setAgreeErr(true); return false; };
   const send = async () => {
-    if (!agree || !quote || why) return;
+    if (!requireAgree()) return;
+    if (!quote || why) return;
     setBusy(true); setErr(null);
     try {
       await rentalsApi.requestBooking({ listingId: item.id, startAt, endAt, note: note.trim() || undefined, acceptTerms: true });
@@ -77,8 +83,8 @@ function BookSheet({ item, duration }: { item: RItem; duration: Duration }) {
 
   return (
     <Sheet visible onClose={nav.closeSheet} title={`${words.verb} ${item.title}`}
-      footer={gate ? <CTA label={gate.a} sub="Needed before you can send a request" onPress={() => { nav.closeSheet(); router.push(gate.go as any); }} />
-        : <CTA label="Send request" sub={quote ? `${inr(quote.payAtHandover)} at pickup · nothing paid now` : undefined} onPress={send} busy={busy} disabled={!agree || !quote || !!why} />}>
+      footer={gate ? <CTA label={gate.a} sub={agreeErr ? AGREE_MSG : 'Needed before you can send a request'} onPress={() => { if (!requireAgree()) return; nav.closeSheet(); router.push(gate.go as any); }} />
+        : <CTA label="Send request" sub={agreeErr ? AGREE_MSG : quote ? `${inr(quote.payAtHandover)} at pickup · nothing paid now` : undefined} onPress={send} busy={busy} disabled={!quote || !!why} />}>
       {gate ? <View style={b.gate}><IInfo size={18} color={DAY.accent} strokeWidth={1.7} /><Text style={b.gateText}>{gate.t}</Text></View> : null}
       <SheetLabel>Pickup day</SheetLabel>
       <Options items={dayOptions} value={day} onChange={setDay} />
@@ -108,16 +114,11 @@ function BookSheet({ item, duration }: { item: RItem; duration: Duration }) {
       <SheetLabel>Note for the {words.giver} (optional)</SheetLabel>
       <TextInput value={note} onChangeText={setNote} placeholder="Pickup spot, ride plan…" placeholderTextColor={DAY.faint} maxLength={200} style={b.input} multiline />
 
-      {/* The agreement belongs to "Send request" only. While a gate is shown (sign in / verify college / add licence),
-          the footer button just opens that step, so a checkbox here looked like it controlled that button and didn't
-          (tester report, 6 Nov 2026). It appears once the person can actually send a request; Send request stays
-          disabled until it is ticked, and the server also refuses requests without acceptTerms. */}
-      {!gate ? (
-        <Press onPress={() => setAgree(!agree)} label="I agree to the rental terms" style={b.agree}>
-          <View style={[b.box, agree ? b.boxOn : null]}>{agree ? <ICheck size={14} color="#FFFFFF" strokeWidth={2.4} /> : null}</View>
-          <Text style={b.agreeText}>I will show my licence at pickup, return on time, and pay any agreed extra km or damage charges.</Text>
-        </Press>
-      ) : null}
+      <Press onPress={() => { setAgree(!agree); setAgreeErr(false); }} label="I agree to the rental terms" style={b.agree}>
+        <View style={[b.box, agree ? b.boxOn : null, agreeErr && !agree ? { borderColor: DAY.red, borderWidth: 2 } : null]}>{agree ? <ICheck size={14} color="#FFFFFF" strokeWidth={2.4} /> : null}</View>
+        <Text style={b.agreeText}>I will show my licence at pickup, return on time, and pay any agreed extra km or damage charges.</Text>
+      </Press>
+      {agreeErr && !agree ? <Text accessibilityLiveRegion="polite" style={[b.muted, { color: DAY.red, marginTop: 6 }]}>{AGREE_MSG}</Text> : null}
       {err ? <Text style={[b.muted, { color: DAY.red, marginTop: 10 }]}>{err}</Text> : null}
     </Sheet>
   );
