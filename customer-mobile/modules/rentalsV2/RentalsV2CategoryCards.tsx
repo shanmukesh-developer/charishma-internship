@@ -101,14 +101,22 @@ export function CategoryGrid() {
   const pw = usePageW();
   const pad = 10;
   const gap = 10;
-  const w = Math.floor((pw - pad * 2 - gap) / 2);
+  // Size the 2 columns from the row's real width (onLayout), not the window: when the container is narrower than
+  // the window (web scrollbar, side panes, insets) two window-based cards no longer fit and wrapped into one column
+  // with an empty right half (owner, 7 Nov 2026). The window width is only the first-frame guess.
+  const [rowW, setRowW] = React.useState(0);
+  const avail = rowW > 0 ? rowW : pw - pad * 2;
+  const w = Math.floor((avail - gap) / 2) - 1;
   const h = Math.round(w * 0.84);
   return (
     <View style={{ paddingHorizontal: pad, marginTop: 6 }}>
       <View style={{ paddingHorizontal: 6, marginBottom: 14 }}>
         <Text style={c.section} accessibilityRole="header">What would you like to rent today?</Text>
       </View>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap, rowGap: 16 }}>
+      <View
+        onLayout={(e) => { const nw = Math.floor(e.nativeEvent.layout.width); if (nw > 0 && Math.abs(nw - rowW) > 1) setRowW(nw); }}
+        style={{ flexDirection: 'row', flexWrap: 'wrap', gap, rowGap: 16, justifyContent: 'space-between' }}
+      >
         {(['bike', 'car', 'room', 'flat'] as Category[]).map((k, i) => <CategoryCard key={k} kind={k} w={w} h={h} index={i} />)}
       </View>
     </View>
