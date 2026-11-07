@@ -1811,7 +1811,7 @@ const s = StyleSheet.create({
   // Grid
   grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, justifyContent: 'space-between', rowGap: 12 },
   rCard: { width: '100%', borderRadius: 16, overflow: 'hidden', ...SHADOWS.card },
-  rImgWrap: { width: '100%', aspectRatio: 2, position: 'relative' }, // medium (owner, 6 Nov: not small, not large)
+  rImgWrap: { width: '100%', aspectRatio: 2.4, position: 'relative' }, // owner 7 Nov: a bit smaller than the 6 Nov medium (2)
   rImg: { width: '100%', height: '100%' },
   heartBtn: { position: 'absolute', top: 8, right: 8, width: 32, height: 32, borderRadius: 16, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', ...SHADOWS.card },
   promotedBadge: { position: 'absolute', top: 8, left: 8, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
@@ -1820,9 +1820,9 @@ const s = StyleSheet.create({
   timeText: { fontSize: 12, fontWeight: '700', color: '#fff' },
   offerRibbon: { position: 'absolute', bottom: 8, left: 0, backgroundColor: COLORS.blueOffer, paddingHorizontal: 8, paddingVertical: 4, borderTopRightRadius: 6, borderBottomRightRadius: 6 },
   offerText: { fontSize: 12, fontWeight: '700', color: '#fff' },
-  rInfo: { paddingHorizontal: 12, paddingTop: 10, paddingBottom: 11 },
+  rInfo: { paddingHorizontal: 12, paddingTop: 8, paddingBottom: 9 },
   rTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  rName: { fontSize: 15, fontWeight: '800', color: '#111', flex: 1, marginRight: 8, lineHeight: 20 },
+  rName: { fontSize: 14, fontWeight: '800', color: '#111', flex: 1, marginRight: 8, lineHeight: 19 },
   ratingBadge: { flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: COLORS.greenRating, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 6 },
   ratingText: { fontSize: 12, fontWeight: '700', color: '#fff' },
   rCuisine: { fontSize: 12, color: '#888', fontWeight: '600' },
