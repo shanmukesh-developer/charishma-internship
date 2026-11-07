@@ -189,7 +189,10 @@ export function ServicesV2HomeBody({ sections, onSection }: { sections?: Section
       <HomeTop sections={sections} onSection={onSection} />
 
       <FadeIn style={{ marginTop: 16 }}>
-        <HeroCard photo={HOME_HERO} title={SHELF_META.repairs.heroTitle} line="A technician checks your device in your hostel and confirms the price before any work." trust={SHELF_TRUST.repairs} cta="Book a repair" onCta={() => router.push(shelfPath('repairs') as any)} />
+        <HeroCard photo={HOME_HERO} title={SHELF_META.repairs.heroTitle} line="A technician checks your device in your hostel and confirms the price before any work." trust={SHELF_TRUST.repairs}
+          /* No repair partner live yet -> no "Book a repair" button (it opened an empty Coming soon page). */
+          cta={repairs.status === 'ready' && !bookable(repairs.items).length ? undefined : 'Book a repair'}
+          onCta={() => router.push(shelfPath('repairs') as any)} />
       </FadeIn>
 
       <QuickCategories prices={prices} />

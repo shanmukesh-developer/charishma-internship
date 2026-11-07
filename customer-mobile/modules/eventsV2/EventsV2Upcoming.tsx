@@ -85,12 +85,15 @@ export function Upcoming() {
           {list.map((e, i) => <EventCardV2 key={e.id} e={e} width={cardW} index={i} onPress={() => openEv(e)} />)}
         </ScrollView>
       ) : (
-        <StateBlock kind="empty" title={`Nothing ${r.key === 'week' ? 'this week' : 'coming up'} yet`} body="When clubs publish events on your campus, they appear here." action={r.key !== 'any' ? 'See all upcoming' : undefined} onAction={() => setRange('any')} />
+        <StateBlock kind="empty" title={`Nothing ${r.key === 'week' ? 'this week' : 'coming up'} yet`} body="When clubs publish events on your campus, they appear here." action={r.key !== 'any' && d.all.length ? 'See all upcoming' : undefined} onAction={() => setRange('any')} />
       )}
-      <Press onPress={() => nav.push({ name: 'explore' })} label="Browse all events" style={s.all}>
-        <Text style={s.allText}>Browse all events</Text>
-        <IArrowRight size={15} color={NIGHT.violet} strokeWidth={2} />
-      </Press>
+      {/* With no events published at all, "See all upcoming" and "Browse all events" both led to the same empty list. */}
+      {d.all.length ? (
+        <Press onPress={() => nav.push({ name: 'explore' })} label="Browse all events" style={s.all}>
+          <Text style={s.allText}>Browse all events</Text>
+          <IArrowRight size={15} color={NIGHT.violet} strokeWidth={2} />
+        </Press>
+      ) : null}
     </View>
   );
 }
