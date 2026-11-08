@@ -1401,6 +1401,10 @@ const initializeApp = async () => {
     inBootQueue(() => require('./scripts/star_dum_biryani_reorder').runStarDumBiryaniReorder())
       .then((r) => console.log('🍛 [STAR_DUM_BIRYANI_REORDER]', JSON.stringify(r)))
       .catch((err) => console.warn('⚠️ [STAR_DUM_BIRYANI_REORDER] failed:', err.message));
+    // 🏷️ Low-to-high price order inside every menu category, once (ALL_CATEGORIES_PRICE_ASC_V1_DONE).
+    inBootQueue(() => require('./scripts/all_categories_price_asc').runAllCategoriesPriceAsc())
+      .then((r) => console.log('🏷️ [ALL_CATEGORIES_PRICE_ASC]', JSON.stringify(r)))
+      .catch((err) => console.warn('⚠️ [ALL_CATEGORIES_PRICE_ASC] failed:', err.message));
     // 🧪 Owner-only test data (owner, 3 Nov 2026): restaurants, stalls, grocery and service stores and deals with
     // isTestData, seen only by the phones in TEST_VIEWER_PHONES (utils/testView). Each part once; Admin > Config >
     // Test data removes it. scripts/test_data_v2_seed.js; DISABLE_TEST_DATA_V2=true skips it.
