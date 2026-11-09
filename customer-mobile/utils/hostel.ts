@@ -23,7 +23,7 @@ export const formatHostel = (user: any): string => {
   return '';
 };
 
-export type CampusBlocks = { code: string; name: string; blocks: string[] };
+export type CampusBlocks = { code: string; name: string; blocks: string[]; city: string };
 
 /**
  * Hostel blocks per campus from the admin-managed campus directory (GET /api/campus/campuses,
@@ -40,7 +40,8 @@ export function useCampusHostelBlocks(enabled = true): CampusBlocks[] {
         const blocks = Array.isArray(c?.settings?.hostelBlocks)
           ? c.settings.hostelBlocks.filter((b: any) => typeof b === 'string' && b.trim()).map((b: string) => b.trim()).slice(0, 24)
           : [];
-        if (blocks.length) out.push({ code: String(c?.code || ''), name: String(c?.shortName || c?.name || c?.code || 'Campus'), blocks });
+        // Every campus is kept (10 Nov 2026): Profile also reads its city to fill the City field; blocks may be empty.
+        if (c?.code) out.push({ code: String(c.code), name: String(c?.shortName || c?.name || c?.code || 'Campus'), blocks, city: typeof c?.city === 'string' ? c.city.trim() : '' });
       });
       if (!cancelled) setList(out);
     };

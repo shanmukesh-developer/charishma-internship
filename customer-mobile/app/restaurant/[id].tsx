@@ -557,7 +557,7 @@ export default function RestaurantDetail() {
           end={{ x: 1, y: 1 }}
         />
       ) : (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: isDark ? COLORS.bgDark : COLORS.bgLight }} />
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: isDark ? colors.bg : COLORS.bgLight }} />
       )}
 
       <ScrollView
@@ -934,7 +934,7 @@ export default function RestaurantDetail() {
           isVegetarian={isVegItem(customizingItem)}
         />
       )}
-      {pastHero ? <StatusBarScrim color={brand ? (brand.primaryColor || '#1A0000') : isDark ? COLORS.bgDark : COLORS.bgLight} /> : null}
+      {pastHero ? <StatusBarScrim color={brand ? (brand.primaryColor || '#1A0000') : isDark ? colors.bg : COLORS.bgLight} /> : null}
     </View>
   );
 }

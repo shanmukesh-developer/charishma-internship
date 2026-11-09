@@ -16,7 +16,7 @@ import ZenvBadge from '../components/ZenvBadge';
  */
 export default function ForgotPasswordScreen() {
   const router = useRouter();
-  const { isDark } = useTheme();
+  const { isDark, colors } = useTheme();
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -138,7 +138,7 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={[s.container, { backgroundColor: isDark ? COLORS.bgDark : '#F8FAFC' }]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <KeyboardAvoidingView style={[s.container, { backgroundColor: isDark ? colors.bg : '#F8FAFC' }]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView
         contentContainerStyle={[s.scroll, { paddingBottom: 180 }]}
         keyboardShouldPersistTaps="handled"

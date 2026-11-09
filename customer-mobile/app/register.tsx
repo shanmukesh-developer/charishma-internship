@@ -34,7 +34,7 @@ export default function RegisterScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ phone?: string; registrationToken?: string; ref?: string }>();
   const { user, isLoading, setUser } = useAuth();
-  const { isDark } = useTheme();
+  const { isDark, colors } = useTheme();
 
   // A number already verified on the login screen (POST verify-otp / login → isNewUser)
   const [registrationToken, setRegistrationToken] = useState<string>(

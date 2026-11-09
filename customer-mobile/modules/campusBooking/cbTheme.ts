@@ -4,6 +4,7 @@
  * tracking (app/tracking/[id]). Nothing new is invented here: every token maps to constants/theme.
  */
 import { useTheme } from '../../context/ThemeContext';
+import { useDietLight } from '../../components/local/dietLightTheme';
 import { COLORS, SHADOWS, TYPE, surfaceLift } from '../../constants/theme';
 
 export { COLORS, SHADOWS, TYPE, surfaceLift };
@@ -36,18 +37,20 @@ export interface CbPalette {
 
 export function useCbTheme(): CbPalette {
   const { isDark } = useTheme();
+  // Owner, 10 Nov 2026: booking screens follow the diet picked on Home (light page, one accent).
+  const d = useDietLight();
   return {
     isDark,
-    page: isDark ? COLORS.bgDark : COLORS.bgLight,
-    card: isDark ? COLORS.bgCard : '#FFFFFF',
-    border: isDark ? COLORS.borderDark : COLORS.borderLight,
+    page: d.page,
+    card: d.card,
+    border: isDark ? d.edge : COLORS.borderLight,
     txt: isDark ? COLORS.textPrimary : COLORS.textDark,
     txtSec: isDark ? COLORS.textSecondary : COLORS.textDarkSecondary,
     muted: COLORS.textMuted,
-    accent: isDark ? COLORS.gold : COLORS.red,
-    accentSoft: isDark ? 'rgba(212,175,122,0.10)' : '#FFF5F6',
-    openInk: isDark ? '#6FBF8B' : '#2F7D4F',
-    closedInk: isDark ? '#E08A84' : '#B4473F',
+    accent: d.acc,
+    accentSoft: d.soft,
+    openInk: d.acc,
+    closedInk: d.muteInk,
     chipBg: isDark ? 'rgba(255,255,255,0.05)' : '#F4F4F5',
     gold: COLORS.gold,
     amber: isDark ? '#F5C451' : '#B45309',

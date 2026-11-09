@@ -8,7 +8,7 @@ import { COLORS, SHADOWS } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
 
 const { width: SW } = Dimensions.get('window');
-const CARD_SIZE = 130;
+const CARD_SIZE = 152;
 
 const STORAGE_KEY = 'zenvy_recently_viewed';
 
@@ -40,9 +40,10 @@ export async function saveRecentlyViewed(item: ViewedItem) {
   }
 }
 
-export default function RecentlyViewed() {
+/** accent: the Home Non-veg / Veg theme colour (owner redesign, 9 Nov 2026). */
+export default function RecentlyViewed({ accent = COLORS.red }: { accent?: string } = {}) {
   const router = useRouter();
-  const { isDark } = useTheme();
+  const { isDark, colors } = useTheme();
   const [items, setItems] = useState<ViewedItem[]>([]);
 
   useFocusEffect(
@@ -67,7 +68,7 @@ export default function RecentlyViewed() {
 
   const txt = isDark ? COLORS.textPrimary : COLORS.textDark;
   const txtSec = isDark ? COLORS.textSecondary : COLORS.textDarkSecondary;
-  const cardBg = isDark ? COLORS.bgCard : COLORS.bgLightCard;
+  const cardBg = isDark ? colors.card : COLORS.bgLightCard;
   const border = isDark ? COLORS.borderDark : COLORS.borderLight;
 
   const handleClear = async () => {
@@ -79,11 +80,11 @@ export default function RecentlyViewed() {
     <View style={s.container}>
       <View style={s.headerRow}>
         <View>
-          <Text style={s.sectionLabel}>Recently viewed</Text>
+          <Text style={[s.sectionLabel, { color: accent }]}>Recently viewed</Text>
           <Text style={[s.sectionTitle, { color: txt }]}>Pick up where you left off</Text>
         </View>
         <TouchableOpacity onPress={handleClear} style={s.clearBtn}>
-          <Text style={[s.clearText, { color: txtSec }]}>Clear</Text>
+          <Text style={[s.clearText, { color: accent }]}>Clear</Text>
         </TouchableOpacity>
       </View>
 
@@ -107,14 +108,12 @@ export default function RecentlyViewed() {
               }
             }}
           >
-            <Image
-              source={{ uri: item.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200' }}
-              style={s.cardImg}
-            />
-            {/* Gradient overlay */}
-            <View style={s.cardOverlay} />
-            <View style={s.cardContent}>
-              <Text style={s.cardName} numberOfLines={1}>{item.name}</Text>
+            <Image source={{ uri: item.image || '' }} style={s.cardImg} />
+            <View style={[s.cardContent, { backgroundColor: isDark ? '#17171C' : '#fff' }]}>
+              <Text style={[s.cardName, { color: txt }]} numberOfLines={1}>{item.name}</Text>
+              {!!(item.type === 'product' && item.restaurantName) && (
+                <Text style={[s.cardSub, { color: txtSec }]} numberOfLines={1}>{item.restaurantName}</Text>
+              )}
             </View>
           </TouchableOpacity>
         ))}
@@ -125,7 +124,8 @@ export default function RecentlyViewed() {
 
 const s = StyleSheet.create({
   container: {
-    marginBottom: 20,
+    marginTop: 20,
+    marginBottom: 4,
   },
   headerRow: {
     flexDirection: 'row',
@@ -135,14 +135,14 @@ const s = StyleSheet.create({
     marginBottom: 12,
   },
   sectionLabel: {
-    fontSize: 12,
-    fontWeight: '900',
+    fontSize: 11.5,
+    fontWeight: '700',
     color: COLORS.red,
-    marginBottom: 2,
+    marginBottom: 1,
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   clearBtn: {
     paddingVertical: 4,
@@ -158,15 +158,14 @@ const s = StyleSheet.create({
   },
   card: {
     width: CARD_SIZE,
-    height: CARD_SIZE,
-    borderRadius: 24,
+    borderRadius: 18,
     overflow: 'hidden',
     borderWidth: 1,
     ...SHADOWS.card,
   },
   cardImg: {
     width: '100%',
-    height: '100%',
+    height: 104,
     resizeMode: 'cover',
   },
   cardOverlay: {
@@ -178,14 +177,17 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.35)',
   },
   cardContent: {
-    position: 'absolute',
-    bottom: 10,
-    left: 10,
-    right: 10,
+    paddingHorizontal: 10,
+    paddingTop: 7,
+    paddingBottom: 9,
   },
   cardName: {
-    fontSize: 12,
-    fontWeight: '900',
+    fontSize: 12.5,
+    fontWeight: '700',
     color: '#fff',
+  },
+  cardSub: {
+    fontSize: 10.5,
+    marginTop: 1,
   },
 });

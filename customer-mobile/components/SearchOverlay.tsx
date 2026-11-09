@@ -115,7 +115,7 @@ interface SearchOverlayProps {
 
 export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: SearchOverlayProps) {
   const router = useRouter();
-  const { isDark } = useTheme();
+  const { isDark, colors } = useTheme();
   const { cart, addToCart, updateQuantity } = useCart();
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -313,7 +313,7 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
     });
   };
 
-  const cardBg = isDark ? COLORS.bgCard : '#FFF';
+  const cardBg = isDark ? colors.card : '#FFF';
   const txtColor = isDark ? '#FFF' : COLORS.textDark;
   const txtMuted = isDark ? COLORS.textSecondary : COLORS.textDarkSecondary;
   const border = isDark ? COLORS.borderDark : COLORS.borderLight;
@@ -322,7 +322,7 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
 
   return (
     <Modal visible={isOpen} animationType="fade" transparent={false} onRequestClose={onClose}>
-      <View style={[s.container, { backgroundColor: isDark ? COLORS.bgDark : COLORS.bgLight }]}>
+      <View style={[s.container, { backgroundColor: isDark ? colors.bg : COLORS.bgLight }]}>
         {/* Header */}
         <View style={s.header}>
           <TouchableOpacity onPress={onClose} style={[s.closeBtn, { borderColor: border, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F1F5F9' }]}>

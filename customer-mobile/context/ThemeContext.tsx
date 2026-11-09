@@ -17,7 +17,7 @@ interface ThemeContextType {
   isThemeReady: boolean;
 }
 
-const ThemeContext = createContext<ThemeContextType>({
+export const ThemeContext = createContext<ThemeContextType>({
   theme: 'light',
   toggleTheme: () => {},
   isDark: true,
@@ -79,3 +79,21 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
 export const useTheme = () => useContext(ThemeContext);
 
+
+/**
+ * Owner, 10 Nov 2026 ("dark mode colour grading for the entire application"): in dark mode the base surfaces take a
+ * deep tint of the diet picked on Home - wine-black for Non-veg, forest-black for Veg. Mounted inside DietaryProvider
+ * (app/_layout), it re-provides the theme so every useTheme() screen is graded; light mode is untouched.
+ */
+const DARK_GRADE = {
+  nonveg: { bg: '#0F0A0B', bgSubtle: '#160E10', card: '#1C1315', cardSecondary: '#251A1D', cardHover: '#2E2024', tabBarBg: '#120B0D', glassBg: 'rgba(28,19,21,0.92)' },
+  veg: { bg: '#080E0A', bgSubtle: '#0D1611', card: '#121C16', cardSecondary: '#18251D', cardHover: '#1F2E25', tabBarBg: '#0A120D', glassBg: 'rgba(18,28,22,0.92)' },
+};
+export function DietGradedTheme({ veg, children }: { veg: boolean; children: ReactNode }) {
+  const base = useContext(ThemeContext);
+  const value = useMemo<ThemeContextType>(
+    () => (base.isDark ? { ...base, colors: { ...base.colors, ...(veg ? DARK_GRADE.veg : DARK_GRADE.nonveg) } } : base),
+    [base, veg],
+  );
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+}

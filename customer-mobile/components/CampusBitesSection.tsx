@@ -184,7 +184,7 @@ export type CampusBitesSectionHandle = { refresh: () => Promise<void> };
 
 const CampusBitesSection = forwardRef<CampusBitesSectionHandle, CampusBitesSectionProps>(function CampusBitesSection({ restaurants, loading: homeLoading = false, variant = 'section', banner }, ref) {
   const router = useRouter();
-  const { isDark } = useTheme();
+  const { isDark, colors } = useTheme();
   const isPage = variant === 'page';
   const [selectedCampus, setSelectedCampus] = useState('ALL');
   const [stallSearch, setStallSearch] = useState('');
@@ -319,7 +319,7 @@ const CampusBitesSection = forwardRef<CampusBitesSectionHandle, CampusBitesSecti
     router.push(`/restaurant/${id}` as any);
   };
 
-  const cardBg = isDark ? COLORS.bgCard : '#FFF';
+  const cardBg = isDark ? colors.card : '#FFF';
   const txt = isDark ? COLORS.textPrimary : COLORS.textDark;
   const txtSec = isDark ? COLORS.textSecondary : COLORS.textDarkSecondary;
   const border = isDark ? COLORS.borderDark : COLORS.borderLight;

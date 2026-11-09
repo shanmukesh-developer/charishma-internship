@@ -17,8 +17,9 @@ import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { AuthProvider } from '../context/AuthContext';
 import { CartProvider } from '../context/CartContext';
 import { OptionsSheetProvider } from '../components/ProductOptions';
-import { ThemeProvider, useTheme } from '../context/ThemeContext';
-import { DietaryProvider } from '../context/DietaryContext';
+import { ThemeProvider, useTheme, DietGradedTheme } from '../context/ThemeContext';
+import { DietaryProvider, useDietary } from '../context/DietaryContext';
+import { isVegDiet } from '../components/local/dietLightTheme';
 import { WorldTransitionProvider } from '../context/WorldTransitionContext';
 import WorldTransitionOverlay from '../components/WorldTransitionOverlay';
 import IntroOverlay from '../components/IntroOverlay';
@@ -248,6 +249,12 @@ function useWebTitle() {
   }, []);
 }
 
+/** Dark mode follows the Home diet (owner, 10 Nov 2026). */
+function DietGradedRoot() {
+  const { dietMode } = useDietary();
+  return <DietGradedTheme veg={isVegDiet(dietMode)}><AppContainer /></DietGradedTheme>;
+}
+
 export default function RootLayout() {
   useWebTitle();
   // A screen that crashes on render: "Go to Home" puts the navigation back to the tabs before the app re-renders.
@@ -257,7 +264,7 @@ export default function RootLayout() {
     <ErrorBoundary onGoHome={goHome}>
       <ThemeProvider>
         <DietaryProvider>
-          <AppContainer />
+          <DietGradedRoot />
         </DietaryProvider>
       </ThemeProvider>
     </ErrorBoundary>

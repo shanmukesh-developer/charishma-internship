@@ -348,7 +348,7 @@ interface CustomizeDrawerProps {
 }
 
 export default function CustomizeDrawer({ isOpen, onClose, onConfirm, itemName, basePrice, tags, category, isVegetarian = true }: CustomizeDrawerProps) {
-  const { isDark } = useTheme();
+  const { isDark, colors } = useTheme();
   // Callers often pass a fresh `[]` each render; key on the contents so a parent re-render
   // does not rebuild the options and wipe the student's choices.
   const tagsKey = (tags || []).join('|');
@@ -417,7 +417,7 @@ export default function CustomizeDrawer({ isOpen, onClose, onConfirm, itemName, 
     onConfirm(customizations, computedPrice);
   };
 
-  const bg = isDark ? COLORS.bgCard : '#FFFFFF';
+  const bg = isDark ? colors.card : '#FFFFFF';
   const textClr = isDark ? COLORS.textPrimary : COLORS.textDark;
   const subTextClr = isDark ? COLORS.textSecondary : COLORS.textDarkSecondary;
   const borderClr = isDark ? COLORS.borderDark : COLORS.borderLight;

@@ -5,8 +5,11 @@
  * stall's prep setting, every update the push notifications announced, and the order summary. Live: the server
  * nudges this student's socket room on every change.
  */
+import { useDietLight } from '../../components/local/dietLightTheme';
+import { useTopInset } from '../../utils/useTopInset';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Linking, Modal, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Linking, Modal, RefreshControl, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { resolveMediaUrl } from '../../utils/imageUpload';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import Clipboard from '@react-native-clipboard/clipboard';
@@ -18,6 +21,8 @@ import { CbHeader, EmptyCard, NoticeBar, PlaceButton, StaggeredSection, StatusTa
 const mem = new Map<string, CbBooking>();
 
 export default function CbOrder({ id }: { id: string }) {
+  const d = useDietLight();
+  const topPad = useTopInset();
   const p = useCbTheme();
   const router = useRouter();
   const [b, setB] = useState<CbBooking | null>(mem.get(id) || null);
@@ -58,6 +63,10 @@ export default function CbOrder({ id }: { id: string }) {
   }
 
   const ready = b.status === 'READY';
+  // Owner, 10 Nov 2026: the gold of this screen follows the diet accent in light mode.
+  const gold = p.accent;
+  // The old dark layout stays in the file but no longer renders (owner, 10 Nov 2026: dark gets the new look).
+  const legacy = false as boolean;
   const live = ['ACCEPTED', 'PREPARING', 'READY'].includes(b.status);
   const minsToReady = b.estimatedReadyAt ? Math.round((new Date(b.estimatedReadyAt).getTime() - serverNow()) / 60000) : null;
   const cancelAfterPay = b.status === 'CANCELLED' && b.paymentVerified;
@@ -77,7 +86,20 @@ export default function CbOrder({ id }: { id: string }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: p.page }}>
-      <CbHeader title={ready ? 'Order ready' : 'Order tracking'} sub={`Booking ${b.ref} · ${stallName}`} onBack={back} right={<StatusTag status={b.status} label={b.statusLabel} />} />
+      {legacy ? (
+        <CbHeader title={ready ? 'Order ready' : 'Order tracking'} sub={`Booking ${b.ref} · ${stallName}`} onBack={back} right={<StatusTag status={b.status} label={b.statusLabel} />} />
+      ) : (
+        <View style={[s.band, { backgroundColor: d.top, paddingTop: topPad + 8 }]}>
+          <TouchableOpacity onPress={back} style={[s.bandBack, { backgroundColor: p.card }]} accessibilityRole="button" accessibilityLabel="Back">
+            <Ionicons name="chevron-back" size={20} color={d.dk} />
+          </TouchableOpacity>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={[s.bandTitle, { color: d.dk }]} numberOfLines={1} accessibilityRole="header">{ready ? 'Order ready' : 'Order tracking'}</Text>
+            <Text style={{ fontSize: 12, color: d.dk, opacity: 0.7 }} numberOfLines={1}>{`${stallName} · pickup at the counter · ${b.ref}`}</Text>
+          </View>
+          <StatusTag status={b.status} label={b.statusLabel} />
+        </View>
+      )}
       <ScrollView
         contentContainerStyle={{ padding: 16, width: '100%', maxWidth: 600, alignSelf: 'center' }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={p.accent} colors={[COLORS.red]} />}
@@ -102,13 +124,80 @@ export default function CbOrder({ id }: { id: string }) {
           </TouchableOpacity>
         ) : null}
 
-        {/* Pickup code (Delivery PIN card style) */}
-        {live && b.pickupCode ? (
+        {/* v7StatusCard: the replica's tracking card (light mode) */}
+        {b.status !== 'CANCELLED' ? (() => {
+          const steps = b.timeline;
+          const short = (l: string) => {
+            const x = l.toLowerCase();
+            return x.includes('payment') ? 'Paid' : x.includes('accept') ? 'Accepted' : x.includes('prepar') ? 'Preparing' : x.includes('ready') ? 'Ready' : x.includes('collect') ? 'Collected' : l;
+          };
+          const doneN = steps.filter((x) => x.done).length;
+          const img = resolveMediaUrl(b.stall?.imageUrl || '') || null;
+          const sub = ready ? `Show your code at ${stallName}'s counter` : live && b.estimatedReadyAt ? (minsToReady !== null && minsToReady > 0 ? `Ready in about ${minsToReady} min` : `Should be ready about now · ${timeIST(b.estimatedReadyAt)}`) : null;
+          return (
+            <StaggeredSection delay={0} direction="up">
+              <View style={[s.v7Card, { backgroundColor: p.card, borderColor: p.border }]}>
+                <View style={{ flexDirection: 'row' }}>
+                  <View style={{ flex: 1, paddingRight: 8 }}>
+                    <Text style={{ fontSize: 11.5, fontWeight: '700', color: p.txtSec }}>Current status</Text>
+                    <Text style={{ fontSize: 22, fontWeight: '800', color: p.txt, marginTop: 2 }}>{b.statusLabel}</Text>
+                    {sub ? (
+                      <View style={[s.etaPill, { backgroundColor: p.accentSoft, alignSelf: 'flex-start', marginTop: 8, marginBottom: 0 }]}>
+                        <Ionicons name="time-outline" size={13} color={p.accent} />
+                        <Text style={{ fontSize: 12, fontWeight: '800', color: p.accent }}>{sub}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                  {img ? <View style={[s.v7Img, { backgroundColor: '#111', overflow: 'hidden' }]}><Image source={{ uri: img }} style={{ width: '100%', height: '100%' }} resizeMode="contain" /></View> : null}
+                </View>
+                <View style={{ flexDirection: 'row', gap: 4, marginTop: 18 }}>
+                  {steps.map((x, i) => (
+                    <View key={x.key} style={{ flex: 1, height: 4, borderRadius: 3, backgroundColor: p.isDark ? 'rgba(255,255,255,0.12)' : '#ECEEF3', overflow: 'hidden' }}>
+                      {x.done ? <View style={{ flex: 1, backgroundColor: p.accent }} /> : i === doneN && live ? <View style={{ width: '50%', height: '100%', backgroundColor: p.accent }} /> : null}
+                    </View>
+                  ))}
+                </View>
+                <View style={{ flexDirection: 'row', marginTop: 6 }}>
+                  {steps.map((x, i) => (
+                    <Text key={x.key} style={{ flex: 1, textAlign: i === 0 ? 'left' : i === steps.length - 1 ? 'right' : 'center', fontSize: 10, fontWeight: '700', color: i === doneN && live ? p.accent : p.txtSec }} numberOfLines={1}>{short(x.label)}</Text>
+                  ))}
+                </View>
+              </View>
+              {live && b.pickupCode ? (
+                <View style={[s.v7Pin, { backgroundColor: p.accentSoft }]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 11.5, fontWeight: '700', color: d.dk, opacity: 0.85 }}>Pickup code</Text>
+                    <Text style={{ fontSize: 11.5, color: d.dk, opacity: 0.8 }}>{copied ? 'Copied' : 'Show it at the counter'}</Text>
+                    <TouchableOpacity onPress={() => setZoom(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel="Enlarge the pickup code">
+                      <Text style={{ fontSize: 12, fontWeight: '800', color: p.accent, marginTop: 4 }}>Enlarge</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TouchableOpacity onPress={copyCode} accessibilityRole="button" accessibilityLabel={`Pickup code ${b.pickupCode.split('').join(' ')}. Tap to copy`}>
+                    <Text style={{ fontSize: 28, fontWeight: '900', letterSpacing: 6, color: p.accent }}>{b.pickupCode}</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null}
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
+                {[
+                  ...(b.stall ? [{ icon: 'storefront-outline', label: 'Visit stall', on: () => router.push(`/campus-booking/stall/${b.stall!.id}` as any) }] : []),
+                  { icon: 'help-circle-outline', label: 'Help', on: () => router.push('/support' as any) },
+                  { icon: 'share-social-outline', label: 'Share', on: () => { Share.share({ message: `My ZenWe booking ${b.ref} at ${stallName}${b.pickupCode ? ` · pickup code ${b.pickupCode}` : ''}` }).catch(() => {}); } },
+                ].map((a) => (
+                  <TouchableOpacity key={a.label} onPress={a.on} style={[s.v7Tile, { backgroundColor: p.card, borderColor: p.border }]} accessibilityRole="button">
+                    <Ionicons name={a.icon as any} size={20} color={p.accent} />
+                    <Text style={{ fontSize: 12, fontWeight: '800', color: p.txt }}>{a.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </StaggeredSection>
+          );
+        })() : null}
+        {legacy && live && b.pickupCode ? (
           <StaggeredSection delay={0} direction="up">
-            <View style={[s.pinCard, { backgroundColor: p.card, borderColor: ready ? COLORS.gold : p.border }]}>
+            <View style={[s.pinCard, { backgroundColor: p.card, borderColor: ready ? gold : p.border }]}>
               <View style={s.pinHeader}>
                 <View style={[s.pinIconWrap, { backgroundColor: p.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(212,175,122,0.12)' }]}>
-                  <Ionicons name={ready ? 'checkmark-done-outline' : 'key-outline'} size={18} color={COLORS.gold} />
+                  <Ionicons name={ready ? 'checkmark-done-outline' : 'key-outline'} size={18} color={gold} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[s.pinLabel, { color: p.txtSec }]}>{ready ? 'Order ready · Pickup code' : 'Pickup code'}</Text>
@@ -116,7 +205,7 @@ export default function CbOrder({ id }: { id: string }) {
                 </View>
               </View>
               <View style={s.pinDisplayRow}>
-                <TouchableOpacity style={[s.pinButton, ready && { paddingVertical: 18 }]} onPress={copyCode} accessibilityLabel={`Pickup code ${b.pickupCode.split('').join(' ')}. Tap to copy`}>
+                <TouchableOpacity style={[s.pinButton, { backgroundColor: gold, shadowColor: gold }, ready && { paddingVertical: 18 }]} onPress={copyCode} accessibilityLabel={`Pickup code ${b.pickupCode.split('').join(' ')}. Tap to copy`}>
                   <Text style={[s.pinText, ready && { fontSize: 30, letterSpacing: 10 }]}>{b.pickupCode}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[s.zoomBtn, { borderColor: p.border, backgroundColor: p.isDark ? 'rgba(255,255,255,0.05)' : '#F9FAFB' }]} onPress={() => setZoom(true)} accessibilityRole="button" accessibilityLabel="Enlarge the pickup code">
@@ -128,9 +217,9 @@ export default function CbOrder({ id }: { id: string }) {
         ) : null}
 
         {/* Estimated ready time */}
-        {live && !ready && b.estimatedReadyAt ? (
+        {legacy && live && !ready && b.estimatedReadyAt ? (
           <View style={[s.waitBox, { backgroundColor: p.card, borderColor: p.border }]}>
-            <Ionicons name="time-outline" size={20} color={COLORS.gold} />
+            <Ionicons name="time-outline" size={20} color={gold} />
             <View style={{ flex: 1 }}>
               <Text style={[s.waitTitle, { color: p.txt }]}>{minsToReady !== null && minsToReady > 0 ? `Ready in about ${minsToReady} min` : 'Should be ready about now'}</Text>
               <Text style={[s.waitSub, { color: p.txtSec }]}>{`Estimated ready time ${timeIST(b.estimatedReadyAt)}, from ${stallName}'s usual prep time (${b.prepMinutes} min).`}</Text>
@@ -139,10 +228,10 @@ export default function CbOrder({ id }: { id: string }) {
         ) : null}
 
         {/* Progress */}
-        {b.status !== 'CANCELLED' ? (
+        {legacy && b.status !== 'CANCELLED' ? (
           <StaggeredSection delay={80} direction="up">
             <View style={[s.timelineCard, { backgroundColor: p.card, borderColor: p.border }]}>
-              <Text style={[s.cardLabel, { color: p.txtSec }]}>Order progress</Text>
+              <Text style={[s.cardLabel, { color: p.txtSec }, s.cardLabelCaps]}>Order progress</Text>
               {b.timeline.map((step, i) => {
                 const last = i === b.timeline.length - 1;
                 const isCurrent = i === currentIdx && live;
@@ -150,15 +239,15 @@ export default function CbOrder({ id }: { id: string }) {
                 return (
                   <View key={step.key} style={s.stepRow}>
                     <View style={s.nodeCol}>
-                      <View style={[s.dot, step.done ? { backgroundColor: COLORS.gold } : isCurrent ? { backgroundColor: p.card, borderWidth: 2, borderColor: COLORS.gold } : { backgroundColor: pendingColor }]}>
-                        {step.done ? <Ionicons name="checkmark" size={14} color="#FFF" /> : isCurrent ? <View style={s.dotInner} /> : null}
+                      <View style={[s.dot, step.done ? { backgroundColor: gold } : isCurrent ? { backgroundColor: p.card, borderWidth: 2, borderColor: gold, ...(p.isDark ? null : { shadowColor: gold, shadowOpacity: 0.35, shadowRadius: 6, shadowOffset: { width: 0, height: 0 } }) } : (p.isDark ? { backgroundColor: pendingColor } : { backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: '#D9DBE3' })]}>
+                        {step.done ? <Ionicons name="checkmark" size={14} color="#FFF" /> : isCurrent ? <View style={[s.dotInner, { backgroundColor: gold }]} /> : null}
                       </View>
-                      {!last ? <View style={[s.line, { backgroundColor: b.timeline[i + 1].done ? COLORS.gold : pendingColor }]} /> : null}
+                      {!last ? <View style={[s.line, { backgroundColor: b.timeline[i + 1].done ? gold : pendingColor }]} /> : null}
                     </View>
                     <View style={{ flex: 1, paddingBottom: last ? 0 : 16 }}>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Text style={[s.stepLabel, { color: isCurrent ? COLORS.gold : step.done ? p.txt : p.txtSec }]}>{step.label}</Text>
-                        {step.at ? <Text style={[s.stepTime, { color: p.txtSec }]}>{timeIST(step.at)}</Text> : isCurrent ? <Text style={[s.stepTime, { color: COLORS.gold }]}>Now</Text> : null}
+                        <Text style={[s.stepLabel, { color: isCurrent ? gold : step.done ? p.txt : p.txtSec }]}>{step.label}</Text>
+                        {step.at ? <Text style={[s.stepTime, { color: p.txtSec }]}>{timeIST(step.at)}</Text> : isCurrent ? <Text style={[s.stepTime, { color: gold }]}>Now</Text> : null}
                       </View>
                     </View>
                   </View>
@@ -170,10 +259,10 @@ export default function CbOrder({ id }: { id: string }) {
 
         {/* Updates */}
         <View style={[s.timelineCard, { backgroundColor: p.card, borderColor: p.border }]}>
-          <Text style={[s.cardLabel, { color: p.txtSec }]}>Updates</Text>
+          <Text style={[s.cardLabel, { color: p.txtSec }, s.cardLabelCaps]}>Updates</Text>
           {updatesOf(b).map((u, i) => (
             <View key={`${u.title}-${i}`} style={[s.updateRow, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.border }]}>
-              <Ionicons name={u.icon as any} size={16} color={u.tone === 'red' ? COLORS.red : COLORS.gold} />
+              <Ionicons name={u.icon as any} size={16} color={u.tone === 'red' ? COLORS.red : p.accent} />
               <View style={{ flex: 1 }}>
                 <Text style={[s.updateTitle, { color: p.txt }]}>{u.title}</Text>
                 <Text style={[s.updateSub, { color: p.txtSec }]}>{u.body}</Text>
@@ -185,7 +274,7 @@ export default function CbOrder({ id }: { id: string }) {
 
         {/* Order summary */}
         <View style={[s.timelineCard, { backgroundColor: p.card, borderColor: p.border }]}>
-          <Text style={[s.cardLabel, { color: p.txtSec }]}>Order summary · {stallName}</Text>
+          <Text style={[s.cardLabel, { color: p.txtSec }, s.cardLabelCaps]}>Order summary · {stallName}</Text>
           {b.items.map((it, idx) => (
             <View key={idx} style={s.summaryRow}>
               <Text style={[s.summaryItem, { color: p.txt }]} numberOfLines={2}>{it.quantity} × {it.name}</Text>
@@ -221,8 +310,8 @@ export default function CbOrder({ id }: { id: string }) {
           <Text style={[s.summaryAddress, { color: p.txtSec }]}>Booked {whenIST(b.createdAt)} · pickup at the counter</Text>
         </View>
 
-        {/* Quick actions (tracking action row) */}
-        <View style={s.actionRow}>
+        {/* Quick actions (tracking action row) - dark mode; light mode has the tiles */}
+        <View style={[s.actionRow, { display: 'none' }]}>
           {b.stall ? (
             <TouchableOpacity style={[s.actionBtn, { backgroundColor: p.card, borderColor: p.border }]} onPress={() => router.push(`/campus-booking/stall/${b.stall!.id}` as any)} accessibilityRole="button" accessibilityLabel="Visit stall">
               <Ionicons name="storefront-outline" size={16} color={p.txt} />
@@ -242,9 +331,9 @@ export default function CbOrder({ id }: { id: string }) {
         <View style={s.modalOverlay}>
           <TouchableOpacity style={StyleSheet.absoluteFill} onPress={() => setZoom(false)} accessibilityLabel="Close" />
           <View style={[s.zoomPinBox, { backgroundColor: p.card, borderColor: p.border }]}>
-            <Text style={s.zoomTitle}>Pickup code</Text>
+            <Text style={[s.zoomTitle, { color: gold }]}>Pickup code</Text>
             <Text style={[s.zoomDesc, { color: p.txtSec }]}>Show this code at {stallName}'s counter</Text>
-            <View style={s.zoomPinDisplay}><Text style={s.zoomPinText}>{b.pickupCode}</Text></View>
+            <View style={[s.zoomPinDisplay, { backgroundColor: gold, shadowColor: gold }]}><Text style={s.zoomPinText}>{b.pickupCode}</Text></View>
             <TouchableOpacity style={s.zoomCloseBtn} onPress={() => setZoom(false)}><Text style={s.zoomCloseText}>Close</Text></TouchableOpacity>
           </View>
         </View>
@@ -271,6 +360,17 @@ const updatesOf = (b: CbBooking): Update[] => {
 };
 
 const s = StyleSheet.create({
+  v7Card: { backgroundColor: '#FFFFFF', borderRadius: 22, borderWidth: 1, padding: 16, marginBottom: 12, overflow: 'hidden' },
+  v7Img: { width: 86, height: 86, borderRadius: 18, marginTop: -2, marginRight: -2 },
+  v7Pin: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, borderRadius: 18, marginBottom: 12 },
+  v7Tile: { flex: 1, alignItems: 'center', gap: 5, paddingVertical: 12, borderRadius: 16, backgroundColor: '#FFFFFF', borderWidth: 1 },
+  band: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingBottom: 16, borderBottomLeftRadius: 22, borderBottomRightRadius: 22 },
+  bandBack: { width: 38, height: 38, borderRadius: 12, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  bandTitle: { fontSize: 18, fontWeight: '800' },
+  ticketCard: { alignItems: 'center', paddingVertical: 18, paddingHorizontal: 16, borderRadius: 20, borderWidth: 1.5, borderStyle: 'dashed', backgroundColor: '#FFFFFF', marginBottom: 12 },
+  ticketCode: { fontSize: 36, fontWeight: '900', letterSpacing: 9, marginVertical: 4 },
+  etaPill: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'center', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, marginBottom: 14 },
+  cardLabelCaps: { textTransform: 'uppercase', letterSpacing: 0.6, fontSize: 11.5, fontWeight: '800' },
   cancelBox: { paddingVertical: 14, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(239,79,95,0.2)', backgroundColor: 'rgba(239,79,95,0.06)', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
   cancelBoxText: { fontSize: 13, fontWeight: '700', color: COLORS.red, letterSpacing: 0.2 },
   pinCard: { padding: 16, borderRadius: 20, borderWidth: 1, marginBottom: 16 },
@@ -280,7 +380,7 @@ const s = StyleSheet.create({
   pinDesc: { fontSize: 12, fontWeight: '600', marginTop: 2 },
   pinDisplayRow: { flexDirection: 'row', gap: 8 },
   pinButton: { flex: 1, backgroundColor: COLORS.gold, borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingVertical: 12, ...SHADOWS.goldGlow },
-  pinText: { fontSize: 18, fontWeight: '700', color: '#000', letterSpacing: 6 },
+  pinText: { fontSize: 18, fontWeight: '700', color: '#FFF', letterSpacing: 6 },
   zoomBtn: { paddingHorizontal: 16, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   waitBox: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 14, borderWidth: 1, marginBottom: 16 },
   waitTitle: { fontSize: 14, fontWeight: '600' },
@@ -311,7 +411,7 @@ const s = StyleSheet.create({
   zoomTitle: { fontSize: 15, fontWeight: '700', color: COLORS.gold, letterSpacing: 0.2, marginBottom: 4 },
   zoomDesc: { fontSize: 12, fontWeight: '700', marginBottom: 20 },
   zoomPinDisplay: { width: '100%', backgroundColor: COLORS.gold, paddingVertical: 20, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 20, ...SHADOWS.goldGlow },
-  zoomPinText: { fontSize: 48, fontWeight: '700', color: '#000', letterSpacing: 10 },
+  zoomPinText: { fontSize: 48, fontWeight: '700', color: '#FFF', letterSpacing: 10 },
   zoomCloseBtn: { width: '100%', paddingVertical: 14, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.04)', alignItems: 'center' },
   zoomCloseText: { fontSize: 12, fontWeight: '600', color: '#888' },
 });

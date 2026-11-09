@@ -59,7 +59,7 @@ export function CbHeader({ title, sub, right, onBack }: { title: string; sub?: s
   const back = useCbBack();
   const topPad = useTopInset();
   return (
-    <View style={[k.header, { paddingTop: topPad, backgroundColor: p.isDark ? '#000' : '#FFF', borderBottomColor: p.border }]}>
+    <View style={[k.header, { paddingTop: topPad, backgroundColor: p.isDark ? p.page : '#FFF', borderBottomColor: p.border }]}>
       <TouchableOpacity onPress={onBack || back} style={[k.backBtn, { backgroundColor: p.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} accessibilityRole="button" accessibilityLabel="Back">
         <Ionicons name="chevron-back" size={20} color={p.txt} />
       </TouchableOpacity>
@@ -80,25 +80,26 @@ export function Card({ children, style }: { children: React.ReactNode; style?: S
 /** The store page Add button; turns into the filled stepper once the item is in this stall's pickup cart. */
 export function AddControl({ qty, onAdd, onRemove, soldOut, closed, max = 10 }: { qty: number; onAdd: () => void; onRemove: () => void; soldOut?: boolean; closed?: boolean; max?: number }) {
   const p = useCbTheme();
-  const tint = COLORS.red;
+  const tint = p.accent;
   if (soldOut) {
     return <View style={[k.addBtn, { backgroundColor: '#E5E7EB', borderColor: '#9CA3AF' }]}><Text style={[k.addText, { color: '#6B7280' }]}>Sold out</Text></View>;
   }
   if (qty > 0) {
     return (
-      <View style={[k.stepper, { backgroundColor: tint, borderColor: tint }]}>
-        <TouchableOpacity style={k.stepBtn} onPress={onRemove} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={`Remove one. ${qty} in cart`}>
-          <SymbolIcon name="remove" style={k.stepText} />
+      // Owner, 10 Nov 2026: soft accent pill, white round - / + (same size as Add), count centred.
+      <View style={[k.softStepper, { backgroundColor: p.accentSoft, borderColor: p.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]}>
+        <TouchableOpacity style={k.softStepBtn} onPress={onRemove} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={`Remove one. ${qty} in cart`}>
+          <Ionicons name="remove" size={15} color={tint} />
         </TouchableOpacity>
-        <Text style={k.stepCount}>{qty}</Text>
-        <TouchableOpacity style={k.stepBtn} onPress={onAdd} disabled={qty >= max} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={`Add one more. ${qty} in cart`}>
-          <SymbolIcon name="add" style={[k.stepText, qty >= max && { opacity: 0.4 }]} />
+        <Text style={[k.stepCount, { color: tint, fontSize: 13 }]}>{qty}</Text>
+        <TouchableOpacity style={k.softStepBtn} onPress={onAdd} disabled={qty >= max} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={`Add one more. ${qty} in cart`}>
+          <Ionicons name="add" size={15} color={tint} style={qty >= max ? { opacity: 0.4 } : undefined} />
         </TouchableOpacity>
       </View>
     );
   }
   return (
-    <CartPressable style={[k.addBtn, closed ? { backgroundColor: '#F3F4F6', borderColor: '#9CA3AF' } : { backgroundColor: p.isDark ? 'rgba(239,79,95,0.10)' : '#FFF5F6', borderColor: tint }]} onPress={onAdd} sound="addToCart">
+    <CartPressable style={[k.addBtn, closed ? { backgroundColor: '#F3F4F6', borderColor: '#D1D5DB' } : { backgroundColor: p.card, borderColor: p.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }]} onPress={onAdd} sound="addToCart">
       <Text style={[k.addText, { color: closed ? '#6B7280' : tint }]}>{closed ? 'Closed' : 'Add'}</Text>
     </CartPressable>
   );
@@ -106,9 +107,10 @@ export function AddControl({ qty, onAdd, onRemove, soldOut, closed, max = 10 }: 
 
 /** Checkout's "Place order" button (red, glow), used for Proceed to pay / Submit payment. */
 export function PlaceButton({ label, onPress, busy, busyLabel, disabled, style }: { label: string; onPress: () => void; busy?: boolean; busyLabel?: string; disabled?: boolean; style?: StyleProp<ViewStyle> }) {
+  const p = useCbTheme();
   return (
     <ActionPressable
-      style={[k.placeBtn, { opacity: disabled && !busy ? 0.5 : 1 }, style]}
+      style={[k.placeBtn, { backgroundColor: p.accent, shadowColor: p.accent, opacity: disabled && !busy ? 0.5 : 1 }, style]}
       onPress={disabled || busy ? () => {} : onPress}
       disabled={busy}
       sound="success"
@@ -151,6 +153,17 @@ export function OutlineButton({ label, onPress, icon, tone = 'accent', style, di
 
 /** Status words on the store page badge colours (never colour alone). */
 export function StatusTag({ status, label }: { status: CbStatus; label: string }) {
+  const p = useCbTheme();
+  // Light mode (owner, 10 Nov 2026): one diet accent for live steps, grey for closed ones, red only when rejected.
+  if (true) {
+    const closed = status === 'COLLECTED' || status === 'CANCELLED';
+    const bad = status === 'REJECTED';
+    return (
+      <View style={[k.statusBadge, { backgroundColor: bad ? (p.isDark ? 'rgba(239,68,68,0.15)' : '#FEECEC') : closed ? (p.isDark ? 'rgba(255,255,255,0.08)' : '#F2F3F6') : p.accentSoft }]}>
+        <Text style={[k.statusBadgeText, { color: bad ? (p.isDark ? '#FCA5A5' : '#B42318') : closed ? p.closedInk : p.accent }]} numberOfLines={1}>{label}</Text>
+      </View>
+    );
+  }
   const bg = status === 'PAYMENT_REVIEW' ? '#F59E0B'
     : status === 'REJECTED' || status === 'CANCELLED' ? '#B4473F'
       : status === 'PAYMENT_PENDING' ? '#6B7280'
@@ -190,6 +203,15 @@ export function NoticeBar({ icon, text, tone = 'orange', style }: { icon: IconNa
   const p = useCbTheme();
   const c = tone === 'indigo' ? '#6366F1' : tone === 'red' ? '#EF4F5F' : tone === 'green' ? '#10B981' : '#F97316';
   const rgb = tone === 'indigo' ? '99,102,241' : tone === 'red' ? '239,79,95' : tone === 'green' ? '16,185,129' : '249,115,22';
+  // Light mode (owner, 10 Nov 2026): one quiet soft-accent line, no orange / indigo boxes. Dark keeps the tones.
+  if (true) {
+    return (
+      <View style={[k.noticeBar, { backgroundColor: p.accentSoft, borderColor: 'transparent' }, style]}>
+        <Ionicons name={icon} size={16} color={p.accent} />
+        <Text style={{ flex: 1, color: p.txt, fontSize: 12.5, fontWeight: '600', lineHeight: 17 }}>{text}</Text>
+      </View>
+    );
+  }
   return (
     <View style={[k.noticeBar, { backgroundColor: `rgba(${rgb},${p.isDark ? 0.12 : 0.08})`, borderColor: `rgba(${rgb},0.3)` }, style]}>
       <Ionicons name={icon} size={16} color={c} />
@@ -248,8 +270,10 @@ export const k = StyleSheet.create({
   backBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginRight: 16 },
   headerTitle: { fontSize: 15, fontWeight: '700', letterSpacing: 0.2 },
   card: { borderRadius: 16, borderWidth: 1, padding: 16 },
-  addBtn: { width: 72, paddingVertical: 6, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center', ...SHADOWS.card },
+  addBtn: { width: 84, height: 32, borderRadius: 16, borderWidth: 1, alignItems: 'center', justifyContent: 'center', ...SHADOWS.card },
   addText: { fontSize: 12, fontWeight: '900', letterSpacing: 0.2 },
+  softStepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: 84, height: 32, paddingHorizontal: 4, borderRadius: 16, borderWidth: 1, ...SHADOWS.card },
+  softStepBtn: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 2, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
   stepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: 76, paddingVertical: 4, paddingHorizontal: 6, borderRadius: 12, borderWidth: 1, ...SHADOWS.card, elevation: 4 },
   stepBtn: { paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center' },
   stepText: { fontSize: 14, fontWeight: '900', color: '#FFFFFF', lineHeight: 16 },

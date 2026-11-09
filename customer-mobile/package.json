@@ -65,7 +65,8 @@
     "build:preview": "eas build --platform android --profile preview",
     "build:prod": "eas build --platform android --profile production",
     "submit": "eas submit --platform android --profile production",
-    "export": "expo export --platform android"
+    "export": "expo export --platform android",
+    "postinstall": "npx --yes patch-package"
   },
   "private": true
 }

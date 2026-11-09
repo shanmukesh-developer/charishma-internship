@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, Alert, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, Alert, ActivityIndicator, RefreshControl, Image } from 'react-native';
 import { KeyboardAvoidingView } from '../../components/KeyboardAvoidingView';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Clipboard from '@react-native-clipboard/clipboard';
@@ -16,6 +16,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { summarizeCustomizations } from '../../components/CustomizeDrawer';
 import AmbientBackground from '../../components/AmbientBackground';
+import { useDietLight } from '../../components/local/dietLightTheme';
+const EMPTY_CART = require('../../assets/home-redesign-2026-11-09/basket-fab-full-cart-gemini-2026-11-10.webp');
 import { StaggeredSection, FloatingPulse, BounceIn } from '../../components/AnimatedSection';
 import DopaminePressable, { ActionPressable } from '../../components/DopaminePressable';
 import SafeImage from '../../components/SafeImage';
@@ -249,7 +251,8 @@ export default function BasketScreen() {
               </StaggeredSection>
   );
 
-  const bg = colors.bg;
+  const d = useDietLight();
+  const bg = d.page;
   const cardBg = colors.card;
   const txt = colors.text;
   const txtSec = colors.textSecondary;
@@ -284,22 +287,22 @@ export default function BasketScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={[s.container, { paddingTop: topPad, backgroundColor: bg }]} enabled={basketFocused}>
-      <AmbientBackground />
+    <KeyboardAvoidingView style={[s.container, { paddingTop: 0, backgroundColor: bg }]} enabled={basketFocused}>
       <View style={{ flex: 1, marginBottom: listBottom }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         refreshControl={user && hasOrderLines ? <RefreshControl refreshing={!!quoteLoading} onRefresh={refreshQuote} tintColor={goldColor} colors={[COLORS.red]} /> : undefined}
       >
+        <View style={{ backgroundColor: d.top, paddingTop: topPad + 8, paddingBottom: 14, borderBottomLeftRadius: 26, borderBottomRightRadius: 26, marginBottom: 16 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 16 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
             <TabBackButton />
-            <Text style={[s.pageTitle, { color: txt, marginBottom: 0, paddingHorizontal: 0 }]}>Your basket</Text>
+            <Text style={[s.pageTitle, { color: d.dk, marginBottom: 0, paddingHorizontal: 0 }]}>Your basket</Text>
           </View>
           {cart.length > 0 && (
             <TouchableOpacity
-              style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, backgroundColor: isDark ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.08)' }}
+              style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.7)' }}
               accessibilityRole="button"
               accessibilityLabel={`Clear your ${BASKET_LABELS[basketKind]} basket`}
               onPress= {() => {
@@ -317,13 +320,13 @@ export default function BasketScreen() {
                 );
               }}
             >
-              <Text style={{ fontSize: 12, fontWeight: '900', color: '#EF4444', letterSpacing: 0.2 }}>Clear this basket</Text>
+              <Text style={{ fontSize: 12, fontWeight: '900', color: d.acc, letterSpacing: 0.2 }}>Clear this basket</Text>
             </TouchableOpacity>
           )}
         </View>
 
         {/* Basket switch: Restaurants · Groceries · Campus store · Local stores (label over count, so four fit at large text) */}
-        <View style={[s.segWrap, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F1F5F9', borderColor: border }]} accessibilityRole="tablist">
+        <View style={[s.segWrap, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.65)', borderColor: 'transparent', marginBottom: 0 }]} accessibilityRole="tablist">
           {BASKET_KINDS.map((k) => {
             const selected = k === basketKind;
             const n = basketCounts[k];
@@ -331,36 +334,66 @@ export default function BasketScreen() {
             return (
               <TouchableOpacity
                 key={k}
-                style={[s.seg, selected && { backgroundColor: isDark ? goldColor : COLORS.red }]}
+                style={[s.seg, selected && ({ backgroundColor: d.card, shadowColor: d.acc, shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 })]}
                 onPress={() => setActiveBasket(k)}
                 activeOpacity={0.8}
                 accessibilityRole="tab"
                 accessibilityState={{ selected }}
                 accessibilityLabel={`${BASKET_LABELS[k]} basket, ${plural(n, 'item')}`}
               >
-                <Text style={[s.segText, { color: selected ? onColor : txt }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{BASKET_LABELS[k]}</Text>
-                <Text style={[s.segCount, { color: selected ? onColor : n === 0 ? txtSec : txt }]} numberOfLines={1}>{n}</Text>
+                <Text style={[s.segText, { color: selected ? d.acc : d.dk }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{BASKET_LABELS[k]}</Text>
+                {false ? (
+                  <Text style={[s.segCount, { color: selected ? onColor : n === 0 ? txtSec : txt }]} numberOfLines={1}>{n}</Text>
+                ) : (
+                  <View style={{ minWidth: 20, height: 18, paddingHorizontal: 6, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: selected ? d.acc : d.card }}>
+                    <Text style={[s.segCount, { fontSize: 11, color: selected ? d.onAcc : txtSec }]} numberOfLines={1}>{n}</Text>
+                  </View>
+                )}
               </TouchableOpacity>
             );
           })}
+        </View>
         </View>
 
         {/* Group basket (restaurant orders only) */}
         {basketKind === 'restaurant' && (
         <StaggeredSection delay={50} direction="up">
-          <View style={[s.groupCard, { backgroundColor: cardBg, borderColor: border }]}>
+          <View style={[s.groupCard, { backgroundColor: cardBg, borderColor: d.edge }]}>
             {!roomCode ? (
               <View>
-                <Text style={{ fontSize: 12, fontWeight: '900', color: goldColor, letterSpacing: 0.3, marginBottom: 2 }}>Group basket</Text>
-                <Text style={[s.groupDesc, { color: txtSec }]}>Build one basket with your roommates. One person checks out and pays.</Text>
-                <View style={s.groupBtns}>
-                  <TouchableOpacity style={[s.hostBtn, { borderColor: border, backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }]} onPress={onHostRoom} accessibilityRole="button">
-                    <Text style={[s.hostBtnText, { color: txt }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>Start a group basket</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[s.joinBtn, { backgroundColor: goldColor }]} onPress={() => setIsJoinOpen(!isJoinOpen)} accessibilityRole="button" accessibilityState={{ expanded: isJoinOpen }}>
-                    <Text style={s.joinBtnText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>Join a group basket</Text>
-                  </TouchableOpacity>
-                </View>
+                {false ? (
+                  <>
+                    <Text style={{ fontSize: 12, fontWeight: '900', color: goldColor, letterSpacing: 0.3, marginBottom: 2 }}>Group basket</Text>
+                    <Text style={[s.groupDesc, { color: txtSec }]}>Build one basket with your roommates. One person checks out and pays.</Text>
+                    <View style={s.groupBtns}>
+                      <TouchableOpacity style={[s.hostBtn, { borderColor: border, backgroundColor: 'rgba(255,255,255,0.03)' }]} onPress={onHostRoom} accessibilityRole="button">
+                        <Text style={[s.hostBtnText, { color: txt }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>Start a group basket</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={[s.joinBtn, { backgroundColor: goldColor }]} onPress={() => setIsJoinOpen(!isJoinOpen)} accessibilityRole="button" accessibilityState={{ expanded: isJoinOpen }}>
+                        <Text style={s.joinBtnText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>Join a group basket</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                ) : (
+                  // Owner, 10 Nov 2026: one quiet row - icon, "Order together", Start (accent) / Join (soft)
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <View style={{ width: 42, height: 42, borderRadius: 13, backgroundColor: d.soft, alignItems: 'center', justifyContent: 'center' }}>
+                      <Ionicons name="people-outline" size={21} color={d.acc} />
+                    </View>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={{ fontSize: 14, fontWeight: '800', color: txt }}>Order together</Text>
+                      <Text style={{ fontSize: 11.5, color: txtSec, marginTop: 2, lineHeight: 15 }}>One basket with your roommates. One person checks out and pays.</Text>
+                    </View>
+                    <View style={{ gap: 6 }}>
+                      <TouchableOpacity onPress={onHostRoom} style={{ backgroundColor: d.acc, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 10, alignItems: 'center' }} accessibilityRole="button" accessibilityLabel="Start a group basket">
+                        <Text style={{ color: d.onAcc, fontSize: 12, fontWeight: '800' }}>Start</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => setIsJoinOpen(!isJoinOpen)} style={{ backgroundColor: d.soft, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 10, alignItems: 'center' }} accessibilityRole="button" accessibilityLabel="Join a group basket" accessibilityState={{ expanded: isJoinOpen }}>
+                        <Text style={{ color: d.acc, fontSize: 12, fontWeight: '800' }}>Join</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
                 {isJoinOpen && (
                   <View style={s.joinInputRow}>
                     <TextInput
@@ -372,7 +405,7 @@ export default function BasketScreen() {
                       autoCapitalize="characters"
                     />
                     <TouchableOpacity 
-                      style={[s.joinSubmit, { backgroundColor: goldColor }]} 
+                      style={[s.joinSubmit, { backgroundColor: d.acc }]} 
                       onPress={() => { 
                         if (!inputCode || inputCode.trim().length < 3) {
                           Alert.alert('Check the room code', 'Enter the room code your roommate shared.');
@@ -439,8 +472,13 @@ export default function BasketScreen() {
 
         {cart.length === 0 ? (
           <StaggeredSection delay={100} direction="up">
-            <View style={[s.emptyBox, { backgroundColor: cardBg, borderColor: border }]}>
-              <Ionicons name="cart-outline" size={48} color={txtSec} style={{ marginBottom: 16 }} />
+            <View style={[s.emptyBox, { backgroundColor: cardBg, borderColor: d.edge }]}>
+              {false ? <Ionicons name="cart-outline" size={48} color={txtSec} style={{ marginBottom: 16 }} /> : (
+                // Owner, 10 Nov 2026: a real cart full of items on a soft diet-colour circle
+                <View style={{ width: 128, height: 128, borderRadius: 64, backgroundColor: d.soft, marginBottom: 16, alignItems: 'center', justifyContent: 'flex-end' }}>
+                  <Image source={EMPTY_CART} style={{ width: 118, height: 134, marginBottom: 4 }} resizeMode="contain" accessibilityIgnoresInvertColors />
+                </View>
+              )}
               <Text style={[s.emptyTitle, { color: txt }]}>Your basket is empty</Text>
               <Text style={[s.emptyDesc, { color: txtSec }]}>
                 {basketKind === 'store'
@@ -452,11 +490,11 @@ export default function BasketScreen() {
                       : 'Add meals from campus restaurants. Groceries, campus stalls and local stores have their own baskets.'}
               </Text>
               <TouchableOpacity
-                style={[s.exploreBtn, { backgroundColor: COLORS.red }]}
+                style={[s.exploreBtn, { backgroundColor: d.acc, shadowColor: d.acc }]}
                 activeOpacity={0.85}
                 onPress={() => router.push((basketKind === 'store' ? '/(tabs)/others' : basketKind === 'campus' ? '/campus-booking' : basketKind === 'stall' ? '/(tabs)/local' : '/(tabs)') as any)}
               >
-                <Text style={s.exploreBtnText}>{basketKind === 'store' ? 'Browse groceries' : basketKind === 'campus' ? 'Browse campus stalls' : basketKind === 'stall' ? 'Browse local stores' : 'Browse restaurants'}</Text>
+                <Text style={[s.exploreBtnText, { color: d.onAcc }]}>{basketKind === 'store' ? 'Browse groceries' : basketKind === 'campus' ? 'Browse campus stalls' : basketKind === 'stall' ? 'Browse local stores' : 'Browse restaurants'}</Text>
               </TouchableOpacity>
             </View>
           </StaggeredSection>

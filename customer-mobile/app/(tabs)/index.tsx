@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, RefreshControl, FlatList, Dimensions, Platform, Modal, ActivityIndicator, Alert, Animated, Linking, BackHandler, Vibration } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, RefreshControl, FlatList, Dimensions, Platform, Modal, ActivityIndicator, Alert, Animated, Linking, BackHandler, Vibration, StatusBar } from 'react-native';
 import { takesSlotOrders } from '../../utils/storeOpenNow';
 import { useSectionUsage, rankByUsage, recordSectionUse } from '../../utils/sectionUsage';
 import { CB_COUNTER_PHOTO } from '../../modules/campusBooking/cbTheme';
@@ -23,6 +23,7 @@ import { readCache, writeCache, peekCache, RESTAURANTS_CACHE_KEY, useSWRJson, us
 import NexusExplorer, { cuisineHasDishes } from '../../components/NexusExplorer';
 import SearchOverlay from '../../components/SearchOverlay';
 import PromoCarousel from '../../components/PromoCarousel';
+import { homeTheme, DietTabs, HeaderIconButton, SectionHeading, ServicesBento, DealsStrip, RestaurantsOpener, RestaurantKindTabs, KindPanel, SlotTag, EndCaption, restaurantKind, type RestaurantKind, type ServiceKey } from '../../components/home/HomeRedesign2026';
 import HighClassPromoCarousel from '../../components/HighClassPromoCarousel';
 import CampusLiveTicker from '../../components/CampusLiveTicker';
 import { isLocalVendor } from '../../utils/localVendor';
@@ -44,6 +45,7 @@ import { useTopInset } from '../../utils/useTopInset';
 import { useIntroDone } from '../../utils/introGate';
 import { rememberIntroSoundSetting } from '../../components/intro/introSound';
 import SymbolIcon from '../../components/SymbolIcon';
+import VegModeSplash from '../../components/home/VegModeSplash';
 
 const VaultTimerBadge = ({ pulseAnim }: { pulseAnim: any }) => {
   const [vaultTimer, setVaultTimer] = useState('00:00:00');
@@ -76,6 +78,9 @@ const VaultTimerBadge = ({ pulseAnim }: { pulseAnim: any }) => {
 
 // Swiggy/Zomato style rotating search placeholder. Lives in its own component so the 3.5 s tick
 // re-renders one TextInput instead of the whole home screen (it used to re-filter every restaurant).
+const HEADER_MOON = require('../../assets/home-redesign-2026-11-09/home-header-moon-fluent3d-2026-11-09.png');
+const HEADER_BELL = require('../../assets/home-redesign-2026-11-09/home-header-bell-fluent3d-2026-11-09.png');
+
 const SEARCH_PLACEHOLDERS = [
   'Search for biryani…',
   'Search for pizza…',
@@ -83,15 +88,19 @@ const SEARCH_PLACEHOLDERS = [
   'Search for cold coffee…',
   'Search for burgers…',
 ]; // short enough to fit whole at large phone text (QA 5 Nov, 130%)
-const RotatingSearchInput = React.memo(function RotatingSearchInput({ search, color, placeholderColor, inputStyle }: { search: string; color: string; placeholderColor: string; inputStyle: any }) {
+const RotatingSearchInput = React.memo(function RotatingSearchInput({ search, words, color, placeholderColor, inputStyle }: { search: string; words?: string[]; color: string; placeholderColor: string; inputStyle: any }) {
+  // Real dishes and stores on ZenWe right now (owner, 9 Nov 2026: never random or unavailable items).
+  const list = words && words.length ? words.map((w) => `Search ‘${w}’`) : SEARCH_PLACEHOLDERS;
   const isFocused = useIsFocused();
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const placeholderFade = useRef(new Animated.Value(1)).current;
+  const listLenRef = useRef(list.length);
+  listLenRef.current = list.length;
   useEffect(() => {
     if (!isFocused) return; // tab hidden: no timers, no animations
     const interval = setInterval(() => {
       Animated.timing(placeholderFade, { toValue: 0, duration: 250, useNativeDriver: true }).start(() => {
-        setPlaceholderIndex(prev => (prev + 1) % SEARCH_PLACEHOLDERS.length);
+        setPlaceholderIndex(prev => (prev + 1) % Math.max(1, listLenRef.current));
         Animated.timing(placeholderFade, { toValue: 1, duration: 300, useNativeDriver: true }).start();
       });
     }, 3500);
@@ -101,7 +110,7 @@ const RotatingSearchInput = React.memo(function RotatingSearchInput({ search, co
     <Animated.View style={{ flex: 1, opacity: placeholderFade }}>
       <TextInput
         style={[inputStyle, { color }]}
-        placeholder={SEARCH_PLACEHOLDERS[placeholderIndex]}
+        placeholder={list[placeholderIndex % list.length]}
         placeholderTextColor={placeholderColor}
         value={search}
         editable={false}
@@ -387,6 +396,10 @@ export default function HomeScreen() {
   const [search, setSearch] = useState('');
   const { dietMode, setDietMode } = useDietary();
   const [vegOnly, setVegOnly] = useState(dietMode === 'veg' || dietMode === 'eggarian');
+  // Restaurants / Fast food / Tiffins tab on Home (owner, 9 Nov 2026)
+  const [kind, setKind] = useState<RestaurantKind>('rest');
+  // Swiggy-style "Veg mode on" splash when Home switches to Veg (owner, 10 Nov 2026).
+  const [vegSplash, setVegSplash] = useState(false);
 
   useEffect(() => {
     setVegOnly(dietMode === 'veg' || dietMode === 'eggarian');
@@ -440,6 +453,16 @@ export default function HomeScreen() {
   // Owner, 31 Oct 2026: Campus can be switched off from the admin (Friends master switch); then the header
   // button and its promo go. Unknown (offline, older server) keeps them.
   const campusOff = sectionsSWR.data?.sections?.campus?.live === false;
+  // Services tiles for switched-off sections stay hidden until admin turns them on (same rule as the ads).
+  const hiddenServiceTiles = React.useMemo(() => {
+    const sec = sectionsSWR.data?.sections;
+    const out = new Set<ServiceKey>();
+    if (sec?.coride?.live !== true) out.add('rides');
+    if (sec?.rentals?.live === false) out.add('rentals');
+    // Owner, 9 Nov 2026: the PG tile shows even while no PG is listed yet; only the admin switch hides it.
+    if (sec?.pg?.live === false) out.add('pg');
+    return out;
+  }, [sectionsSWR.data]);
 
   // Search Overlay State
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -701,6 +724,14 @@ export default function HomeScreen() {
     }, [user, unreadNonce])
   );
 
+  // The coloured header sits under the status bar: light icons while Home is on screen.
+  useFocusEffect(
+    useCallback(() => {
+      StatusBar.setBarStyle('light-content', true);
+      return () => StatusBar.setBarStyle(isDark ? 'light-content' : 'dark-content', true);
+    }, [isDark])
+  );
+
   // Exit prompt on Android back, only while Home is the focused screen. (usePathname re-rendered
   // this whole screen on every navigation anywhere in the app.)
   useFocusEffect(
@@ -729,12 +760,40 @@ export default function HomeScreen() {
     },
   });
 
-  useEffect(() => { setGridLimit(GRID_PAGE); }, [vegOnly, filter, search, classicFilter]);
+  useEffect(() => { setGridLimit(GRID_PAGE); }, [vegOnly, filter, search, classicFilter, kind]);
 
   // Memoized: the list is only re-filtered when its inputs change, not on every render
   // Loaded, no error, and no food vendor on ZCS at all (the real stores are being entered): the food filters,
   // "Popular dishes" and the restaurant grid would only lead to empty screens, so Home says so once instead.
   const noFoodVendors = !loading && !loadError && !restaurants.some(isHomeFoodVendor);
+  // Restaurants / Fast food / Tiffins (owner, 9 Nov 2026), read from each store's cuisine tags for now.
+  const dietStores = React.useMemo(() => restaurants.filter(isHomeFoodVendor).filter((r) => (vegOnly ? hasVegDish(r) : true)), [restaurants, vegOnly]);
+  const kindCounts = React.useMemo(() => {
+    const c: Record<RestaurantKind, number> = { rest: 0, fast: 0, tiffin: 0 };
+    dietStores.forEach((r) => { c[restaurantKind(r)] += 1; });
+    return c;
+  }, [dietStores]);
+  const openerAvatars = React.useMemo(() => dietStores.map((r: any) => r.imageUrl || r.image).filter(Boolean).slice(0, 4) as string[], [dietStores]);
+  // Search box words: real dishes on today's menus and real stores, split by the Non-veg / Veg tab.
+  const searchWords = React.useMemo(() => {
+    const dishes: string[] = [];
+    const stores: string[] = [];
+    dietStores.forEach((r: any) => {
+      if (!vegOnly || isPureVegRestaurant(r)) stores.push(String(r.name || '').trim());
+      availableMenu(r).forEach((m: any) => {
+        const isVeg = m?.isVegetarian === true || String(m?.dietType || '').toLowerCase() === 'veg';
+        if (vegOnly ? isVeg : !isVeg) dishes.push(String(m?.name || '').trim());
+      });
+    });
+    const out: string[] = [];
+    const seen = new Set<string>();
+    for (let i = 0; out.length < 14 && (i < dishes.length || i < stores.length); i++) {
+      for (const w of [dishes[i * 3], dishes[i * 3 + 1], stores[i]]) {
+        if (w && w.length <= 26 && !seen.has(w.toLowerCase())) { seen.add(w.toLowerCase()); out.push(w); }
+      }
+    }
+    return out;
+  }, [dietStores, vegOnly]);
   const filtered = React.useMemo(() => restaurants
     .filter(isHomeFoodVendor)
     .filter(r => {
@@ -744,6 +803,8 @@ export default function HomeScreen() {
       return true;
     })
     .filter(r => matchesHomeFilter(r, filter, favorites))
+    // A search looks across every kind; otherwise only the chosen tab's stores.
+    .filter(r => !!search || restaurantKind(r) === kind)
     .filter(r => {
       if (!search) return true;
       const q = search.toLowerCase();
@@ -760,8 +821,11 @@ export default function HomeScreen() {
       if (aMatch && !bMatch) return -1;
       if (!aMatch && bMatch) return 1;
       return 0;
-    }), [restaurants, vegOnly, filter, search, classicFilter, favorites]);
+    }), [restaurants, vegOnly, filter, search, classicFilter, favorites, kind]);
 
+  // Home theme (owner, 9 Nov 2026): Non-veg = dark red, Veg = dark green, Home screen only.
+  const ht = homeTheme(vegOnly);
+  const pageBg = isDark ? colors.bg : ht.pageLight;
   const cardBg = isDark ? 'rgba(255, 255, 255, 0.08)' : colors.card;
   const txt = colors.text;
   const openBasket = useCallback((kind: BasketKind) => router.push(`/(tabs)/basket?basket=${kind}` as any), [router]);
@@ -788,414 +852,155 @@ export default function HomeScreen() {
   if (!introDone) return <View style={[s.container, { paddingTop: topPad, backgroundColor: bg }]} />;
 
   return (
-    <KeyboardAvoidingView style={[s.container, { paddingTop: topPad, backgroundColor: bg }]} enabled={homeFocused}>
-      <AmbientBackground />
+    <KeyboardAvoidingView style={[s.container, { paddingTop: 0, backgroundColor: pageBg }]} enabled={homeFocused}>
+      {/* Page tint follows the Non-veg / Veg theme (Home only) */}
+      <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: pageBg }]} />
+      {/* Owner, 10 Nov 2026: no fixed status-bar strip (it stayed on top while scrolling); the coloured header
+          starts at the very top and scrolls away with the page. */}
       <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} scrollEventThrottle={200} onScroll={onHomeScroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(); }} tintColor={goldColor} />}>
 
-        {/* ── NAVBAR (SWIGGY & ZOMATO ELEVATED HEADER) ── */}
-        <StaggeredSection delay={0} direction="down">
-        <View style={s.nav}>
-          <TouchableOpacity 
-            style={s.navLeft}
-            activeOpacity={0.8}
-            onPress={() => router.push('/(tabs)/profile')}
-          >
-            <View style={[s.avatar, { backgroundColor: cardBg, borderColor: goldBorderColor, overflow: 'hidden' }, liftSm, user?.isElite && [s.avatarElite, { borderColor: goldColor }, goldGlowShadow]]}>
-              {user?.profileImage ? (
-                <SafeImage
-                  source={{ uri: user.profileImage }}
-                  // A broken profile photo shows the user's initials, never a stock photo of someone else.
-                  fallback={avatarLetters
-                    ? <Text style={[s.avatarText, { color: goldColor }]}>{avatarLetters}</Text>
-                    : <Ionicons name="person" size={18} color={goldColor} />}
-                  style={{ width: '100%', height: '100%' }}
-                />
-              ) : avatarLetters ? (
-                <Text style={[s.avatarText, { color: goldColor }]}>{avatarLetters}</Text>
-              ) : (
-                // A guest (or a name not set yet): a person, not the old "Z" brand letter.
-                <Ionicons name="person" size={18} color={goldColor} accessibilityLabel="Guest" />
+        {/* ── HOME HERO (owner prototype v63, 9 Nov 2026): Non-veg / Veg tabs recolour Home; header, search and ads live in the coloured panel ── */}
+        <View onLayout={(e) => { carouselTop.current = e.nativeEvent.layout.y; carouselHeight.current = e.nativeEvent.layout.height; }} style={{ backgroundColor: ht.top, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: 'hidden', marginBottom: 4, paddingTop: topPad }}>
+          <View style={[s.nav, { marginBottom: 10 }]}>
+            <TouchableOpacity style={s.navLeft} activeOpacity={0.8} onPress={() => router.push('/(tabs)/profile')}>
+              <LinearGradient colors={['#F6D98B', '#B8860B']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[s.avatar, { borderColor: 'rgba(255,255,255,0.85)', borderWidth: 2, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }]}>
+                {user?.profileImage ? (
+                  <SafeImage
+                    source={{ uri: user.profileImage }}
+                    fallback={avatarLetters ? <Text style={[s.avatarText, { color: '#3A2600' }]}>{avatarLetters}</Text> : <Ionicons name="person" size={18} color="#3A2600" />}
+                    style={{ width: '100%', height: '100%' }}
+                  />
+                ) : avatarLetters ? (
+                  <Text style={[s.avatarText, { color: '#3A2600' }]}>{avatarLetters}</Text>
+                ) : (
+                  <Ionicons name="person" size={18} color="#3A2600" accessibilityLabel="Guest" />
+                )}
+              </LinearGradient>
+              <View>
+                <Text style={[s.greeting, { color: 'rgba(255,255,255,0.75)' }]}>{getGreeting()}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={[s.userName, { color: '#fff' }]}>{(user?.name || 'Guest').trim().split(' ')[0] || 'Guest'}</Text>
+                  {!!user?.isElite && (
+                    <View style={[s.eliteBadge, { backgroundColor: '#D4AF7A', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }]}>
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#000', letterSpacing: 0.3 }}>Elite</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            </TouchableOpacity>
+            <View style={s.navRight}>
+              {campusOff ? null : (
+                <DopaminePressable style={[s.campusPill, { backgroundColor: 'rgba(255,255,255,0.14)', borderColor: 'rgba(255,255,255,0.3)' }]} onPress={() => router.push('/friends' as any)} sound="click" activeScale={0.92} accessibilityRole="button" accessibilityLabel="Open Campus">
+                  <Ionicons name="people-outline" size={16} color="#fff" />
+                  <Text style={[s.campusPillText, { color: '#fff' }]}>Campus</Text>
+                </DopaminePressable>
               )}
+              <HeaderIconButton source={HEADER_MOON} onPress={toggleTheme} label={isDark ? 'Switch to light theme' : 'Switch to dark theme'} />
+              <HeaderIconButton source={HEADER_BELL} ring onPress={() => { lastUnreadCheck.current.at = 0; router.push('/notifications' as any); }} label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}>
+                {unreadCount > 0 && <BounceIn><View style={s.badge}><Text style={s.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text></View></BounceIn>}
+              </HeaderIconButton>
+            </View>
+          </View>
+
+          <DietTabs
+            veg={vegOnly}
+            theme={ht}
+            onChange={(nextVeg) => {
+              if (nextVeg === vegOnly) return;
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+              if (nextVeg) setVegSplash(true);
+              setVegOnly(nextVeg);
+              setDietMode(nextVeg ? 'veg' : 'all');
+              if (!nextVeg && filter === 'veg') setFilter('all');
+            }}
+          />
+          <LinearGradient colors={[ht.sel, ht.sel2]} style={{ paddingTop: 14, paddingBottom: 6, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, borderTopLeftRadius: vegOnly ? 22 : 0, borderTopRightRadius: vegOnly ? 0 : 22 }}>
+            <View style={{ alignItems: 'center', marginBottom: 12 }}>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => setIsSearchOpen(true)}
+                accessibilityRole="search"
+                accessibilityLabel="Search dishes and stores"
+                style={[s.searchWrap, { backgroundColor: isDark ? '#1C1C22' : '#fff', borderColor: 'transparent', width: '90%', marginBottom: 0 }, lift]}
+              >
+                <Ionicons name="search-outline" size={17} color={txtSec} />
+                <RotatingSearchInput search={search} words={searchWords} color={txt} placeholderColor={txtSec} inputStyle={s.searchInput} />
+                {!!search && (
+                  <TouchableOpacity onPress={() => setSearch('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityLabel="Clear search">
+                    <SymbolIcon name="close" style={{ fontSize: 14, fontWeight: '600', color: txtSec }} />
+                  </TouchableOpacity>
+                )}
+              </TouchableOpacity>
             </View>
             <View>
-              <Text style={[s.greeting, { color: txtSec }]}>{getGreeting()}</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text style={[s.userName, { color: txt }]}>{(user?.name || 'Guest').trim().split(' ')[0] || 'Guest'}</Text>
-                {!!user?.isElite && (
-                  <View style={[s.eliteBadge, { backgroundColor: '#D4AF7A', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }]}>
-                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#000', letterSpacing: 0.3 }}>Elite</Text>
-                  </View>
-                )}
-              </View>
+              <HighClassPromoCarousel
+                visible={carouselVisible}
+                hiddenSlideIds={hiddenPromoSlides}
+                featuredRestaurants={restaurants}
+                themeAccent={ht.adAccent}
+                themeBase={ht.adBase}
+                noPeek
+                onSelectRestaurant={(id) => router.push(`/restaurant/${id}` as any)}
+                onSelectSlide={(slide) => {
+                  if (slide.id === 'gold-pass') router.push('/(tabs)/profile');
+                  else if (slide.id === 'biryani') {
+                    setSearch('Biryani');
+                    scrollToGrid();
+                  } else if (slide.id === 'kfc') {
+                    const kfc = restaurants.find((r: any) => /kfc/i.test(r?.name || ''));
+                    if (kfc) router.push(`/restaurant/${kfc.id || kfc._id}` as any);
+                    else { setSearch('KFC'); scrollToGrid(); }
+                  } else if (slide.id === 'campus-buddy') {
+                    router.push('/friends' as any);
+                  } else if (slide.id === 'ride') {
+                    router.push({ pathname: '/(tabs)/services', params: { tab: 'rides' } } as any);
+                  } else if (slide.id === 'stays') {
+                    router.push({ pathname: '/(tabs)/services', params: { tab: 'stays' } } as any);
+                  } else if (slide.id === 'express-canteen') {
+                    router.push('/category/express' as any);
+                  } else if (slide.id === 'welcome-benefits') {
+                    fetchVaultItems();
+                    setShowVaultModal(true);
+                  } else if (slide.id === 'free-cash') {
+                    scrollToGrid();
+                  }
+                }}
+              />
             </View>
-          </TouchableOpacity>
-
-          <View style={s.navRight}>
-            {/* Campus: the one entry for chats, Friends (Pulse, Spaces, Forum, Tasks, Connect), Around campus and Me.
-                Hidden while the admin has Campus switched off. */}
-            {campusOff ? null : (
-              <DopaminePressable
-                style={[s.campusPill, { backgroundColor: cardBg, borderColor: goldBorderColor }, liftSm]}
-                onPress={() => router.push('/friends' as any)}
-                sound="click"
-                activeScale={0.92}
-                accessibilityRole="button"
-                accessibilityLabel="Open Campus"
-              >
-                <Ionicons name="people-outline" size={16} color={goldColor} />
-                <Text style={[s.campusPillText, { color: goldColor }]}>Campus</Text>
-              </DopaminePressable>
-            )}
-            <DopaminePressable 
-              style={[s.navBtn, { backgroundColor: cardBg, borderColor: goldBorderColor }, liftSm]} 
-              onPress={toggleTheme}
-              sound="click"
-              activeScale={0.9}
-              accessibilityRole="button"
-              accessibilityLabel={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
-            >
-              <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={18} color={goldColor} />
-            </DopaminePressable>
-            <DopaminePressable 
-              style={[s.navBtn, { backgroundColor: cardBg, borderColor: goldBorderColor }, s.profileBtn, { borderColor: goldColor }, goldGlowShadow]} 
-              onPress={() => { lastUnreadCheck.current.at = 0; router.push('/notifications' as any); }}
-              sound="click"
-              activeScale={0.9}
-              accessibilityRole="button"
-              accessibilityLabel={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
-            >
-              <Ionicons name="notifications-outline" size={18} color={goldColor} />
-              {unreadCount > 0 && <BounceIn><View style={s.badge}><Text style={s.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text></View></BounceIn>}
-            </DopaminePressable>
-          </View>
+          </LinearGradient>
         </View>
-        </StaggeredSection>
 
-        {/* ── SEARCH & VEG MODE TOGGLE (SWIGGY / ZOMATO SIGNATURE BAR) ── */}
-        <StaggeredSection delay={350} direction="left">
-        <View style={s.searchBarContainer}>
-          <TouchableOpacity 
-            activeOpacity={0.9}
-            onPress={() => setIsSearchOpen(true)}
-            accessibilityRole="search"
-            accessibilityLabel="Search dishes and stores"
-            style={[s.searchWrap, { backgroundColor: cardBg, borderColor: isDark ? goldBorderColor : LIGHT_HAIRLINE, flex: 1, marginBottom: 0 }, lift]}
-          >
-            <Ionicons name="search-outline" size={17} color={txtSec} />
-            <RotatingSearchInput search={search} color={txt} placeholderColor={txtSec} inputStyle={s.searchInput} />
-            {!!search && (
-              <TouchableOpacity
-                onPress={() => setSearch('')}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                accessibilityLabel="Clear search"
-              >
-                <SymbolIcon name="close" style={{ fontSize: 14, fontWeight: '600', color: txtSec }} />
-              </TouchableOpacity>
-            )}
-          </TouchableOpacity>
 
-          {/* VEG MODE Switch (Swiggy / Zomato Style) */}
-          <TouchableOpacity
-            activeOpacity={0.8}
-            accessibilityRole="switch"
-            accessibilityState={{ checked: vegOnly }}
-            accessibilityLabel="Veg only"
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-              const nextVal = !vegOnly;
-              setVegOnly(nextVal);
-              setDietMode(nextVal ? 'veg' : 'all');
-              if (!nextVal && filter === 'veg') setFilter('all');
-            }}
-            style={[
-              s.vegToggleWrap,
-              { backgroundColor: cardBg, borderColor: vegOnly ? '#10B981' : (isDark ? 'rgba(255,255,255,0.1)' : LIGHT_HAIRLINE) },
-              vegOnly ? surfaceShadow(isDark) : lift,
-            ]}
-          >
-            <Text style={[s.vegToggleText, { color: vegOnly ? '#10B981' : txtSec }]}>Veg</Text>
-            <View style={[s.vegSwitchTrack, { backgroundColor: vegOnly ? '#10B981' : (isDark ? 'rgba(255,255,255,0.2)' : '#E2E8F0') }]}>
-              <View style={[s.vegSwitchThumb, vegOnly && s.vegSwitchThumbActive]} />
-            </View>
-          </TouchableOpacity>
-        </View>
-        </StaggeredSection>
-
-        {/* ── PROMO CAROUSEL right under the search bar (owner's choice) ── */}
-        <View style={{ height: 8 }} onLayout={(e) => { carouselTop.current = e.nativeEvent.layout.y + e.nativeEvent.layout.height; }} />
-        {/* ── HIGH-CLASS SWIGGY/ZOMATO PROMO CAROUSEL (WITH MINIATURE ANIMATIONS & ADMIN SPOTLIGHT) ── */}
-        <StaggeredSection delay={100} direction="up">
-          <View onLayout={(e) => { carouselHeight.current = e.nativeEvent.layout.height; }}>
-          <HighClassPromoCarousel 
-            visible={carouselVisible}
-            hiddenSlideIds={hiddenPromoSlides}
-            featuredRestaurants={restaurants}
-            onSelectRestaurant={(id) => router.push(`/restaurant/${id}` as any)}
-            onSelectSlide={(slide) => {
-              if (slide.id === 'gold-pass') router.push('/(tabs)/profile');
-              else if (slide.id === 'biryani') {
-                const wasOpen = classicFilter !== '';
-                setClassicFilter('Biryani');
-                scrollToNexusSoon(wasOpen);
-              } else if (slide.id === 'kfc') {
-                const kfc = restaurants.find((r: any) => /kfc/i.test(r?.name || ''));
-                if (kfc) router.push(`/restaurant/${kfc.id || kfc._id}` as any);
-                else { setSearch('KFC'); scrollToGrid(); }
-              } else if (slide.id === 'campus-buddy') {
-                router.push('/friends' as any);
-              } else if (slide.id === 'ride') {
-                router.push({ pathname: '/(tabs)/services', params: { tab: 'rides' } } as any);
-              } else if (slide.id === 'stays') {
-                router.push({ pathname: '/(tabs)/services', params: { tab: 'stays' } } as any);
-              } else if (slide.id === 'express-canteen') {
-                router.push('/category/express' as any);
-              } else if (slide.id === 'welcome-benefits') {
-                fetchVaultItems();
-                setShowVaultModal(true);
-              } else if (slide.id === 'free-cash') {
-                scrollToGrid();
-              }
+        {/* ── EXPLORE ZENWE: services bento (In-Campus Booking first; tiles for switched-off sections stay hidden) ── */}
+        <View style={{ marginTop: 14 }}>
+          <SectionHeading kicker="Explore ZenWe" title="Everything you need on campus" color={ht.acc} titleColor={txt} />
+          <ServicesBento
+            hidden={hiddenServiceTiles}
+            onOpen={(k) => {
+              if (k === 'campusBooking') router.push('/campus-booking' as any);
+              else if (k === 'groceries') router.push({ pathname: '/(tabs)/others', params: { tab: 'food' } } as any);
+              else if (k === 'promos') router.push({ pathname: '/(tabs)/others', params: { tab: 'promos' } } as any);
+              else router.push({ pathname: '/(tabs)/services', params: { tab: k } } as any);
             }}
           />
-          </View>
-        </StaggeredSection>
-
-        {/* ── LIVE CAMPUS TICKER (SWIGGY / ZOMATO DEALS & PULSE) ── */}
-        <StaggeredSection delay={150} direction="up">
-          <View style={{ marginTop: 6, marginBottom: 2 }}>
-            <CampusLiveTicker />
-          </View>
-        </StaggeredSection>
-
-        {/* ── NIGHT CLOSURE (9 PM to 6 AM): say it on Home, not first at checkout ── */}
-        <NightClosureBanner style={{ marginTop: 0, marginBottom: 12 }} />
-        {/* Delivery slots: the next slot and its booking cutoff, one quiet line (day only) */}
-        <NextSlotHint style={{ marginTop: 0, marginBottom: 10 }} />
-
-        {/* ── FEATURE CARDS: every section, swiped sideways; most used first ── */}
-        <StaggeredSection delay={200} direction="up">
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={s.premiumCatRow}
-          contentContainerStyle={s.premiumCatGrid}
-          snapToInterval={CAT_CARD_W + CAT_GAP}
-          decelerationRate="fast"
-        >
-          {homeCategories.map((c, catIdx) => (
-            <BounceIn key={c.key} delay={300 + Math.min(catIdx, 3) * 80} style={{ width: CAT_CARD_W }}>
-            <DopaminePressable 
-              style={[
-                s.premiumCatBtn, 
-                { 
-                  backgroundColor: cardBg, 
-                  borderColor: isDark ? border : LIGHT_HAIRLINE,
-                },
-                lift,
-              ]} 
-              onPress={() => {
-                if (c.key === 'food') {
-                  recordSectionUse('food');
-                  scrollToGrid();
-                } else if (c.key === 'campusBooking') {
-                  router.push('/campus-booking' as any);
-                } else {
-                  // Others / Services record the visit from their ?tab= link. Tester, 5 Nov 2026: "Clicking on PG Stays
-                  // opens the groceries tab": the card went to the Groceries tab, which then forwarded to Services.
-                  // Each card now opens its own tab directly (Deals & spin lives in Groceries, the rest in Services).
-                  const hub = c.key === 'promos' || c.key === 'food' ? '/(tabs)/others' : '/(tabs)/services';
-                  router.push({ pathname: hub, params: { tab: c.key } } as any);
-                }
-              }}
-              sound="tabSwitch"
-              activeScale={0.95}
-              accessibilityLabel={c.label}
-            >
-              <SafeImage 
-                source={CATEGORY_IMAGES[c.key as keyof typeof CATEGORY_IMAGES]} 
-                style={{ width: '100%', height: 60 }} 
-                resizeMode="cover" 
-              />
-              <Text style={[s.premiumCatLabel, { color: txt, marginTop: 8, marginBottom: 8 }, c.key === 'campusBooking' && { letterSpacing: 0, fontSize: CAMPUS_LABEL_SIZE }]} numberOfLines={1} adjustsFontSizeToFit={c.key === 'campusBooking'} minimumFontScale={0.85}>
-                {c.label}
-              </Text>
-            </DopaminePressable>
-            </BounceIn>
-          ))}
-        </ScrollView>
-        </StaggeredSection>
-
-        {/* ── CLASSICS ── (only cuisines with a dish on today's menus; hidden when none has) */}
-        {!noFoodVendors && shownClassics.length > 0 && (<>
-        <View style={s.sectionHeader}>
-          <Text style={[s.sectionTitle, { color: txt }]}>Popular dishes</Text>
-          <DopaminePressable 
-            style={s.manageBtn} 
-            sound="click"
-            onPress={() => setShowCatPrefModal(true)}
-          >
-            <Text style={s.manageBtnText}>Filters</Text>
-          </DopaminePressable>
         </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingLeft: 16, marginBottom: 20 }}>
-          {shownClassics.map((c, i) => {
-            const isActive = classicFilter === c.name;
-            return (
-              <DopaminePressable 
-                key={i} 
-                style={s.classicItem} 
-                onPress={() => {
-                  const wasOpen = classicFilter !== '';
-                  setClassicFilter(isActive ? '' : c.name);
-                  if (!isActive) scrollToNexusSoon(wasOpen);
-                }}
-                sound="tabSwitch"
-                activeScale={0.92}
-              >
-                <View style={[s.classicImgWrap, shadowSm, isActive && { borderColor: COLORS.red, ...SHADOWS.redGlow }]}>
-                  <SafeImage source={{ uri: c.img }} style={s.classicImg} />
-                </View>
-                <Text style={[s.classicName, { color: isActive ? COLORS.red : txt }]}>{c.name}</Text>
-              </DopaminePressable>
-            );
-          })}
-        </ScrollView>
 
-        {/* ── MENU EXPLORER: Dish Discovery ── */}
-        {classicFilter !== '' && (
-          <Animated.View 
-            onLayout={(e) => {
-              nexusY.current = e.nativeEvent.layout.y;
-              if (pendingNexusScroll.current) {
-                pendingNexusScroll.current = false;
-                scrollRef.current?.scrollTo({ y: e.nativeEvent.layout.y, animated: true });
-              }
-            }}
-            style={{
-              opacity: classicAnim,
-              transform: [
-                {
-                  translateY: classicAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [25, 0],
-                  })
-                },
-                {
-                  scale: classicAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.96, 1],
-                  })
-                }
-              ]
-            }}
-          >
-            <View style={s.sectionHeader}>
-              <Text style={[s.sectionTitle, { color: txt }]}>{classicFilter}</Text>
-              <TouchableOpacity onPress={() => setClassicFilter('')}>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: COLORS.red, letterSpacing: 0.2 }}>Clear</Text>
-              </TouchableOpacity>
-            </View>
-            <NexusExplorer
-              restaurants={restaurants.filter(isHomeFoodVendor)}
-              activeCategory={classicFilter}
-              onSelectItem={(restaurantId) => router.push(`/restaurant/${restaurantId}` as any)}
-            />
-          </Animated.View>
-        )}
+        {/* ── DEALS: coupons, store offers and price drops (opens today's coupons) ── */}
+        <DealsStrip theme={ht} onPress={() => { fetchVaultItems(); setShowVaultModal(true); }} />
 
-        </>)}
+        {/* Recently viewed: right under Deals (owner's choice) */}
+        <RecentlyViewed accent={ht.acc} />
 
-        {/* ── DAILY DEALS ── */}
-        <StaggeredSection delay={600} direction="up">
-        <CardPressable 
-          style={[s.vaultCard, { backgroundColor: cardBg }, lift]} 
-          onPress={() => {
-            fetchVaultItems();
-            setShowVaultModal(true);
-          }}
-          sound="click"
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
-            <View style={s.vaultLeft}>
-              <PulseGlow size={44} color={COLORS.gold}>
-                <View style={s.vaultIcon}><Ionicons name="pricetags" size={22} color={COLORS.gold} /></View>
-              </PulseGlow>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={[s.vaultTitle, { color: txt }]} numberOfLines={1}>Daily deals</Text>
-                <Text style={[s.vaultSub, { color: txtSec }]} numberOfLines={2}>
-                  {vaultChecked && liveDealCount === 0 ? 'No deals right now. Check back later.' : "Today's coupons, valid until midnight"}
-                </Text>
-              </View>
-            </View>
-            {vaultChecked && liveDealCount > 0 && (
-              <View style={s.vaultRight}>
-                <Text style={[s.vaultUntil, { color: txtSec, marginTop: 0, marginBottom: 4 }]}>Ends in</Text>
-                <VaultTimerBadge pulseAnim={pulseAnim} />
-              </View>
-            )}
-          </View>
-        </CardPressable>
-        </StaggeredSection>
-
-        {/* Recently viewed: right under Daily deals (owner's choice) */}
-        <RecentlyViewed />
-
-        {/* ── ALL RESTAURANTS: header with the live open count, then the filter chips ── */}
-        <View onLayout={(e) => { gridY.current = e.nativeEvent.layout.y; }} style={s.sectionHeader}>
-          <Text style={[s.sectionTitle, { color: txt }]}>All restaurants</Text>
-          {!loading && storeCounts.total > 0 && (
-            <View
-              style={[s.livePill, { backgroundColor: storeCounts.open > 0 ? (isDark ? 'rgba(16,185,129,0.14)' : '#ECFDF5') : (isDark ? 'rgba(245,158,11,0.14)' : '#FFFBEB'), borderColor: storeCounts.open > 0 ? (isDark ? 'rgba(16,185,129,0.35)' : 'transparent') : (isDark ? 'rgba(245,158,11,0.35)' : 'transparent') }, surfaceShadow(isDark, true)]}
-              accessible
-              accessibilityLabel={storeCounts.open > 0 ? `${storeCounts.open} of ${storeCounts.total} restaurants open now` : storeCounts.slot > 0 ? 'Restaurants are taking orders for the next delivery slot' : 'All restaurants are closed right now'}
-            >
-              <LiveDot color={storeCounts.open > 0 ? '#10B981' : '#F59E0B'} active={homeFocused && storeCounts.open > 0} />
-              <Text maxFontSizeMultiplier={1.3} style={[s.livePillText, { color: storeCounts.open > 0 ? (isDark ? '#34D399' : '#047857') : (isDark ? '#FBBF24' : '#B45309') }]}>
-                {storeCounts.open > 0 ? `${storeCounts.open} open now` : storeCounts.slot > 0 ? 'Order for the next slot' : 'Closed right now'}
-              </Text>
-            </View>
+        {/* ── RESTAURANTS: opener everyone notices, then Restaurants / Fast food / Tiffins ── */}
+        <View onLayout={(e) => { gridY.current = e.nativeEvent.layout.y; }} style={{ marginTop: 16 }}>
+          <RestaurantsOpener theme={ht} count={storeCounts.total} avatars={openerAvatars} />
+          {!noFoodVendors && (
+            <RestaurantKindTabs value={kind} counts={kindCounts} onChange={setKind} theme={ht} isDark={isDark} pageBg={pageBg} />
           )}
         </View>
-        <Text style={[s.sectionSub, { color: txtSec }]}>Fresh from campus kitchens, delivered to your hostel</Text>
-        <View style={{ marginTop: -4, marginBottom: 12 }}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: 16, paddingRight: 84, paddingVertical: 4 }}>
-            {(noFoodVendors ? [] : FILTERS).filter(f => f.key === filter || chipKeysWithStores.has(f.key)).map(f => {
-              const isChipActive = filter === f.key;
-              const activeBg = isDark ? goldColor : COLORS.red;
-              const fg = isChipActive ? (isDark ? '#000' : '#FFF') : txtSec;
-              return (
-                <DopaminePressable
-                  key={f.key}
-                  onPress={() => setFilter(f.key)}
-                  style={[
-                    s.filterChip,
-                    { backgroundColor: isChipActive ? activeBg : cardBg, borderColor: isChipActive ? activeBg : (isDark ? COLORS.borderDark : LIGHT_HAIRLINE) },
-                    isChipActive ? s.filterActiveShadow : liftSm,
-                  ]}
-                  sound="tabSwitch"
-                  activeScale={0.93}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: isChipActive }}
-                  accessibilityLabel={`Filter: ${f.label}`}
-                >
-                  <Ionicons name={f.icon} size={13} color={isChipActive ? fg : (isDark ? goldColor : COLORS.red)} />
-                  <Text style={[s.filterText, { color: fg }]} maxFontSizeMultiplier={1.3}>{f.label}</Text>
-                </DopaminePressable>
-              );
-            })}
-          </ScrollView>
-          {/* Edge fade: the row reads as scrollable */}
-          <LinearGradient
-            pointerEvents="none"
-            colors={[isDark ? 'rgba(9,9,11,0)' : 'rgba(244,245,247,0)', bg]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={s.chipFade}
-          />
-        </View>
-
+        <KindPanel value={kind} isDark={isDark}>
         {/* ── RESTAURANT GRID ── */}
-        <View style={s.grid} onLayout={(e) => { gridBottom.current = e.nativeEvent.layout.y + e.nativeEvent.layout.height; }}>
+        <View style={[s.grid, { paddingHorizontal: 0 }]} onLayout={(e) => { gridBottom.current = e.nativeEvent.layout.y + e.nativeEvent.layout.height; }}>
           {loading ? (
             <>
               <View style={{ width: '100%' }}><RestaurantCardSkeleton /></View>
@@ -1445,12 +1250,7 @@ export default function HomeScreen() {
                           <Text style={[s.rMetaText, { color: txtSec, flexShrink: 1 }]} numberOfLines={1}>{areaText}</Text>
                         </View>
                       )}
-                      {!!slotText && (
-                        <View style={s.rMetaRight}>
-                          <Ionicons name="time-outline" size={13} color={COLORS.greenRating} />
-                          <Text style={[s.rMetaText, { color: COLORS.greenRating, fontWeight: '700', flexShrink: 1 }]} numberOfLines={1} accessibilityLabel={`Next delivery ${slotText}`}>{slotText}</Text>
-                        </View>
-                      )}
+                      {!!slotText && <SlotTag text={slotText} theme={ht} />}
                     </View>
                   )}
 
@@ -1479,6 +1279,8 @@ export default function HomeScreen() {
           })
         )}
         </View>
+
+        </KindPanel>
 
         {/* The grid ends here: one tap shows the rest (the sections below stay reachable) */}
         {!loading && filtered.length > gridLimit && (
@@ -1512,8 +1314,10 @@ export default function HomeScreen() {
         )}
 
 
-        {/* ── SECTION BREATHING SPACE ── (stalls near campus live on the Local tab: owner, 3 Nov 2026, "why twice") */}
-        <View style={{ height: 120 }} />
+        <View style={{ height: 18 }} />
+        <EndCaption theme={ht} isDark={isDark} />
+        {/* Room for the floating basket bar only (owner: no long empty scroll) */}
+        <View style={{ height: 96 }} />
       </ScrollView>
 
       {/* ── Daily deals modal ── */}
@@ -1713,6 +1517,7 @@ export default function HomeScreen() {
           re-renders only them) ── */}
       <FloatingBasketBar isDark={isDark} txt={txt} onOpen={openBasket} focusedAt={homeFocusedAt} />
       <FloatingBasketButton onPress={() => router.push('/(tabs)/basket' as any)} />
+      <VegModeSplash visible={vegSplash} originY={topPad + 70} onDone={() => setVegSplash(false)} />
     </KeyboardAvoidingView>
   );
 }

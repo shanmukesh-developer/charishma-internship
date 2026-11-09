@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { playSound, resumeAudio } from '../../utils/sounds';
 import { useTabBarTones } from '../../utils/tabBarTone';
 import LocalStoreIcon from '../../components/LocalStoreIcon';
+import { useNavAccent } from '../../components/local/dietLightTheme';
 
 // Ionicons has no shop-with-a-pin glyph: the Local tab draws its own (components/LocalStoreIcon).
 const LOCAL_STORE_ICON = 'local-store';
@@ -33,26 +34,27 @@ const INK = {
 };
 
 const TabIcon = React.memo(function TabIcon({ name, focused, iconName, color, showCartBadge }: { name: string; focused: boolean; iconName: any; color: ColorValue; showCartBadge?: boolean }) {
+  const accent = useNavAccent();
   const onDark = color === INK.dark.icon;
   const labelColor = onDark ? INK.dark.label : color;
 
   return (
     <View style={styles.tabIconWrap}>
-      {focused && <View style={styles.activeIndicator} />}
+      {focused && <View style={[styles.activeIndicator, { backgroundColor: accent }]} />}
       <View style={{ position: 'relative' }}>
         {iconName === LOCAL_STORE_ICON ? (
-          <LocalStoreIcon size={22} color={focused ? COLORS.red : color} filled={focused} style={focused ? styles.tabIconActive : styles.tabIcon} />
+          <LocalStoreIcon size={22} color={focused ? accent : color} filled={focused} style={focused ? styles.tabIconActive : styles.tabIcon} />
         ) : (
           <Ionicons
             name={focused ? iconName : `${iconName}-outline`}
             size={22}
-            color={focused ? COLORS.red : color}
+            color={focused ? accent : color}
             style={focused ? styles.tabIconActive : styles.tabIcon}
           />
         )}
         {showCartBadge && <CartBadge isDark={onDark} />}
       </View>
-      <Text style={[styles.tabLabel, { color: focused ? COLORS.red : labelColor, fontWeight: focused ? '900' : '700' }]}
+      <Text style={[styles.tabLabel, { color: focused ? accent : labelColor, fontWeight: focused ? '900' : '700' }]}
         // QA 5 Nov 2026: at 130% system font "Groceries" / "Services" were cut. Capped growth, one line, and the
         // label shrinks to fit its slot rather than clipping (5 tabs on a 360dp screen).
         maxFontSizeMultiplier={1.15}
@@ -78,6 +80,7 @@ export default function TabLayout() {
   const { isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const tones = useTabBarTones();
+  const navAccent = useNavAccent();
 
   // Each tab's bar options: the theme's bar, or the page tone the tab set (utils/tabBarTone); the navigator draws the
   // focused tab's. Built once per change, so every tab's options stay referentially stable between renders.
@@ -87,7 +90,7 @@ export default function TabLayout() {
       // Hidden tabs stop re-rendering (react-native-screens freeze): less JS work, smoother taps on the visible tab.
       freezeOnBlur: true,
       tabBarShowLabel: false,
-      tabBarActiveTintColor: COLORS.red,
+      tabBarActiveTintColor: navAccent,
       tabBarInactiveTintColor: dark ? INK.dark.icon : INK.light.icon,
       tabBarStyle: {
         backgroundColor: bar,
@@ -108,7 +111,7 @@ export default function TabLayout() {
     const toned: Record<string, ReturnType<typeof make>> = {};
     Object.entries(tones).forEach(([tab, tone]) => { if (tone) toned[tab] = make(tone.dark, tone.bg); });
     return ({ route }: { route: { name: string } }) => toned[route.name] || themed;
-  }, [isDark, insets.bottom, tones]);
+  }, [isDark, insets.bottom, tones, navAccent]);
 
   const tabOptions = useMemo(() => {
     const make = (name: string, iconName: string, showCartBadge?: boolean) => ({

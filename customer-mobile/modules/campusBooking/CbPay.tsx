@@ -161,7 +161,7 @@ export default function CbPay({ id }: { id: string }) {
             </View>
             <View style={[s.billRow, { borderTopWidth: 1, borderTopColor: p.border, paddingTop: 12, marginTop: 8 }]}>
               <Text style={{ fontSize: 14, fontWeight: '700', color: p.txt }}>Amount to pay</Text>
-              <Text style={{ fontSize: 22, fontWeight: '700', color: COLORS.red }}>{inr(b.amount)}</Text>
+              <Text style={{ fontSize: 22, fontWeight: '700', color: p.txt }}>{inr(b.amount)}</Text>
             </View>
 
             <View style={{ alignItems: 'center', marginTop: 14 }}>
@@ -196,10 +196,10 @@ export default function CbPay({ id }: { id: string }) {
           <TouchableOpacity onPress={pickShot} activeOpacity={0.9} style={[s.payCardNew, { backgroundColor: p.card, borderColor: shot || badField === 'shot' ? COLORS.red : p.border, borderStyle: shot ? 'solid' : 'dashed' }]} accessibilityRole="button" accessibilityLabel={shot ? 'Change the payment screenshot' : 'Upload payment screenshot'}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               {shot ? <SafeImage source={{ uri: shot.localUri || shot.previewUrl || '' }} style={s.shotThumb} contentFit="cover" placeholderIcon="image-outline" /> : (
-                <Ionicons name={uploading ? 'hourglass-outline' : 'cloud-upload-outline'} size={22} color={COLORS.red} />
+                <Ionicons name={uploading ? 'hourglass-outline' : 'cloud-upload-outline'} size={22} color={p.accent} />
               )}
               <View style={{ flex: 1 }}>
-                <Text style={[s.payCardTitle, { color: shot ? COLORS.red : p.txt }]}>{uploading ? 'Uploading…' : shot ? 'Screenshot added' : 'Upload payment screenshot'}</Text>
+                <Text style={[s.payCardTitle, { color: shot ? p.accent : p.txt }]}>{uploading ? 'Uploading…' : shot ? 'Screenshot added' : 'Upload payment screenshot'}</Text>
                 <Text style={[s.payCardDesc, { color: p.txtSec }]}>{shot ? 'Tap to change it' : 'JPG or PNG, max 5 MB. Only the stall and ZenWe support see it.'}</Text>
               </View>
               {shot ? <Ionicons name="checkmark-circle" size={20} color={COLORS.emerald} /> : null}

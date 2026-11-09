@@ -189,14 +189,14 @@ export default function CbCartScreen({ stallId }: { stallId: string }) {
             </View>
 
             <Text style={[s.sectionTitle, { color: p.txt, marginTop: 8 }]}>Payment method</Text>
-            <View style={[s.payCardNew, { backgroundColor: p.card, borderColor: COLORS.red }, { backgroundColor: p.isDark ? 'rgba(239,79,95,0.06)' : 'rgba(239,79,95,0.03)' }]} accessibilityRole="radio" accessibilityState={{ selected: true, checked: true }}>
+            <View style={[s.payCardNew, { backgroundColor: p.card, borderColor: p.accent }, { backgroundColor: p.isDark ? 'rgba(239,79,95,0.06)' : 'rgba(239,79,95,0.03)' }]} accessibilityRole="radio" accessibilityState={{ selected: true, checked: true }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <Ionicons name="qr-code-outline" size={22} color={COLORS.red} />
+                <Ionicons name="qr-code-outline" size={22} color={p.accent} />
                 <View style={{ flex: 1 }}>
-                  <Text style={[s.payCardTitle, { color: COLORS.red }]}>Pay the stall by UPI</Text>
+                  <Text style={[s.payCardTitle, { color: p.accent }]}>Pay the stall by UPI</Text>
                   <Text style={[s.payCardDesc, { color: p.txtSec }]}>You will pay to {stallName}'s own UPI ID on the next screen. ZenWe does not take or hold your money.</Text>
                 </View>
-                <View style={[s.radioOuter, { borderColor: COLORS.red }]}><View style={[s.radioInner, { backgroundColor: COLORS.red }]} /></View>
+                <View style={[s.radioOuter, { borderColor: p.accent }]}><View style={[s.radioInner, { backgroundColor: p.accent }]} /></View>
               </View>
             </View>
 
@@ -225,7 +225,7 @@ export default function CbCartScreen({ stallId }: { stallId: string }) {
                   ))}
                   {docs.length < MAX_DOCS ? (
                     <TouchableOpacity onPress={pickDoc} activeOpacity={0.85} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }} accessibilityRole="button" accessibilityLabel="Add a PDF to print">
-                      <Ionicons name="cloud-upload-outline" size={20} color={COLORS.red} />
+                      <Ionicons name="cloud-upload-outline" size={20} color={p.accent} />
                       <View style={{ flex: 1 }}>
                         <Text style={[s.payCardTitle, { color: COLORS.red }]}>{docs.length ? 'Add another PDF' : 'Add a PDF'}</Text>
                         <Text style={[s.payCardDesc, { color: p.txtSec }]}>Up to {MAX_DOCS} files, 5 MB each. Only the stall and ZenWe support can open them.</Text>
@@ -260,7 +260,7 @@ export default function CbCartScreen({ stallId }: { stallId: string }) {
               </View>
               <View style={[s.billRow, { borderTopWidth: 1, borderTopColor: p.border, paddingTop: 12, marginTop: 8 }]}>
                 <Text style={{ fontSize: 14, fontWeight: '700', color: p.txt }}>Pay the stall</Text>
-                <Text style={{ fontSize: 22, fontWeight: '700', color: COLORS.red }}>{inr(cart.total)}</Text>
+                <Text style={{ fontSize: 22, fontWeight: '700', color: p.txt }}>{inr(cart.total)}</Text>
               </View>
               <Text style={[s.helperText, { color: p.txtSec, marginTop: 6 }]}>You pay {stallName} directly by UPI. The stall confirms the payment before it prepares your order.</Text>
               <FssaiLine number={stall?.fssaiLicenseNumber} storeName={stall?.name || undefined} color={p.txtSec} />
@@ -269,7 +269,7 @@ export default function CbCartScreen({ stallId }: { stallId: string }) {
 
           {stall && !stall.isOpen ? (
             <View style={[s.noticeCard, { backgroundColor: p.redSoft, borderColor: 'rgba(239,79,95,0.25)', marginTop: 16, marginBottom: 0 }]}>
-              <Ionicons name="moon-outline" size={20} color={COLORS.red} />
+              <Ionicons name="moon-outline" size={20} color={p.accent} />
               <Text style={[s.noticeSub, { color: p.txt, flex: 1, marginTop: 0 }]}>{stall.closedReason || 'The stall is closed right now. You can book when it opens.'}</Text>
             </View>
           ) : null}

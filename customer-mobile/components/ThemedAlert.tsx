@@ -18,7 +18,7 @@ export let showGlobalAlert: (
 ) => void = () => {};
 
 export default function ThemedAlert() {
-  const { isDark } = useTheme();
+  const { isDark, colors } = useTheme();
   const [visible, setVisible] = useState(false);
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
@@ -82,7 +82,7 @@ export default function ThemedAlert() {
 
   if (!visible) return null;
 
-  const activeBg = isDark ? COLORS.bgCard : COLORS.bgLightCard;
+  const activeBg = isDark ? colors.card : COLORS.bgLightCard;
   const activeText = isDark ? COLORS.textPrimary : COLORS.textDark;
   const activeSubText = isDark ? COLORS.textSecondary : COLORS.textDarkSecondary;
   const activeBorder = isDark ? COLORS.borderGold : COLORS.borderLight;

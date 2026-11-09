@@ -2116,6 +2116,438 @@ export const GenericArt = memo(function GenericArt({ active, size = 320, reduceM
   );
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 11. IN-CAMPUS BOOKING — "Skip the queue" (owner, 9 Nov 2026: drawn + animated like the others)
+//     The order fills on the phone, the tick pops, the takeaway bag rises out and Zippy hops.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function TakeawayBag() {
+  return (
+    <Svg width={36} height={40} viewBox="0 0 36 40">
+      <Defs>
+        <SvgGrad id="bk-bag" x1="0" y1="0" x2="1" y2="1">
+          <Stop offset="0" stopColor="#E9C79A" />
+          <Stop offset="0.6" stopColor="#C99A62" />
+          <Stop offset="1" stopColor="#9C6F3D" />
+        </SvgGrad>
+      </Defs>
+      <Path d="M12 12 C12 4 24 4 24 12" stroke="#7C5530" strokeWidth={2.2} fill="none" strokeLinecap="round" />
+      <Path d="M4 12 H32 L34 38 H2 Z" fill="url(#bk-bag)" />
+      <Path d="M4 12 H32 L32.4 16 H3.6 Z" fill="#000000" opacity={0.12} />
+      <Path d="M7 17 L6 34" stroke="#FFFFFF" strokeOpacity={0.35} strokeWidth={1.4} strokeLinecap="round" />
+      <Circle cx={18} cy={25} r={5.5} fill="#FFFFFF" opacity={0.92} />
+      <Path d="M15.4 25.2 L17.3 27 L20.8 23.4" stroke="#16A34A" strokeWidth={1.7} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+export const BookingArt = memo(function BookingArt({ active, size = 320, reduceMotion = false }: SceneProps) {
+  const L = 4400;
+  const E = 700;
+  const { t, e } = useSceneClock(active, reduceMotion, L, 2700, E);
+
+  const v = useMemo(() => {
+    const hop: P[] = [[0, 1], [1950, 1], ...seg(1950, 2050, 1, 0.84, inOut, 3), ...seg(2050, 2120, 0.84, 1.12, outQuad, 2), ...seg(2120, 2420, 1.12, 1, inOut, 3), ...seg(2430, 2480, 1, 0.8, outQuad, 2), ...seg(2480, 2760, 0.8, 1, jelly, 10), [L, 1]];
+    const zY = kf(t, L, [[0, 0], [2050, 0], ...seg(2050, 2250, 0, -18, outQuad, 5), ...seg(2250, 2430, -18, 0, inQuad, 5), [L, 0]]);
+    const wait: P[] = [[0, 1], [1760, 1], [1840, 0], [4120, 0], [4260, 1], [L, 1]];
+    return {
+      phoneY: kf(e, E, seg(0, 600, 70, 0, spring(0.55, 12), 14)),
+      phoneO: kf(e, E, [[0, 0], ...seg(0, 200, 0, 1, outQuad, 2)]),
+      phoneR: kfDeg(t, L, wave(L, -5, 1.2, 2)),
+      bar: kf(t, L, [[0, 0.04], [250, 0.04], ...seg(250, 1800, 0.04, 1, inOut, 12), [3950, 1], ...seg(3950, 4200, 1, 0.04, inOut, 4), [L, 0.04]]),
+      waitO: kf(t, L, wait),
+      readyO: kf(t, L, wait.map(([ms, o]) => [ms, 1 - o] as P)),
+      dots: [0, 1, 2].map((i) => kf(t, L, cyc(L, 900, i * 180, (u) => 0.25 + 0.75 * Math.pow(Math.sin(Math.PI * u), 2)))),
+      checkS: kf(t, L, [[0, 0], [1800, 0], ...seg(1800, 2200, 0, 1, springy, 10), [3900, 1], ...seg(3900, 4100, 1, 0, inQuad, 3), [L, 0]]),
+      bagY: kf(t, L, [[0, -40], [1900, -40], ...seg(1900, 2120, -40, 0, inQuad, 6), ...seg(2120, 2400, 0, 0, lin), [3900, 0], ...seg(3900, 4150, 0, -12, inQuad, 4), [L, -40]]),
+      bagR: kfDeg(t, L, [[0, 0], [2300, 0], ...wobble(2300, 3000, 7, 2.5), [L, 0]]),
+      bagO: kf(t, L, [[0, 0], [1900, 0], [1960, 1], [3980, 1], [4150, 0], [L, 0]]),
+      zIn: kf(e, E, [[0, -20], [220, -20], ...seg(220, 560, -20, 0, springy, 10)]),
+      zInO: kf(e, E, [[0, 0], [220, 0], [320, 1]]),
+      zY,
+      zSY: kf(t, L, hop),
+      zSX: kf(t, L, hop.map(([ms, s]) => [ms, volXv(s)] as P)),
+      zSh: zY.interpolate({ inputRange: [-18, 0], outputRange: [0.55, 1], extrapolate: 'clamp' }),
+      zLook: kfDeg(t, L, [[0, 8], [1800, 8], ...seg(1800, 1950, 8, 0, inOut, 3), [4100, 0], ...seg(4100, 4300, 0, 8, inOut, 3), [L, 8]]),
+      blink: kf(t, L, blinks(L, [700, 1500], [1500])),
+      breath: kf(t, L, wave(L, 1, 0.026, 3)),
+    };
+  }, [t, e]);
+
+  return (
+    <CornerArt width={size}>
+      <ContactShadow w={70} h={10} at={{ right: 22, top: 164 }} opacity={v.phoneO} strength={0.45} />
+
+      {/* phone with the live order token */}
+      <Animated.View
+        style={[
+          A({ right: 24, top: 36, width: 76, height: 128, borderRadius: 16, backgroundColor: '#0F172A', padding: 4, borderWidth: 1.5, borderColor: '#334155' }),
+          { opacity: v.phoneO, transform: [{ translateY: v.phoneY }, { rotate: v.phoneR }] },
+        ]}
+      >
+        <View style={{ flex: 1, borderRadius: 12, backgroundColor: '#F8FAFC', overflow: 'hidden', alignItems: 'center', paddingTop: 12 }}>
+          <View style={A({ top: 4, width: 18, height: 3, borderRadius: 2, backgroundColor: '#CBD5E1' })} />
+          <Text style={{ fontSize: 7.5, fontWeight: '800', letterSpacing: 1, color: '#64748B' }}>TOKEN</Text>
+          <Text style={{ fontSize: 22, fontWeight: '900', color: '#0F172A', marginTop: -2 }}>#24</Text>
+          <View style={{ width: 52, height: 6, borderRadius: 3, backgroundColor: '#E2E8F0', marginTop: 6, overflow: 'hidden' }}>
+            <Animated.View style={{ width: 52, height: 6, borderRadius: 3, backgroundColor: '#22C55E', transformOrigin: '0% 50%', transform: [{ scaleX: v.bar }] }} />
+          </View>
+          <View style={{ height: 14, marginTop: 5, width: 66, alignItems: 'center' }}>
+            <Animated.View style={[A({ top: 0, flexDirection: 'row', alignItems: 'center' }), { opacity: v.waitO }]}>
+              <Text style={{ fontSize: 8, fontWeight: '700', color: '#64748B' }}>Preparing</Text>
+              {v.dots.map((o: AnimNode, i: number) => (
+                <Animated.View key={i} style={{ width: 2.6, height: 2.6, borderRadius: 2, backgroundColor: '#64748B', marginLeft: 1.6, marginTop: 3, opacity: o }} />
+              ))}
+            </Animated.View>
+            <Animated.Text style={[A({ top: 0 }), { fontSize: 8.5, fontWeight: '900', color: '#16A34A', opacity: v.readyO }]}>Ready!</Animated.Text>
+          </View>
+          <Animated.View style={{ marginTop: 6, width: 26, height: 26, borderRadius: 13, backgroundColor: '#16A34A', alignItems: 'center', justifyContent: 'center', transform: [{ scale: v.checkS }] }}>
+            <Svg width={14} height={14} viewBox="0 0 14 14">
+              <Path d="M2.5 7.4 L5.6 10.3 L11.6 3.8" stroke="#FFFFFF" strokeWidth={2.2} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            </Svg>
+          </Animated.View>
+        </View>
+        {/* glass reflection */}
+        <Svg width={76} height={128} viewBox="0 0 76 128" style={A({ left: -1.5, top: -1.5 })} pointerEvents="none">
+          <Path d="M10 6 L34 6 L8 70 L8 14 Z" fill="#FFFFFF" opacity={0.1} />
+        </Svg>
+      </Animated.View>
+
+      {/* Zippy waits, watching the token, then hops when it is ready */}
+      <ContactShadow w={30} h={6} at={{ right: 104, top: 166 }} scale={v.zSh} opacity={v.zInO} />
+      <Animated.View
+        style={[A({ right: 100, top: 132 }), FEET, { opacity: v.zInO, transform: [{ translateX: v.zIn }, { translateY: v.zY }, { scaleX: v.zSX }, { scaleY: v.zSY }, { rotate: v.zLook }] }]}
+      >
+        <Zippy size={38} shadow={false} breath={v.breath} blink={v.blink} eyesOpacity={v.waitO} overlays={[{ alt: 'happy', opacity: v.readyO }]} />
+        {/* the takeaway bag drops into Zippy's hands once the order is ready */}
+        <Animated.View style={[A({ left: 1, top: -34 }), { opacity: v.bagO, transform: [{ translateY: v.bagY }, { rotate: v.bagR }] }]}>
+          <TakeawayBag />
+        </Animated.View>
+      </Animated.View>
+    </CornerArt>
+  );
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 12. CAMPUS EVENTS — "Gig night": Zippy sings on stage, the crowd bobs to the beat,
+//     spotlights sweep and confetti drifts down.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CROWD: { right: number; top: number; size: number; palette: keyof typeof PALETTES; arm?: 'l' | 'r' }[] = [
+  { right: 128, top: 160, size: 30, palette: 'cyan', arm: 'r' },
+  { right: 98, top: 166, size: 32, palette: 'mint' },
+  { right: 66, top: 160, size: 30, palette: 'saffron', arm: 'l' },
+  { right: 36, top: 166, size: 32, palette: 'cyan' },
+  { right: 6, top: 160, size: 30, palette: 'mint', arm: 'r' },
+];
+
+const FALL = [
+  { x: 40, c: '#F43F5E', d: 0 },
+  { x: 78, c: '#FBBF24', d: 700 },
+  { x: 112, c: '#A78BFA', d: 1500 },
+  { x: 140, c: '#34D399', d: 300 },
+  { x: 60, c: '#FB7185', d: 2200 },
+  { x: 128, c: '#FBBF24', d: 2900 },
+  { x: 24, c: '#60A5FA', d: 1100 },
+];
+
+function Spotlight({ color }: { color: string }) {
+  const id = `ev-beam-${color.replace('#', '')}`;
+  return (
+    <Svg width={64} height={170} viewBox="0 0 64 170">
+      <Defs>
+        <SvgGrad id={id} x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor={color} stopOpacity={0.5} />
+          <Stop offset="1" stopColor={color} stopOpacity={0} />
+        </SvgGrad>
+      </Defs>
+      <Path d="M27 0 H37 L64 170 H0 Z" fill={`url(#${id})`} />
+    </Svg>
+  );
+}
+
+export const EventsArt = memo(function EventsArt({ active, size = 320, reduceMotion = false }: SceneProps) {
+  const L = 4800; // 8 beats of 600 ms
+  const E = 700;
+  const BEAT = 600;
+  const { t, e } = useSceneClock(active, reduceMotion, L, 1500, E);
+
+  const v = useMemo(() => {
+    const beatSY = cyc(L, BEAT, 0, (u) => (u < 0.18 ? 1 - 0.14 * Math.sin((Math.PI * u) / 0.18) : 1 + 0.05 * Math.sin((Math.PI * (u - 0.18)) / 0.82)), 12);
+    return {
+      stageO: kf(e, E, [[0, 0], ...seg(0, 250, 0, 1, outQuad, 3)]),
+      stageY: kf(e, E, seg(0, 500, 24, 0, soft, 10)),
+      beamL: kfDeg(t, L, wave(L, 0, 14, 2)),
+      beamR: kfDeg(t, L, wave(L, 0, 14, 2, 0.5)),
+      zY: kf(t, L, cyc(L, BEAT, 0, (u) => -7 * Math.pow(Math.sin(Math.PI * u), 2), 10)),
+      zSY: kf(t, L, beatSY),
+      zSX: kf(t, L, beatSY.map(([ms, s]) => [ms, volXv(s)] as P)),
+      zTilt: kfDeg(t, L, wave(L, 0, 6, 4)),
+      zIn: kf(e, E, [[0, -40], [200, -40], ...seg(200, 520, -40, 0, inQuad, 6), ...seg(520, 700, 0, 0, lin)]),
+      zInO: kf(e, E, [[0, 0], [200, 0], [260, 1]]),
+      blink: kf(t, L, blinks(L, [1300, 3500])),
+      sing: kf(t, L, [[0, 1], [1800, 1], ...seg(1800, 1900, 1, 0, inOut, 2), [3000, 0], ...seg(3000, 3100, 0, 1, inOut, 2), [L, 1]]),
+      happy: kf(t, L, [[0, 0], [1800, 0], ...seg(1800, 1900, 0, 1, inOut, 2), [3000, 1], ...seg(3000, 3100, 1, 0, inOut, 2), [L, 0]]),
+      crowd: CROWD.map((_, i) => ({
+        y: kf(t, L, cyc(L, BEAT, i * 120, (u) => -6 * Math.pow(Math.sin(Math.PI * u), 2), 10)),
+        arm: kfDeg(t, L, cyc(L, BEAT * 2, i * 240, (u) => 18 * Math.sin(TAU * u), 12)),
+      })),
+      crowdIn: kf(e, E, seg(0, 600, 40, 0, spring(0.6, 12), 12)),
+      notes: [0, 1, 2].map((i) => {
+        const off = i * 800;
+        return {
+          y: kf(t, L, cyc(L, 2400, off, (u) => -44 * outQuad(u))),
+          x: kf(t, L, cyc(L, 2400, off, (u) => (i % 2 ? 1 : -1) * 10 * Math.sin(TAU * 0.8 * u))),
+          o: kf(t, L, cyc(L, 2400, off, (u) => Math.pow(Math.sin(Math.PI * u), 1.4))),
+        };
+      }),
+      fall: FALL.map((f, i) => ({
+        y: kf(t, L, cyc(L, 3200, f.d, (u) => -20 + 190 * u, 12)),
+        x: kf(t, L, cyc(L, 3200, f.d, (u) => 8 * Math.sin(TAU * (1.5 * u + i * 0.2)), 12)),
+        fl: kf(t, L, cyc(L, 3200, f.d, (u) => Math.cos(TAU * (3 * u + i * 0.13)), 12)),
+        r: kfDeg(t, L, cyc(L, 3200, f.d, (u) => 360 * u + i * 40, 6)),
+      })),
+    };
+  }, [t, e]);
+
+  return (
+    <CornerArt width={size}>
+      {/* sweeping spotlights (behind everything) */}
+      <Depth k={-6}>
+        <Animated.View style={[A({ right: 108, top: -6 }), { opacity: v.stageO, transformOrigin: '50% 0%', transform: [{ rotate: v.beamL }] }]}>
+          <Spotlight color="#FDE68A" />
+        </Animated.View>
+        <Animated.View style={[A({ right: 14, top: -6 }), { opacity: v.stageO, transformOrigin: '50% 0%', transform: [{ rotate: v.beamR }] }]}>
+          <Spotlight color="#F9A8D4" />
+        </Animated.View>
+      </Depth>
+
+      {/* confetti drifting down */}
+      {FALL.map((f, i) => (
+        <Animated.View
+          key={i}
+          style={[
+            A({ right: f.x, top: 0, width: 4, height: 7, borderRadius: 1, backgroundColor: f.c }),
+            { opacity: v.stageO, transform: [{ translateY: v.fall[i].y }, { translateX: v.fall[i].x }, { rotate: v.fall[i].r }, { scaleY: v.fall[i].fl }] },
+          ]}
+        />
+      ))}
+
+      {/* stage */}
+      <Animated.View style={[A({ right: -12, top: 128, width: 176, height: 30 }), { opacity: v.stageO, transform: [{ translateY: v.stageY }] }]}>
+        <Svg width={176} height={30} viewBox="0 0 176 30">
+          <Defs>
+            <SvgGrad id="ev-stage" x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0" stopColor="#4B5563" />
+              <Stop offset="0.25" stopColor="#1F2937" />
+              <Stop offset="1" stopColor="#0B0F17" />
+            </SvgGrad>
+          </Defs>
+          <Path d="M10 0 H176 V30 H0 Z" fill="url(#ev-stage)" />
+          <Path d="M10 0.8 H176" stroke="#FDE68A" strokeOpacity={0.55} strokeWidth={1.4} />
+          {[30, 70, 110, 150].map((x) => (
+            <Circle key={x} cx={x} cy={9} r={2} fill="#FDE68A" opacity={0.7} />
+          ))}
+        </Svg>
+      </Animated.View>
+
+      {/* music notes */}
+      {v.notes.map((n: { y: AnimNode; x: AnimNode; o: AnimNode }, i: number) => (
+        <Animated.Text
+          key={i}
+          style={[A({ right: 54 + i * 16, top: 84 }), { fontSize: 14 + (i % 2) * 3, fontWeight: '900', color: i === 1 ? '#F9A8D4' : '#FDE68A', opacity: n.o, transform: [{ translateY: n.y }, { translateX: n.x }] }]}
+        >
+          {i === 1 ? '♫' : '♪'}
+        </Animated.Text>
+      ))}
+
+      {/* Zippy the singer, mic in hand, bouncing on the beat */}
+      <Animated.View
+        style={[A({ right: 66, top: 92 }), FEET, { opacity: v.zInO, transform: [{ translateY: v.zIn }, { translateY: v.zY }, { scaleX: v.zSX }, { scaleY: v.zSY }, { rotate: v.zTilt }] }]}
+      >
+        <Zippy size={40} shadow={false} blink={v.blink} eyesOpacity={v.sing} overlays={[{ alt: 'happy', opacity: v.happy }]} />
+        <Svg width={16} height={26} viewBox="0 0 16 26" style={A({ left: -9, top: 12, transform: [{ rotate: '-24deg' }] })}>
+          <Rect x={6.2} y={9} width={3.6} height={16} rx={1.6} fill="#111827" />
+          <Circle cx={8} cy={6} r={5.6} fill="#9CA3AF" />
+          <Circle cx={8} cy={6} r={5.6} fill="none" stroke="#374151" strokeWidth={1} />
+          <Path d="M4.6 4 Q6 2 8.4 2" stroke="#FFFFFF" strokeOpacity={0.7} strokeWidth={1.2} fill="none" strokeLinecap="round" />
+        </Svg>
+      </Animated.View>
+
+      {/* the crowd in front of the stage (backs of heads, hands up) */}
+      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { transform: [{ translateY: v.crowdIn }] }]}>
+        {CROWD.map((c, i) => (
+          <Animated.View key={i} style={[A({ right: c.right, top: c.top }), { transform: [{ translateY: v.crowd[i].y }] }]}>
+            {c.arm ? (
+              <Animated.View
+                style={[
+                  A({ left: c.arm === 'l' ? 1 : c.size - 9, top: -12, width: 8, height: 20 }),
+                  { transformOrigin: '50% 100%', transform: [{ rotate: v.crowd[i].arm }] },
+                ]}
+              >
+                <View style={{ width: 4, height: 14, marginLeft: 2, marginTop: 6, borderRadius: 2, backgroundColor: PALETTES[c.palette][1] }} />
+                <View style={A({ left: 0, top: 0, width: 8, height: 8, borderRadius: 4, backgroundColor: PALETTES[c.palette][0] })} />
+              </Animated.View>
+            ) : null}
+            <Zippy size={c.size} palette={c.palette} shadow={false} squash={false} eyesOpacity={0} />
+          </Animated.View>
+        ))}
+      </Animated.View>
+    </CornerArt>
+  );
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 13. DEALS — "The coupon fan": a stack of coupons fans out, the top one gets claimed
+//     (tick stamp), coins pop and Zippy cheers.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function couponPath(w: number, h: number, n = 6) {
+  const r = 8;
+  return `M${r} 0 H${w - r} Q${w} 0 ${w} ${r} V${h / 2 - n} A${n} ${n} 0 0 0 ${w} ${h / 2 + n} V${h - r} Q${w} ${h} ${w - r} ${h} H${r} Q0 ${h} 0 ${h - r} V${h / 2 + n} A${n} ${n} 0 0 0 0 ${h / 2 - n} V${r} Q0 0 ${r} 0 Z`;
+}
+
+function Coupon({ fill, stub, ink, big, small }: { fill: string; stub: string; ink: string; big: string; small: string }) {
+  const w = 104;
+  const h = 52;
+  const id = `dl-cp-${fill.replace('#', '')}`;
+  return (
+    <View style={{ width: w, height: h }}>
+      <Svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+        <Defs>
+          <SvgGrad id={id} x1="0" y1="0" x2="1" y2="1">
+            <Stop offset="0" stopColor={shade(fill, 0.25)} />
+            <Stop offset="1" stopColor={fill} />
+          </SvgGrad>
+        </Defs>
+        <Path d={couponPath(w, h)} fill={`url(#${id})`} />
+        <Path d={`M0 ${h / 2 - 6} V8 Q0 0 8 0 H30 V${h} H8 Q0 ${h} 0 ${h - 8} V${h / 2 + 6} A6 6 0 0 0 0 ${h / 2 - 6} Z`} fill={stub} />
+        <Path d={`M30 4 V${h - 4}`} stroke={ink} strokeOpacity={0.35} strokeWidth={1.2} strokeDasharray="3 3" />
+        <Path d={`M10 4 H${w - 10}`} stroke="#FFFFFF" strokeOpacity={0.5} strokeWidth={1} strokeLinecap="round" />
+      </Svg>
+      <Text style={A({ left: 0, width: 30, top: 13, textAlign: 'center', fontSize: 19, fontWeight: '900', color: '#FFFFFF' })}>%</Text>
+      <Text style={A({ left: 36, top: 10, fontSize: 7, fontWeight: '800', letterSpacing: 1.2, color: ink, opacity: 0.7 })}>{small}</Text>
+      <Text style={A({ left: 36, top: 20, width: 64, fontSize: 12.5, lineHeight: 14, fontWeight: '900', color: ink })} numberOfLines={2}>
+        {big}
+      </Text>
+    </View>
+  );
+}
+
+const COUPONS = [
+  { fill: '#FDE68A', stub: '#D97706', ink: '#78350F', small: 'COUPON', big: 'Free delivery', fan: -13 },
+  { fill: '#FFFFFF', stub: '#7C3AED', ink: '#3B0764', small: 'DEAL', big: 'Price drop', fan: -6 },
+  { fill: '#FFFFFF', stub: '#E11D48', ink: '#4C0519', small: 'COUPON', big: 'Flat % off', fan: 2 },
+];
+
+const COINS = [
+  { x: -40, y: -46 },
+  { x: -6, y: -60 },
+  { x: 26, y: -44 },
+];
+
+export const DealsArt = memo(function DealsArt({ active, size = 320, reduceMotion = false }: SceneProps) {
+  const L = 4600;
+  const E = 700;
+  const { t, e } = useSceneClock(active, reduceMotion, L, 2300, E);
+
+  const v = useMemo(() => {
+    const hop: P[] = [[0, 1], [1600, 1], ...seg(1600, 1690, 1, 0.84, inOut, 3), ...seg(1690, 1760, 0.84, 1.12, outQuad, 2), ...seg(1760, 2040, 1.12, 1, inOut, 3), ...seg(2050, 2100, 1, 0.8, outQuad, 2), ...seg(2100, 2380, 0.8, 1, jelly, 10), [L, 1]];
+    const zY = kf(t, L, [[0, 0], [1690, 0], ...seg(1690, 1880, 0, -16, outQuad, 5), ...seg(1880, 2050, -16, 0, inQuad, 5), [L, 0]]);
+    const claimed: P[] = [[0, 0], [1500, 0], [1560, 1], [3950, 1], [4100, 0], [L, 0]];
+    return {
+      inY: kf(e, E, seg(0, 600, 50, 0, spring(0.55, 12), 14)),
+      inO: kf(e, E, [[0, 0], ...seg(0, 220, 0, 1, outQuad, 2)]),
+      fan: COUPONS.map((c) => kfDeg(t, L, [[0, 0], [250, 0], ...seg(250, 900, 0, c.fan, springy, 12), [3950, c.fan], ...seg(3950, 4350, c.fan, 0, inOut, 6), [L, 0]])),
+      lift: kf(t, L, [[0, 0], [1200, 0], ...seg(1200, 1450, 0, -10, outCubic, 4), [3950, -10], ...seg(3950, 4250, -10, 0, inOut, 4), [L, 0]]),
+      stampS: kf(t, L, [[0, 2.2], [1450, 2.2], ...seg(1450, 1620, 2.2, 1, inQuad, 4), ...seg(1620, 1900, 1, 1, lin), [L, 1]]),
+      stampO: kf(t, L, claimed),
+      coins: COINS.map((c, i) => {
+        const p = (fn: (u: number) => number, rest: number): P[] => [[0, rest], [1560 + i * 60, rest], ...seg(1560 + i * 60, 2460 + i * 60, 0, 1, lin, 14).map(([ms, u]) => [ms, fn(u)] as P), [L, rest]];
+        return {
+          x: kf(t, L, p((u) => c.x * outCubic(u), 0)),
+          y: kf(t, L, p((u) => c.y * Math.sin(Math.PI * Math.min(1, u * 1.1)) * (1 - 0.2 * u) + 30 * u * u, 0)),
+          o: kf(t, L, p((u) => (u < 0.08 ? u / 0.08 : u > 0.8 ? (1 - u) / 0.2 : 1), 0)),
+          fl: kf(t, L, p((u) => Math.cos(TAU * 2.5 * u), 1)),
+        };
+      }),
+      zIn: kf(e, E, [[0, 24], [240, 24], ...seg(240, 580, 24, 0, springy, 10)]),
+      zInO: kf(e, E, [[0, 0], [240, 0], [340, 1]]),
+      zY,
+      zSY: kf(t, L, hop),
+      zSX: kf(t, L, hop.map(([ms, s]) => [ms, volXv(s)] as P)),
+      zSh: zY.interpolate({ inputRange: [-16, 0], outputRange: [0.55, 1], extrapolate: 'clamp' }),
+      eyes: kf(t, L, claimed.map(([ms, o]) => [ms, 1 - o] as P)),
+      happy: kf(t, L, claimed),
+      blink: kf(t, L, blinks(L, [800])),
+      breath: kf(t, L, wave(L, 1, 0.026, 3)),
+    };
+  }, [t, e]);
+
+  return (
+    <CornerArt width={size}>
+      <ContactShadow w={110} h={12} at={{ right: 38, top: 148 }} opacity={v.inO} strength={0.4} />
+
+      {/* coupon fan, pivoting from the bottom-left corner like a hand of cards */}
+      <Animated.View style={[A({ right: 44, top: 58, width: 104, height: 92 }), { opacity: v.inO, transform: [{ translateY: v.inY }] }]}>
+        {COUPONS.map((c, i) => (
+          <Animated.View
+            key={i}
+            style={[
+              A({ left: 0, top: 36, width: 104, height: 52 }),
+              { transformOrigin: '8% 100%', transform: [{ rotate: v.fan[i] }, ...(i === COUPONS.length - 1 ? [{ translateY: v.lift }] : [])] },
+              { shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 5, shadowOffset: { width: 0, height: 3 }, elevation: 4 + i },
+            ]}
+          >
+            <Coupon fill={c.fill} stub={c.stub} ink={c.ink} big={c.big} small={c.small} />
+            {i === COUPONS.length - 1 ? (
+              <Animated.View
+                style={[
+                  A({ right: -8, top: -12, width: 30, height: 30, borderRadius: 15, backgroundColor: '#16A34A', borderWidth: 2, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }),
+                  { opacity: v.stampO, transform: [{ scale: v.stampS }, { rotate: '-12deg' }] },
+                ]}
+              >
+                <Svg width={14} height={14} viewBox="0 0 14 14">
+                  <Path d="M2.5 7.4 L5.6 10.3 L11.6 3.8" stroke="#FFFFFF" strokeWidth={2.2} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                </Svg>
+              </Animated.View>
+            ) : null}
+          </Animated.View>
+        ))}
+      </Animated.View>
+
+      {/* savings coins pop out when the coupon is claimed */}
+      {COINS.map((_, i) => (
+        <Animated.View
+          key={i}
+          style={[A({ right: 80, top: 90, width: 16, height: 16 }), { opacity: v.coins[i].o, transform: [{ translateX: v.coins[i].x }, { translateY: v.coins[i].y }, { scaleX: v.coins[i].fl }] }]}
+        >
+          <Svg width={16} height={16} viewBox="0 0 16 16">
+            <Defs>
+              <RadialGradient id="dl-coin" cx="0.38" cy="0.32" r="0.7">
+                <Stop offset="0" stopColor="#FEF3C7" />
+                <Stop offset="0.5" stopColor="#FBBF24" />
+                <Stop offset="1" stopColor="#B45309" />
+              </RadialGradient>
+            </Defs>
+            <Circle cx={8} cy={8} r={7.5} fill="url(#dl-coin)" />
+            <Circle cx={8} cy={8} r={5.2} fill="none" stroke="#B45309" strokeOpacity={0.5} strokeWidth={0.8} />
+            <SvgText x={8} y={11} fontSize={8} fontWeight="900" fill="#92400E" textAnchor="middle">₹</SvgText>
+          </Svg>
+        </Animated.View>
+      ))}
+
+      {/* Zippy cheering beside the fan */}
+      <ContactShadow w={30} h={6} at={{ right: 146, top: 170 }} scale={v.zSh} opacity={v.zInO} />
+      <Animated.View
+        style={[A({ right: 142, top: 136 }), FEET, { opacity: v.zInO, transform: [{ translateX: v.zIn }, { translateY: v.zY }, { scaleX: v.zSX }, { scaleY: v.zSY }] }]}
+      >
+        <Zippy size={36} shadow={false} breath={v.breath} blink={v.blink} eyesOpacity={v.eyes} overlays={[{ alt: 'happy', opacity: v.happy }]} />
+      </Animated.View>
+    </CornerArt>
+  );
+});
+
 /** Slide.type → scene. */
 export const PROMO_ART: Record<string, React.ComponentType<SceneProps>> = {
   food: FoodArt,
@@ -2127,6 +2559,9 @@ export const PROMO_ART: Record<string, React.ComponentType<SceneProps>> = {
   stays: StaysArt,
   rewards: RewardsArt,
   featured_restaurant: PolaroidArt,
+  booking: BookingArt,
+  events: EventsArt,
+  deals: DealsArt,
 };
 
 export function artForType(type: string): React.ComponentType<SceneProps> {

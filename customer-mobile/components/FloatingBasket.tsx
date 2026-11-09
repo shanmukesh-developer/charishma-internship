@@ -1,12 +1,12 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SHADOWS } from '../constants/theme';
 import { useCartState, useCartTotalItems, type BasketKind } from '../context/CartContext';
-import BasketFabIcon from './BasketFabIcon';
 import DopaminePressable from './DopaminePressable';
 import { FloatingPulse } from './AnimatedSection';
 import { formatINR, plural } from '../utils/format';
+import { useNavAccent } from './local/dietLightTheme';
 
 /**
  * The floating basket on the pages that have no basket bar of their own (Home and Local): the round basket button
@@ -19,6 +19,7 @@ import { formatINR, plural } from '../utils/format';
  * page during this visit (lastAddedAt after the page gained focus), never items added on a stall, restaurant or store page.
  */
 export const FloatingBasketBar = React.memo(function FloatingBasketBar({ isDark, txt, onOpen, focusedAt }: { isDark: boolean; txt: string; onOpen: (kind: BasketKind) => void; focusedAt: number }) {
+  const accent = useNavAccent();
   const { basketCounts, basketTotals, lastAddedBasket, lastAddedAt } = useCartState();
   const kind = lastAddedBasket;
   if (!kind || !(lastAddedAt >= focusedAt)) return null;
@@ -29,33 +30,36 @@ export const FloatingBasketBar = React.memo(function FloatingBasketBar({ isDark,
     <View style={s.floatingCartWrap} pointerEvents="box-none">
       <TouchableOpacity
         activeOpacity={0.92}
-        style={[s.floatingCartBar, { backgroundColor: isDark ? '#1C1917' : '#FFFFFF', borderColor: isDark ? COLORS.gold : COLORS.red }]}
+        style={[s.floatingCartBar, { backgroundColor: isDark ? '#1C1917' : '#FFFFFF', borderColor: accent }]}
         onPress={() => onOpen(kind)}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-          <View style={[s.floatingCartBadge, { backgroundColor: isDark ? COLORS.gold : COLORS.red }]}>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: isDark ? '#000' : '#FFF' }}>{totalItems}</Text>
+          <View style={[s.floatingCartBadge, { backgroundColor: accent }]}>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: '#FFF' }}>{totalItems}</Text>
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[s.floatingCartLabel, { color: txt }]} numberOfLines={1}>
               {plural(totalItems, 'item')} added
             </Text>
-            <Text style={[s.floatingCartSub, { color: isDark ? COLORS.gold : COLORS.red }]}>
+            <Text style={[s.floatingCartSub, { color: accent }]}>
               {formatINR(totalPrice)} subtotal
             </Text>
           </View>
         </View>
-        <View style={[s.floatingCartCta, { backgroundColor: isDark ? COLORS.gold : COLORS.red }]}>
-          <Text style={[s.floatingCartCtaText, { color: isDark ? '#000' : '#FFF' }]}>View basket</Text>
-          <Ionicons name="chevron-forward" size={15} color={isDark ? '#000' : '#FFF'} />
+        <View style={[s.floatingCartCta, { backgroundColor: accent }]}>
+          <Text style={[s.floatingCartCtaText, { color: '#FFF' }]}>View basket</Text>
+          <Ionicons name="chevron-forward" size={15} color="#FFF" />
         </View>
       </TouchableOpacity>
     </View>
   );
 });
 
+const FAB_CART = require('../assets/home-redesign-2026-11-09/basket-fab-full-cart-gemini-2026-11-10.webp');
+
 /** The floating basket button with the item count (its own component: a basket change re-renders only it). */
 const BasketFab = React.memo(function BasketFab({ onPress }: { onPress: () => void }) {
+  const accent = useNavAccent();
   const totalItems = useCartTotalItems();
   // One small hop each time something is added (never a loop).
   const hop = useRef(new Animated.Value(0)).current;
@@ -73,7 +77,9 @@ const BasketFab = React.memo(function BasketFab({ onPress }: { onPress: () => vo
   const hopStyle = { transform: [{ translateY: hop.interpolate({ inputRange: [0, 1], outputRange: [0, -6] }) }, { scale: hop.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] }) }] };
   return (
     <DopaminePressable
-      style={s.fabBtn}
+      // Owner, 10 Nov 2026 ("redesign this icon"): a white button with a thin diet-colour ring and the photoreal
+      // full cart inside (same art as the empty basket), soft accent-tinted shadow; the count stays an accent badge.
+      style={[s.fabBtn, { backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: accent, shadowColor: accent }]}
       onPress={onPress}
       sound="click"
       activeScale={0.88}
@@ -81,11 +87,11 @@ const BasketFab = React.memo(function BasketFab({ onPress }: { onPress: () => vo
       accessibilityLabel={totalItems > 0 ? `Open basket, ${totalItems} ${totalItems === 1 ? 'item' : 'items'}` : 'Open basket'}
     >
       <Animated.View style={hopStyle}>
-        <BasketFabIcon size={34} bg={COLORS.red} />
+        <Image source={FAB_CART} style={{ width: 38, height: 38, marginTop: 2 }} resizeMode="contain" accessibilityIgnoresInvertColors />
       </Animated.View>
       {totalItems > 0 ? (
-        <View style={s.fabBadge} pointerEvents="none">
-          <Text style={s.fabBadgeText} maxFontSizeMultiplier={1.3}>{totalItems > 99 ? '99+' : totalItems}</Text>
+        <View style={[s.fabBadge, { backgroundColor: accent, borderColor: '#FFFFFF' }]} pointerEvents="none">
+          <Text style={[s.fabBadgeText, { color: '#FFFFFF' }]} maxFontSizeMultiplier={1.3}>{totalItems > 99 ? '99+' : totalItems}</Text>
         </View>
       ) : null}
     </DopaminePressable>
@@ -97,8 +103,9 @@ const BasketFab = React.memo(function BasketFab({ onPress }: { onPress: () => vo
  * chats stay on the Campus pill in Home's header).
  */
 export function FloatingBasketButton({ onPress }: { onPress: () => void }) {
+  const accent = useNavAccent();
   return (
-    <FloatingPulse color={COLORS.red} style={s.fabBtnWrap}>
+    <FloatingPulse color={accent} style={s.fabBtnWrap}>
       <BasketFab onPress={onPress} />
     </FloatingPulse>
   );

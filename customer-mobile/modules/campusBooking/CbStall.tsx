@@ -42,6 +42,7 @@ export default function CbStall({ id }: { id: string }) {
   const [sampleNote, setSampleNote] = useState<CbSampleNote | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [tab, setTab] = useState<'menu' | 'about'>('menu');
+  const [descOpen, setDescOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState('All');
   const [menuSearch, setMenuSearch] = useState('');
   const cart = useCbCart(id);
@@ -134,56 +135,53 @@ export default function CbStall({ id }: { id: string }) {
           )}
         </View>
 
-        {/* Floating info card */}
+        {/* Info card (owner, 10 Nov 2026, from the approved replica): name, type · place, one status line, three
+            facts, the description folded to two lines; FSSAI moved to About; one quiet pickup line. */}
         <View style={[st.floatingInfoCard, { backgroundColor: p.card, borderColor: p.border }]}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-            <View style={[st.statusBadge, { backgroundColor: stall.isOpen ? '#10B981' : '#6B7280' }]}>
-              <Text style={st.statusBadgeText}>{stall.isOpen ? 'Open now' : 'Closed'}</Text>
-            </View>
-            {stall.rating ? <Text style={{ color: p.txt, fontSize: 12, fontWeight: '700' }}>{`★ ${stall.rating.toFixed(1)}`}</Text> : null}
-            {sample ? <CbSampleTag /> : null}
-          </View>
+          {sample ? <View style={{ marginBottom: 6 }}><CbSampleTag /></View> : null}
           <Text style={[st.infoCardName, { color: p.txt }]}>{stall.name}</Text>
-          {stall.description ? <Text style={[st.infoCardDesc, { color: p.txtSec }]}>{stall.description}</Text> : null}
-          <View style={st.localBadge}><Text style={st.localBadgeText}>In-Campus Booking · pickup</Text></View>
-          <View style={[st.metaRow, { borderColor: p.border }]}>
-            <View style={{ flexDirection: 'row', gap: 12, flexShrink: 1, flexWrap: 'wrap' }}>
-              <View style={st.metaItem}>
-                <Ionicons name="time-outline" size={11} color={p.txtSec} />
-                <Text style={[st.metaText, { color: p.txtSec }]}>{`Ready in about ${stall.prepMinutes} min`}</Text>
-              </View>
-              {stall.isOpen || opens ? (
-                <View style={st.metaItem}>
-                  <Ionicons name="moon-outline" size={11} color={p.txtSec} />
-                  <Text style={[st.metaText, { color: p.txtSec }]}>{stall.isOpen ? (closes ? `Closes ${closes}` : 'Open all day') : `Opens ${opens}`}</Text>
-                </View>
-              ) : null}
-              {stall.location ? (
-                <View style={[st.metaItem, { flexShrink: 1 }]}>
-                  <Ionicons name="location-outline" size={11} color={p.txtSec} />
-                  <Text style={[st.metaText, { color: p.txtSec, flexShrink: 1 }]} numberOfLines={1}>{stall.location}</Text>
-                </View>
-              ) : null}
-            </View>
+          <Text style={{ fontSize: 13, color: p.txtSec, fontWeight: '500' }} numberOfLines={1}>{[stall.tags?.[0] || stall.categoryLabel, stall.location].filter(Boolean).join(' · ')}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}>
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: stall.isOpen ? p.accent : '#9CA3AF' }} />
+            <Text style={{ fontSize: 12.5, fontWeight: '700', color: stall.isOpen ? p.accent : '#6B7280' }}>
+              {stall.isOpen ? (closes ? `Open now · closes ${closes}` : 'Open now') : opens ? `Closed now · opens at ${opens}` : 'Closed now'}
+            </Text>
+            {stall.rating ? <Text style={{ color: p.txt, fontSize: 12, fontWeight: '700', marginLeft: 6 }}>{`★ ${stall.rating.toFixed(1)}`}</Text> : null}
           </View>
-          {sample ? null : <FssaiLine number={stall.fssaiLicenseNumber} color={p.txtSec} />}
+          <View style={[st.facts, { borderColor: p.border }]}>
+            {[
+              [`${stall.prepMinutes}–${stall.prepMinutes + 15} min`, 'Ready in'],
+              ['Pickup', 'At the counter'],
+              ['UPI', 'Pay the stall'],
+            ].map(([v, l], i) => (
+              <View key={l} style={[st.fact, i > 0 && { borderLeftWidth: 1, borderLeftColor: p.border }]}>
+                <Text style={{ fontSize: 13.5, fontWeight: '800', color: p.txt }} numberOfLines={1}>{v}</Text>
+                <Text style={{ fontSize: 11, color: p.txtSec, marginTop: 2 }} numberOfLines={1}>{l}</Text>
+              </View>
+            ))}
+          </View>
+          {stall.description ? (
+            <View style={{ marginTop: 12 }}>
+              <Text style={{ fontSize: 13, lineHeight: 19, color: p.txtSec }} numberOfLines={descOpen ? undefined : 2}>{stall.description}</Text>
+              <TouchableOpacity onPress={() => setDescOpen((v) => !v)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }} accessibilityRole="button">
+                <Text style={{ fontSize: 12.5, fontWeight: '800', color: p.accent, marginTop: 3 }}>{descOpen ? 'Show less' : 'Read more'}</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
         </View>
 
         {sample ? (
           <NoticeBar icon="information-circle-outline" text="Sample stall. This shows what's coming to In-Campus Booking. You can't book it yet." style={{ marginHorizontal: 16, marginTop: 12 }} />
         ) : (
-          <NoticeBar icon="qr-code-outline" text={`Collect at ${stall.name}'s counter with your pickup code. You pay the stall directly by UPI.`} style={{ marginHorizontal: 16, marginTop: 12 }} />
+          <NoticeBar icon="qr-code-outline" text="Show your pickup code at the counter" style={{ marginHorizontal: 16, marginTop: 12 }} />
         )}
-        {!stall.isOpen ? (
-          <NoticeBar icon="moon-outline" tone="indigo" text={`${String(stall.closedReason || 'Closed right now').replace(/[.\s]+$/, '')}. You can browse the menu and book when it opens.`} style={{ marginHorizontal: 16, marginTop: 12 }} />
-        ) : null}
 
         {/* Menu / About */}
         <View style={[st.tabs, { borderBottomColor: p.border }]} accessibilityRole="tablist">
           {(['menu', 'about'] as const).map((t) => (
             <TouchableOpacity key={t} onPress={() => setTab(t)} style={st.tab} accessibilityRole="tab" accessibilityState={{ selected: tab === t }}>
-              <Text style={[st.tabText, { color: tab === t ? COLORS.red : p.txtSec }]}>{t === 'menu' ? 'Menu' : 'About'}</Text>
-              <View style={[st.tabBar, { backgroundColor: tab === t ? COLORS.red : 'transparent' }]} />
+              <Text style={[st.tabText, { color: tab === t ? p.accent : p.txtSec }]}>{t === 'menu' ? 'Menu' : 'About'}</Text>
+              <View style={[st.tabBar, { backgroundColor: tab === t ? p.accent : 'transparent' }]} />
             </TouchableOpacity>
           ))}
         </View>
@@ -206,7 +204,7 @@ export default function CbStall({ id }: { id: string }) {
                 {categories.map((cat) => {
                   const on = activeCategory === cat;
                   return (
-                    <DopaminePressable key={cat} style={[st.categoryPill, { backgroundColor: p.card, borderColor: p.border }, on && { backgroundColor: '#EF4F5F', borderColor: '#EF4F5F' }]} onPress={() => setActiveCategory(cat)} sound="tabSwitch" activeScale={0.94}>
+                    <DopaminePressable key={cat} style={[st.categoryPill, { backgroundColor: p.card, borderColor: p.border }, on && { backgroundColor: p.accent, borderColor: p.accent }]} onPress={() => setActiveCategory(cat)} sound="tabSwitch" activeScale={0.94}>
                       <Text style={[st.categoryText, { color: on ? '#FFF' : p.txt }]} maxFontSizeMultiplier={1.3}>{cat}</Text>
                     </DopaminePressable>
                   );
@@ -242,7 +240,7 @@ export default function CbStall({ id }: { id: string }) {
                         ) : null}
                         <Text style={[st.menuItemName, { color: p.txt }]} numberOfLines={2}>{m.name}</Text>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginVertical: 2 }}>
-                          <Text style={[st.menuItemPrice, { color: '#EF4F5F' }]}>{inr(m.price)}</Text>
+                          <Text style={[st.menuItemPrice, { color: p.txt }]}>{inr(m.price)}</Text>
                           {m.originalPrice ? <Text style={{ fontSize: 12, color: p.txtSec, textDecorationLine: 'line-through' }}>{inr(m.originalPrice)}</Text> : null}
                         </View>
                         {m.description ? <Text style={{ fontSize: 12, color: p.txtSec, marginTop: 2 }} numberOfLines={2}>{m.description}</Text> : null}
@@ -303,7 +301,7 @@ export default function CbStall({ id }: { id: string }) {
       {!sample && cart.count ? (
         <View style={[st.floatingCartContainer, { bottom: 24 + insets.bottom }]}>
           <DopaminePressable
-            style={st.floatingCart}
+            style={[st.floatingCart, { backgroundColor: p.accent, shadowColor: p.accent }]}
             onPress={() => router.push(`/campus-booking/cart/${id}` as any)}
             accessibilityRole="button"
             accessibilityLabel={`View cart, ${cart.count} items, item total ${inr(cart.total)}`}
@@ -329,6 +327,8 @@ const st = StyleSheet.create({
   heroGrad: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)' },
   backBtn: { position: 'absolute', left: 16, width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', zIndex: 2 },
   sideBtn: { position: 'absolute', right: 16, width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.9)', alignItems: 'center', justifyContent: 'center', zIndex: 2, ...SHADOWS.card },
+  facts: { flexDirection: 'row', marginTop: 14, borderWidth: 1, borderRadius: 16 },
+  fact: { flex: 1, alignItems: 'center', paddingVertical: 10, paddingHorizontal: 4 },
   floatingInfoCard: { marginHorizontal: 16, marginTop: -32, borderRadius: 24, padding: 16, borderWidth: 1, ...SHADOWS.card, shadowOpacity: 0.15 },
   statusBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, alignSelf: 'flex-start' },
   statusBadgeText: { fontSize: 12, fontWeight: '800', color: '#fff', letterSpacing: 0.2 },

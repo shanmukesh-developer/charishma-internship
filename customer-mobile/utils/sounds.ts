@@ -77,7 +77,8 @@ export type SoundType =
   | 'addToCart' 
   | 'success' 
   | 'error' 
-  | 'click';
+  | 'click'
+  | 'vegMode';
 
 // ── Native Sound Engine (expo-audio, bundled local files: no network) ──
 // Tiny WAVs synthesized from the same tone recipes as the web sounds below
@@ -93,6 +94,7 @@ const NATIVE_SOUND_FILES: Record<SoundType, number> = {
   rideTransition: require('../assets/sounds/rideTransition.wav'),
   premiumRestaurantTransition: require('../assets/sounds/premiumRestaurantTransition.wav'),
   brandSplash: require('../assets/sounds/success.wav'),
+  vegMode: require('../assets/sounds/vegMode.wav'),
 };
 
 const lastPlayTime: Record<string, number> = {};
@@ -333,6 +335,13 @@ const WEB_SOUNDS: Record<SoundType, () => void> = {
   click: () => {
     playTone(1200, 0.03, 'sine', 0.06);
   },
+
+  // "Pure Veg" jingle (same notes as assets/sounds/vegMode.wav): soft pad + rising bell arpeggio.
+  vegMode: () => {
+    [261.63, 329.63, 392.0].forEach((f) => playTone(f, 1.1, 'sine', 0.035, 0, 0.6));
+    [[523.25, 0], [659.25, 0.11], [783.99, 0.22], [1174.66, 0.33], [1046.5, 0.46]].forEach(([f, d]) => playTone(f, 0.9, 'sine', 0.09, d, 0.75));
+    playTone(2093.0, 0.6, 'sine', 0.025, 0.52, 0.5);
+  },
 };
 
 // ── Public API ──
@@ -347,6 +356,24 @@ export function playSound(type: SoundType): void {
     }
   } catch {
     // Silently fail if audio isn't available
+  }
+}
+
+/**
+ * Owner, 10 Nov 2026 ("while shifting to veg, add music"): a moment's own music plays even with App sounds off (the
+ * default). The phone's silent mode still mutes it (audio mode never plays in silent mode).
+ */
+export function playMoment(type: SoundType): void {
+  try {
+    if (Platform.OS === 'web') {
+      const ctx = getAudioContext();
+      if (ctx?.state === 'suspended') ctx.resume();
+      WEB_SOUNDS[type]?.();
+    } else {
+      playNativeSound(type);
+    }
+  } catch {
+    // audio unavailable
   }
 }
 

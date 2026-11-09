@@ -40,6 +40,8 @@ import { useTopInset } from '../../utils/useTopInset';
 import { goHome } from '../../utils/goHome';
 import SymbolIcon from '../../components/SymbolIcon';
 import { orderCode } from '../../utils/orderCode';
+import { useDietLight } from '../../components/local/dietLightTheme';
+const TRACK_SCOOTER = require('../../assets/home-redesign-2026-11-09/tracking-delivery-scooter-gemini-2026-11-10.webp');
 
 
 /**
@@ -139,7 +141,7 @@ export default function TrackingScreen() {
   // Reject anything that is not a plain id (deep links / push data could carry '../' paths).
   const orderId = safeId(Array.isArray(params.id) ? params.id[0] : params.id);
   const router = useRouter();
-  const { isDark } = useTheme();
+  const { isDark, colors } = useTheme();
   const { user, refreshUser } = useAuth();
 
   const [status, setStatus] = useState<number>(1);
@@ -608,11 +610,15 @@ export default function TrackingScreen() {
     ? null
     : riderKm < 1 ? `${Math.max(10, Math.round(riderKm * 1000 / 10) * 10)} m away` : `${riderKm.toFixed(1)} km away`;
 
-  const bg = isDark ? COLORS.bgDark : COLORS.bgLight;
-  const cardBg = isDark ? COLORS.bgCard : COLORS.bgLightCard;
+  const dl = useDietLight();
+  const acc = dl.acc;
+  const bg = dl.page;
+  const cardBg = dl.card;
   const txt = isDark ? COLORS.textPrimary : COLORS.textDark;
   const txtSec = isDark ? COLORS.textSecondary : COLORS.textDarkSecondary;
-  const border = isDark ? COLORS.borderDark : COLORS.borderLight;
+  const border = dl.edge;
+  // Old dark layout stays in the file but no longer renders (owner, 10 Nov 2026: dark gets the new look).
+  const legacy = false as boolean;
 
   if (loadingOrder && !orderInfo) {
     return (
@@ -706,7 +712,7 @@ export default function TrackingScreen() {
         </View>
       )}
       {/* ── HEADER ── */}
-      <View style={[s.header, { paddingTop: topPad, backgroundColor: isDark ? '#000' : '#fff', borderBottomColor: border }]}>
+      <View style={[s.header, { paddingTop: topPad, backgroundColor: dl.top, borderBottomColor: 'transparent' }, { borderBottomLeftRadius: 22, borderBottomRightRadius: 22 }]}>
         <TouchableOpacity 
           onPress={() => {
             if (router.canGoBack()) {
@@ -719,21 +725,21 @@ export default function TrackingScreen() {
           accessibilityRole="button"
           accessibilityLabel="Back"
         >
-          <Ionicons name="chevron-back" size={20} color={txt} />
+          <Ionicons name="chevron-back" size={20} color={dl.dk} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={[s.headerTitle, { color: txt }]}>Order tracking</Text>
+          <Text style={[s.headerTitle, { color: dl.dk }]}>Order tracking</Text>
           {orderId && (
-            <Text style={{ fontSize: 12, color: COLORS.gold, fontWeight: '600', letterSpacing: 1 }}>
-              {orderCode(orderInfo, orderId)}
+            <Text style={{ fontSize: 12, color: dl.dk, opacity: 0.7, fontWeight: '600', letterSpacing: 0.4 }}>
+              {storeName ? `${storeName} · ` : ''}{orderCode(orderInfo, orderId)}
             </Text>
           )}
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           {/* Polling keeps the order fresh while the socket reconnects, so this is a grey note, not an error. */}
-          <View style={[s.statusIndicator, { backgroundColor: isConnected ? 'rgba(16,185,129,0.1)' : 'rgba(136,136,136,0.12)' }]}>
-            <View style={[s.statusDot, { backgroundColor: isConnected ? COLORS.emerald : txtSec }]} />
-            <Text style={[s.statusText, { color: isConnected ? COLORS.emerald : txtSec }]}>
+          <View style={[s.statusIndicator, { backgroundColor: isConnected ? dl.card : 'rgba(136,136,136,0.12)' }]}>
+            <View style={[s.statusDot, { backgroundColor: isConnected ? acc : txtSec }]} />
+            <Text style={[s.statusText, { color: isConnected ? acc : txtSec }]}>
               {isConnected ? 'Live' : 'Reconnecting…'}
             </Text>
           </View>
@@ -760,8 +766,52 @@ export default function TrackingScreen() {
           </View>
         )}
 
-        {/* ── LIVE ORDER COCKPIT ── */}
-        <StaggeredSection delay={30} direction="up">
+        {/* v7FoodStatus: the replica's status card (light mode) */}
+        {!legacy ? (() => {
+          const done = status >= 6 ? 4 : status >= 4 ? 2 : status >= 2 ? 1 : 0;
+          const labels = ['Confirmed', 'Preparing', 'On the way', 'Delivered'];
+          const big = status === 1 ? 'Waiting for the store' : status === 2 ? 'Confirmed' : status === 3 ? 'Preparing' : status === 4 ? 'Out for delivery' : status === 5 ? 'At your gate' : 'Delivered';
+          const eta = status === 5 ? 'Your rider is at the gate' : estMinutes && status >= 2 && status <= 4 ? `About ${estMinutes} min away` : slotLabel && status < 6 ? `Delivery: ${slotLabel}` : null;
+          return (
+            <StaggeredSection delay={30} direction="up">
+              <View style={[s.v7Card, { backgroundColor: cardBg, borderColor: border }]}>
+                <View style={{ flexDirection: 'row' }}>
+                  <View style={{ flex: 1, paddingRight: 6 }}>
+                    <Text style={{ fontSize: 11.5, fontWeight: '700', color: txtSec }}>Current status</Text>
+                    <Text style={{ fontSize: 22, fontWeight: '800', color: txt, marginTop: 2 }}>{big}</Text>
+                    {eta ? (
+                      <View style={[s.v7Eta, { backgroundColor: dl.soft }]}>
+                        <Ionicons name="time-outline" size={13} color={acc} />
+                        <Text style={{ fontSize: 12, fontWeight: '800', color: acc }} numberOfLines={1}>{eta}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                  <Image source={TRACK_SCOOTER} style={s.v7Art} resizeMode="contain" />
+                </View>
+                <View style={{ flexDirection: 'row', gap: 4, marginTop: 16 }}>
+                  {labels.map((l, i) => (
+                    <View key={l} style={{ flex: 1, height: 4, borderRadius: 3, backgroundColor: dl.track, overflow: 'hidden' }}>
+                      {i < done ? <View style={{ flex: 1, backgroundColor: acc }} /> : i === done && status < 6 ? <View style={{ width: '50%', height: '100%', backgroundColor: acc }} /> : null}
+                    </View>
+                  ))}
+                </View>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>
+                  {labels.map((l, i) => <Text key={l} style={{ fontSize: 10.5, fontWeight: '700', color: i === done && status < 6 ? acc : txtSec }}>{l}</Text>)}
+                </View>
+                {!!liveFix && (
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: txtSec, marginTop: 10 }}>
+                    {riderDistanceText ? `${rider?.name || 'Your rider'} is ${riderDistanceText}` : 'Live rider location on'}
+                    {fixAgeSec !== null ? (fixAgeSec < 15 ? ' · live' : ` · updated ${fixAgeSec}s ago`) : ''}
+                  </Text>
+                )}
+                {isVendorOrder && status >= 4 && status < 6 ? <Text style={{ fontSize: 12, color: txtSec, marginTop: 8 }}>{`${stallLabel} is bringing it. Keep cash ready.`}</Text> : null}
+              </View>
+            </StaggeredSection>
+          );
+        })() : null}
+
+        {/* ── LIVE ORDER COCKPIT (dark mode) ── */}
+        {legacy ? <StaggeredSection delay={30} direction="up">
           <LiveOrderCockpit
             status={status}
             isDark={isDark}
@@ -773,10 +823,10 @@ export default function TrackingScreen() {
             estMinutes={estMinutes}
             vendor={isVendorOrder ? { name: stallLabel, onCall: stallCallable ? callStall : null } : null}
           />
-        </StaggeredSection>
+        </StaggeredSection> : null}
 
-        {/* ── CURRENT STAGE CARD ── */}
-        <StaggeredSection delay={50} direction="up">
+        {/* ── CURRENT STAGE CARD (dark mode) ── */}
+        {legacy ? <StaggeredSection delay={50} direction="up">
           <View style={[s.currentStageCard, { backgroundColor: cardBg, borderColor: COLORS.goldBorder }]}>
             <View style={s.stageEmoji}>
               <Ionicons
@@ -826,12 +876,12 @@ export default function TrackingScreen() {
               </View>
             ) : null}
           </View>
-        </StaggeredSection>
+        </StaggeredSection> : null}
 
         {/* ── RECEIPT (C8): delivered orders only ── */}
         {orderInfo?.status === 'Delivered' && (
           <StaggeredSection delay={80} direction="up">
-            <View style={[s.receiptCard, { backgroundColor: cardBg, borderColor: COLORS.goldBorder }]}>
+            <View style={[s.receiptCard, { backgroundColor: cardBg, borderColor: border }]}>
               <View style={{ flex: 1 }}>
                 <Text style={[s.stageLabel, { color: txtSec }]}>Receipt</Text>
                 <Text style={{ color: txt, fontSize: 13, fontWeight: '600', marginTop: 2 }}>
@@ -840,13 +890,13 @@ export default function TrackingScreen() {
                 <FssaiLine number={orderInfo.restaurant ? (orderInfo.restaurant.fssaiLicenseNumber ?? null) : undefined} color={txtSec} style={{ marginTop: 2 }} />
               </View>
               <TouchableOpacity
-                style={[s.receiptBtn, receiptLoading && { opacity: 0.6 }]}
+                style={[s.receiptBtn, { backgroundColor: acc }, receiptLoading && { opacity: 0.6 }]}
                 onPress={openReceipt}
                 disabled={receiptLoading}
                 accessibilityRole="button"
                 accessibilityLabel="View receipt"
               >
-                {receiptLoading ? <ActivityIndicator size="small" color="#000" /> : <Text style={s.receiptBtnText}>View receipt</Text>}
+                {receiptLoading ? <ActivityIndicator size="small" color={dl.onAcc} /> : <Text style={[s.receiptBtnText, { color: dl.onAcc }]}>View receipt</Text>}
               </TouchableOpacity>
             </View>
           </StaggeredSection>
@@ -985,6 +1035,20 @@ export default function TrackingScreen() {
         {/* ── DELIVERY PIN (stored as deliveryPin) ── */}
         {!!orderInfo?.deliveryPin && !isVendorOrder && status < 6 && (
           <StaggeredSection delay={170} direction="up">
+            {!legacy ? (
+              <View style={[s.v7Pin, { backgroundColor: dl.soft }]}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 11.5, fontWeight: '700', color: dl.dk, opacity: 0.85 }}>Delivery PIN</Text>
+                  <Text style={{ fontSize: 11.5, color: dl.dk, opacity: 0.8 }}>Share it with your rider at handover only</Text>
+                  <TouchableOpacity onPress={() => setZoomPin(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel="Enlarge Delivery PIN">
+                    <Text style={{ fontSize: 12, fontWeight: '800', color: acc, marginTop: 4 }}>Enlarge</Text>
+                  </TouchableOpacity>
+                </View>
+                <TouchableOpacity onPress={copyPinToClipboard} accessibilityLabel="Copy Delivery PIN">
+                  <Text style={{ fontSize: 28, fontWeight: '900', letterSpacing: 6, color: acc }}>{orderInfo.deliveryPin}</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
             <View style={[s.pinCard, { backgroundColor: cardBg, borderColor: status >= 4 ? COLORS.gold : border }]}>
               <View style={s.pinHeader}>
                 <View style={s.pinIconWrap}>
@@ -1004,6 +1068,7 @@ export default function TrackingScreen() {
                 </TouchableOpacity>
               </View>
             </View>
+            )}
           </StaggeredSection>
         )}
 
@@ -1012,34 +1077,34 @@ export default function TrackingScreen() {
           <View style={s.actionRow}>
             {isVendorOrder ? (
               <TouchableOpacity
-                style={[s.actionBtn, { backgroundColor: cardBg, borderColor: border }, !stallCallable && { opacity: 0.5 }]}
+                style={[s.actionBtn, { backgroundColor: cardBg, borderColor: border }, s.v7Tile, !stallCallable && { opacity: 0.5 }]}
                 disabled={!stallCallable}
                 onPress={callStall}
                 accessibilityLabel={`Call ${stallLabel}`}
               >
-                <Ionicons name="call-outline" size={16} color={txt} />
+                <Ionicons name="call-outline" size={20} color={acc} />
                 <Text style={[s.actionBtnText, { color: txt }]}>Call stall</Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
-                style={[s.actionBtn, { backgroundColor: cardBg, borderColor: border }, !(rider?.phone && status < 6) && { opacity: 0.5 }]}
+                style={[s.actionBtn, { backgroundColor: cardBg, borderColor: border }, s.v7Tile, !(rider?.phone && status < 6) && { opacity: 0.5 }]}
                 disabled={!(rider?.phone && status < 6)}
                 onPress={callRider}
                 accessibilityLabel="Call your rider"
               >
-                <Ionicons name="call-outline" size={16} color={txt} />
+                <Ionicons name="call-outline" size={20} color={acc} />
                 <Text style={[s.actionBtnText, { color: txt }]}>{rider ? 'Call rider' : 'No rider yet'}</Text>
               </TouchableOpacity>
             )}
 
-            <TouchableOpacity style={[s.actionBtn, { backgroundColor: cardBg, borderColor: border }]} onPress={openHelp} accessibilityRole="button" accessibilityLabel="Help">
-              <Ionicons name="help-buoy-outline" size={16} color={txt} />
+            <TouchableOpacity style={[s.actionBtn, { backgroundColor: cardBg, borderColor: border }, s.v7Tile]} onPress={openHelp} accessibilityRole="button" accessibilityLabel="Help">
+              <Ionicons name="help-buoy-outline" size={20} color={acc} />
               <Text style={[s.actionBtnText, { color: txt }]}>Help</Text>
             </TouchableOpacity>
 
             {status < 6 && (
-              <TouchableOpacity style={[s.actionBtn, { backgroundColor: cardBg, borderColor: border }]} onPress={handleShareTracking} accessibilityRole="button" accessibilityLabel="Share tracking">
-                <Ionicons name="share-social-outline" size={16} color={txt} />
+              <TouchableOpacity style={[s.actionBtn, { backgroundColor: cardBg, borderColor: border }, s.v7Tile]} onPress={handleShareTracking} accessibilityRole="button" accessibilityLabel="Share tracking">
+                <Ionicons name="share-social-outline" size={20} color={acc} />
                 <Text style={[s.actionBtnText, { color: txt }]}>Share</Text>
               </TouchableOpacity>
             )}
@@ -1049,7 +1114,7 @@ export default function TrackingScreen() {
         {/* ── WAITING FOR THE STORE (Pending): say what happens if it never answers ── */}
         {status === 1 && (
           <View style={[s.waitStoreBox, { backgroundColor: cardBg, borderColor: border }]} accessibilityRole="summary">
-            <ActivityIndicator size="small" color={COLORS.gold} />
+            <ActivityIndicator size="small" color={acc} />
             <View style={{ flex: 1 }}>
               <Text style={[s.waitStoreTitle, { color: txt }]}>Waiting for the store to accept</Text>
               <Text style={[s.waitStoreSub, { color: txtSec }]}>
@@ -1076,19 +1141,23 @@ export default function TrackingScreen() {
         {status >= 6 && orderInfo?.rating == null && (
           <StaggeredSection delay={260} direction="up">
             <TouchableOpacity style={[s.rateCta, { backgroundColor: cardBg }]} onPress={() => setShowRatingModal(true)}>
-              <Ionicons name="star-outline" size={20} color={COLORS.gold} />
+              {null}
               <View style={{ flex: 1 }}>
                 <Text style={[s.rateCtaTitle, { color: txt }]}>How was your order?</Text>
                 <Text style={[s.rateCtaSub, { color: txtSec }]}>Rate it and earn 10 points</Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color={COLORS.gold} />
+              {legacy ? <Ionicons name="chevron-forward" size={16} color={COLORS.gold} /> : (
+                <View style={{ flexDirection: 'row', gap: 4 }}>{[0, 1, 2, 3, 4].map((i) => <Ionicons key={i} name="star" size={20} color={isDark ? 'rgba(255,255,255,0.2)' : '#E5E7EB'} />)}</View>
+              )}
             </TouchableOpacity>
           </StaggeredSection>
         )}
         {status >= 6 && orderInfo?.rating != null && (
           <StaggeredSection delay={260} direction="up">
             <View style={[s.rateCta, { backgroundColor: cardBg }]}>
-              <Ionicons name="heart-outline" size={20} color={COLORS.gold} />
+              {legacy ? <Ionicons name="heart-outline" size={20} color={COLORS.gold} /> : (
+                <View style={{ flexDirection: 'row', gap: 2 }}>{[1, 2, 3, 4, 5].map((i) => <Ionicons key={i} name="star" size={16} color={i <= Number(orderInfo.rating) ? '#F5B301' : '#E5E7EB'} />)}</View>
+              )}
               <View style={{ flex: 1 }}>
                 <Text style={[s.rateCtaTitle, { color: txt }]}>You rated this order {orderInfo.rating}★</Text>
                 <Text style={[s.rateCtaSub, { color: txtSec }]}>Thanks for your feedback.</Text>
@@ -1272,6 +1341,11 @@ export default function TrackingScreen() {
 }
 
 const s = StyleSheet.create({
+  v7Card: { borderRadius: 22, borderWidth: 1, padding: 16, marginBottom: 12, overflow: 'hidden' },
+  v7Eta: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, marginTop: 8 },
+  v7Art: { width: 104, height: 96, marginRight: -6, marginTop: -4 },
+  v7Pin: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, borderRadius: 18 },
+  v7Tile: { flexDirection: 'column', gap: 5, paddingVertical: 12, borderRadius: 16 },
   receiptCard: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 16, padding: 14, marginBottom: 12 },
   receiptBtn: { backgroundColor: COLORS.gold, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, minWidth: 110, alignItems: 'center' },
   receiptBtnText: { color: '#000', fontSize: 12, fontWeight: '700', letterSpacing: 0.5 },

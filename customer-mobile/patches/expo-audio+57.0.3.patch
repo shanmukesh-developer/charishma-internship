@@ -1,0 +1,57 @@
+diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioPlayer.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioPlayer.kt
+index c76a9fd..d99b6cc 100644
+--- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioPlayer.kt
++++ b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioPlayer.kt
+@@ -64,7 +64,9 @@ class AudioPlayer(
+   var isActiveForLockScreen = false
+   internal var metadata: Metadata? = null
+   internal var lockScreenOptions: AudioLockScreenOptions? = null
+-  internal var mediaSession: MediaSession = buildBasicMediaSession(context, ref)
++  // ZenWe patch (10 Nov 2026): no MediaSession for plain sounds - Android showed an 'Unknown song' media card
++  // for every short UI sound. A session is only built for lock-screen playback (AudioControlsService).
++  internal var mediaSession: MediaSession? = null
+   val serviceConnection = AudioPlaybackServiceConnection(WeakReference(this), appContext)
+ 
+   val isLive: Boolean
+@@ -220,8 +222,8 @@ class AudioPlayer(
+   }
+ 
+   internal fun assignBasicMediaSession() {
+-    mediaSession.release()
+-    mediaSession = buildBasicMediaSession(context, ref)
++    mediaSession?.release()
++    mediaSession = null
+   }
+ 
+   private fun sendAudioSampleUpdate(sample: List<Float>) {
+@@ -277,7 +279,7 @@ class AudioPlayer(
+   }
+ 
+   override fun releasePlayer() {
+-    mediaSession.release()
++    mediaSession?.release()
+     if (isActiveForLockScreen) {
+       serviceConnection.playbackServiceBinder?.service?.unregisterPlayer()
+     }
+diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
+index 196a5d5..ac828c2 100644
+--- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
++++ b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
+@@ -375,7 +375,7 @@ class AudioControlsService : MediaSessionService() {
+           .build()
+ 
+         // Replace the basic media session with a session connected to our playback service.
+-        player.mediaSession.release()
++        player.mediaSession?.release()
+         player.mediaSession = session
+ 
+         addSession(session)
+@@ -455,7 +455,7 @@ class AudioControlsService : MediaSessionService() {
+           .setCallback(AudioMediaSessionCallback())
+           .build()
+ 
+-        player.mediaSession.release()
++        player.mediaSession?.release()
+         player.mediaSession = session
+ 
+         addSession(session)

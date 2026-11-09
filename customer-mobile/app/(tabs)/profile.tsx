@@ -28,6 +28,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useDietary, DietPrefs } from '../../context/DietaryContext';
 import AmbientBackground from '../../components/AmbientBackground';
+import { useDietLight } from '../../components/local/dietLightTheme';
 import { StaggeredSection } from '../../components/AnimatedSection';
 import { apiFetch, getToken } from '../../utils/auth';
 import { newIdempotencyKey } from '../../context/CartContext';
@@ -56,6 +57,11 @@ import SymbolIcon from '../../components/SymbolIcon';
 
 const PHONE_RE = /^[6-9]\d{9}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+// Edit profile rules (10 Nov 2026): letters (any script), spaces and . ' - only; rooms like 304, B-214, 12A.
+const NAME_RE = /^[\p{L}][\p{L}\p{M} .'-]*$/u;
+const ROOM_RE = /^[A-Za-z0-9][A-Za-z0-9 /-]*$/;
+const CITY_RE = /^[\p{L}][\p{L}\p{M} .'-]*$/u;
+type EditField = 'name' | 'phone' | 'email' | 'photo' | 'block' | 'room' | 'city' | 'address';
 const BIO_MAX = 160;
 // Diet filter <-> account dietaryPreference (PUT /api/users/profile accepts None/Veg/Eggetarian/Non-Veg)
 const DIET_TO_SERVER: Record<string, string> = { all: 'None', veg: 'Veg', egg: 'Eggetarian', eggarian: 'Eggetarian', 'non-veg': 'Non-Veg', nonveg: 'Non-Veg' };
@@ -124,14 +130,19 @@ export default function ProfileScreen() {
   const userId = user?._id || user?.id;
 
   // Color Palette mappings
-  const bg = colors.bg;
-  const cardBg = colors.card;
-  // Light mode: cards get a soft lift so they separate from the page (dark: none)
-  const lift = surfaceLift(isDark);
+  // Owner, 10 Nov 2026: Profile keeps its layout but takes the app's new look (Local / Basket / Orders): the light
+  // diet band and page, glass cards and the diet accent. Gold stays only for rewards (badge, points, progress).
+  const d = useDietLight();
+  const bg = d.pageDeep;
+  const cardBg = isDark ? d.card : 'rgba(255,255,255,0.74)';
+  const lift = isDark
+    ? { shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 3 }
+    : { shadowColor: d.dk, shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 3 };
   const txt = colors.text;
   const txtSec = colors.textSecondary;
-  const border = colors.border;
-  const goldColor = isDark ? COLORS.gold : colors.gold;
+  const border = isDark ? d.edge : 'rgba(255,255,255,0.95)';
+  const goldColor = d.acc;
+  const rewardGold = isDark ? COLORS.gold : colors.gold;
 
   const mountedRef = useRef(true);
   const suggestTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -151,6 +162,10 @@ export default function ProfileScreen() {
 
   // Edit fields
   const [editName, setEditName] = useState('');
+  // Inline validation: a field shows its message once it was left (touched) or after a Save attempt.
+  const [touched, setTouched] = useState<Partial<Record<EditField, boolean>>>({});
+  const [triedSave, setTriedSave] = useState(false);
+  const [focusField, setFocusField] = useState<EditField | 'about' | 'address' | null>(null);
   const [editPhone, setEditPhone] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editAbout, setEditAbout] = useState('');
@@ -164,6 +179,13 @@ export default function ProfileScreen() {
   // student saw VIT's blocks too). No college picked yet: no chips, the block is typed.
   const myCollege = useCollege();
   const myHostelCampuses = myCollege ? hostelCampuses.filter((c) => c.code.toLowerCase() === myCollege) : [];
+  // The college's city from the campus directory (SRM AP / VIT-AP: Amaravathi): fills an empty City field.
+  const campusCity = myHostelCampuses.find((c) => c.city)?.city || '';
+  useEffect(() => {
+    if (isEditing && campusCity && !editCity.trim()) setEditCity(campusCity);
+    // only when the editor opens or the campus list arrives, never while the student types
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditing, campusCity]);
   const [editProfileImage, setEditProfileImage] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
@@ -401,6 +423,9 @@ export default function ProfileScreen() {
     setEditHostelBlock(cleanBlock((user as any)?.hostelBlock));
     setEditRoom(cleanRoom((user as any)?.roomNumber));
     setEditProfileImage(user?.profileImage || null);
+    setTouched({});
+    setTriedSave(false);
+    setFocusField(null);
     setOtpSent(false);
     setOtpCode('');
     setEmailCodeSent(false);
@@ -522,24 +547,35 @@ export default function ProfileScreen() {
     }
   };
 
+  const fieldErrors: Partial<Record<EditField, string>> = (() => {
+    const e: Partial<Record<EditField, string>> = {};
+    const n = editName.trim().replace(/\s+/g, ' ');
+    if (n.length < 2) e.name = 'Enter your name (at least 2 letters).';
+    else if (!NAME_RE.test(n)) e.name = 'Use letters only (spaces, . \' - are fine).';
+    if (!normalizedEditPhone) e.phone = 'Enter your mobile number.';
+    else if (normalizedEditPhone.length < 10) e.phone = `${10 - normalizedEditPhone.length} more digit${normalizedEditPhone.length === 9 ? '' : 's'} needed.`;
+    else if (!PHONE_RE.test(normalizedEditPhone)) e.phone = 'Indian mobile numbers start with 6, 7, 8 or 9.';
+    if (normalizedEditEmail && !EMAIL_RE.test(normalizedEditEmail)) e.email = 'Check the email, like name@gmail.com.';
+    if (editProfileImage && !/^(https?:\/\/|data:image\/)/i.test(editProfileImage)) e.photo = 'Paste a full link starting with https://';
+    const room = editRoom.trim();
+    if (room && !ROOM_RE.test(room)) e.room = 'Use letters, numbers or - only (e.g. 304, B-214).';
+    if (room && !editHostelBlock.trim()) e.block = 'Add your hostel block for this room.';
+    const city = editCity.trim();
+    if (city && !CITY_RE.test(city)) e.city = 'Use letters only.';
+    const addr = editAddress.trim();
+    if (addr && (addr.length < 5 || !/\p{L}/u.test(addr))) e.address = 'Add a little more, like the street or a landmark.';
+    return e;
+  })();
+  const showErr = (f: EditField) => (triedSave || touched[f] ? fieldErrors[f] : undefined);
+  const touch = (f: EditField) => setTouched((prev) => (prev[f] ? prev : { ...prev, [f]: true }));
+
   const handleUpdateProfile = async () => {
     if (savingRef.current) return;
-    const name = editName.trim();
+    const name = editName.trim().replace(/\s+/g, ' ');
     const email = normalizedEditEmail;
-    if (name.length < 2) {
-      Alert.alert('Add your name', 'Please enter your name (at least 2 letters).');
-      return;
-    }
-    if (!PHONE_RE.test(normalizedEditPhone)) {
-      Alert.alert('Check your number', 'Enter a valid 10-digit Indian mobile number.');
-      return;
-    }
-    if (email && !EMAIL_RE.test(email)) {
-      Alert.alert('Check your email', "That email address doesn't look right.");
-      return;
-    }
-    if (editProfileImage && !/^(https?:\/\/|data:image\/)/i.test(editProfileImage)) {
-      Alert.alert('Check the photo link', 'Paste a full image link starting with https://, or choose a photo from your gallery.');
+    if (Object.keys(fieldErrors).length) {
+      setTriedSave(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
       return;
     }
     if (phoneChanged) {
@@ -742,11 +778,20 @@ export default function ProfileScreen() {
   const hasSpend = monthlySpend.some((m) => Number(m?.total) > 0) || topItems.length > 0;
   const favRestaurant = spendStats?.favoriteRestaurant && spendStats.favoriteRestaurant !== 'N/A' ? spendStats.favoriteRestaurant : '—';
   const isDataUriImage = typeof editProfileImage === 'string' && editProfileImage.startsWith('data:');
-  const inputBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)';
+  const inputBg = isDark ? 'rgba(255,255,255,0.05)' : '#F7F8FA';
+  const inputBorder = isDark ? colors.border : '#E4E6EC';
+  // One look for every field: accent border while typing, red border + message when it needs a fix.
+  const fieldStyle = (f: EditField | 'about' | 'address', extra?: any) => {
+    const err = f === 'about' ? undefined : showErr(f as EditField);
+    return [s.modalInput, { color: txt, backgroundColor: inputBg, borderColor: err ? '#DC2626' : focusField === f ? goldColor : inputBorder, borderWidth: err || focusField === f ? 1.5 : 1 }, extra];
+  };
+  const errText = (f: EditField) => {
+    const m = showErr(f);
+    return m ? <Text style={s.fieldError} accessibilityLiveRegion="polite">{m}</Text> : null;
+  };
 
   return (
-    <View style={[s.container, { paddingTop: topPad, backgroundColor: bg }]}>
-      <AmbientBackground />
+    <View style={[s.container, { paddingTop: 0, backgroundColor: bg }]}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
@@ -759,10 +804,10 @@ export default function ProfileScreen() {
           />
         }
       >
-        {/* Back (goes to the previous screen, or Home) */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 12 }}>
+        {/* Back (goes to the previous screen, or Home), on the light diet band */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: topPad + 8, paddingBottom: 18, marginBottom: 14, backgroundColor: d.top, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 }}>
           <TabBackButton />
-          <Text style={{ fontSize: 20, fontWeight: '700', color: txt }}>Profile</Text>
+          <Text style={{ fontSize: 20, fontWeight: '800', color: d.dk }}>Profile</Text>
         </View>
 
         {/* Profile Card */}
@@ -774,7 +819,7 @@ export default function ProfileScreen() {
               <TouchableOpacity onPress={openEditor} accessibilityLabel="Edit profile">
                 <View style={s.avatarOuterRing}>
                   <LinearGradient
-                    colors={isDark ? [goldColor, '#FFF', '#C9962C'] : ['#EF4F5F', '#FF7E8B', '#E03546']}
+                    colors={[d.acc, d.soft, d.acc]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={s.avatarRingGradient}
@@ -783,12 +828,12 @@ export default function ProfileScreen() {
                       <Avatar
                         uri={user?.profileImage}
                         style={s.avatarImg}
-                        fallback={<Text style={[s.avatarText, { color: isDark ? goldColor : '#EF4F5F' }]}>{initials}</Text>}
+                        fallback={<Text style={[s.avatarText, { color: goldColor }]}>{initials}</Text>}
                       />
                     </View>
                   </LinearGradient>
                   {streak > 0 ? (
-                    <View style={[s.streakBadge, { borderColor: isDark ? goldColor : '#FFF', backgroundColor: isDark ? '#000' : '#EF4F5F' }]}>
+                    <View style={[s.streakBadge, { borderColor: isDark ? goldColor : '#FFF', backgroundColor: isDark ? '#000' : d.acc }]}>
                       <Text style={s.streakBadgeText}><Ionicons name="flame" size={9} color="#FFF" /> {streak}</Text>
                     </View>
                   ) : null}
@@ -796,7 +841,7 @@ export default function ProfileScreen() {
               </TouchableOpacity>
 
               <View style={s.headerBadges}>
-                <View style={[s.zenvyBadge, { backgroundColor: goldColor }]}>
+                <View style={[s.zenvyBadge, { backgroundColor: rewardGold }]}>
                   <Text style={s.zenvyBadgeText}>ZenWe</Text>
                   <View style={s.zenvyDots}>
                     <View style={s.zenvyDot} />
@@ -876,7 +921,7 @@ export default function ProfileScreen() {
                 </View>
                 <View style={[s.telemetryItem, s.telemetryBorder]}>
                   <Text style={s.telemetryLabel}>ZenWe Points</Text>
-                  <Text style={[s.telemetryVal, { color: goldColor }]}>{formatCount(user?.zenPoints)}</Text>
+                  <Text style={[s.telemetryVal, { color: rewardGold }]}>{formatCount(user?.zenPoints)}</Text>
                 </View>
                 <TouchableOpacity
                   style={s.telemetryItem}
@@ -895,12 +940,12 @@ export default function ProfileScreen() {
               <View style={s.progressContainer}>
                 <View style={s.progressLabels}>
                   <Text style={s.progressTitle}>{nextMilestone ? `Next badge: ${nextMilestone.name}` : allBadgesUnlocked ? 'All order badges earned' : 'Order badges'}</Text>
-                  <Text style={[s.progressVal, { color: goldColor }]}>
+                  <Text style={[s.progressVal, { color: rewardGold }]}>
                     {nextMilestone ? `${completedOrders} / ${nextMilestone.threshold}` : allBadgesUnlocked ? '✓' : `${completedOrders}`}
                   </Text>
                 </View>
                 <View style={[s.progressBarBg, { backgroundColor: isDark ? '#000' : '#E0E0E0' }]}>
-                  <View style={[s.progressBarFill, { backgroundColor: goldColor, width: `${milestonePct}%` }]} />
+                  <View style={[s.progressBarFill, { backgroundColor: rewardGold, width: `${milestonePct}%` }]} />
                 </View>
               </View>
             </View>
@@ -910,7 +955,7 @@ export default function ProfileScreen() {
 
         {/* Dietary preferences */}
         <StaggeredSection delay={180} direction="up">
-          <Text style={[s.sectionTitleText, { color: isDark ? goldColor : '#111' }]}>Food preference</Text>
+          <Text style={[s.sectionTitleText, { color: isDark ? goldColor : '#111', borderLeftColor: goldColor }]}>Food preference</Text>
           <View style={[s.dietCard, { backgroundColor: cardBg, borderColor: border }, lift]}>
             <Text style={[s.dietLabel, { color: txtSec }]}>Filters menus wherever you order</Text>
             <View style={s.dietModeGrid}>
@@ -1014,7 +1059,7 @@ export default function ProfileScreen() {
 
         {/* Notifications */}
         <StaggeredSection delay={200} direction="up">
-          <Text style={[s.sectionTitleText, { color: isDark ? goldColor : '#111' }]}>Notifications</Text>
+          <Text style={[s.sectionTitleText, { color: isDark ? goldColor : '#111', borderLeftColor: goldColor }]}>Notifications</Text>
           <TouchableOpacity
             style={[s.themeBtn, { backgroundColor: cardBg, borderColor: border }, lift]}
             onPress={() => handleEnablePush(false)}
@@ -1026,8 +1071,8 @@ export default function ProfileScreen() {
               <Text style={[s.notifLabel, { color: txt }]}>Order updates on this phone</Text>
               <Text style={[s.notifDesc, { color: txtSec }]}>{pushOn ? 'On for this phone. Turn off in phone settings.' : 'Placed, accepted, out for delivery, delivered'}</Text>
             </View>
-            <View style={[s.pushBtn, { borderColor: pushOn ? COLORS.emerald : goldColor }]}>
-              <Text style={[s.pushBtnText, { color: pushOn ? COLORS.emerald : goldColor }]}>{pushOn ? 'On' : 'Turn on'}</Text>
+            <View style={[s.pushBtn, { borderColor: goldColor }]}>
+              <Text style={[s.pushBtnText, { color: goldColor }]}>{pushOn ? 'On' : 'Turn on'}</Text>
             </View>
           </TouchableOpacity>
           {/* Push categories: what this phone is notified about */}
@@ -1043,6 +1088,7 @@ export default function ProfileScreen() {
                   onValueChange={(v) => togglePushCategory(row.key, v)}
                   trackColor={{ false: isDark ? '#3A3A3C' : '#D1D5DB', true: goldColor }}
                   thumbColor="#FFFFFF"
+                  {...({ activeThumbColor: "#FFFFFF" } as any)}
                   accessibilityLabel={`${row.label} notifications`}
                 />
               </View>
@@ -1053,7 +1099,7 @@ export default function ProfileScreen() {
 
         {/* Your badges */}
         <StaggeredSection delay={220} direction="up">
-          <Text style={[s.sectionTitleText, { color: isDark ? goldColor : '#111' }]}>Your badges</Text>
+          <Text style={[s.sectionTitleText, { color: isDark ? goldColor : '#111', borderLeftColor: goldColor }]}>Your badges</Text>
           <View style={[s.achievementsCard, { backgroundColor: cardBg, borderColor: border }, lift]}>
             {Array.isArray(user?.badges) && user.badges.length > 0 ? (
               <View style={s.badgeGrid}>
@@ -1062,7 +1108,7 @@ export default function ProfileScreen() {
                   return (
                     <View key={badgeName} style={[s.badgeCard, { borderColor: v.color }]}>
                       <Text style={s.badgeEmoji}>{v.emoji}</Text>
-                      <Text style={s.badgeTitle}>{badgeName}</Text>
+                      <Text style={[s.badgeTitle, { color: txt }]}>{badgeName}</Text>
                       <Text style={s.badgeDesc}>{v.desc}</Text>
                     </View>
                   );
@@ -1083,7 +1129,7 @@ export default function ProfileScreen() {
             <View style={s.achievementsFooter}>
               <View style={s.footerLeft}>
                 <Text style={[s.footerLabel, { color: txtSec }]}>ZenWe Points</Text>
-                <Text style={[s.footerVal, { color: goldColor }]}>{formatCount(user?.zenPoints)} ZenWe Points</Text>
+                <Text style={[s.footerVal, { color: rewardGold }]}>{formatCount(user?.zenPoints)} ZenWe Points</Text>
               </View>
               <View style={s.verticalDivider} />
               <View style={s.footerRight}>
@@ -1099,7 +1145,7 @@ export default function ProfileScreen() {
         {/* Your coupons */}
         <StaggeredSection delay={240} direction="up">
           <View style={s.sectionHeader}>
-            <Text style={[s.sectionTitleText, { color: isDark ? goldColor : '#111' }]}>Your coupons</Text>
+            <Text style={[s.sectionTitleText, { color: isDark ? goldColor : '#111', borderLeftColor: goldColor }]}>Your coupons</Text>
             <TouchableOpacity onPress={() => router.push('/rewards')}>
               <Text style={[s.sectionAddBtn, { color: goldColor }]}>Spin the wheel</Text>
             </TouchableOpacity>
@@ -1135,7 +1181,7 @@ export default function ProfileScreen() {
                 style={{ backgroundColor: goldColor, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 }}
                 onPress={() => router.push('/rewards')}
               >
-                <Text style={{ color: '#000', fontSize: 12, fontWeight: '700', letterSpacing: 0.2 }}>Spin the wheel</Text>
+                <Text style={{ color: isDark ? '#000' : '#FFF', fontSize: 12, fontWeight: '700', letterSpacing: 0.2 }}>Spin the wheel</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -1144,7 +1190,7 @@ export default function ProfileScreen() {
         {/* Invite friends (real referral code from the account) */}
         {referralCode ? (
           <StaggeredSection delay={260} direction="up">
-            <Text style={[s.sectionTitleText, { color: isDark ? goldColor : '#111' }]}>Invite friends</Text>
+            <Text style={[s.sectionTitleText, { color: isDark ? goldColor : '#111', borderLeftColor: goldColor }]}>Invite friends</Text>
             <View style={[s.buddyLinkCard, { backgroundColor: isDark ? 'rgba(249, 196, 64, 0.06)' : 'rgba(249, 196, 64, 0.08)', borderColor: isDark ? 'rgba(249, 196, 64, 0.18)' : 'rgba(249, 196, 64, 0.25)' }]}>
               <View style={s.buddyLinkHeader}>
                 <View style={s.buddyLinkIconCircle}>
@@ -1200,7 +1246,7 @@ export default function ProfileScreen() {
             403 TRANSFER_DISABLED), so the section is hidden until WALLET_GIFTS_ENABLED is switched back on. */}
         {WALLET_GIFTS_ENABLED && user?.isElite ? (
           <StaggeredSection delay={280} direction="up">
-            <Text style={[s.sectionTitleText, { color: isDark ? goldColor : '#111' }]}>SEND A GIFT</Text>
+            <Text style={[s.sectionTitleText, { color: isDark ? goldColor : '#111', borderLeftColor: goldColor }]}>SEND A GIFT</Text>
             <View style={[s.giftCard, { backgroundColor: cardBg, borderColor: border }, lift]}>
               <Text style={[s.giftLabel, { color: txtSec }]}>GIFT WALLET MONEY TO A FRIEND (ELITE PERK)</Text>
               <TextInput
@@ -1233,7 +1279,7 @@ export default function ProfileScreen() {
 
         {/* Spending dashboard */}
         <StaggeredSection delay={300} direction="up">
-          <Text style={[s.sectionTitleText, { color: isDark ? goldColor : '#111' }]}>Your spending</Text>
+          <Text style={[s.sectionTitleText, { color: isDark ? goldColor : '#111', borderLeftColor: goldColor }]}>Your spending</Text>
           {statsState === 'loading' && !spendStats ? (
             <View style={[s.emptyCard, { backgroundColor: cardBg, borderColor: border }, lift]}>
               <ActivityIndicator color={goldColor} />
@@ -1246,7 +1292,7 @@ export default function ProfileScreen() {
                 style={{ marginTop: 10, backgroundColor: goldColor, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 }}
                 onPress={() => { setStatsState('loading'); fetchData('focus'); }}
               >
-                <Text style={{ color: '#000', fontSize: 12, fontWeight: '700', letterSpacing: 0.2 }}>Try again</Text>
+                <Text style={{ color: isDark ? '#000' : '#FFF', fontSize: 12, fontWeight: '700', letterSpacing: 0.2 }}>Try again</Text>
               </TouchableOpacity>
             </View>
           ) : !hasSpend ? (
@@ -1257,7 +1303,7 @@ export default function ProfileScreen() {
                 style={{ marginTop: 10, backgroundColor: goldColor, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 }}
                 onPress={() => router.push('/(tabs)' as any)}
               >
-                <Text style={{ color: '#000', fontSize: 12, fontWeight: '700', letterSpacing: 0.2 }}>Order now</Text>
+                <Text style={{ color: isDark ? '#000' : '#FFF', fontSize: 12, fontWeight: '700', letterSpacing: 0.2 }}>Order now</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -1332,7 +1378,7 @@ export default function ProfileScreen() {
 
         {/* Help, support and about */}
         <StaggeredSection delay={320} direction="up">
-          <Text style={[s.sectionTitleText, { color: isDark ? goldColor : '#111' }]}>Help & support</Text>
+          <Text style={[s.sectionTitleText, { color: isDark ? goldColor : '#111', borderLeftColor: goldColor }]}>Help & support</Text>
           <View style={s.supportGrid}>
             <TouchableOpacity style={[s.supportBtn, { backgroundColor: cardBg, borderColor: border }, lift]} onPress={() => router.push('/support' as any)}>
               <Ionicons name="help-buoy-outline" size={20} color={goldColor} />
@@ -1399,7 +1445,7 @@ export default function ProfileScreen() {
               showsVerticalScrollIndicator={false}
               bounces={true}
             >
-              <View style={[s.modalContent, { backgroundColor: cardBg, borderColor: border }]}>
+              <View style={[s.modalContent, { backgroundColor: isDark ? colors.card : '#FFFFFF', borderColor: isDark ? colors.border : 'rgba(17,17,26,0.06)' }]}>
               <Text style={[s.modalTitle, { color: txt }]}>Edit profile</Text>
 
               {/* Avatar preview */}
@@ -1419,14 +1465,14 @@ export default function ProfileScreen() {
               </View>
 
               <TouchableOpacity
-                style={s.localUploadBtn}
+                style={[s.localUploadBtn, !isDark && { backgroundColor: d.soft, borderColor: d.acc }]}
                 onPress={handleUploadLocalImage}
                 disabled={uploadingImage || savingProfile}
               >
                 {uploadingImage ? (
                   <ActivityIndicator size="small" color={goldColor} />
                 ) : (
-                  <Text style={s.localUploadBtnText}>{isDataUriImage ? 'Choose a different photo' : 'Choose from gallery'}</Text>
+                  <Text style={[s.localUploadBtnText, !isDark && { color: d.acc }]}>{isDataUriImage ? 'Choose a different photo' : 'Choose from gallery'}</Text>
                 )}
               </TouchableOpacity>
 
@@ -1442,8 +1488,11 @@ export default function ProfileScreen() {
                     autoCapitalize="none"
                     autoCorrect={false}
                     keyboardType="url"
-                    style={[s.modalInput, { color: txt, backgroundColor: inputBg, borderColor: border }]}
+                    onFocus={() => setFocusField('photo')}
+                    onBlur={() => { setFocusField(null); touch('photo'); }}
+                    style={fieldStyle('photo')}
                   />
+                  {errText('photo')}
                 </>
               ) : null}
 
@@ -1456,8 +1505,13 @@ export default function ProfileScreen() {
                 placeholderTextColor={txtSec}
                 maxLength={50}
                 autoCapitalize="words"
-                style={[s.modalInput, { color: txt, backgroundColor: inputBg, borderColor: border }]}
+                textContentType="name"
+                autoComplete="name"
+                onFocus={() => setFocusField('name')}
+                onBlur={() => { setFocusField(null); touch('name'); setEditName((v) => v.trim().replace(/\s+/g, ' ')); }}
+                style={fieldStyle('name')}
               />
+              {errText('name')}
 
               {/* Mobile Number */}
               <Text style={[s.inputLabel, { color: txtSec }]}>Mobile number</Text>
@@ -1471,9 +1525,13 @@ export default function ProfileScreen() {
                 placeholderTextColor={txtSec}
                 keyboardType="number-pad"
                 maxLength={10}
-                style={[s.modalInput, { color: txt, backgroundColor: inputBg, borderColor: border }]}
+                textContentType="telephoneNumber"
+                onFocus={() => setFocusField('phone')}
+                onBlur={() => { setFocusField(null); touch('phone'); }}
+                style={fieldStyle('phone')}
               />
-              {phoneChanged ? (
+              {errText('phone')}
+              {phoneChanged && !fieldErrors.phone ? (
                 <View style={{ marginTop: -4, marginBottom: 8 }}>
                   {otpSent ? (
                     <>
@@ -1519,9 +1577,13 @@ export default function ProfileScreen() {
                 autoCapitalize="none"
                 autoCorrect={false}
                 maxLength={100}
-                style={[s.modalInput, { color: txt, backgroundColor: inputBg, borderColor: border }]}
+                textContentType="emailAddress"
+                onFocus={() => setFocusField('email')}
+                onBlur={() => { setFocusField(null); touch('email'); setEditEmail((v) => v.trim()); }}
+                style={fieldStyle('email')}
               />
-              {emailChanged ? (
+              {errText('email')}
+              {emailChanged && !fieldErrors.email ? (
                 <View style={{ marginTop: -4, marginBottom: 8 }}>
                   {emailCodeSent ? (
                     <>
@@ -1563,12 +1625,18 @@ export default function ProfileScreen() {
                 multiline
                 numberOfLines={3}
                 maxLength={BIO_MAX}
-                style={[s.modalInput, { color: txt, backgroundColor: inputBg, borderColor: border, height: 80, textAlignVertical: 'top', paddingTop: 10 }]}
+                onFocus={() => setFocusField('about')}
+                onBlur={() => setFocusField(null)}
+                style={fieldStyle('about', { height: 80, textAlignVertical: 'top', paddingTop: 10 })}
               />
               <Text style={{ fontSize: 12, color: txtSec, textAlign: 'right', marginTop: -4, marginBottom: 6 }}>{editAbout.length}/{BIO_MAX}</Text>
 
-              {/* Hostel block (campus directory chips + free text) and room number */}
-              <Text style={[s.inputLabel, { color: txtSec }]}>Hostel block</Text>
+              {/* Where you live (10 Nov 2026): block chips, then Block + Room side by side, then the other address and City */}
+              <View style={[s.groupHead, { borderTopColor: inputBorder }]}>
+                <Ionicons name="location-outline" size={16} color={goldColor} />
+                <Text style={[s.groupHeadText, { color: txt }]}>Where you live</Text>
+              </View>
+              {myHostelCampuses.some((c) => c.blocks.length) ? <Text style={[s.inputLabel, { color: txtSec }]}>Pick your hostel block</Text> : null}
               {myHostelCampuses.length > 0 && (
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
                   {myHostelCampuses.flatMap((c) => c.blocks.map((b) => ({ key: `${c.code}:${b}`, block: b }))).filter((x, i, arr) => arr.findIndex((y) => y.block === x.block) === i).slice(0, 32).map(({ key, block }) => {
@@ -1581,34 +1649,47 @@ export default function ProfileScreen() {
                         accessibilityState={{ selected: on }}
                         style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14, borderWidth: 1, borderColor: on ? goldColor : border, backgroundColor: on ? goldColor : inputBg }}
                       >
-                        <Text style={{ fontSize: 12, fontWeight: '600', color: on ? '#000' : txt }}>{block}</Text>
+                        <Text style={{ fontSize: 12, fontWeight: '600', color: on ? (isDark ? '#000' : '#FFF') : txt }}>{block}</Text>
                       </TouchableOpacity>
                     );
                   })}
                 </View>
               )}
-              <TextInput
-                value={editHostelBlock}
-                onChangeText={(t) => setEditHostelBlock(t.slice(0, HOSTEL_BLOCK_MAX))}
-                placeholder={myHostelCampuses.length ? 'Or type your block' : 'Your hostel or block'}
-                placeholderTextColor={txtSec}
-                maxLength={HOSTEL_BLOCK_MAX}
-                style={[s.modalInput, { color: txt, backgroundColor: inputBg, borderColor: border }]}
-              />
-              <Text style={[s.inputLabel, { color: txtSec }]}>Room number</Text>
-              <TextInput
-                value={editRoom}
-                onChangeText={(t) => setEditRoom(t.replace(/^\s*room\s*/i, '').slice(0, ROOM_NUMBER_MAX))}
-                placeholder="e.g. 304"
-                placeholderTextColor={txtSec}
-                maxLength={ROOM_NUMBER_MAX}
-                autoCapitalize="characters"
-                autoCorrect={false}
-                style={[s.modalInput, { color: txt, backgroundColor: inputBg, borderColor: border }]}
-              />
+              <View style={s.twoCol}>
+                <View style={{ flex: 1.35 }}>
+                  <Text style={[s.inputLabel, { color: txtSec }]}>Hostel block</Text>
+                  <TextInput
+                    value={editHostelBlock}
+                    onChangeText={(t) => setEditHostelBlock(t.slice(0, HOSTEL_BLOCK_MAX))}
+                    placeholder={myHostelCampuses.some((c) => c.blocks.length) ? 'Or type it' : 'Hostel or block'}
+                    placeholderTextColor={txtSec}
+                    maxLength={HOSTEL_BLOCK_MAX}
+                    onFocus={() => setFocusField('block')}
+                    onBlur={() => { setFocusField(null); touch('block'); }}
+                    style={fieldStyle('block')}
+                  />
+                  {errText('block')}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[s.inputLabel, { color: txtSec }]}>Room</Text>
+                  <TextInput
+                    value={editRoom}
+                    onChangeText={(t) => setEditRoom(t.replace(/^\s*room\s*/i, '').slice(0, ROOM_NUMBER_MAX))}
+                    placeholder="e.g. 304"
+                    placeholderTextColor={txtSec}
+                    maxLength={ROOM_NUMBER_MAX}
+                    autoCapitalize="characters"
+                    autoCorrect={false}
+                    onFocus={() => setFocusField('room')}
+                    onBlur={() => { setFocusField(null); touch('room'); touch('block'); }}
+                    style={fieldStyle('room')}
+                  />
+                  {errText('room')}
+                </View>
+              </View>
 
               {/* Delivery Address Auto-complete */}
-              <Text style={[s.inputLabel, { color: txtSec }]}>Other delivery address (optional)</Text>
+              <Text style={[s.inputLabel, { color: txtSec }]}>Other address (optional)</Text>
               {/* Full width like the other fields (the bare wrapper shrank it to its text and centred it). */}
               <View style={{ zIndex: 99, alignSelf: 'stretch' }}>
                 <TextInput
@@ -1620,22 +1701,41 @@ export default function ProfileScreen() {
                   placeholder="Street, area or landmark"
                   placeholderTextColor={txtSec}
                   maxLength={200}
-                  style={[s.modalInput, { color: txt, backgroundColor: inputBg, borderColor: border }]}
+                  onFocus={() => setFocusField('address')}
+                  onBlur={() => { setFocusField(null); touch('address'); }}
+                  style={fieldStyle('address', { paddingRight: 40 })}
                 />
+                {editAddress ? (
+                  <TouchableOpacity onPress={() => { setEditAddress(''); setSuggestions([]); setShowSuggestions(false); }} style={s.clearBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityLabel="Clear address">
+                    <Ionicons name="close-circle" size={18} color={txtSec} />
+                  </TouchableOpacity>
+                ) : null}
+                {errText('address')}
 
                 {showSuggestions && suggestions.length > 0 && (
-                  <View style={[s.suggestionsBox, { backgroundColor: cardBg, borderColor: border }]}>
-                    {suggestions.map((item, i) => (
-                      <TouchableOpacity
-                        key={item.place_id || i}
-                        onPress={() => handleSelectSuggestion(item)}
-                        style={s.suggestionItem}
-                      >
-                        <Text style={[s.suggestionText, { color: txt }]} numberOfLines={2}>
-                          {item.display_name}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                  <View style={[s.suggestionsBox, { backgroundColor: isDark ? colors.card : '#FFFFFF', borderColor: inputBorder }]}>
+                    {suggestions.map((item, i) => {
+                      const full = String(item.display_name || '');
+                      const head = String(item.name || full.split(',')[0] || '').trim();
+                      const rest = full.split(',').slice(1, 4).join(',').trim();
+                      return (
+                        <TouchableOpacity
+                          key={item.place_id || i}
+                          onPress={() => handleSelectSuggestion(item)}
+                          style={[s.suggestionItem, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: inputBorder }]}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Use ${full}`}
+                        >
+                          <View style={[s.suggestionPin, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : d.soft }]}>
+                            <Ionicons name="location" size={14} color={goldColor} />
+                          </View>
+                          <View style={{ flex: 1, minWidth: 0 }}>
+                            <Text style={[s.suggestionText, { color: txt }]} numberOfLines={1}>{head}</Text>
+                            {rest ? <Text style={{ fontSize: 11.5, color: txtSec, marginTop: 1 }} numberOfLines={1}>{rest}</Text> : null}
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
                 )}
               </View>
@@ -1648,8 +1748,21 @@ export default function ProfileScreen() {
                 placeholder="City"
                 placeholderTextColor={txtSec}
                 maxLength={60}
-                style={[s.modalInput, { color: txt, backgroundColor: inputBg, borderColor: border }]}
+                autoCapitalize="words"
+                onFocus={() => setFocusField('city')}
+                onBlur={() => { setFocusField(null); touch('city'); }}
+                style={fieldStyle('city')}
               />
+              {errText('city')}
+              {campusCity && !editCity.trim() ? (
+                <TouchableOpacity onPress={() => setEditCity(campusCity)} style={[s.useCityChip, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : d.soft }]} accessibilityRole="button">
+                  <Ionicons name="navigate-outline" size={13} color={goldColor} />
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: goldColor }}>Use {campusCity}</Text>
+                </TouchableOpacity>
+              ) : null}
+              {triedSave && Object.keys(fieldErrors).length ? (
+                <Text style={[s.fieldError, { alignSelf: 'center', marginTop: 10 }]}>Fix the fields marked in red to save.</Text>
+              ) : null}
 
               <View style={s.modalActionsRow}>
                 <TouchableOpacity
@@ -1665,7 +1778,7 @@ export default function ProfileScreen() {
                   disabled={savingProfile || sendingOtp || sendingEmailCode}
                 >
                   {savingProfile || sendingOtp || sendingEmailCode ? (
-                    <ActivityIndicator size="small" color="#000" />
+                    <ActivityIndicator size="small" color={isDark ? '#000' : '#FFF'} />
                   ) : (
                     <Text style={s.modalSaveBtnText}>{phoneChanged && !otpSent ? 'Verify number' : emailChanged && !emailCodeSent ? 'Verify email' : 'Save'}</Text>
                   )}
@@ -2077,7 +2190,7 @@ const s = StyleSheet.create({
   allergyAddBtnText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#000',
+    color: '#FFF', // restyle-fixes-2026-11-10: white on the diet accent
   },
   pushBtn: {
     borderWidth: 1,
@@ -2385,7 +2498,7 @@ const s = StyleSheet.create({
   buddyShareBtnText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#000',
+    color: '#FFF', // restyle-fixes-2026-11-10: white on the diet accent
     letterSpacing: 0.3,
   },
   buddyStatsRow: {
@@ -2680,6 +2793,20 @@ const s = StyleSheet.create({
     marginTop: 8,
     marginBottom: 16,
   },
+  groupHead: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth },
+  groupHeadText: { fontSize: 14, fontWeight: '800' },
+  twoCol: { alignSelf: 'stretch', flexDirection: 'row', gap: 10 },
+  clearBtn: { position: 'absolute', right: 12, top: 15 },
+  useCityChip: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, marginTop: 2, marginBottom: 6 },
+  fieldError: {
+    alignSelf: 'flex-start',
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#DC2626',
+    marginTop: -3,
+    marginBottom: 6,
+    marginLeft: 2,
+  },
   localUploadBtnText: {
     fontSize: 12,
     fontWeight: '700',
@@ -2699,10 +2826,13 @@ const s = StyleSheet.create({
     overflow: 'scroll',
   },
   suggestionItem: {
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
+  suggestionPin: { width: 28, height: 28, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   suggestionText: {
     color: '#FFF',
     fontSize: 12,
@@ -2737,7 +2867,7 @@ const s = StyleSheet.create({
   modalSaveBtnText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#000',
+    color: '#FFF', // restyle-fixes-2026-11-10: white on the diet accent
   },
 
   // QR Modal specifically

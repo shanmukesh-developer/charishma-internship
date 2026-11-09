@@ -48,6 +48,9 @@ export interface PromoSlide {
     | 'stays'
     | 'express'
     | 'featured_restaurant'
+    | 'booking'
+    | 'events'
+    | 'deals'
     | 'custom';
   tagline: string;
   title1: string;
@@ -75,6 +78,11 @@ interface HighClassPromoCarouselProps {
   visible?: boolean;
   /** Slide ids to leave out (sections switched off in /api/config/sections, e.g. 'ride'). */
   hiddenSlideIds?: string[];
+  /** True: one whole ad at a time, no next-card sliver at the edge (owner, 9 Nov 2026: no cut cards). */
+  noPeek?: boolean;
+  /** Home Non-veg / Veg theme (owner, 9 Nov 2026): every ad takes this accent and dark base instead of its own colour. */
+  themeAccent?: string;
+  themeBase?: string;
 }
 
 const GAP = 10;
@@ -158,6 +166,9 @@ interface CardProps {
   onAction: (slide: PromoSlide) => void;
   onHold: () => void;
   onRelease: () => void;
+  themeAccent?: string;
+  themeBase?: string;
+  gap?: number;
 }
 
 const PromoCard = memo(function PromoCard({
@@ -172,8 +183,12 @@ const PromoCard = memo(function PromoCard({
   onAction,
   onHold,
   onRelease,
+  themeAccent,
+  themeBase,
+  gap = GAP,
 }: CardProps) {
-  const accent = slide.accentColor || '#F97316';
+  const accent = themeAccent || slide.accentColor || '#F97316';
+  const base = themeBase || '#0E0E14';
   const Art = artForType(slide.type);
 
   // Scroll-position driven (native) — follows the finger, costs no JS.
@@ -239,13 +254,13 @@ const PromoCard = memo(function PromoCard({
       style={[
         styles.cardOuter,
         shadow,
-        { width: cardW, marginRight: GAP },
+        { width: cardW, marginRight: gap },
         drive ? { transform: [{ scale: drive.cardScale }] } : null,
       ]}
     >
       <Pressable accessible={false} onPress={() => onAction(slide)} style={styles.cardInner}>
         <LinearGradient
-          colors={['#0E0E14', mixHex(accent, '#0E0E14', 0.82)]}
+          colors={[base, mixHex(accent, base, 0.82)]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFill}
@@ -356,6 +371,9 @@ export default function HighClassPromoCarousel({
   onSelectSlide,
   visible = true,
   hiddenSlideIds,
+  themeAccent,
+  themeBase,
+  noPeek = false,
 }: HighClassPromoCarouselProps) {
   const router = useRouter();
   const { isDark } = useTheme();
@@ -443,6 +461,41 @@ export default function HighClassPromoCarousel({
         // The Groceries tab (shops, weights, real catalogue); the old /category page skipped weight choices.
         redirectAction: () => router.push({ pathname: '/(tabs)/others', params: { tab: 'food' } } as any),
       },
+      // Feature ads with realistic photo art (owner, 9 Nov 2026: explain what ZenWe does). Real claims only.
+      {
+        id: 'campus-booking',
+        type: 'booking',
+        tagline: '🏪 In-Campus Booking',
+        title1: 'Skip the counter',
+        title2: 'queue.',
+        description: 'Order from campus counters and pick up when it is ready.',
+        buttonText: 'Book now',
+        accentColor: '#F97316',
+        redirectAction: () => router.push('/campus-booking' as any),
+      },
+      {
+        id: 'campus-events',
+        type: 'events',
+        tagline: '🎉 Campus events',
+        title1: 'Fests and gigs,',
+        title2: 'all in one place.',
+        description: 'See what is on around campus and register in a few taps.',
+        buttonText: 'See events',
+        accentColor: '#A78BFA',
+        redirectAction: () => router.push({ pathname: '/(tabs)/services', params: { tab: 'events' } } as any),
+      },
+      {
+        id: 'deals-hub',
+        type: 'deals',
+        tagline: '🏷️ Deals',
+        title1: 'Coupons and',
+        title2: 'price drops.',
+        description: "Claim today's coupons and use them at checkout.",
+        buttonText: 'View deals',
+        accentColor: '#F43F5E',
+        // index.tsx: 'welcome-benefits' opens today's coupons
+        redirectAction: () => selectSlideRef.current?.({ ...tour[0], id: 'welcome-benefits' }),
+      },
       {
         id: 'rewards',
         type: 'rewards',
@@ -493,9 +546,10 @@ export default function HighClassPromoCarousel({
   const realOf = useCallback((k: number) => (loop ? (k - 1 + n) % n : k), [loop, n]);
 
   const [width, setWidth] = useState(0);
-  const cardW = Math.max(0, width - 48);
+  const cardGap = noPeek ? PAD_LEFT * 2 : GAP;
+  const cardW = Math.max(0, noPeek ? width - PAD_LEFT * 2 : width - 48);
   // 0 until measured, so no auto-advance/settle runs against a zero-width layout.
-  const S = cardW > 0 ? cardW + GAP : 0;
+  const S = cardW > 0 ? cardW + cardGap : 0;
 
   const scrollX = useRef(new Animated.Value(0)).current;
   const listRef = useRef<any>(null);
@@ -703,6 +757,9 @@ export default function HighClassPromoCarousel({
               onAction={onAction}
               onHold={hold}
               onRelease={release}
+              themeAccent={themeAccent}
+              themeBase={themeBase}
+              gap={cardGap}
             />
           )}
           extraData={`${activeIdx}|${reduceMotion}|${isDark}|${isFocused}|${appActive}|${S}`}
@@ -736,7 +793,7 @@ export default function HighClassPromoCarousel({
           style={{ height: listH }}
           contentContainerStyle={{
             paddingLeft: PAD_LEFT,
-            paddingRight: PAD_LEFT + 2 * GAP + 16,
+            paddingRight: noPeek ? PAD_LEFT : PAD_LEFT + 2 * GAP + 16,
             paddingTop: SHADOW_PAD_TOP,
             paddingBottom: SHADOW_PAD_BOTTOM,
           }}
@@ -770,7 +827,7 @@ export default function HighClassPromoCarousel({
               {slides.map((s, i) => (
                 <Animated.View
                   key={`${s.id}-pill`}
-                  style={[StyleSheet.absoluteFill, { borderRadius: 3, backgroundColor: s.accentColor || '#F97316', opacity: indicator.o[i] }]}
+                  style={[StyleSheet.absoluteFill, { borderRadius: 3, backgroundColor: themeAccent || s.accentColor || '#F97316', opacity: indicator.o[i] }]}
                 />
               ))}
               <View style={[styles.indicatorEye, { left: 5.5 }]} />
