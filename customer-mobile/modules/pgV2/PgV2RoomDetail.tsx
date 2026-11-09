@@ -111,7 +111,7 @@ const st = themedSheet(() => ({
   float: { position: 'absolute', left: GUTTER, right: GUTTER, flexDirection: 'row', alignItems: 'center', gap: 12 },
   floatTitle: { backgroundColor: PG2.card, borderRadius: 999, paddingHorizontal: 14, height: 34, justifyContent: 'center' },
   floatTitleText: { fontSize: 14.5, fontWeight: W.title, color: PG2.ink },
-  tag: { position: 'absolute', left: GUTTER, bottom: 36, backgroundColor: 'rgba(241,239,254,0.92)', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5 },
+  tag: { position: 'absolute', left: GUTTER, bottom: 36, backgroundColor: PG2.lavender, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5 },
   tagText: { fontSize: 12, fontWeight: W.label, color: PG2.lavenderInk },
   sheet: { marginTop: -22, borderTopLeftRadius: 22, borderTopRightRadius: 22, backgroundColor: PG2.card, paddingHorizontal: GUTTER, paddingTop: 20 },
   title: { fontSize: 19, fontWeight: W.title, color: PG2.ink, letterSpacing: -0.2 },

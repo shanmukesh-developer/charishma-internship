@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { FriendsColors, FS, FR } from '../friendsTheme';
 import { useReduceMotion } from './FriendsUi';
 
+import { themedSheet } from '../../../../utils/themeNow';
 /** One shared shimmer clock per skeleton group (a single native-driven loop, not one per block). */
 const ShimmerCtx = createContext<Animated.Value | null>(null);
 
@@ -75,7 +76,7 @@ export const FriendsSkeleton: React.FC<{ rows?: number; variant?: 'post' | 'row'
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   card: {
     backgroundColor: FriendsColors.card,
     borderRadius: FR.card,
@@ -83,4 +84,4 @@ const styles = StyleSheet.create({
     borderColor: FriendsColors.line,
     padding: FS.lg,
   },
-});
+}));

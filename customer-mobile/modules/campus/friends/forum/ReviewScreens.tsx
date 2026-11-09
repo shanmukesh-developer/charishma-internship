@@ -11,6 +11,7 @@ import { Chips, ForumHeader, PostList, SoftError } from './ForumUi';
 import { Stars } from './Stars';
 import { REVIEW_KIND_META, forumErrorMessage } from './forumShared';
 
+import { themedSheet } from '../../../../utils/themeNow';
 const KIND_OPTIONS = REVIEW_KINDS.map((k) => ({ key: k, label: REVIEW_KIND_META[k].plural }));
 
 /** Browse review pages by kind with search; tap opens the page with its average and reviews. */
@@ -210,7 +211,7 @@ export const ReviewTargetScreen: React.FC<{ id: string; initial?: ReviewTarget |
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   search: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 0 },
   searchInput: { flex: 1, color: FriendsColors.ink, fontSize: 15, minHeight: 44 },
   row: { flexDirection: 'row', alignItems: 'center', gap: FS.md, padding: FS.md, borderRadius: FR.card, backgroundColor: FriendsColors.card, borderWidth: 1, borderColor: FriendsColors.line },
@@ -224,4 +225,4 @@ const styles = StyleSheet.create({
   barFill: { height: 6, borderRadius: 3, backgroundColor: FriendsColors.gold },
   barCount: { width: 24, fontSize: 12, color: FriendsColors.muted, textAlign: 'right' },
   mine: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.accentSoft },
-});
+}));

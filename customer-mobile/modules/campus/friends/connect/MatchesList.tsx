@@ -11,6 +11,7 @@ import { ConnectPhotoView } from './ConnectUi';
 import { SparkCard } from './SparkCard';
 import { connectBus, connectErrorMessage, isConnectGateError, matchName } from './connectShared';
 
+import { themedSheet } from '../../../../utils/themeNow';
 let matchesCache: { items: ConnectMatch[]; cursor: string | null } | null = null;
 export const clearConnectMatchesCache = () => {
   matchesCache = null;
@@ -149,8 +150,8 @@ const MatchRow: React.FC<{ match: ConnectMatch; onPress: () => void }> = ({ matc
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   header: { paddingHorizontal: FS.lg, paddingTop: FS.md, paddingBottom: FS.md },
   row: { flexDirection: 'row', alignItems: 'center', gap: FS.md, paddingHorizontal: FS.lg, paddingVertical: FS.md, minHeight: 76, borderBottomWidth: 1, borderBottomColor: FriendsColors.lineSoft },
   avatar: { width: 56, height: 56 },
-});
+}));

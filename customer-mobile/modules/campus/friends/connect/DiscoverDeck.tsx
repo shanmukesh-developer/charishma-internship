@@ -28,6 +28,7 @@ import { ConnectPersonMenu } from './ConnectActions';
 import { ConnectChip, ConnectHeart, ConnectPhotoView, GhostButton, PrimaryButton } from './ConnectUi';
 import { LOOKING_FOR_META, YEARS, connectBus, connectErrorMessage, isConnectGateError, lookingForLabel, yearLabel } from './connectShared';
 
+import { themedSheet } from '../../../../utils/themeNow';
 const SWIPE_X = 110;
 
 // Last deck (per filter set) so switching tabs doesn't refetch and reshuffle.
@@ -467,7 +468,7 @@ const MatchMoment: React.FC<{
   </Modal>
 );
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   header: { flexDirection: 'row', alignItems: 'center', gap: FS.md, paddingHorizontal: FS.lg, paddingTop: FS.md, paddingBottom: FS.md },
   round: { width: 44, height: 44, borderRadius: 22, backgroundColor: FriendsColors.card, borderWidth: 1, borderColor: FriendsColors.line, alignItems: 'center', justifyContent: 'center' },
   dot: { position: 'absolute', top: -2, right: -2, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: FriendsColors.accent, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
@@ -496,4 +497,4 @@ const styles = StyleSheet.create({
   matchCard: { borderRadius: FR.hero, padding: FS.xl, alignItems: 'center', gap: FS.md, borderWidth: 1, borderColor: 'rgba(212,175,122,0.3)', backgroundColor: FriendsColors.card },
   matchTitle: { fontSize: 30, fontWeight: '800', color: FriendsColors.ink, letterSpacing: -0.5 },
   matchPhoto: { width: 120, height: 120, marginVertical: FS.sm, borderWidth: 2, borderColor: FriendsColors.accent },
-});
+}));

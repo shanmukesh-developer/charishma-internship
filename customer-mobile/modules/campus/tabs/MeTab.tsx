@@ -27,6 +27,7 @@ import { pickAndUploadImage, alertUploadError } from '../../../utils/imageUpload
 import { useAuth } from '../../../context/AuthContext';
 import { Avatar, Button, Sheet, SectionTitle, ListRow, T, S, R, ui } from '../ui';
 
+import { themedSheet } from '../../../utils/themeNow';
 const ROLE_INFO: Record<CampusRole, { name: string; desc: string }> = {
   student: { name: 'Student', desc: 'Campus access and chats' },
   cr: { name: 'Class Representative', desc: 'Can post classwork and announcements' },
@@ -426,7 +427,7 @@ export const MeTab: React.FC<MeTabProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   hero: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -481,4 +482,4 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: CampusColors.ink, borderColor: CampusColors.ink },
   chipText: { fontSize: 13, fontWeight: '600', color: CampusColors.ink },
   chipTextActive: { color: '#FFFFFF', fontWeight: '800' },
-});
+}));

@@ -19,7 +19,6 @@ import { BookPill, FadeIn, HeroCard, Press, SectionHead, Stepper, usePageW } fro
 import { ItemPhoto } from './ServicesV2Rows';
 import { IArrowLeft, IBell, IChevronRight, IReceipt, ISearch } from './ServicesV2Icons';
 import { HOME_HERO, SHELF_TILE } from './servicesV2Art';
-import ZenvBadge from '../../components/ZenvBadge';
 import { ALL_SHELVES, SHELF_META, SHELF_TRUST, detailPath, priceLine, shelfPath, useMinPrices, useShelf, type ShelfId, type ShelfItem } from './servicesV2Data';
 import { useStoreBasket } from './useStoreBasket';
 import { openMyBookings } from './ServicesV2List';
@@ -33,34 +32,34 @@ function HomeTop({ sections, onSection }: { sections?: Sections; onSection?: (k:
   const top = useTopInset(36, 44);
   const unread = useUnreadDot();
   return (
-    <LinearGradient colors={[TV.header[0], TV.header[1], TV.header[2]]} start={{ x: 0, y: 0 }} end={{ x: 0.45, y: 1 }} style={{ paddingTop: top }}>
+    // Owner, 10 Nov 2026: same Services look everywhere - flat diet band, section name as the title (no ZenWe badge)
+    // and Home-style folder tabs flowing into the page.
+    <View style={{ paddingTop: top, backgroundColor: TV.header[0] }}>
       <View style={h.brandRow}>
         <Press onPress={() => goHome(router)} label="Back to Home" style={h.iconBtn} scaleTo={0.9}>
-          <IArrowLeft size={22} color="#FFFFFF" strokeWidth={1.6} />
+          <IArrowLeft size={22} color={TV.onBand} strokeWidth={1.6} />
         </Press>
-        <ZenvBadge size={36} />
-        <View style={{ flex: 1, marginLeft: 10, minWidth: 0 }}>
-          <Text style={h.brand} accessibilityRole="header">ZenWe</Text>
-          <Text style={h.brandSub} numberOfLines={1}>Tech & repairs</Text>
+        <View style={{ flex: 1, marginLeft: 6, minWidth: 0 }}>
+          <Text style={[h.brand, { fontSize: 22, fontWeight: '900' }]} numberOfLines={1} accessibilityRole="header">Tech & repairs</Text>
         </View>
         <Press onPress={() => openMyBookings(router)} label="My service bookings" hint="Opens Orders, Services: track and manage your repair and service bookings" style={h.iconBtn} scaleTo={0.9}>
-          <IReceipt size={21} color="rgba(255,255,255,0.95)" strokeWidth={1.6} />
+          <IReceipt size={21} color={TV.onBand} strokeWidth={1.6} />
         </Press>
         <Press onPress={() => router.push('/notifications' as any)} label={unread ? 'Notifications, unread' : 'Notifications'} style={[h.iconBtn, { marginRight: -8 }]} scaleTo={0.9}>
-          <IBell size={21} color="rgba(255,255,255,0.95)" strokeWidth={1.6} />
+          <IBell size={21} color={TV.onBand} strokeWidth={1.6} />
           {unread ? <View style={h.dot} /> : null}
         </Press>
       </View>
 
       <Press onPress={() => router.push('/services/search' as any)} label="Search repairs, tailoring, laundry and gadgets" style={h.search} scaleTo={0.99}>
-        <ISearch size={18} color="#3B3F66" strokeWidth={1.7} />
+        <ISearch size={18} color={TV.ink2} strokeWidth={1.7} />
         <Text style={h.searchText} numberOfLines={1}>Search repairs, tailoring, laundry, gadgets</Text>
       </Press>
 
       {sections && sections.length > 1 && onSection ? (
-        <SectionPillRail sections={sections} active="services" onSection={onSection} side={16} tone="dark" style={{ paddingTop: 14, paddingBottom: 16 }} />
+        <SectionPillRail sections={sections} active="services" onSection={onSection} side={16} accent={TV.accent} folder={{ band: TV.header[0], page: TV.page, ink: TV.onBand }} style={{ paddingTop: 2 }} />
       ) : <View style={{ height: 16 }} />}
-    </LinearGradient>
+    </View>
   );
 }
 
@@ -240,11 +239,11 @@ export default React.memo(ServicesV2Home);
 const h = themedSheet(() => ({
   brandRow: { flexDirection: 'row', alignItems: 'center', paddingLeft: 6, paddingRight: 16, paddingTop: 12 },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  brand: { color: '#FFFFFF', fontSize: 21, fontWeight: W.title, letterSpacing: 0.2, lineHeight: 25 },
-  brandSub: { color: TV.onDarkSub, fontSize: 12.5, marginTop: 1, letterSpacing: 0.2 },
+  brand: { color: TV.onBand, fontSize: 21, fontWeight: W.title, letterSpacing: 0.2, lineHeight: 25 },
+  brandSub: { color: TV.onBandSub, fontSize: 12.5, marginTop: 1, letterSpacing: 0.2 },
   dot: { position: 'absolute', top: 10, right: 11, width: 9, height: 9, borderRadius: 5, backgroundColor: TV.bellDot, borderWidth: 1.5, borderColor: TV.header[1] },
-  search: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 48, marginHorizontal: 16, marginTop: 14, borderRadius: 24, backgroundColor: TV.card, paddingHorizontal: 16 },
-  searchText: { flex: 1, fontSize: 14, color: '#777B9A' },
+  search: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 48, marginHorizontal: 16, marginTop: 14, borderRadius: 24, backgroundColor: TV.card, paddingHorizontal: 16, borderWidth: 1, borderColor: TV.line },
+  searchText: { flex: 1, fontSize: 14, color: TV.sub },
   mine: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 16, marginTop: 26, padding: 12, borderRadius: RADIUS.lg, backgroundColor: TV.card },
   mineIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: TV.accentSoft, alignItems: 'center', justifyContent: 'center' },
   mineTitle: { fontSize: 14.5, color: TV.ink, fontWeight: W.title },

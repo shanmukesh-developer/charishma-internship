@@ -20,6 +20,7 @@ import {
 import { CampusColors, CampusLayout } from '../../../constants/campusTheme';
 import { fetchBranchWars, PulseBranchStanding } from '../campusApi';
 
+import { themedSheet } from '../../../utils/themeNow';
 const PALETTE = [CampusColors.accent, CampusColors.warm, CampusColors.rose, '#059669', CampusColors.violet, '#0EA5E9'];
 
 interface BranchWarsModalProps {
@@ -182,7 +183,7 @@ export const BranchWarsModal: React.FC<BranchWarsModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   errorWrap: {
     alignItems: 'center',
     gap: 12,
@@ -409,4 +410,4 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: CampusColors.muted,
   },
-});
+}));

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'rea
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
+import { useDietLight } from './local/dietLightTheme';
 import type { DeliverySlot, DeliverySlotsInfo } from '../utils/deliverySlots';
 
 /**
@@ -29,6 +30,7 @@ export default function DeliverySlotPicker({
   note?: string | null;
 }) {
   const { isDark, colors } = useTheme();
+  const diet = useDietLight();
   const txt = colors.text;
   const sub = colors.textSecondary;
   const groups: { key: 'today' | 'tomorrow'; title: string; slots: DeliverySlot[] }[] = [
@@ -51,7 +53,7 @@ export default function DeliverySlotPicker({
       ) : null}
       {!info && loading ? (
         <View style={s.loading}>
-          <ActivityIndicator color={COLORS.red} />
+          <ActivityIndicator color={diet.acc} />
           <Text style={[s.lead, { color: sub, marginTop: 6 }]}>Loading delivery slots…</Text>
         </View>
       ) : null}
@@ -72,13 +74,13 @@ export default function DeliverySlotPicker({
                     s.chip,
                     { backgroundColor: colors.card, borderColor: colors.border },
                     !slot.open && { opacity: 0.5, backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F4F4F5' },
-                    active && { borderColor: COLORS.red, backgroundColor: isDark ? 'rgba(239,79,95,0.08)' : 'rgba(239,79,95,0.04)' },
+                    active && { borderColor: diet.acc, backgroundColor: diet.soft },
                   ]}
                   accessibilityRole="radio"
                   accessibilityState={{ selected: active, checked: active, disabled: !slot.open }}
                   accessibilityLabel={`${slot.label}. ${slot.open ? `Order by ${slot.closesAtLabel}` : closedLine}`}
                 >
-                  <Text style={[s.time, { color: active ? COLORS.red : txt }]} numberOfLines={2}>
+                  <Text style={[s.time, { color: active ? diet.acc : txt }]} numberOfLines={2}>
                     {timeMain(slot.timeLabel)}
                     <Text style={s.suffix}>{timeSuffix(slot.timeLabel)}</Text>
                   </Text>

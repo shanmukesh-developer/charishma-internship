@@ -12,7 +12,9 @@ import { apiFetch, readJson, NETWORK_ERROR_MESSAGE } from '../utils/auth';
 import { ENDPOINTS } from '../constants/api';
 import { formatINR, formatISTDateTime } from '../utils/format';
 import { useTopInset } from '../utils/useTopInset';
-import { ACCENTS, SURFACE, STATUS, shadow as othersShadow } from '../modules/others/othersTheme';
+import { STATUS, shadow as othersShadow } from '../modules/others/othersTheme';
+import { useDietLight } from '../components/local/dietLightTheme';
+import { mixHex } from '../utils/themeNow';
 import { PressScale, FadeInUp, StateCard, SkeletonList } from '../modules/others/motion';
 
 interface WalletTx {
@@ -42,6 +44,7 @@ export default function WalletHistoryScreen() {
   const topPad = useTopInset(36, Platform.OS === 'web' ? 12 : 44); // same top as the Others hub
   const router = useRouter();
   const { colors, isDark } = useTheme();
+  const d = useDietLight();
   const { user } = useAuth();
   const [rows, setRows] = useState<WalletTx[]>([]);
   const [balance, setBalance] = useState<number | null>(null);
@@ -85,19 +88,19 @@ export default function WalletHistoryScreen() {
     if (mounted.current) setLoadingMore(false);
   };
 
-  // Deals & spin palette from the Others tokens (modules/others/othersTheme.ts): purple accent, white cards.
-  const A = ACCENTS.deals;
-  const sf = isDark ? SURFACE.dark : SURFACE.light;
+  // Owner, 10 Nov 2026: the app's one diet look (was the Deals purple): diet page, white cards, the diet accent;
+  // the balance hero is an accent fill deep enough for white text in both themes.
   const stt = isDark ? STATUS.dark : STATUS.light;
+  const fill = isDark ? mixHex(d.acc, '#000000', 0.45) : d.acc;
   const dp = {
-    solid: isDark ? '#7C5CFF' : A.solid,
-    ink: isDark ? A.ink.dark : A.ink.light,
-    tint: isDark ? A.tint.dark : A.tint.light,
-    heroA: isDark ? '#3B2A99' : '#6D4AFF',
-    heroB: isDark ? '#24185F' : A.deep,
-    card: sf.card,
+    solid: fill,
+    ink: d.acc,
+    tint: isDark ? mixHex(d.card, d.acc, 0.16) : d.soft,
+    heroA: fill,
+    heroB: isDark ? mixHex(d.acc, '#000000', 0.6) : mixHex(d.acc, '#000000', 0.22),
+    card: d.card,
     hair: 'transparent',
-    bg: sf.page,
+    bg: d.page,
   };
   // Credit / debit in contrast-safe green and red (WCAG AA on white and on dark cards).
   const GREEN = stt.success;

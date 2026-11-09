@@ -1,3 +1,4 @@
+import FolderTabRail from './FolderTabRail';
 import React, { useEffect, useRef, useState } from 'react';
 import { LayoutChangeEvent, ScrollView, StyleSheet, Text, View, ViewStyle, StyleProp } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -64,7 +65,7 @@ export function usePillReveal(active: string, side: number) {
   };
 }
 
-export default function SectionPillRail({ sections, active, onSection, side = 16, tone = 'dark', style }: {
+export default function SectionPillRail({ sections, active, onSection, side = 16, tone = 'dark', accent, folder, style }: {
   sections: SectionPill[];
   active: string;
   onSection: (key: string) => void;
@@ -72,12 +73,23 @@ export default function SectionPillRail({ sections, active, onSection, side = 16
   side?: number;
   /** 'dark' = pills on a dark/colour header (white text); 'light' = pills on a light page. */
   tone?: 'dark' | 'light';
+  /** Selected pill fill on a light page (Services sections follow the diet accent, owner 10 Nov 2026). Unset = indigo. */
+  accent?: string;
+  /** Services (owner, 10 Nov 2026): Home-style folder tabs on the diet band; the selected tab is the page colour. */
+  folder?: { band: string; page: string; ink: string };
   style?: StyleProp<ViewStyle>;
 }) {
   // Bring the active pill into view when it would be cut off, starting the row on a whole pill.
   const { railRef, tail, onRailLayout, onPillLayout } = usePillReveal(active, side);
 
   const dark = tone === 'dark';
+  if (folder) {
+    return (
+      <View style={style}>
+        <FolderTabRail tabs={sections.map((t) => [t.key, t.label] as [string, string])} active={active} onTab={onSection} band={folder.band} page={folder.page} ink={folder.ink} accent={accent || folder.ink} side={side} />
+      </View>
+    );
+  }
   return (
     <View style={style} onLayout={onRailLayout}>
       <ScrollView
@@ -95,7 +107,7 @@ export default function SectionPillRail({ sections, active, onSection, side = 16
                 accessibilityRole={BUTTON_ROLE}
                 accessibilityState={{ selected: on }}
                 accessibilityLabel={on ? `${t.label}, current section` : t.label}
-                style={[st.pill, dark ? st.pillDark : st.pillLight, on && (dark ? st.pillOnDark : st.pillOnLight)]}
+                style={[st.pill, dark ? st.pillDark : st.pillLight, on && (dark ? st.pillOnDark : st.pillOnLight), on && !dark && accent ? { backgroundColor: accent, borderColor: accent } : null]}
               >
                 <Text
                   numberOfLines={1}

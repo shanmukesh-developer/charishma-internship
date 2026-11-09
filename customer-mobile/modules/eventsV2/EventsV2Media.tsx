@@ -10,13 +10,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import SafeImage from '../../components/SafeImage';
 import { dateTile } from '../campusEvents/campusEventsApi';
 import { NIGHT, TILES, W, hexA, tileOf } from './eventsV2Theme';
+import { isDarkNow, mixHex, themedSheet } from '../../utils/themeNow';
 import GlossyIcon from './EventsV2Glossy';
 import type { EvCard } from './eventsV2Data';
 
 export function Fallback({ e, iconSize = 64, iconRight }: { e: Pick<EvCard, 'category'>; iconSize?: number; iconRight?: boolean }) {
   const t = TILES.find((x) => x.key === tileOf(e.category)) || TILES[0];
   return (
-    <LinearGradient colors={[hexA(t.grad[2], 0.95), '#221F5C', NIGHT.page]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[StyleSheet.absoluteFill, { alignItems: iconRight ? 'flex-end' : 'center', justifyContent: iconRight ? 'flex-start' : 'center', padding: iconRight ? 18 : 0 }]}>
+    <LinearGradient colors={[hexA(t.grad[2], 0.95), mixHex(t.grad[2], NIGHT.scrim, 0.55), NIGHT.scrim]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[StyleSheet.absoluteFill, { alignItems: iconRight ? 'flex-end' : 'center', justifyContent: iconRight ? 'flex-start' : 'center', padding: iconRight ? 18 : 0 }]}>
       <GlossyIcon kind={t.key} size={iconSize} />
     </LinearGradient>
   );
@@ -30,8 +31,8 @@ export function EventPhoto({ e, scrim = true, top = false, iconSize, iconRight }
       {e.art ? <Image source={e.art} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
         : e.posterUrl ? <SafeImage source={{ uri: e.posterUrl }} style={StyleSheet.absoluteFill} contentFit="cover" fallback={fb} />
           : fb}
-      {top ? <LinearGradient colors={['rgba(16,15,51,0.55)', 'rgba(16,15,51,0)']} style={[StyleSheet.absoluteFill, { height: '35%' }]} /> : null}
-      {scrim ? <LinearGradient colors={['rgba(19,18,58,0)', 'rgba(19,18,58,0.35)', 'rgba(19,18,58,0.92)']} locations={[0.35, 0.65, 1]} style={StyleSheet.absoluteFill} /> : null}
+      {top ? <LinearGradient colors={[hexA(NIGHT.scrim, 0.55), hexA(NIGHT.scrim, 0)]} style={[StyleSheet.absoluteFill, { height: '35%' }]} /> : null}
+      {scrim ? <LinearGradient colors={[hexA(NIGHT.scrim, 0), hexA(NIGHT.scrim, 0.35), hexA(NIGHT.scrim, 0.92)]} locations={[0.35, 0.65, 1]} style={StyleSheet.absoluteFill} /> : null}
     </View>
   );
 }
@@ -57,12 +58,12 @@ export function PricePill({ isFree, label, style }: { isFree: boolean; label: st
   );
 }
 
-const s = StyleSheet.create({
+const s = themedSheet(() => ({
   date: { width: 44, paddingTop: 5, paddingBottom: 6, borderRadius: 12, alignItems: 'center', overflow: 'hidden', backgroundColor: '#FFFFFF' },
-  dow: { fontSize: 10.5, color: NIGHT.violetDeep, fontWeight: W.title, letterSpacing: 0.2 },
-  day: { fontSize: 18, color: '#16133F', fontWeight: W.hero, lineHeight: 21 },
-  mon: { fontSize: 10.5, color: '#5A5780', fontWeight: W.label },
-  price: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 26, paddingHorizontal: 10, borderRadius: 13, backgroundColor: 'rgba(16,15,51,0.72)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.28)' },
+  dow: { fontSize: 10.5, color: isDarkNow() ? mixHex(NIGHT.violet, '#000000', 0.4) : NIGHT.violetDeep, fontWeight: W.title, letterSpacing: 0.2 },
+  day: { fontSize: 18, color: '#1F1A1C', fontWeight: W.hero, lineHeight: 21 },
+  mon: { fontSize: 10.5, color: '#6B6670', fontWeight: W.label },
+  price: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 26, paddingHorizontal: 10, borderRadius: 13, backgroundColor: hexA(NIGHT.scrim, 0.72), borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.28)' },
   freeDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: NIGHT.green },
   priceText: { color: '#FFFFFF', fontSize: 12, fontWeight: W.title, letterSpacing: 0.1 },
-});
+}));

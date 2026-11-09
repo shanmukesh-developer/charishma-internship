@@ -397,7 +397,7 @@ export default function HomeScreen() {
   const { dietMode, setDietMode } = useDietary();
   const [vegOnly, setVegOnly] = useState(dietMode === 'veg' || dietMode === 'eggarian');
   // Restaurants / Fast food / Tiffins tab on Home (owner, 9 Nov 2026)
-  const [kind, setKind] = useState<RestaurantKind>('rest');
+  const [kind, setKind] = useState<RestaurantKind>('all');
   // Swiggy-style "Veg mode on" splash when Home switches to Veg (owner, 10 Nov 2026).
   const [vegSplash, setVegSplash] = useState(false);
 

@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useIsFocused, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SHADOWS } from '../constants/theme';
+import { useDietLight } from '../components/local/dietLightTheme';
 import { ENDPOINTS, API_URL } from '../constants/api';
 import { useAuth } from '../context/AuthContext';
 import { StaggeredSection } from '../components/AnimatedSection';
@@ -35,6 +36,7 @@ export default function RegisterScreen() {
   const params = useLocalSearchParams<{ phone?: string; registrationToken?: string; ref?: string }>();
   const { user, isLoading, setUser } = useAuth();
   const { isDark, colors } = useTheme();
+  const d = useDietLight();
 
   // A number already verified on the login screen (POST verify-otp / login → isNewUser)
   const [registrationToken, setRegistrationToken] = useState<string>(
@@ -446,7 +448,7 @@ export default function RegisterScreen() {
                 s.inputWrapper,
                 {
                   backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
-                  borderColor: focusedField === 'name' ? (isDark ? COLORS.gold : '#0F172A') : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0')
+                  borderColor: focusedField === 'name' ? d.acc : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0')
                 }
               ]}>
                 <Ionicons name="person-outline" size={18} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginLeft: 14, marginRight: 8 }} />
@@ -496,7 +498,7 @@ export default function RegisterScreen() {
                   s.inputWrapper,
                   {
                     backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
-                    borderColor: focusedField === 'phone' ? (isDark ? COLORS.gold : '#0F172A') : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0')
+                    borderColor: focusedField === 'phone' ? d.acc : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0')
                   }
                 ]}>
                   <View style={s.countryCodeBox}>
@@ -543,7 +545,7 @@ export default function RegisterScreen() {
                 s.inputWrapper,
                 {
                   backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
-                  borderColor: focusedField === 'email' ? (isDark ? COLORS.gold : '#0F172A') : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0')
+                  borderColor: focusedField === 'email' ? d.acc : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0')
                 }
               ]}>
                 <Ionicons name="mail-outline" size={18} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginLeft: 14, marginRight: 8 }} />
@@ -583,7 +585,7 @@ export default function RegisterScreen() {
                 s.inputWrapper,
                 {
                   backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
-                  borderColor: focusedField === 'password' ? (isDark ? COLORS.gold : '#0F172A') : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0')
+                  borderColor: focusedField === 'password' ? d.acc : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0')
                 }
               ]}>
                 <Ionicons name="lock-closed-outline" size={18} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginLeft: 14, marginRight: 8 }} />
@@ -631,7 +633,7 @@ export default function RegisterScreen() {
                 s.inputWrapper,
                 {
                   backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
-                  borderColor: focusedField === 'confirmPassword' ? (isDark ? COLORS.gold : '#0F172A') : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0')
+                  borderColor: focusedField === 'confirmPassword' ? d.acc : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0')
                 }
               ]}>
                 <Ionicons name="shield-checkmark-outline" size={18} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginLeft: 14, marginRight: 8 }} />
@@ -672,7 +674,7 @@ export default function RegisterScreen() {
                     s.inputWrapper,
                     {
                       backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
-                      borderColor: referralError ? '#EF4444' : (focusedField === 'referral' ? (isDark ? COLORS.gold : '#0F172A') : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0'))
+                      borderColor: referralError ? '#EF4444' : (focusedField === 'referral' ? d.acc : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0'))
                     }
                   ]}>
                     <Ionicons name="pricetag-outline" size={18} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginLeft: 14, marginRight: 8 }} />
@@ -714,8 +716,8 @@ export default function RegisterScreen() {
                   }}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="pricetag-outline" size={15} color={isDark ? COLORS.gold : '#2563EB'} />
-                  <Text style={{ color: isDark ? COLORS.gold : '#2563EB', fontSize: 12, fontWeight: '700' }}>
+                  <Ionicons name="pricetag-outline" size={15} color={d.acc} />
+                  <Text style={{ color: d.acc, fontSize: 12, fontWeight: '700' }}>
                     Have an invite code?
                   </Text>
                 </TouchableOpacity>
@@ -728,7 +730,7 @@ export default function RegisterScreen() {
                   s.inputWrapper,
                   {
                     backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
-                    borderColor: promoError ? '#EF4444' : (focusedField === 'promo' ? (isDark ? COLORS.gold : '#0F172A') : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0'))
+                    borderColor: promoError ? '#EF4444' : (focusedField === 'promo' ? d.acc : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0'))
                   }
                 ]}>
                   <Ionicons name="megaphone-outline" size={18} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginLeft: 14, marginRight: 8 }} />
@@ -752,8 +754,8 @@ export default function RegisterScreen() {
 
               {/* OTP Verification Box */}
               {isOtpSent && !phoneVerified && (
-                <View style={{ marginTop: 16, padding: 14, borderRadius: 14, backgroundColor: isDark ? 'rgba(212, 175, 122, 0.08)' : '#FEF3C7', borderWidth: 1, borderColor: isDark ? 'rgba(212, 175, 122, 0.3)' : '#FDE68A' }}>
-                  <Text style={{ fontSize: 13, fontWeight: '800', color: isDark ? '#D4AF7A' : '#92400E', marginBottom: 8, textAlign: 'center' }}>
+                <View style={{ marginTop: 16, padding: 14, borderRadius: 14, backgroundColor: d.soft, borderWidth: 1, borderColor: d.line }}>
+                  <Text style={{ fontSize: 13, fontWeight: '800', color: d.acc, marginBottom: 8, textAlign: 'center' }}>
                     {phoneOtp.mode === 'email' ? `Enter code sent to ${phoneOtp.emailSentTo || 'your email'}` : `Enter code sent to +91 ${phoneOtp.sentTo}`}
                   </Text>
                   <TextInput
@@ -762,7 +764,7 @@ export default function RegisterScreen() {
                       {
                         backgroundColor: isDark ? '#1E2024' : '#FFFFFF',
                         borderWidth: 1.5,
-                        borderColor: isDark ? '#D4AF7A' : '#D97706',
+                        borderColor: d.acc,
                         borderRadius: 12,
                         paddingVertical: 12,
                         fontSize: 22,
@@ -787,14 +789,14 @@ export default function RegisterScreen() {
                   />
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
                     <TouchableOpacity disabled={busy} onPress={editDetails} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                      <Text style={{ fontSize: 12, fontWeight: '800', color: isDark ? '#D4AF7A' : '#B45309' }}>← Edit details</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '800', color: d.acc }}>← Edit details</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       disabled={phoneOtp.countdown > 0 || busy}
                       onPress={handleSendOtp}
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     >
-                      <Text style={{ fontSize: 12, fontWeight: '800', color: (phoneOtp.countdown > 0 || busy) ? (isDark ? '#71717A' : '#9CA3AF') : (isDark ? '#D4AF7A' : '#B45309') }}>
+                      <Text style={{ fontSize: 12, fontWeight: '800', color: (phoneOtp.countdown > 0 || busy) ? (isDark ? '#71717A' : '#9CA3AF') : (d.acc) }}>
                         {phoneOtp.countdown > 0 ? `Resend in ${phoneOtp.countdown}s` : 'Resend code'}
                       </Text>
                     </TouchableOpacity>
@@ -814,11 +816,11 @@ export default function RegisterScreen() {
                 <Ionicons
                   name={acceptedTerms ? 'checkbox' : 'square-outline'}
                   size={20}
-                  color={acceptedTerms ? (isDark ? COLORS.gold : '#0F172A') : (isDark ? '#71717A' : '#94A3B8')}
+                  color={acceptedTerms ? d.acc : (isDark ? '#71717A' : '#94A3B8')}
                   style={{ marginTop: 2 }}
                 />
                 <Text style={{ flex: 1, fontSize: 12, lineHeight: 18, color: isDark ? '#94A3B8' : '#64748B' }}>
-                  I agree to the <Text style={{ color: isDark ? COLORS.gold : '#2563EB', fontWeight: '700' }} onPress={() => openLegal('terms')} accessibilityRole="link">Terms of Service</Text> and <Text style={{ color: isDark ? COLORS.gold : '#2563EB', fontWeight: '700' }} onPress={() => openLegal('privacy')} accessibilityRole="link">Privacy Policy</Text> (I am 18+ or have parent/guardian consent).
+                  I agree to the <Text style={{ color: d.acc, fontWeight: '700' }} onPress={() => openLegal('terms')} accessibilityRole="link">Terms of Service</Text> and <Text style={{ color: d.acc, fontWeight: '700' }} onPress={() => openLegal('privacy')} accessibilityRole="link">Privacy Policy</Text> (I am 18+ or have parent/guardian consent).
                 </Text>
               </TouchableOpacity>
 
@@ -826,7 +828,7 @@ export default function RegisterScreen() {
               <TouchableOpacity
                 style={[
                   s.primaryBtn,
-                  { backgroundColor: COLORS.red },
+                  { backgroundColor: d.acc },
                   busy && { opacity: 0.7 }
                 ]}
                 onPress={phoneVerified || isOtpSent ? handleRegister : handleSendOtp}
@@ -834,26 +836,26 @@ export default function RegisterScreen() {
                 activeOpacity={0.85}
               >
                 {busy ? (
-                  <ActivityIndicator color={'#FFFFFF'} size="small" />
+                  <ActivityIndicator color={d.onAcc} size="small" />
                 ) : (
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                    <Text style={[s.primaryBtnText, { color: '#FFFFFF' }]}>
+                    <Text style={[s.primaryBtnText, { color: d.onAcc }]}>
                       {phoneVerified ? 'Create account' : isOtpSent ? 'Verify and create account' : 'Verify phone & continue'}
                     </Text>
-                    <Ionicons name="arrow-forward" size={17} color={'#FFFFFF'} />
+                    <Ionicons name="arrow-forward" size={17} color={d.onAcc} />
                   </View>
                 )}
               </TouchableOpacity>
 
               {EMAIL_SIGNUP_CODES && smsFailed && !isOtpSent && !phoneVerified && (
                 <TouchableOpacity onPress={handleSendEmailCode} disabled={busy} style={{ marginTop: 14, alignSelf: 'center' }} accessibilityRole="button">
-                  <Text style={{ fontSize: 13, fontWeight: '800', color: isDark ? COLORS.gold : '#2563EB' }}>Send verification code by email instead</Text>
+                  <Text style={{ fontSize: 13, fontWeight: '800', color: d.acc }}>Send verification code by email instead</Text>
                 </TouchableOpacity>
               )}
 
               <TouchableOpacity onPress={goToLogin} style={s.switchLink} activeOpacity={0.8}>
                 <Text style={[s.switchText, { color: isDark ? '#94A3B8' : '#64748B' }]}>
-                  Already have an account? <Text style={{ color: isDark ? COLORS.gold : '#2563EB', fontWeight: '800' }}>Sign in</Text>
+                  Already have an account? <Text style={{ color: d.acc, fontWeight: '800' }}>Sign in</Text>
                 </Text>
               </TouchableOpacity>
             </StaggeredSection>

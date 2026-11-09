@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { COLORS } from '../constants/theme';
+import { useDietLight } from './local/dietLightTheme';
 import { ENDPOINTS } from '../constants/api';
 import { apiFetch } from '../utils/auth';
 import { openLegal, LEGAL_LABELS, LegalPage } from '../utils/legal';
@@ -17,6 +18,8 @@ const SNOOZE_MS = 3 * 24 * 60 * 60 * 1000;
 export default function TermsUpdateSheet() {
   const { user, setUser } = useAuth();
   const { isDark } = useTheme();
+  // Owner, 10 Nov 2026: links and Accept take the diet accent (was the old gold).
+  const d = useDietLight();
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -82,14 +85,14 @@ export default function TermsUpdateSheet() {
           </Text>
           <View style={s.links}>
             {links.map((p) => (
-              <TouchableOpacity key={p} onPress={() => openLegal(p)} accessibilityRole="link" style={s.linkBtn}>
-                <Text style={s.link}>{LEGAL_LABELS[p]} ↗</Text>
+              <TouchableOpacity key={p} onPress={() => openLegal(p)} accessibilityRole="link" style={[s.linkBtn, { borderColor: d.line }]}>
+                <Text style={[s.link, { color: d.acc }]}>{LEGAL_LABELS[p]} ↗</Text>
               </TouchableOpacity>
             ))}
           </View>
           {error ? <Text style={s.error}>{error}</Text> : null}
-          <TouchableOpacity onPress={accept} disabled={busy} style={[s.accept, busy && { opacity: 0.7 }]} accessibilityRole="button">
-            {busy ? <ActivityIndicator color="#000" size="small" /> : <Text style={s.acceptText}>Accept</Text>}
+          <TouchableOpacity onPress={accept} disabled={busy} style={[s.accept, { backgroundColor: d.acc }, busy && { opacity: 0.7 }]} accessibilityRole="button">
+            {busy ? <ActivityIndicator color={d.onAcc} size="small" /> : <Text style={[s.acceptText, { color: d.onAcc }]}>Accept</Text>}
           </TouchableOpacity>
           <TouchableOpacity onPress={later} disabled={busy} style={s.later} accessibilityRole="button">
             <Text style={[s.laterText, { color: muted }]}>Later</Text>
@@ -107,9 +110,9 @@ const s = StyleSheet.create({
   body: { fontSize: 13, lineHeight: 19, fontWeight: '500' },
   links: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 },
   linkBtn: { paddingVertical: 6, paddingHorizontal: 10, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(245,158,11,0.4)' },
-  link: { color: COLORS.gold, fontSize: 12, fontWeight: '800' },
+  link: { color: '#C8143F', fontSize: 12, fontWeight: '800' },
   error: { color: '#EF4444', fontSize: 12, fontWeight: '600', marginTop: 12 },
-  accept: { marginTop: 18, backgroundColor: COLORS.gold, borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
+  accept: { marginTop: 18, backgroundColor: '#C8143F', borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
   acceptText: { color: '#000', fontSize: 13, fontWeight: '900', letterSpacing: 1 },
   later: { marginTop: 8, paddingVertical: 10, alignItems: 'center' },
   laterText: { fontSize: 13, fontWeight: '700' },

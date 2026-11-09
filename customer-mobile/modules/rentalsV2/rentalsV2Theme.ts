@@ -1,13 +1,15 @@
 /**
- * Rentals v2 tokens. Two looks from the owner's boards (25 Oct 2026), colours sampled with PIL:
- *  NIGHT  the home: deep indigo / violet night page, dusk-city hero, glossy gradient category cards.
- *  DAY    the inner screens: light page, white cards, violet accent, cut-outs on soft tinted plates.
+ * Rentals v2 tokens. Two looks from the owner's boards (25 Oct 2026), now in the app's one diet look (owner,
+ * 10 Nov 2026: "fix one perfect non ai color"): light red page + red accent in Non-veg, light green + green in Veg,
+ * white cards; dark mode takes the diet's dark surfaces. Read at render (utils/themeNow dietTokens).
+ *  NIGHT  the home (the name stays): the diet page under the dusk-city photo hero, white chips, the one accent.
+ *  DAY    the inner screens: diet page, white cards, the diet accent, cut-outs on soft tinted plates.
  * Weights stay light (titles 600, labels 500, body 400). No ALL CAPS anywhere.
  */
 import { Platform, type ViewStyle } from 'react-native';
-import { themedTokens, type Palette } from '../../utils/themeNow';
+import { dietTokens, mixHex, themedTokens, type Palette } from '../../utils/themeNow';
 
-export const NIGHT = {
+const NIGHT_BASE = {
   page: '#141438',
   pageTop: '#12133F',
   ink: '#FFFFFF',
@@ -15,14 +17,52 @@ export const NIGHT = {
   faint: 'rgba(214,210,255,0.55)',
   chip: '#232350',
   chipLine: '#383866',
+  /** Soft accent fill (icon wells, km pill). */
+  soft: '#2A2560',
   glass: 'rgba(255,255,255,0.10)',
   glassLine: 'rgba(255,255,255,0.18)',
   violet: '#A78BFA',
   violetDeep: '#7C5CF0',
-  go: ['#A98BF6', '#7B55EA'] as const,
+  go: ['#A98BF6', '#7B55EA'] as readonly [string, string],
+  /** Accent-filled cards with white text (List your vehicle). */
+  fill: ['#8673CA', '#6F5BB0', '#594496'] as readonly [string, string, string],
+  /** Monogram ring and avatar gradients. */
+  ring: ['#E8E4FF', '#A18EE8', '#6F5BB0'] as readonly [string, string, string],
+  /** Accent that sits on the dusk photo (location pin). */
   pin: '#F5A3D7',
   bellDot: '#FF5A7A',
+  /** Card shadow colour (diet-dark, never a navy glow). */
+  shadow: '#05051A',
 };
+
+/** Accent fill that carries white text: the light accent itself, in dark mode a deeper step of the bright one. */
+const fillOf = (acc: string, dark: boolean) => (dark ? mixHex(acc, '#000000', 0.3) : acc);
+const solidSoft = (d: { soft: string; card: string; acc: string }, dark: boolean) => (dark ? mixHex(d.card, d.acc, 0.16) : d.soft);
+
+export const NIGHT: typeof NIGHT_BASE = dietTokens((d, dark) => {
+  const fill = fillOf(d.acc, dark);
+  const fillDeep = dark ? mixHex(d.acc, '#000000', 0.45) : d.accDeep;
+  return {
+    page: d.pageDeep,
+    pageTop: d.pageDeep,
+    ink: d.dk,
+    sub: hexA(d.dk, 0.7),
+    faint: hexA(d.dk, 0.5),
+    chip: d.card,
+    chipLine: d.line,
+    soft: solidSoft(d, dark),
+    glass: hexA(d.dk, 0.06),
+    glassLine: hexA(d.dk, 0.12),
+    violet: d.acc,
+    violetDeep: d.accDeep,
+    go: [fill, fillDeep] as const,
+    fill: [mixHex(fill, '#FFFFFF', 0.14), fill, fillDeep] as const,
+    ring: [mixHex(d.acc, '#FFFFFF', dark ? 0.6 : 0.8), mixHex(d.acc, '#FFFFFF', 0.35), fill] as const,
+    pin: dark ? d.acc : mixHex(d.acc, '#FFFFFF', 0.45),
+    bellDot: '#FF5A7A',
+    shadow: dark ? '#000000' : d.dk,
+  };
+});
 
 /** Category cards (home). One product family (owner, 26 Oct: "official colouring"): the four hues share the same
  * perceptual lightness and chroma (OKLCH L 0.70 → 0.53, C 0.13), so they read as one palette, not a rainbow. */
@@ -86,7 +126,30 @@ const DAY_DARK: Palette<typeof DAY_LIGHT> = {
   plateGrad: ['#241C48', '#2E2458'],
 };
 
-export const DAY: Palette<typeof DAY_LIGHT> = themedTokens<Palette<typeof DAY_LIGHT>>(DAY_LIGHT, DAY_DARK);
+/** The board's roles in the diet colours: page, lines, the one accent (light: the accent; dark: `accent` is a fill
+ * deep enough for white text, `accentInk` the bright accent for text and icons). Ink, star, green, amber, red and the
+ * sample tag keep their meaning colours. */
+export const DAY: Palette<typeof DAY_LIGHT> = dietTokens((d, dark) => {
+  const base = dark ? DAY_DARK : DAY_LIGHT;
+  const fill = fillOf(d.acc, dark);
+  const fillDeep = dark ? mixHex(d.acc, '#000000', 0.45) : d.accDeep;
+  const soft = solidSoft(d, dark);
+  return {
+    ...base,
+    page: d.page,
+    card: d.card,
+    ink: dark ? base.ink : mixHex(d.dk, '#1B1840', 0.35),
+    line: dark ? base.line : d.line,
+    lineSoft: dark ? base.lineSoft : mixHex(d.line, '#FFFFFF', 0.4),
+    accent: fill,
+    accentDeep: fillDeep,
+    accentSoft: soft,
+    accentInk: d.acc,
+    hero: [mixHex(fill, '#FFFFFF', 0.14), fill, fillDeep] as const,
+    plateGrad: [soft, mixHex(soft, d.acc, 0.12)] as const,
+  };
+});
+
 
 /** Soft tinted plates of the light (inner) screens: the same four hues, very light. */
 const PLATE_LIGHT = {
@@ -108,7 +171,8 @@ export const PLATE: Palette<typeof PLATE_LIGHT> = themedTokens<Palette<typeof PL
 export const RADIUS = { sm: 10, md: 14, lg: 18, xl: 22, pill: 999 } as const;
 export const W = { hero: '700', title: '600', label: '500', body: '400' } as const;
 
-export const shadow = (level: 1 | 2 | 3 = 1, color = '#2A1F7A'): ViewStyle => Platform.select({
+/** Soft shadow in the diet's dark ink (never a navy glow); category cards pass their own hue. */
+export const shadow = (level: 1 | 2 | 3 = 1, color = NIGHT.shadow): ViewStyle => Platform.select({
   web: { boxShadow: level === 1 ? `0 4px 14px ${hexA(color, 0.08)}` : level === 2 ? `0 10px 26px ${hexA(color, 0.14)}` : `0 16px 34px ${hexA(color, 0.32)}` } as ViewStyle,
   default: {
     shadowColor: color,

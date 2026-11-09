@@ -193,7 +193,7 @@ export default function CbPay({ id }: { id: string }) {
 
         <StaggeredSection delay={80} direction="up">
           <Text style={[s.sectionTitle, { color: p.txt, marginTop: 24 }]}>After paying, send both</Text>
-          <TouchableOpacity onPress={pickShot} activeOpacity={0.9} style={[s.payCardNew, { backgroundColor: p.card, borderColor: shot || badField === 'shot' ? COLORS.red : p.border, borderStyle: shot ? 'solid' : 'dashed' }]} accessibilityRole="button" accessibilityLabel={shot ? 'Change the payment screenshot' : 'Upload payment screenshot'}>
+          <TouchableOpacity onPress={pickShot} activeOpacity={0.9} style={[s.payCardNew, { backgroundColor: p.card, borderColor: badField === 'shot' ? COLORS.red : shot ? p.accent : p.border, borderStyle: shot ? 'solid' : 'dashed' }]} accessibilityRole="button" accessibilityLabel={shot ? 'Change the payment screenshot' : 'Upload payment screenshot'}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               {shot ? <SafeImage source={{ uri: shot.localUri || shot.previewUrl || '' }} style={s.shotThumb} contentFit="cover" placeholderIcon="image-outline" /> : (
                 <Ionicons name={uploading ? 'hourglass-outline' : 'cloud-upload-outline'} size={22} color={p.accent} />

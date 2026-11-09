@@ -7,6 +7,7 @@ import { FriendsColors, FS, FT, FR, fui, SectionTints } from '../friendsTheme';
 import { FriendsButton } from '../shared/FriendsUi';
 import { initialOf, photoSource } from './connectShared';
 
+import { themedSheet } from '../../../../utils/themeNow';
 /** A private Connect photo (memory cache only), or a quiet monogram when there is none. */
 export const ConnectPhotoView: React.FC<{
   photo?: { id: string; url: string | null } | null;
@@ -184,7 +185,7 @@ export const StepDots: React.FC<{ steps: string[]; current: number }> = ({ steps
   </View>
 );
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   monogram: { fontSize: 44, fontWeight: '800', color: 'rgba(245,168,196,0.6)', letterSpacing: -1 },
   tag: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: FR.pill, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
   tagText: { fontSize: 12, fontWeight: '700', color: FriendsColors.ink },
@@ -195,7 +196,7 @@ const styles = StyleSheet.create({
   steps: { flexDirection: 'row', gap: 6, paddingHorizontal: FS.lg, paddingTop: FS.md },
   stepBar: { height: 3, borderRadius: 2, backgroundColor: FriendsColors.line },
   stepText: { fontSize: 12, fontWeight: '700', color: FriendsColors.faint, textTransform: 'uppercase', letterSpacing: 0.5 },
-});
+}));
 
 /** The Connect mark: a filled lavender heart. */
 export const ConnectHeart: React.FC<{ size?: number; color?: string }> = ({ size = 22, color = FriendsColors.accent }) => (

@@ -8,7 +8,7 @@ import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { DAY, PLATE, W, shadow, CATEGORY_TITLE, type Category } from './rentalsV2Theme';
+import { DAY, NIGHT, PLATE, W, shadow, CATEGORY_TITLE, type Category } from './rentalsV2Theme';
 import { EXPLORE_ART } from './rentalsV2Art';
 import { FadeInUp, GroundShadow, Press, StateBlock, usePageW } from './RentalsV2Kit';
 import { IArrowLeft, IArrowRight, IBadge, IChat, IKey, IReceipt, ISearch, IX, IPin } from './RentalsV2Icons';
@@ -50,7 +50,7 @@ function WideCard({ kind, index }: { kind: Category; index: number }) {
             <View style={[x.go, { backgroundColor: plate.ink }]}><IArrowRight size={13} color="#FFFFFF" strokeWidth={2.1} /></View>
           </View>
         </View>
-        <GroundShadow width={h * 1.1} height={14} opacity={0.24} color="#2A1F6A" style={{ position: 'absolute', bottom: 8, right: h * 0.22 }} />
+        <GroundShadow width={h * 1.1} height={14} opacity={0.24} color={NIGHT.shadow} style={{ position: 'absolute', bottom: 8, right: h * 0.22 }} />
         <View style={{ width: h * 1.25, height: h * 0.92, marginRight: 8, marginTop: -6 }} pointerEvents="none">
           <Image source={EXPLORE_ART[kind]} style={{ width: '100%', height: '100%' }} contentFit="contain" contentPosition="bottom" transition={240} accessibilityIgnoresInvertColors />
         </View>

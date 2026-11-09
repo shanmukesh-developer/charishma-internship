@@ -17,6 +17,7 @@ import { ChevronLeft } from '../../../../components/lucide';
 import type { FriendsSubTab } from '../../../../types/campus';
 import { FriendsColors, FriendsGradients, FMotion, FR, FS, FT, SectionTints, fui } from '../friendsTheme';
 
+import { themedSheet } from '../../../../utils/themeNow';
 /** True when the OS asks for reduced motion (updates live). */
 export const useReduceMotion = () => {
   const [reduce, setReduce] = useState(false);
@@ -198,7 +199,7 @@ export const FadeIn: React.FC<{ children: React.ReactNode; style?: StyleProp<Vie
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   btn: { borderRadius: FR.pill, overflow: 'hidden', justifyContent: 'center' },
   gradient: { borderRadius: FR.pill, justifyContent: 'center' },
   btnInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 20 },
@@ -217,7 +218,7 @@ const styles = StyleSheet.create({
   },
   headerLine: { position: 'absolute', left: 0, right: 0, bottom: -1, height: 1 },
   dot: { width: 7, height: 7, borderRadius: 4 },
-});
+}));
 
 /**
  * Brand gradient painted behind an accent-filled control. Drop it in as the first child of any

@@ -6,6 +6,7 @@ import { FriendsColors, FS, FT } from '../friendsTheme';
 import { RelativeTime } from './RelativeTime';
 import { FriendsAvatar } from './FriendsAvatar';
 
+import { themedSheet } from '../../../../utils/themeNow';
 const isAnon = (i: FriendsIdentity | null | undefined): i is Extract<FriendsIdentity, { anonymous: true }> =>
   !!i && (i as any).anonymous === true;
 
@@ -113,7 +114,7 @@ export const IdentityChip: React.FC<{
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   row: { flexDirection: 'row', alignItems: 'center', gap: FS.sm, minHeight: 44 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 1 },
@@ -124,4 +125,4 @@ const styles = StyleSheet.create({
   youText: { fontSize: 12, fontWeight: '800', color: FriendsColors.accent },
   entityPill: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 999, backgroundColor: FriendsColors.goldSoft },
   entityText: { fontSize: 12, fontWeight: '800', color: FriendsColors.gold },
-});
+}));

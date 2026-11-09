@@ -17,6 +17,7 @@ import { CampusUserData } from '../../../types/campus';
 import { CampusPoll, fetchCampusPolls, createCampusPoll, voteCampusPoll } from '../campusApi';
 import { ReportSheet } from '../friends/shared/ReportSheet';
 
+import { themedSheet } from '../../../utils/themeNow';
 interface PollsSheetProps {
   chatId: string;
   currentUser: CampusUserData | null;
@@ -240,7 +241,7 @@ export const PollsSheet: React.FC<PollsSheetProps> = ({ chatId, currentUser, onC
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   overlay: {
     ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.45)',
@@ -321,4 +322,4 @@ const styles = StyleSheet.create({
   optionText: { fontSize: 13, color: CampusColors.ink, flex: 1 },
   optionPct: { fontSize: 12, fontWeight: '700', color: CampusColors.accent },
   pollMeta: { fontSize: 12, color: CampusColors.muted },
-});
+}));

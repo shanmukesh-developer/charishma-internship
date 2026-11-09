@@ -7,6 +7,7 @@ import { FriendsColors, FS, FT, FR, fui } from '../friendsTheme';
 import { fileAppeal, APPEAL_TEXT_MIN, APPEAL_TEXT_MAX, moderationActionLabel, MyModerationAction } from '../api/modApi';
 import { errorCode } from '../api/core';
 
+import { themedSheet } from '../../../../utils/themeNow';
 /** Appeal one moderation decision (one appeal per decision; reviewed by a different moderator). */
 export const AppealSheet: React.FC<{
   visible: boolean;
@@ -107,7 +108,7 @@ export const AppealSheet: React.FC<{
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   errorBox: { marginTop: FS.md, padding: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.dangerSoft },
   errorText: { fontSize: 13, lineHeight: 18, fontWeight: '600', color: FriendsColors.danger },
-});
+}));

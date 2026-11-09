@@ -6,6 +6,7 @@ import { FriendsColors, FR } from '../friendsTheme';
 import { Space, setSpaceRemind, spaceErrorMessage } from '../api/spacesApi';
 import { spaceBus, useSpacesNav } from './spacesShared';
 
+import { themedSheet } from '../../../../utils/themeNow';
 /**
  * "Remind me" for a scheduled Space (one push about 10 minutes before it starts, and one if the
  * time changes or it is cancelled). Optimistic; rolls back on error. Hidden for the host.
@@ -60,7 +61,7 @@ export const ReminderButton: React.FC<{ space: Space; onChanged?: (s: Space) => 
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   btn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -74,4 +75,4 @@ const styles = StyleSheet.create({
   },
   on: { backgroundColor: FriendsColors.accent },
   text: { fontSize: 13, fontWeight: '800', color: FriendsColors.accent },
-});
+}));

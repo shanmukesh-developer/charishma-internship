@@ -22,6 +22,7 @@ import { CampusProfileData, CampusUserData } from '../../../types/campus';
 import { fetchMyAssignments, CampusMyAssignment } from '../campusApi';
 import ShimmerLoader from '../../../components/ShimmerLoader';
 
+import { themedSheet } from '../../../utils/themeNow';
 interface StudyTabProps {
   profile: CampusProfileData | null;
   user: CampusUserData | null;
@@ -260,7 +261,7 @@ export const StudyTab: React.FC<StudyTabProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   container: {
     flex: 1,
     backgroundColor: CampusColors.paper,
@@ -507,4 +508,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-});
+}));

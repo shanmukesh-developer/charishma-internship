@@ -6,6 +6,7 @@ import { Link2, X, ExternalLink } from '../../../../components/lucide';
 import { FriendsColors, FS, FR, FT } from '../friendsTheme';
 import { parsePulseText } from './pulseShared';
 
+import { themedSheet } from '../../../../utils/themeNow';
 const openExternal = (url: string) => {
   if (!/^https?:\/\//i.test(url)) return;
   Linking.openURL(url).catch(() => Alert.alert("Couldn't open link", 'Please try again.'));
@@ -166,7 +167,7 @@ export const MediaGrid: React.FC<{ media: { mediaId: string; url: string }[]; co
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   text: { fontSize: 15, lineHeight: 22, color: FriendsColors.ink },
   tag: { color: FriendsColors.accent, fontWeight: '700' },
   link: { color: FriendsColors.accent, textDecorationLine: 'underline' },
@@ -190,4 +191,4 @@ const styles = StyleSheet.create({
   viewer: { flex: 1, backgroundColor: '#000000' },
   viewerBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: FS.lg, minHeight: 48 },
   close: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-});
+}));

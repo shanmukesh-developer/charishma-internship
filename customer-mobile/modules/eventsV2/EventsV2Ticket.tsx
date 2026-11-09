@@ -1,5 +1,5 @@
 /**
- * QR ticket (app/campus-events/ticket/:id), night look: a glossy ticket with the event photo band, the QR
+ * QR ticket (app/campus-events/ticket/:id), diet look: a glossy ticket with the event photo band, the QR
  * (TicketQR: opaque signed token, black on white, only for an ACTIVE ticket), the grouped code, a perforated
  * divider and the entry details. A QR never guarantees entry: staff validate it against the server at the gate.
  */
@@ -10,7 +10,8 @@ import { useLocalSearchParams } from 'expo-router';
 import { campusEventsApi, CampusEventsError, fmtClock, fmtRange, fmtWhen, inr, TICKET_STATUS_META, type Ticket } from '../campusEvents/campusEventsApi';
 import TicketQR, { groupCode } from '../campusEvents/TicketQR';
 import { useCampusEventsLive } from '../campusEvents/useCampusEventsLive';
-import { NIGHT, W, shadow } from './eventsV2Theme';
+import { NIGHT, W, hexA, shadow } from './eventsV2Theme';
+import { themedSheet } from '../../utils/themeNow';
 import { CTA, NightHeader, SampleTag, Tag, usePageW } from './EventsV2Kit';
 import { EventPhoto } from './EventsV2Media';
 import { Notice, StateBlock } from './EventsV2States';
@@ -73,10 +74,10 @@ export default function EventsV2Ticket() {
       <NightHeader title="Your ticket" sub={ev?.title} right={isSampleId(id) ? <SampleTag /> : <Tag label={m.label} color={t.status === 'ACTIVE' ? NIGHT.green : t.status === 'USED' ? NIGHT.sky : NIGHT.red} />} />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={NIGHT.violet} />}>
-        <View style={[s.ticket, shadow(3, '#090726')]}>
+        <View style={[s.ticket, shadow(3)]}>
           <View style={s.band}>
             <EventPhoto e={{ category: 'OTHER', posterUrl: ev?.posterUrl || null, art: isSampleId(id) ? demoEvent(id)?.art : undefined }} iconSize={56} iconRight />
-            <LinearGradient colors={['rgba(91,47,214,0.55)', 'rgba(19,18,58,0.2)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+            <LinearGradient colors={[hexA(NIGHT.violetDeep, 0.5), hexA(NIGHT.scrim, 0.25)]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
             <View style={{ position: 'absolute', left: 16, right: 16, bottom: 14 }}>
               <Text style={s.kind}>{t.kind === 'TEAM' ? 'Team ticket' : t.kind === 'SLOT' ? 'Slot ticket' : t.kind === 'MEMBER' ? 'Player ticket' : 'Entry ticket'}</Text>
               <Text style={s.title} numberOfLines={2}>{ev?.title}</Text>
@@ -115,8 +116,8 @@ export default function EventsV2Ticket() {
   );
 }
 
-const s = StyleSheet.create({
-  ticket: { borderRadius: 26, backgroundColor: NIGHT.card, marginBottom: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.18)' },
+const s = themedSheet(() => ({
+  ticket: { borderRadius: 26, backgroundColor: NIGHT.card, marginBottom: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: NIGHT.line },
   band: { height: 150, borderTopLeftRadius: 26, borderTopRightRadius: 26, overflow: 'hidden' },
   kind: { color: 'rgba(255,255,255,0.85)', fontSize: 12, fontWeight: W.label },
   title: { color: '#FFFFFF', fontSize: 21, lineHeight: 25, fontWeight: W.display, marginTop: 2 },
@@ -126,9 +127,9 @@ const s = StyleSheet.create({
   code: { color: NIGHT.ink, fontSize: 23, fontWeight: W.hero, letterSpacing: 3, marginTop: 2 },
   hint: { color: NIGHT.sub, fontSize: 12, textAlign: 'center', marginTop: 8 },
   perfRow: { height: 30, justifyContent: 'center', marginTop: 8 },
-  dash: { marginHorizontal: 18, borderTopWidth: 1.5, borderStyle: 'dashed', borderColor: 'rgba(255,255,255,0.22)' },
+  dash: { marginHorizontal: 18, borderTopWidth: 1.5, borderStyle: 'dashed', borderColor: NIGHT.border },
   notch: { position: 'absolute', width: 24, height: 24, borderRadius: 12, backgroundColor: NIGHT.page, top: 3 },
   kv: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, gap: 12 },
   kvLabel: { color: NIGHT.sub, fontSize: 13, flexShrink: 0 },
   kvValue: { color: NIGHT.ink, fontSize: 13.5, fontWeight: W.label, textAlign: 'right', flexShrink: 1 },
-});
+}));

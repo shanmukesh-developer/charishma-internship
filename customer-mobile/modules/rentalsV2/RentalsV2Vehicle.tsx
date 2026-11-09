@@ -161,5 +161,5 @@ const v = themedSheet(() => ({
   about: { fontSize: 13.5, color: DAY.ink2, lineHeight: 20 },
   review: { padding: 12, borderRadius: 14, backgroundColor: DAY.card, gap: 6 },
   reviewHead: { fontSize: 12.5, color: DAY.ink, fontWeight: W.label },
-  footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 18, paddingTop: 12, backgroundColor: 'rgba(255,255,255,0.97)', borderTopLeftRadius: 22, borderTopRightRadius: 22 },
+  footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 18, paddingTop: 12, backgroundColor: DAY.card, borderTopLeftRadius: 22, borderTopRightRadius: 22 },
 }));

@@ -227,7 +227,7 @@ export default function CbCartScreen({ stallId }: { stallId: string }) {
                     <TouchableOpacity onPress={pickDoc} activeOpacity={0.85} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }} accessibilityRole="button" accessibilityLabel="Add a PDF to print">
                       <Ionicons name="cloud-upload-outline" size={20} color={p.accent} />
                       <View style={{ flex: 1 }}>
-                        <Text style={[s.payCardTitle, { color: COLORS.red }]}>{docs.length ? 'Add another PDF' : 'Add a PDF'}</Text>
+                        <Text style={[s.payCardTitle, { color: p.accent }]}>{docs.length ? 'Add another PDF' : 'Add a PDF'}</Text>
                         <Text style={[s.payCardDesc, { color: p.txtSec }]}>Up to {MAX_DOCS} files, 5 MB each. Only the stall and ZenWe support can open them.</Text>
                       </View>
                     </TouchableOpacity>

@@ -257,8 +257,9 @@ export default function BasketScreen() {
   const txt = colors.text;
   const txtSec = colors.textSecondary;
   const border = colors.border;
-  const goldColor = isDark ? COLORS.gold : colors.gold;
-  const actionBtnBg = COLORS.red;
+  // Owner, 10 Nov 2026: one look - the diet accent (red Non-veg / green Veg) instead of the old red / gold split.
+  const goldColor = d.acc;
+  const actionBtnBg = d.acc;
 
   // The checkout button floats over the page. The list stops above it (its measured height plus its
   // offset), so no card can ever sit under it, at rest or scrolled to the end.
@@ -292,7 +293,7 @@ export default function BasketScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        refreshControl={user && hasOrderLines ? <RefreshControl refreshing={!!quoteLoading} onRefresh={refreshQuote} tintColor={goldColor} colors={[COLORS.red]} /> : undefined}
+        refreshControl={user && hasOrderLines ? <RefreshControl refreshing={!!quoteLoading} onRefresh={refreshQuote} tintColor={goldColor} colors={[d.acc]} /> : undefined}
       >
         <View style={{ backgroundColor: d.top, paddingTop: topPad + 8, paddingBottom: 14, borderBottomLeftRadius: 26, borderBottomRightRadius: 26, marginBottom: 16 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 16 }}>
@@ -370,7 +371,7 @@ export default function BasketScreen() {
                         <Text style={[s.hostBtnText, { color: txt }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>Start a group basket</Text>
                       </TouchableOpacity>
                       <TouchableOpacity style={[s.joinBtn, { backgroundColor: goldColor }]} onPress={() => setIsJoinOpen(!isJoinOpen)} accessibilityRole="button" accessibilityState={{ expanded: isJoinOpen }}>
-                        <Text style={s.joinBtnText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>Join a group basket</Text>
+                        <Text style={[s.joinBtnText, { color: d.onAcc }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>Join a group basket</Text>
                       </TouchableOpacity>
                     </View>
                   </>
@@ -398,7 +399,7 @@ export default function BasketScreen() {
                   <View style={s.joinInputRow}>
                     <TextInput
                       style={[s.joinInput, { color: txt, borderColor: border, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F1F4F8' }]}
-                      placeholder="Room code, e.g. ZN-8B2A4KQ7XM"
+                      placeholder="Room code, e.g. ZN-4821"
                       placeholderTextColor={txtSec}
                       value={inputCode}
                       onChangeText={setInputCode}
@@ -502,7 +503,7 @@ export default function BasketScreen() {
           <>
             {isClosed && (
               <StaggeredSection delay={60} direction="up">
-                <View style={[s.multiRestBanner, { backgroundColor: isDark ? 'rgba(99,102,241,0.12)' : 'rgba(99,102,241,0.08)', borderColor: 'rgba(99,102,241,0.3)' }]}>
+                <View style={[s.multiRestBanner, { backgroundColor: d.soft, borderColor: d.line }]}>
                   <Ionicons name="moon-outline" size={16} color={txtSec} />
                   <View style={{ flex: 1 }}>
                     <Text style={[s.multiRestTitle, { color: txt }]}>Ordering is closed</Text>
@@ -514,7 +515,7 @@ export default function BasketScreen() {
 
             {!isClosed && storeClosed && (
               <StaggeredSection delay={60} direction="up">
-                <View style={[s.multiRestBanner, { backgroundColor: isDark ? 'rgba(99,102,241,0.12)' : 'rgba(99,102,241,0.08)', borderColor: 'rgba(99,102,241,0.3)' }]}>
+                <View style={[s.multiRestBanner, { backgroundColor: d.soft, borderColor: d.line }]}>
                   <Ionicons name="time-outline" size={16} color={txtSec} />
                   <View style={{ flex: 1 }}>
                     <Text style={[s.multiRestTitle, { color: txt }]}>{storeClosedTitle}</Text>
@@ -702,14 +703,14 @@ export default function BasketScreen() {
                         style={[
                           s.instructionChip,
                           {
-                            backgroundColor: isSelected ? (isDark ? goldColor : COLORS.red) : (isDark ? 'rgba(255,255,255,0.04)' : '#F1F5F9'),
+                            backgroundColor: isSelected ? d.acc : (isDark ? 'rgba(255,255,255,0.04)' : '#F1F5F9'),
                             borderColor: isSelected ? 'transparent' : border,
                           }
                         ]}
                         onPress={() => toggleInstruction(pref.id)}
                         activeOpacity={0.8}
                       >
-                        <Text style={{ fontSize: 12, fontWeight: '800', color: isSelected ? (isDark ? '#000' : '#FFF') : txt }}>
+                        <Text style={{ fontSize: 12, fontWeight: '800', color: isSelected ? d.onAcc : txt }}>
                           {INSTRUCTION_LABELS[pref.id] || stripEmoji(pref.label)}
                         </Text>
                       </TouchableOpacity>
@@ -728,7 +729,7 @@ export default function BasketScreen() {
       </View>
 
       {showFloatingCheckout && (
-        <FloatingPulse color={COLORS.red} style={s.checkoutBtnContainer} onLayout={(e) => { const h = Math.round(e.nativeEvent.layout.height); if (h > 0 && h !== checkoutH) setCheckoutH(h); }}>
+        <FloatingPulse color={d.acc} style={s.checkoutBtnContainer} onLayout={(e) => { const h = Math.round(e.nativeEvent.layout.height); if (h > 0 && h !== checkoutH) setCheckoutH(h); }}>
           <ActionPressable 
             style={[s.checkoutBtn, { backgroundColor: actionBtnBg, width: '100%' }, checkoutBlocked && { opacity: 0.55 }]}
             disabled={checkoutBlocked}
@@ -796,7 +797,7 @@ function RestaurantOrderSection({ basket, group, index, signedIn, active, orderi
   const txt = colors.text;
   const txtSec = colors.textSecondary;
   const border = colors.border;
-  const goldColor = isDark ? COLORS.gold : colors.gold;
+  const goldColor = dl.acc;
   const items = group.lines.reduce((n, l) => n + l.quantity, 0);
   const estimate = Math.round(group.lines.reduce((sum, l) => sum + (Number(l.price) || 0) * l.quantity, 0) * 100) / 100;
   const unavailable: { id?: string; name?: string }[] = error?.code === 'ITEMS_UNAVAILABLE' && Array.isArray(error.body?.unavailableItems) ? error.body.unavailableItems : [];
@@ -932,7 +933,7 @@ function CampusStallSection({ group, index, signedIn, active, renderItemCard, on
   const txt = colors.text;
   const txtSec = colors.textSecondary;
   const border = colors.border;
-  const goldColor = isDark ? COLORS.gold : colors.gold;
+  const goldColor = dl.acc;
   const stallId = group.storeId;
   // The stall's live state (open now, name, menu): items that left the menu are dropped, as on the stall's own cart.
   const [stall, setStall] = useState<{ name: string; isOpen: boolean; closedReason: string | null } | null>(null);

@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useDietary } from '../context/DietaryContext';
+import { useDietLight } from './local/dietLightTheme';
+import { dietNow, isDarkNow, mixHex, themedSheet } from '../utils/themeNow';
 import { View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Dimensions, Platform } from 'react-native';
 // expo-image (memory + disk cache, downsampled CDN URLs) in place of react-native's Image
 import { CachedImage as Image } from './SafeImage';
@@ -145,6 +147,8 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
   // What the screen shows: with Veg on (Home's Veg tab), food search hides non-veg dishes and non-veg-only places.
   // Groceries are not filtered.
   const { dietMode } = useDietary();
+  // Owner, 10 Nov 2026: food search wears the diet accent (red Non-veg / green Veg), not the old amber / gold.
+  const diet = useDietLight();
   const vegOn = searchMode === 'food' && (dietMode === 'veg' || dietMode === 'eggarian');
   const shown = useMemo(() => (vegOn
     ? { ...results, restaurants: results.restaurants.filter(searchRestaurantHasVeg), items: results.items.filter(searchIsVegDish) }
@@ -346,7 +350,7 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
   const txtMuted = isDark ? COLORS.textSecondary : COLORS.textDarkSecondary;
   const border = isDark ? COLORS.borderDark : COLORS.borderLight;
   // Same accent as the search field border and spinner.
-  const accent = isDark ? COLORS.gold : '#D97706';
+  const accent = diet.acc;
 
   return (
     <Modal visible={isOpen} animationType="fade" transparent={false} onRequestClose={onClose}>
@@ -356,7 +360,7 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
           <TouchableOpacity onPress={onClose} style={[s.closeBtn, { borderColor: border, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F1F5F9' }]}>
             <SymbolIcon name="close" style={[s.closeText, { color: txtColor }]} />
           </TouchableOpacity>
-          <View style={[s.inputWrap, { borderColor: searchMode === 'grocery' ? '#22C55E' : (isDark ? COLORS.gold : '#D97706'), backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC' }]}>
+          <View style={[s.inputWrap, { borderColor: searchMode === 'grocery' ? '#22C55E' : diet.acc, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC' }]}>
             <TextInput
               ref={inputRef}
               style={[s.input, { color: txtColor }]}
@@ -366,7 +370,7 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
               onChangeText={setQuery}
               autoCapitalize="none"
             />
-            {loading && <ActivityIndicator size="small" color={searchMode === 'grocery' ? '#22C55E' : (isDark ? COLORS.gold : '#D97706')} style={s.spinner} />}
+            {loading && <ActivityIndicator size="small" color={searchMode === 'grocery' ? '#22C55E' : diet.acc} style={s.spinner} />}
           </View>
         </View>
 
@@ -374,8 +378,8 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
         <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} keyboardShouldPersistTaps="handled">
           {/* City Pulse Trending Banner */}
           {results.isTrending && (
-            <View style={[s.trendingBanner, { backgroundColor: isDark ? 'rgba(201,168,76,0.12)' : '#FEF3C7', borderLeftColor: isDark ? COLORS.gold : '#D97706' }]}>
-              <Text style={[s.trendingTag, { color: isDark ? COLORS.gold : '#B45309' }]}>TOP PICKS</Text>
+            <View style={[s.trendingBanner, { backgroundColor: diet.soft, borderLeftColor: diet.acc }]}>
+              <Text style={[s.trendingTag, { color: diet.acc }]}>TOP PICKS</Text>
               <Text style={[s.trendingTitle, { color: isDark ? '#FFF' : '#1E293B' }]}>Campus spots & dishes to try 🍽️</Text>
             </View>
           )}
@@ -620,7 +624,8 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
   );
 }
 
-const s = StyleSheet.create({
+// One sheet per look (light/dark x Non-veg/Veg): the diet accent.
+const s = themedSheet(() => ({
   container: {
     flex: 1,
     paddingTop: 48,
@@ -679,9 +684,9 @@ const s = StyleSheet.create({
     paddingBottom: 80,
   },
   trendingBanner: {
-    backgroundColor: 'rgba(201,168,76,0.08)',
+    backgroundColor: dietNow().soft,
     borderLeftWidth: 4,
-    borderLeftColor: COLORS.gold,
+    borderLeftColor: dietNow().acc,
     padding: 14,
     borderRadius: 16,
     marginBottom: 20,
@@ -689,7 +694,7 @@ const s = StyleSheet.create({
   trendingTag: {
     fontSize: 12,
     fontWeight: '900',
-    color: COLORS.gold,
+    color: dietNow().acc,
     letterSpacing: 2,
   },
   trendingTitle: {
@@ -750,7 +755,7 @@ const s = StyleSheet.create({
   gridCardPrice: {
     fontSize: 12,
     fontWeight: '900',
-    color: COLORS.gold,
+    color: dietNow().acc,
   },
   gridCardRestName: {
     fontSize: 12,
@@ -778,7 +783,7 @@ const s = StyleSheet.create({
   stepperBtnText: { fontSize: 12, fontWeight: '900', color: '#22C55E' },
   stepperQty: { fontSize: 12, fontWeight: '900', paddingHorizontal: 6, textAlign: 'center', minWidth: 16 },
   // Enabled add buttons use the app-wide action colour (owner, 5 Nov 2026); sold out keeps its old look (addBtnOff).
-  addBtn: { backgroundColor: COLORS.red, borderColor: COLORS.red, borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
+  addBtn: { backgroundColor: isDarkNow() ? mixHex(dietNow().acc, '#000000', 0.3) : dietNow().acc, borderColor: isDarkNow() ? mixHex(dietNow().acc, '#000000', 0.3) : dietNow().acc, borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
   addBtnText: { fontSize: 12, fontWeight: '900', color: '#FFFFFF' },
   addBtnOff: { backgroundColor: '#fff', borderColor: '#22C55E', opacity: 0.5 },
   addBtnOffText: { color: '#22C55E' },
@@ -788,4 +793,4 @@ const s = StyleSheet.create({
   correctedText: { fontSize: 12, fontWeight: '600', marginBottom: 12 },
   discountBadge: { position: 'absolute', bottom: 8, left: 8, backgroundColor: '#F59E0B', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
   discountText: { fontSize: 12, fontWeight: '900', color: '#fff' },
-});
+}));

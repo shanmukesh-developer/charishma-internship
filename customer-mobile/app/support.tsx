@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert, Platform, RefreshControl, Linking } from 'react-native';
 import { KeyboardAvoidingView } from '../components/KeyboardAvoidingView';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { COLORS } from '../constants/theme';
+import { useDietLight } from '../components/local/dietLightTheme';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { apiFetch, readJson } from '../utils/auth';
@@ -46,6 +46,7 @@ export default function SupportScreen() {
   const topPad = useTopInset();
   const router = useRouter();
   const { isDark, colors } = useTheme();
+  const d = useDietLight();
   const { user } = useAuth();
   const params = useLocalSearchParams<{ orderId?: string | string[] }>();
   const paramOrderId = (Array.isArray(params.orderId) ? params.orderId[0] : params.orderId) || '';
@@ -266,19 +267,20 @@ export default function SupportScreen() {
 
   const txt = colors.text;
   const txtSec = colors.textSecondary;
-  const bg = colors.bg;
-  const cardBg = colors.card;
+  const bg = d.page;
+  const cardBg = d.card;
   const border = colors.border;
-  const goldColor = isDark ? COLORS.gold : colors.gold;
-  const activeBgColor = isDark ? 'rgba(201,168,76,0.1)' : 'rgba(239,79,95,0.08)';
-  const activeTextColor = isDark ? COLORS.gold : COLORS.red;
+  // Owner, 10 Nov 2026: the app's one diet look - the diet accent replaces the old gold / brand red.
+  const goldColor = d.acc;
+  const activeBgColor = d.soft;
+  const activeTextColor = d.acc;
 
   return (
-    <KeyboardAvoidingView style={[s.container, { paddingTop: topPad, backgroundColor: bg }]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <KeyboardAvoidingView style={[s.container, { paddingTop: topPad, backgroundColor: d.top }]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {/* Header */}
-      <View style={[s.header, { borderBottomColor: border, backgroundColor: cardBg }]}>
+      <View style={[s.header, { borderBottomColor: d.top, backgroundColor: d.top }]}>
         <TouchableOpacity
-          style={[s.backBtn, { borderColor: border, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F3F4F6' }]}
+          style={[s.backBtn, { borderColor: d.line, backgroundColor: d.card }]}
           accessibilityRole="button"
           accessibilityLabel="Back"
           onPress={() => {
@@ -289,11 +291,11 @@ export default function SupportScreen() {
             }
           }}
         >
-          <Ionicons name="chevron-back" size={18} color={txt} />
+          <Ionicons name="chevron-back" size={18} color={d.dk} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={[s.subText, { color: goldColor }]}>Help and support</Text>
-          <Text style={[s.title, { color: txt }]}>Support centre</Text>
+          <Text style={[s.title, { color: d.dk }]}>Support centre</Text>
         </View>
         <TouchableOpacity
           style={[s.newBtn, { backgroundColor: showNewForm ? 'rgba(239,68,68,0.15)' : activeBgColor }] as any}
@@ -308,7 +310,7 @@ export default function SupportScreen() {
       </View>
 
       <ScrollView
-        style={{ flex: 1 }}
+        style={{ flex: 1, backgroundColor: bg }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[s.scrollContent, { paddingBottom: 240 }]}
         keyboardShouldPersistTaps="handled"
@@ -376,8 +378,8 @@ export default function SupportScreen() {
               }}
               onPress={() => openSupportLink(`tel:+${ZENVY_SUPPORT_PHONE}`, `Call us on +${ZENVY_SUPPORT_PHONE}.`)}
             >
-              <Ionicons name="call-outline" size={15} color="#3B82F6" />
-              <Text style={{ fontSize: 12, fontWeight: '800', color: '#3B82F6' }}>Call us</Text>
+              <Ionicons name="call-outline" size={15} color={d.acc} />
+              <Text style={{ fontSize: 12, fontWeight: '800', color: d.acc }}>Call us</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -395,7 +397,7 @@ export default function SupportScreen() {
               style={{ backgroundColor: goldColor, paddingHorizontal: 20, paddingVertical: 8, borderRadius: 10 }}
               onPress={() => router.push('/login' as any)}
             >
-              <Text style={{ color: isDark ? '#000' : '#fff', fontSize: 12, fontWeight: '900' }}>
+              <Text style={{ color: d.onAcc, fontSize: 12, fontWeight: '900' }}>
                 Sign in
               </Text>
             </TouchableOpacity>
@@ -503,9 +505,9 @@ export default function SupportScreen() {
               disabled={submitting}
             >
               {submitting ? (
-                <ActivityIndicator size="small" color={isDark ? '#000' : '#fff'} />
+                <ActivityIndicator size="small" color={d.onAcc} />
               ) : (
-                <Text style={[s.submitText, { color: isDark ? '#000' : '#fff' }]}>Submit ticket</Text>
+                <Text style={[s.submitText, { color: d.onAcc }]}>Submit ticket</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -530,7 +532,7 @@ export default function SupportScreen() {
               style={{ backgroundColor: goldColor, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12 }}
               onPress={() => { setLoading(true); fetchTickets(); }}
             >
-              <Text style={{ color: isDark ? '#000' : '#fff', fontSize: 12, fontWeight: '900' }}>
+              <Text style={{ color: d.onAcc, fontSize: 12, fontWeight: '900' }}>
                 Try again
               </Text>
             </TouchableOpacity>
@@ -549,7 +551,7 @@ export default function SupportScreen() {
                 style={{ backgroundColor: goldColor, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12 }}
                 onPress={() => setShowNewForm(true)}
               >
-                <Text style={{ color: isDark ? '#000' : '#fff', fontSize: 12, fontWeight: '900' }}>
+                <Text style={{ color: d.onAcc, fontSize: 12, fontWeight: '900' }}>
                   New ticket
                 </Text>
               </TouchableOpacity>
@@ -666,9 +668,9 @@ export default function SupportScreen() {
                             accessibilityLabel="Send reply"
                           >
                             {replySending ? (
-                              <ActivityIndicator size="small" color={isDark ? '#000' : '#fff'} />
+                              <ActivityIndicator size="small" color={d.onAcc} />
                             ) : (
-                              <Text style={[s.replyBtnText, { color: isDark ? '#000' : '#fff' }]}>Send reply</Text>
+                              <Text style={[s.replyBtnText, { color: d.onAcc }]}>Send reply</Text>
                             )}
                           </TouchableOpacity>
                         </View>

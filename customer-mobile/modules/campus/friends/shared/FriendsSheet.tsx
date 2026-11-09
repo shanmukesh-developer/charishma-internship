@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { X, ChevronLeft } from '../../../../components/lucide';
 import { FriendsColors, FElevation, FR, FS, FT } from '../friendsTheme';
 
+import { themedSheet } from '../../../../utils/themeNow';
 /** Dark bottom sheet for Friends. Android back and the backdrop close it. */
 export const FriendsSheet: React.FC<{
   visible: boolean;
@@ -89,7 +90,7 @@ export const FriendsScreenModal: React.FC<{
   </Modal>
 );
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   overlay: { flex: 1, backgroundColor: FriendsColors.overlay, justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: FriendsColors.overlaySurface,
@@ -126,4 +127,4 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth * 2,
     borderBottomColor: FriendsColors.lineSoft,
   },
-});
+}));

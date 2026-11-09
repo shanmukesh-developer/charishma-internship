@@ -10,6 +10,7 @@ import { HelplineRows } from './ConnectPolicyScreen';
 import { StatusPill } from './ConnectUi';
 import { connectErrorMessage } from './connectShared';
 
+import { themedSheet } from '../../../../utils/themeNow';
 /**
  * Connect safety & privacy: pause / resume, hide from branches or years, blocked people, helplines,
  * guidance, the privacy notice, a copy of my data, and deleting Connect completely.
@@ -217,9 +218,9 @@ const MyDataCard: React.FC<{ data: ConnectMyData }> = ({ data }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   noGps: { flexDirection: 'row', gap: FS.sm, padding: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.card, borderWidth: 1, borderColor: FriendsColors.lineSoft },
   title: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   bullet: { flexDirection: 'row', gap: FS.sm, alignItems: 'flex-start' },
   dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: FriendsColors.accent, marginTop: 8 },
-});
+}));

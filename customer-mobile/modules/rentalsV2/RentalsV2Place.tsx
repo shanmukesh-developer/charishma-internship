@@ -104,5 +104,5 @@ const p = themedSheet(() => ({
   unit: { fontSize: 13, color: DAY.muted, fontWeight: W.body },
   km: { fontSize: 13, color: DAY.ink2 },
   about: { fontSize: 13.5, color: DAY.ink2, lineHeight: 20 },
-  footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 18, paddingTop: 12, backgroundColor: 'rgba(255,255,255,0.97)', borderTopLeftRadius: 22, borderTopRightRadius: 22 },
+  footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 18, paddingTop: 12, backgroundColor: DAY.card, borderTopLeftRadius: 22, borderTopRightRadius: 22 },
 }));

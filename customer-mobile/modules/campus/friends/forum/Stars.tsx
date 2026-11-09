@@ -4,6 +4,7 @@ import { Star } from '../../../../components/lucide';
 import * as Haptics from 'expo-haptics';
 import { FriendsColors } from '../friendsTheme';
 
+import { themedSheet } from '../../../../utils/themeNow';
 const RATING_WORDS = ['', 'Poor', 'Below average', 'Okay', 'Good', 'Excellent'];
 
 /** Read-only star row (rounded to the nearest half for display). */
@@ -50,8 +51,8 @@ export const StarPicker: React.FC<{ value: number; onChange: (v: number) => void
   </View>
 );
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   row: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   pick: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   word: { fontSize: 12, fontWeight: '700', color: FriendsColors.muted, marginTop: 2, marginLeft: 6 },
-});
+}));

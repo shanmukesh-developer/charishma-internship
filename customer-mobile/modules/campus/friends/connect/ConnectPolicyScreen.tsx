@@ -9,6 +9,7 @@ import { FriendsColors, FS, FT, FR, fui } from '../friendsTheme';
 import { ConnectHelpline, ConnectPolicy, fetchConnectPolicy } from '../api/connectApi';
 import { connectErrorMessage } from './connectShared';
 
+import { themedSheet } from '../../../../utils/themeNow';
 /** Opens a helpline's phone or https link. */
 export const openHelpline = (h: ConnectHelpline) => {
   if (h.phone) Linking.openURL(`tel:${h.phone.replace(/[^\d+]/g, '')}`).catch(() => {});
@@ -117,8 +118,8 @@ export const ConnectPolicyScreen: React.FC<{ visible: boolean; onClose: () => vo
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   hero: { flexDirection: 'row', gap: FS.sm, padding: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.accentSoft },
   bullet: { flexDirection: 'row', gap: FS.sm, alignItems: 'flex-start' },
   dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: FriendsColors.accent, marginTop: 8 },
-});
+}));

@@ -10,6 +10,7 @@ import { ConnectStatus, acceptConnectConsent, saveDateOfBirth } from '../api/con
 import { ConnectHeart, Notice, PrimaryButton, GhostButton, StepDots } from './ConnectUi';
 import { ageOn, connectErrorMessage, toIsoDate } from './connectShared';
 
+import { themedSheet } from '../../../../utils/themeNow';
 export const ONBOARDING_STEPS = ['Age', 'Consent', 'Profile', 'Selfie'];
 
 const GateFrame: React.FC<{ step?: number; children: React.ReactNode }> = ({ step, children }) => (
@@ -232,7 +233,7 @@ export const RemovedGate: React.FC<{ onAppeal: () => void; onOpenSafetyCenter: (
   </GateFrame>
 );
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   hero: { alignItems: 'center', gap: FS.sm, padding: FS.xl, borderRadius: FR.hero, borderWidth: 1, borderColor: 'rgba(212,175,122,0.18)' },
   heroIcon: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: FriendsColors.accentSoft, marginBottom: 4 },
   dobRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: FS.md },
@@ -243,4 +244,4 @@ const styles = StyleSheet.create({
   pointIcon: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: FriendsColors.accentSoft },
   policyRow: { flexDirection: 'row', alignItems: 'center', gap: FS.md, padding: FS.md, minHeight: 52, borderRadius: FR.md, backgroundColor: FriendsColors.card, borderWidth: 1, borderColor: FriendsColors.line },
   check: { flexDirection: 'row', alignItems: 'flex-start', gap: FS.md, paddingVertical: 8, minHeight: 44 },
-});
+}));

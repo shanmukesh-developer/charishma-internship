@@ -1,5 +1,5 @@
 /**
- * Event detail (app/campus-events/:id), night look: hero photo with scrims and the date block, price and title,
+ * Event detail (app/campus-events/:id), diet look: hero photo with scrims and the date block, price and title,
  * organiser / club, date + time + venue with a map link, seats left, price and how to pay, agenda, description,
  * rules, cancellation, updates for registrants, and a sticky bar with the server's primary action (event.cta:
  * Register / Buy ticket / Book a slot / Register a team / Join waitlist / View my ticket ...). Samples open the
@@ -12,7 +12,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { campusEventsApi, CampusEventsError, errorCopy, fmtWhen, inr, REG_STATE_META, REG_STATUS_META, type Announcement } from '../campusEvents/campusEventsApi';
 import { useCampusEventsStatus } from '../campusEvents/ui';
 import { useCampusEventsLive } from '../campusEvents/useCampusEventsLive';
-import { NIGHT, W } from './eventsV2Theme';
+import { NIGHT, W, hexA } from './eventsV2Theme';
+import { themedSheet } from '../../utils/themeNow';
 import { CTA, HeaderIcon, NightHeader, Press, SampleTag, Tag, usePageW } from './EventsV2Kit';
 import { DateBlock, EventPhoto, PricePill } from './EventsV2Media';
 import { Notice, StateBlock } from './EventsV2States';
@@ -131,7 +132,7 @@ export default function EventsV2Detail() {
           <Organiser ev={ev} />
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
             {ev.myRegistration ? <Tag label={REG_STATUS_META[ev.myRegistration.status].label} color={NIGHT.green} solid /> : null}
-            <Tag label={state.label} color={ev.registrationState === 'OPEN' ? NIGHT.green : ev.registrationState === 'FULL' || ev.registrationState === 'CANCELLED' ? NIGHT.red : '#CFCBEA'} />
+            <Tag label={state.label} color={ev.registrationState === 'OPEN' ? NIGHT.green : ev.registrationState === 'FULL' || ev.registrationState === 'CANCELLED' ? NIGHT.red : NIGHT.mute} />
             {ev.approvalRequired ? <Tag label="Organiser approval" color={NIGHT.amber} /> : null}
             {ev.featured && !ev.isDemoContent ? <Tag label="Featured" color={NIGHT.amber} /> : null}
           </View>
@@ -159,7 +160,7 @@ export default function EventsV2Detail() {
       </ScrollView>
 
       <View style={s.floatHead} pointerEvents="box-none">
-        <NightHeader transparent right={<HeaderIcon onPress={share} label="Share event"><IShare size={17} color="#FFFFFF" strokeWidth={1.8} /></HeaderIcon>} />
+        <NightHeader transparent right={<HeaderIcon onPress={share} label="Share event" onPhoto><IShare size={17} color="#FFFFFF" strokeWidth={1.8} /></HeaderIcon>} />
       </View>
 
       {cta ? (
@@ -181,14 +182,14 @@ export default function EventsV2Detail() {
   );
 }
 
-const s = StyleSheet.create({
+const s = themedSheet(() => ({
   heroFoot: { position: 'absolute', left: 16, right: 16, bottom: 14 },
-  title: { color: '#FFFFFF', fontSize: 26, lineHeight: 31, fontWeight: W.display, letterSpacing: -0.4, marginTop: 12, textShadowColor: 'rgba(10,8,40,0.6)', textShadowRadius: 10 },
-  chip: { paddingHorizontal: 9, height: 24, borderRadius: 12, backgroundColor: 'rgba(19,18,58,0.55)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.35)', justifyContent: 'center' },
+  title: { color: '#FFFFFF', fontSize: 26, lineHeight: 31, fontWeight: W.display, letterSpacing: -0.4, marginTop: 12, textShadowColor: hexA(NIGHT.scrim, 0.6), textShadowRadius: 10 },
+  chip: { paddingHorizontal: 9, height: 24, borderRadius: 12, backgroundColor: hexA(NIGHT.scrim, 0.55), borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.35)', justifyContent: 'center' },
   chipText: { color: '#FFFFFF', fontSize: 11.5, fontWeight: W.label },
   floatHead: { position: 'absolute', left: 0, right: 0, top: 0 },
-  bar: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12, backgroundColor: 'rgba(19,18,58,0.96)', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: NIGHT.line },
+  bar: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12, backgroundColor: NIGHT.bar, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: NIGHT.line },
   barLabel: { color: NIGHT.faint, fontSize: 11.5 },
   barPrice: { color: NIGHT.ink, fontSize: 19, fontWeight: W.title },
   regLink: { position: 'absolute', alignSelf: 'center', left: 0, right: 0, alignItems: 'center', minHeight: 36, justifyContent: 'center' },
-});
+}));

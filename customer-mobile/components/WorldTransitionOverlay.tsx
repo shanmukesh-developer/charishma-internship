@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Dimensions, Animated, Easing, Platform } from '
 import { LinearGradient } from 'expo-linear-gradient';
 import { useWorldTransition, WORLD_THEMES } from '../context/WorldTransitionContext';
 import ZenvBadge from './ZenvBadge';
+import { dietFor, mixHex } from '../utils/themeNow';
 
 const { width: W, height: H } = Dimensions.get('window');
 
@@ -16,6 +17,8 @@ const NUM_RAYS = 4;
 export default function WorldTransitionOverlay() {
   const { isTransitioning, targetWorld, phase } = useWorldTransition();
   const theme = targetWorld ? WORLD_THEMES[targetWorld] : null;
+  // Owner, 10 Nov 2026: the divider and status dot wear a light tint of the diet accent (was the old gold).
+  const lineTint = mixHex(dietFor(false).acc, '#FFFFFF', 0.45);
 
   // ── Core Wipe (opacity + scale based for native driver) ──
   const wipeOpacity = useRef(new Animated.Value(0)).current;
@@ -346,11 +349,11 @@ export default function WorldTransitionOverlay() {
         <Text style={s.worldTitle}>{theme.label}</Text>
 
         {/* Gold Line Divider */}
-        <Animated.View style={[s.goldLine, { transform: [{ scaleX: lineScaleX }] }]} />
+        <Animated.View style={[s.goldLine, { backgroundColor: lineTint, shadowColor: lineTint, transform: [{ scaleX: lineScaleX }] }]} />
 
         {/* Pulsing Status */}
         <View style={s.statusRow}>
-          <View style={s.statusDot} />
+          <View style={[s.statusDot, { backgroundColor: lineTint, shadowColor: lineTint }]} />
           <Text style={s.statusLabel}>Opening</Text>
         </View>
       </Animated.View>

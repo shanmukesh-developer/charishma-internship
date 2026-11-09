@@ -54,8 +54,8 @@ export default function CbSampleSheet({ note, onClose }: { note: CbSampleNote | 
               {typeof note.price === 'number' ? <Text style={[s.meta, { color: p.txtSec }]}>Expected price around {inr(note.price)}</Text> : null}
               <Text style={[s.body, { color: p.txtSec }]}>This is a sample to show what's coming. You can't book it yet.</Text>
             </View>
-            <TouchableOpacity style={s.primary} onPress={onClose} activeOpacity={0.88} accessibilityRole={BUTTON_ROLE} accessibilityLabel="Got it">
-              <Text style={s.primaryText}>Got it</Text>
+            <TouchableOpacity style={[s.primary, { backgroundColor: p.accent }]} onPress={onClose} activeOpacity={0.88} accessibilityRole={BUTTON_ROLE} accessibilityLabel="Got it">
+              <Text style={[s.primaryText, { color: p.onAccent }]}>Got it</Text>
             </TouchableOpacity>
           </View>
         ) : null}

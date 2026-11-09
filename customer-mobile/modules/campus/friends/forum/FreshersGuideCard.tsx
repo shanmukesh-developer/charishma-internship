@@ -6,6 +6,7 @@ import type { ForumCommunity } from '../api/forumApi';
 import { RelativeTime } from '../shared/RelativeTime';
 import { useForumNav } from './forumNav';
 
+import { themedSheet } from '../../../../utils/themeNow';
 /**
  * Pinned Freshers Guide for a community. Always labelled: "Official" (written by the Zenvy team or an
  * official account) or "Student advice" (written by a student moderator), so nobody mistakes one for
@@ -62,7 +63,7 @@ export const FreshersGuideCard: React.FC<{ community: ForumCommunity }> = ({ com
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   card: { flexDirection: 'row', alignItems: 'center', gap: FS.md, padding: FS.md, borderRadius: FR.card, borderWidth: 1, minHeight: 64 },
   official: { backgroundColor: 'rgba(232,196,127,0.06)', borderColor: 'rgba(232,196,127,0.35)' },
   student: { backgroundColor: 'rgba(212,175,122,0.06)', borderColor: 'rgba(212,175,122,0.3)' },
@@ -70,4 +71,4 @@ const styles = StyleSheet.create({
   icon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   label: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: FR.pill },
   labelText: { fontSize: 12, fontWeight: '800' },
-});
+}));

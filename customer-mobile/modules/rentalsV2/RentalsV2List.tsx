@@ -27,7 +27,7 @@ const HERO: Record<Category, { h: string; sub: string }> = {
 export const CHIPS: Record<Category, { key: string; label: string }[]> = {
   bike: [{ key: 'all', label: 'All' }, { key: 'scooter', label: 'Scooter' }, { key: 'sports', label: 'Sports' }, { key: 'premium', label: 'Premium' }],
   car: [{ key: 'all', label: 'All' }, { key: 'hatchback', label: 'Hatchback' }, { key: 'sedan', label: 'Sedan' }, { key: 'suv', label: 'SUV' }, { key: 'luxury', label: 'Luxury' }],
-  room: [{ key: 'all', label: 'All' }, { key: 'single', label: 'Single' }, { key: 'shared', label: 'Shared' }, { key: 'pg', label: 'PG' }],
+  room: [{ key: 'all', label: 'All' }, { key: 'single', label: 'Single' }, { key: 'shared', label: 'Shared' }], // PG chip removed (owner, 10 Nov 2026: PG stays has its own section)
   flat: [{ key: 'all', label: 'All' }, { key: '1bhk', label: '1BHK' }, { key: '2bhk', label: '2BHK' }, { key: 'independent', label: 'Independent' }],
 };
 type Band = 'any' | 'low' | 'mid' | 'high';

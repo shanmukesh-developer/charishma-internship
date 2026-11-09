@@ -22,6 +22,7 @@ import { SafetyCenter } from './SafetyCenter';
 import { ConnectHeart, Notice, StatusPill } from './ConnectUi';
 import { connectBus, connectErrorMessage, isConnectGateError } from './connectShared';
 
+import { themedSheet } from '../../../../utils/themeNow';
 export interface ConnectHomeProps {
   /** Match id from a deep link / CONNECT_MATCH notification (/friends?tab=friends&sub=connect&id=...). */
   focusId?: string | null;
@@ -402,7 +403,7 @@ export const ConnectHome: React.FC<ConnectHomeProps> = ({ focusId, onOpenChat, u
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   root: { flex: 1, backgroundColor: FriendsColors.bg },
   layer: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: FriendsColors.bg },
   hidden: { display: 'none' },
@@ -418,4 +419,4 @@ const styles = StyleSheet.create({
   setupLink: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 36, paddingHorizontal: 6 },
   profileHead: { flexDirection: 'row', alignItems: 'center', gap: FS.sm, marginBottom: FS.sm },
   previewBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, paddingHorizontal: 14, borderRadius: FR.pill, borderWidth: 1, borderColor: FriendsColors.line },
-});
+}));

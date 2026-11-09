@@ -102,7 +102,7 @@ export default function CbOrder({ id }: { id: string }) {
       )}
       <ScrollView
         contentContainerStyle={{ padding: 16, width: '100%', maxWidth: 600, alignSelf: 'center' }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={p.accent} colors={[COLORS.red]} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={p.accent} colors={[p.accent]} />}
       >
         {/* Status notes */}
         {b.status === 'PAYMENT_PENDING' ? <NoticeBar icon="qr-code-outline" text="Pay the stall by UPI and send the proof to confirm this booking." style={{ marginBottom: 16 }} /> : null}
@@ -206,7 +206,7 @@ export default function CbOrder({ id }: { id: string }) {
               </View>
               <View style={s.pinDisplayRow}>
                 <TouchableOpacity style={[s.pinButton, { backgroundColor: gold, shadowColor: gold }, ready && { paddingVertical: 18 }]} onPress={copyCode} accessibilityLabel={`Pickup code ${b.pickupCode.split('').join(' ')}. Tap to copy`}>
-                  <Text style={[s.pinText, ready && { fontSize: 30, letterSpacing: 10 }]}>{b.pickupCode}</Text>
+                  <Text style={[s.pinText, { color: p.onAccent }, ready && { fontSize: 30, letterSpacing: 10 }]}>{b.pickupCode}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[s.zoomBtn, { borderColor: p.border, backgroundColor: p.isDark ? 'rgba(255,255,255,0.05)' : '#F9FAFB' }]} onPress={() => setZoom(true)} accessibilityRole="button" accessibilityLabel="Enlarge the pickup code">
                   <Text style={{ fontSize: 12, fontWeight: '600', color: p.txt }}>{copied ? 'Copied' : 'Enlarge'}</Text>
@@ -333,7 +333,7 @@ export default function CbOrder({ id }: { id: string }) {
           <View style={[s.zoomPinBox, { backgroundColor: p.card, borderColor: p.border }]}>
             <Text style={[s.zoomTitle, { color: gold }]}>Pickup code</Text>
             <Text style={[s.zoomDesc, { color: p.txtSec }]}>Show this code at {stallName}'s counter</Text>
-            <View style={[s.zoomPinDisplay, { backgroundColor: gold, shadowColor: gold }]}><Text style={s.zoomPinText}>{b.pickupCode}</Text></View>
+            <View style={[s.zoomPinDisplay, { backgroundColor: gold, shadowColor: gold }]}><Text style={[s.zoomPinText, { color: p.onAccent }]}>{b.pickupCode}</Text></View>
             <TouchableOpacity style={s.zoomCloseBtn} onPress={() => setZoom(false)}><Text style={s.zoomCloseText}>Close</Text></TouchableOpacity>
           </View>
         </View>

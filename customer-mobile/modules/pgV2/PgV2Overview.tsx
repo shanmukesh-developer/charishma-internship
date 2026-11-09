@@ -252,7 +252,7 @@ const st = themedSheet(() => ({
   page: { flex: 1, backgroundColor: PG2.card },
   thumbs: { flexDirection: 'row', gap: 8, marginTop: 10 },
   thumb: { borderRadius: 10, borderWidth: 2, borderColor: 'transparent', overflow: 'hidden' },
-  more: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(20,16,60,0.5)', alignItems: 'center', justifyContent: 'center' },
+  more: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(18,12,14,0.5)', alignItems: 'center', justifyContent: 'center' },
   moreText: { color: '#FFFFFF', fontSize: 14, fontWeight: W.label },
   name: { fontSize: 20, fontWeight: W.title, color: PG2.ink, letterSpacing: -0.3, flexShrink: 1 },
   type: { fontSize: 13, fontWeight: W.label },

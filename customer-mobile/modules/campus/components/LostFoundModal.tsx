@@ -43,6 +43,7 @@ import {
 import { CampusUserData } from '../../../types/campus';
 import { dial } from '../../../utils/dial';
 
+import { themedSheet } from '../../../utils/themeNow';
 interface LostFoundModalProps {
   visible: boolean;
   onClose: () => void;
@@ -651,7 +652,7 @@ export const LostFoundModal: React.FC<LostFoundModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   container: {
     flex: 1,
     backgroundColor: CampusColors.paper,
@@ -1088,4 +1089,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 13,
   },
-});
+}));

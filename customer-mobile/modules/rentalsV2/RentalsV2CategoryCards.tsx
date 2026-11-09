@@ -21,7 +21,7 @@ import { themedSheet } from '../../utils/themeNow';
 const COPY: Record<Category, { t1: string; sub: string; label: string }> = {
   bike: { t1: 'Bike', sub: 'Daily · Weekly · Monthly', label: 'Bike rentals: daily, weekly, monthly' },
   car: { t1: 'Car', sub: 'Hatchback · Sedan · SUV', label: 'Car rentals: hatchback, sedan, SUV' },
-  room: { t1: 'Room', sub: 'Single · Shared · PG', label: 'Room rentals: single, shared, PG' },
+  room: { t1: 'Room', sub: 'Single · Shared', label: 'Room rentals: single, shared' }, // no PG here: PG stays is its own section (owner, 10 Nov 2026)
   flat: { t1: 'Flat', sub: '1BHK · 2BHK · Independent', label: 'Flat rentals: 1BHK, 2BHK, independent' },
 };
 
@@ -91,7 +91,7 @@ function CategoryCard({ kind, w, h, index }: { kind: Category; w: number; h: num
           <Text style={[c.title, compact ? { fontSize: 19.5, lineHeight: 21 } : null]}>Rentals</Text>
           <Text style={[c.sub, compact ? { letterSpacing: -0.25 } : null]} numberOfLines={1}>{compact && kind === 'flat' ? '1BHK · 2BHK · House' : copy.sub}</Text>
         </View>
-        <View style={[c.arrow, shadow(2, '#12083A')]} pointerEvents="none"><IArrowRight size={15} color={tone.ink} strokeWidth={2.2} /></View>
+        <View style={[c.arrow, shadow(2, NIGHT.shadow)]} pointerEvents="none"><IArrowRight size={15} color={tone.ink} strokeWidth={2.2} /></View>
       </Press>
     </FadeInUp>
   );
@@ -130,16 +130,16 @@ export function NearCampus() {
   return (
     <View style={{ marginTop: 24 }}>
       <Press onPress={() => nav.push({ name: 'explore', near: 'srm' })} label="Near your campus" style={c.secRow} scaleTo={0.99}>
-        <IPin size={17} color="#FFFFFF" strokeWidth={1.7} />
+        <IPin size={17} color={NIGHT.violet} strokeWidth={1.7} />
         <Text style={c.secTitle}>Near Your Campus</Text>
         <IChevronRight size={15} color={NIGHT.sub} strokeWidth={1.8} />
       </Press>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 10, gap: 8 }}>
         {CAMPUSES.map((cp, i) => (
           <FadeInUp key={cp.key} index={i + 4}>
-            <Press onPress={() => nav.push({ name: 'explore', near: cp.key })} label={`${cp.name}, ${cp.key === 'srm' ? 'your campus' : `${cp.km.toFixed(1)} kilometres away`}`} style={[c.campus, { minWidth: cw }, shadow(2, '#05051A')]}>
+            <Press onPress={() => nav.push({ name: 'explore', near: cp.key })} label={`${cp.name}, ${cp.key === 'srm' ? 'your campus' : `${cp.km.toFixed(1)} kilometres away`}`} style={[c.campus, { minWidth: cw }, shadow(2, NIGHT.shadow)]}>
               <LinearGradient colors={['rgba(255,255,255,0.13)', 'rgba(255,255,255,0.04)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[StyleSheet.absoluteFill, { borderRadius: 14 }]} />
-              <LinearGradient colors={['#E8E4FF', '#A18EE8', '#6F5BB0']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={c.monoRing}>
+              <LinearGradient colors={[NIGHT.ring[0], NIGHT.ring[1], NIGHT.ring[2]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={c.monoRing}>
                 <LinearGradient colors={[cp.tint[0], cp.tint[1]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={c.mono}>
                   <Text style={[c.monoText, { color: cp.ink, fontSize: cp.initials.length > 2 ? 9 : 10.5 }]}>{cp.initials}</Text>
                 </LinearGradient>
@@ -160,14 +160,14 @@ const c = themedSheet(() => ({
   title: { color: '#FFFFFF', fontSize: 21, fontWeight: W.hero, lineHeight: 22.5, letterSpacing: -0.3, textShadowColor: 'rgba(30,10,80,0.28)', textShadowRadius: 8, textShadowOffset: { width: 0, height: 1 } },
   sub: { color: '#FFFFFF', fontSize: 12.5, marginTop: 5, fontWeight: W.label, textShadowColor: 'rgba(30,10,80,0.25)', textShadowRadius: 5 },
   arrow: { position: 'absolute', right: 10, bottom: 30, width: 30, height: 30, borderRadius: 15, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
-  section: { color: '#FFFFFF', fontSize: 16, fontWeight: W.title, letterSpacing: -0.1 },
+  section: { color: NIGHT.ink, fontSize: 16, fontWeight: W.title, letterSpacing: -0.1 },
   secRow: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 16, marginBottom: 12 },
-  secTitle: { color: '#FFFFFF', fontSize: 15, fontWeight: W.title },
-  campus: { flexDirection: 'row', alignItems: 'center', gap: 9, height: 56, paddingLeft: 8, paddingRight: 14, borderRadius: 14, backgroundColor: 'rgba(40,38,96,0.72)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)' },
+  secTitle: { color: NIGHT.ink, fontSize: 15, fontWeight: W.title },
+  campus: { flexDirection: 'row', alignItems: 'center', gap: 9, height: 56, paddingLeft: 8, paddingRight: 14, borderRadius: 14, backgroundColor: NIGHT.chip, borderWidth: 1, borderColor: NIGHT.chipLine },
   monoRing: { width: 36, height: 36, borderRadius: 18, padding: 2 },
-  mono: { flex: 1, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'rgba(20,18,60,0.6)' },
+  mono: { flex: 1, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: NIGHT.chip },
   monoText: { fontWeight: W.hero, letterSpacing: 0.2 },
-  campusName: { color: '#FFFFFF', fontSize: 12, fontWeight: W.title },
-  kmPill: { alignSelf: 'flex-start', marginTop: 4, paddingHorizontal: 7, height: 18, borderRadius: 9, backgroundColor: 'rgba(167,139,250,0.24)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(196,181,253,0.45)', justifyContent: 'center' },
-  kmText: { color: '#EDE7FF', fontSize: 10.5, fontWeight: W.label },
+  campusName: { color: NIGHT.ink, fontSize: 12, fontWeight: W.title },
+  kmPill: { alignSelf: 'flex-start', marginTop: 4, paddingHorizontal: 7, height: 18, borderRadius: 9, backgroundColor: NIGHT.soft, borderWidth: StyleSheet.hairlineWidth, borderColor: NIGHT.chipLine, justifyContent: 'center' },
+  kmText: { color: NIGHT.violet, fontSize: 10.5, fontWeight: W.label },
 }));

@@ -30,6 +30,7 @@ import {
 } from '../campusApi';
 import { Sheet, Button, ErrorState, T, S, R, ui } from '../ui';
 
+import { themedSheet } from '../../../utils/themeNow';
 interface VerificationModalProps {
   visible: boolean;
   onClose: () => void;
@@ -550,7 +551,7 @@ export const VerificationModal: React.FC<VerificationModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   center: { alignItems: 'center', paddingVertical: S.xl },
   statusCard: { flexDirection: 'row', gap: S.md, padding: S.lg, borderRadius: R.md, alignItems: 'flex-start' },
   reward: {
@@ -611,4 +612,4 @@ const styles = StyleSheet.create({
     borderRadius: R.pill,
   },
   changeText: { color: '#FFFFFF', fontWeight: '700', fontSize: 12 },
-});
+}));

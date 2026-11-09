@@ -32,6 +32,7 @@ import { SPOT_ICON_MAP } from './LiveZones';
 import { ActionMenu } from '../friends/shared/ActionMenu';
 
 
+import { themedSheet } from '../../../utils/themeNow';
 interface ProximityRoomModalProps {
   visible: boolean;
   onClose: () => void;
@@ -438,7 +439,7 @@ export const ProximityRoomModal: React.FC<ProximityRoomModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   retryBtn: {
     marginTop: 12,
     backgroundColor: CampusColors.accent,
@@ -657,4 +658,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-});
+}));

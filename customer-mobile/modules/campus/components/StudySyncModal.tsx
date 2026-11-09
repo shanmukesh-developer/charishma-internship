@@ -24,6 +24,7 @@ import {
 import * as Haptics from 'expo-haptics';
 import { CampusColors, CampusLayout } from '../../../constants/campusTheme';
 
+import { themedSheet } from '../../../utils/themeNow';
 interface StudySyncModalProps {
   visible: boolean;
   onClose: () => void;
@@ -258,7 +259,7 @@ export const StudySyncModal: React.FC<StudySyncModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   container: {
     flex: 1,
     backgroundColor: CampusColors.paper,
@@ -477,4 +478,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-});
+}));

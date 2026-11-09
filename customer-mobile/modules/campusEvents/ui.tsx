@@ -16,6 +16,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import SafeImage from '../../components/SafeImage';
 import { useTheme } from '../../context/ThemeContext';
+import { useDietLight } from '../../components/local/dietLightTheme';
+import { mixHex } from '../../utils/themeNow';
 import { readCache, writeCache } from '../../utils/swrCache';
 import {
   campusEventsApi, CATEGORY_META, REG_STATE_META, REG_STATUS_META, capacityLine, dateTile, fmtClock, fmtWhen,
@@ -25,31 +27,39 @@ import {
 export type { CeIconName };
 
 export const CE_HOME = '/(tabs)/services?tab=events';
-export const CE_GRAD: [string, string] = ['#7C3AED', '#DB2777'];
 
 export const usePalette = () => {
   const { isDark, colors } = useTheme();
+  // Owner, 10 Nov 2026: one look - the diet band, page and accent (red Non-veg / green Veg) replace the old violet -> pink.
+  const d = useDietLight();
+  const fill = isDark ? mixHex(d.acc, '#000000', 0.3) : d.acc;
   return useMemo(() => ({
     isDark,
-    bg: colors.bg,
-    card: colors.card,
-    card2: isDark ? '#1F1F23' : '#F4F6FA',
+    bg: d.page,
+    card: d.card,
+    card2: isDark ? mixHex(d.card, d.acc, 0.08) : d.sel,
     text: colors.text,
     sub: colors.textSecondary,
     muted: colors.textMuted,
-    border: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(15,23,42,0.08)',
+    border: isDark ? 'rgba(255,255,255,0.12)' : d.line,
     input: colors.inputBg,
     inputBorder: colors.inputBorder,
-    // Violet: 5.7:1 on white; the lighter tint keeps >= 4.5:1 on the dark background.
-    accent: isDark ? '#A78BFA' : '#7C3AED',
-    accentSoft: isDark ? 'rgba(167,139,250,0.16)' : '#EDE9FE',
+    accent: d.acc,
+    accentSoft: d.soft,
+    /** Text / icons on an accent fill. */
+    onAccent: d.onAcc,
+    /** Accent gradient that carries white text (buttons, hero). */
+    grad: [fill, mixHex(fill, '#000000', isDark ? 0.25 : 0.16)] as [string, string],
+    /** Header band and its dark ink. */
+    band: d.top,
+    bandInk: d.dk,
     danger: isDark ? '#F87171' : '#DC2626',
     dangerSoft: isDark ? 'rgba(239,68,68,0.15)' : '#FEE2E2',
     success: isDark ? '#34D399' : '#047857',
     successSoft: isDark ? 'rgba(16,185,129,0.15)' : '#D1FAE5',
     warn: isDark ? '#FBBF24' : '#B45309',
     warnSoft: isDark ? 'rgba(245,158,11,0.15)' : '#FEF3C7',
-  }), [isDark, colors]);
+  }), [isDark, colors, d, fill]);
 };
 export type Palette = ReturnType<typeof usePalette>;
 
@@ -68,18 +78,18 @@ export function EHeader({ title, subtitle, right, onBack }: { title: string; sub
   const p = usePalette();
   const router = useRouter();
   return (
-    <View style={[st.header, { borderBottomColor: p.border, backgroundColor: p.bg }]}>
+    <View style={[st.header, { borderBottomColor: p.band, backgroundColor: p.band }]}>
       <TouchableOpacity
         accessibilityRole="button"
         accessibilityLabel="Go back"
         hitSlop={8}
         onPress={onBack || (() => (router.canGoBack() ? router.back() : router.replace(CE_HOME as any)))}
-        style={[st.backBtn, { backgroundColor: p.card2 }]}
+        style={[st.backBtn, { backgroundColor: p.card }]}
       >
-        <Ionicons name="chevron-back" size={22} color={p.text} />
+        <Ionicons name="chevron-back" size={22} color={p.bandInk} />
       </TouchableOpacity>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={[st.hTitle, { color: p.text }]} numberOfLines={1} accessibilityRole="header">{title}</Text>
+        <Text style={[st.hTitle, { color: p.bandInk }]} numberOfLines={1} accessibilityRole="header">{title}</Text>
         {subtitle ? <Text style={[st.hSub, { color: p.sub }]} numberOfLines={1}>{subtitle}</Text> : null}
       </View>
       {right}
@@ -123,7 +133,8 @@ export function RegStatusPill({ status }: { status: RegStatus }) {
 }
 
 export function PricePill({ label, isFree }: { label: string; isFree: boolean }) {
-  return isFree ? <Pill label="Free" color="#059669" solid /> : <Pill label={label} color="#7C3AED" solid />;
+  const p = usePalette();
+  return isFree ? <Pill label="Free" color="#059669" solid /> : <Pill label={label} color={p.grad[0]} solid />;
 }
 
 type BtnKind = 'primary' | 'secondary' | 'danger' | 'ghost' | 'success';
@@ -146,7 +157,7 @@ export function Btn({ label, onPress, kind = 'primary', loading, disabled, style
   if (kind === 'primary') {
     return (
       <TouchableOpacity {...a11y} disabled={off} onPress={onPress} activeOpacity={0.85} style={[{ opacity: off ? 0.5 : 1, borderRadius: 14, overflow: 'hidden' }, style]}>
-        <LinearGradient colors={CE_GRAD} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[st.btn, pad]}>{content}</LinearGradient>
+        <LinearGradient colors={p.grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[st.btn, pad]}>{content}</LinearGradient>
       </TouchableOpacity>
     );
   }
@@ -225,7 +236,7 @@ export function CheckRow({ label, value, onChange, hint }: { label: string; valu
   return (
     <TouchableOpacity accessibilityRole="checkbox" accessibilityState={{ checked: value }} accessibilityLabel={label} onPress={() => onChange(!value)} style={[st.checkRow, { borderColor: value ? p.accent : p.border, backgroundColor: value ? p.accentSoft : p.card2 }]}>
       <View style={[st.box, { borderColor: value ? p.accent : p.muted, backgroundColor: value ? p.accent : 'transparent' }]}>
-        {value ? <Ionicons name="checkmark" size={16} color="#fff" /> : null}
+        {value ? <Ionicons name="checkmark" size={16} color={p.onAccent} /> : null}
       </View>
       <View style={{ flex: 1 }}>
         <Text style={{ fontSize: 13.5, fontWeight: '800', color: p.text }}>{label}</Text>
@@ -301,11 +312,12 @@ export function Poster({ uri, category, height, radius = 16, children }: { uri: 
 }
 
 function DateTile({ iso }: { iso: string | null }) {
+  const p = usePalette();
   const t = dateTile(iso);
   if (!t) return null;
   return (
     <View style={st.dateTile} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      <Text style={{ fontSize: 12, fontWeight: '800', color: '#7C3AED', letterSpacing: 0.2 }}>{t.dow}</Text>
+      <Text style={{ fontSize: 12, fontWeight: '800', color: p.accent, letterSpacing: 0.2 }}>{t.dow}</Text>
       <Text style={{ fontSize: 18, fontWeight: '900', color: '#111827', lineHeight: 20 }}>{t.day}</Text>
       <Text style={{ fontSize: 12, fontWeight: '800', color: '#4B5563', letterSpacing: 0.2 }}>{t.mon}</Text>
     </View>
@@ -355,7 +367,7 @@ export function EventCard({ e, onPress, width, compact }: { e: EventCardT; onPre
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
             <View style={[st.cardCta, { borderColor: p.border, backgroundColor: p.card2 }]}><Text style={{ fontSize: 12.5, fontWeight: '900', color: p.text }}>View details</Text></View>
             {e.registrationState === 'OPEN' && !e.myStatus ? (
-              <LinearGradient colors={CE_GRAD} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={st.cardCta}>
+              <LinearGradient colors={p.grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={st.cardCta}>
                 <Text style={{ fontSize: 12.5, fontWeight: '900', color: '#fff' }}>{e.isTeam ? 'Register team' : e.format === 'SLOT' ? 'Book a slot' : 'Register'}</Text>
               </LinearGradient>
             ) : null}
@@ -373,8 +385,9 @@ export function CardSkeleton({ width, height = 260 }: { width?: number; height?:
 }
 
 export function Hero({ title, subtitle, kicker = 'ZenWe Campus Events', right }: { title: string; subtitle: string; kicker?: string; right?: React.ReactNode }) {
+  const p = usePalette();
   return (
-    <LinearGradient colors={CE_GRAD} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={st.hero}>
+    <LinearGradient colors={p.grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={st.hero}>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: 12, fontWeight: '800', color: 'rgba(255,255,255,0.9)', letterSpacing: 0.3 }}>{kicker}</Text>

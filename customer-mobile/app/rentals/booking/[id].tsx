@@ -285,7 +285,7 @@ export default function RentalBookingScreen() {
       <TouchableOpacity onPress={() => setTermsTicked((v) => !v)} accessibilityRole="checkbox" accessibilityState={{ checked: termsTicked }} accessibilityLabel="I accept these booking terms"
         style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 }}>
         <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: termsTicked ? p.accent : p.inputBorder, backgroundColor: termsTicked ? p.accent : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
-          {termsTicked ? <Ionicons name="checkmark" size={15} color="#fff" /> : null}
+          {termsTicked ? <Ionicons name="checkmark" size={15} color={p.onAccent} /> : null}
         </View>
         <Text style={{ flex: 1, fontSize: 12.5, fontWeight: '800', color: p.text }}>I accept these terms for this booking</Text>
       </TouchableOpacity>

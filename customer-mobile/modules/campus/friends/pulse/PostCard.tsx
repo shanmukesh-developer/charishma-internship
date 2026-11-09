@@ -31,6 +31,7 @@ import { PollView } from './PollView';
 import { compactCount, pulseBus, pulseErrorMessage, pulsePostLink } from './pulseShared';
 import { usePulseNav } from './pulseNav';
 
+import { themedSheet } from '../../../../utils/themeNow';
 const isAnon = (a: any) => !!a && a.anonymous === true;
 
 /** Small status chips: under review, removed, imported whisper, reply limits. */
@@ -360,7 +361,7 @@ export const PostCard: React.FC<{
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   card: {
     backgroundColor: FriendsColors.card,
     borderRadius: FR.card,
@@ -379,4 +380,4 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4, marginHorizontal: -8 },
   action: { flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: 44, minWidth: 48, paddingHorizontal: 8 },
   count: { fontSize: 13, fontWeight: '700', color: FriendsColors.muted, minWidth: 10 },
-});
+}));

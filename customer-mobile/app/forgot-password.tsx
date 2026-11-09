@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, Platform, ScrollVi
 import { KeyboardAvoidingView } from '../components/KeyboardAvoidingView';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../constants/theme';
+import { useDietLight } from '../components/local/dietLightTheme';
 import { ENDPOINTS } from '../constants/api';
 import { postAuth, normalizePhone, isValidIndianMobile, NETWORK_ERROR_MESSAGE } from '../utils/auth';
 import { usePhoneOtp, PhoneProof, isSmsSendFailure } from '../utils/phoneOtp';
@@ -17,6 +17,7 @@ import ZenvBadge from '../components/ZenvBadge';
 export default function ForgotPasswordScreen() {
   const router = useRouter();
   const { isDark, colors } = useTheme();
+  const d = useDietLight();
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -138,7 +139,7 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={[s.container, { backgroundColor: isDark ? colors.bg : '#F8FAFC' }]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <KeyboardAvoidingView style={[s.container, { backgroundColor: d.page }]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView
         contentContainerStyle={[s.scroll, { paddingBottom: 180 }]}
         keyboardShouldPersistTaps="handled"
@@ -160,8 +161,8 @@ export default function ForgotPasswordScreen() {
           }}
           activeOpacity={0.7}
         >
-          <Ionicons name="arrow-back" size={20} color={isDark ? COLORS.gold : '#0F172A'} />
-          <Text style={[s.backText, { color: isDark ? COLORS.gold : '#0F172A' }]}>
+          <Ionicons name="arrow-back" size={20} color={isDark ? d.acc : '#0F172A'} />
+          <Text style={[s.backText, { color: isDark ? d.acc : '#0F172A' }]}>
             {step === 2 ? 'Change number' : 'Back to sign in'}
           </Text>
         </TouchableOpacity>
@@ -208,7 +209,7 @@ export default function ForgotPasswordScreen() {
                 s.inputWrapper,
                 {
                   backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
-                  borderColor: focusedField === 'phone' ? (isDark ? COLORS.gold : '#0F172A') : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0')
+                  borderColor: focusedField === 'phone' ? d.acc : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0')
                 }
               ]}>
                 <View style={s.countryCodeBox}>
@@ -248,7 +249,7 @@ export default function ForgotPasswordScreen() {
               <TouchableOpacity
                 style={[
                   s.primaryBtn,
-                  { backgroundColor: COLORS.red },
+                  { backgroundColor: d.acc },
                   busy && { opacity: 0.7 }
                 ]}
                 onPress={handleSendOtp}
@@ -256,11 +257,11 @@ export default function ForgotPasswordScreen() {
                 activeOpacity={0.85}
               >
                 {busy ? (
-                  <ActivityIndicator size="small" color={'#FFFFFF'} />
+                  <ActivityIndicator size="small" color={d.onAcc} />
                 ) : (
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                    <Text style={[s.primaryBtnText, { color: '#FFFFFF' }]}>Send verification code</Text>
-                    <Ionicons name="arrow-forward" size={17} color={'#FFFFFF'} />
+                    <Text style={[s.primaryBtnText, { color: d.onAcc }]}>Send verification code</Text>
+                    <Ionicons name="arrow-forward" size={17} color={d.onAcc} />
                   </View>
                 )}
               </TouchableOpacity>
@@ -272,7 +273,7 @@ export default function ForgotPasswordScreen() {
                   style={{ marginTop: 14, alignSelf: 'center' }}
                   accessibilityRole="button"
                 >
-                  <Text style={{ fontSize: 13, fontWeight: '800', color: isDark ? COLORS.gold : '#2563EB' }}>
+                  <Text style={{ fontSize: 13, fontWeight: '800', color: d.acc }}>
                     Send the code by email instead
                   </Text>
                 </TouchableOpacity>
@@ -290,7 +291,7 @@ export default function ForgotPasswordScreen() {
                     s.inputWrapper,
                     {
                       backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
-                      borderColor: focusedField === 'otp' ? (isDark ? COLORS.gold : '#0F172A') : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0')
+                      borderColor: focusedField === 'otp' ? d.acc : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0')
                     }
                   ]}>
                     <TextInput
@@ -324,7 +325,7 @@ export default function ForgotPasswordScreen() {
                       onPress={() => { const p = phoneOtp.sentTo; if (p) sendCode(p, phoneOtp.mode === 'email'); }}
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     >
-                      <Text style={{ fontSize: 12, fontWeight: '800', color: (phoneOtp.countdown > 0 || busy) ? (isDark ? '#71717A' : '#9CA3AF') : (isDark ? COLORS.gold : '#2563EB') }}>
+                      <Text style={{ fontSize: 12, fontWeight: '800', color: (phoneOtp.countdown > 0 || busy) ? (isDark ? '#71717A' : '#9CA3AF') : (d.acc) }}>
                         {phoneOtp.countdown > 0 ? `Resend OTP in ${phoneOtp.countdown}s` : 'Resend OTP'}
                       </Text>
                     </TouchableOpacity>
@@ -345,7 +346,7 @@ export default function ForgotPasswordScreen() {
                 s.inputWrapper,
                 {
                   backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
-                  borderColor: focusedField === 'newPassword' ? (isDark ? COLORS.gold : '#0F172A') : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0')
+                  borderColor: focusedField === 'newPassword' ? d.acc : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0')
                 }
               ]}>
                 <Ionicons name="lock-closed-outline" size={18} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginLeft: 14, marginRight: 8 }} />
@@ -391,7 +392,7 @@ export default function ForgotPasswordScreen() {
                 s.inputWrapper,
                 {
                   backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
-                  borderColor: focusedField === 'confirmPassword' ? (isDark ? COLORS.gold : '#0F172A') : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0')
+                  borderColor: focusedField === 'confirmPassword' ? d.acc : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0')
                 }
               ]}>
                 <Ionicons name="shield-checkmark-outline" size={18} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginLeft: 14, marginRight: 8 }} />
@@ -430,7 +431,7 @@ export default function ForgotPasswordScreen() {
               <TouchableOpacity
                 style={[
                   s.primaryBtn,
-                  { backgroundColor: COLORS.red },
+                  { backgroundColor: d.acc },
                   busy && { opacity: 0.7 }
                 ]}
                 onPress={handleVerifyAndReset}
@@ -438,9 +439,9 @@ export default function ForgotPasswordScreen() {
                 activeOpacity={0.85}
               >
                 {busy ? (
-                  <ActivityIndicator size="small" color={'#FFFFFF'} />
+                  <ActivityIndicator size="small" color={d.onAcc} />
                 ) : (
-                  <Text style={[s.primaryBtnText, { color: '#FFFFFF' }]}>Reset password</Text>
+                  <Text style={[s.primaryBtnText, { color: d.onAcc }]}>Reset password</Text>
                 )}
               </TouchableOpacity>
             </View>

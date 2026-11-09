@@ -4,6 +4,7 @@ import { usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
+import { useDietLight } from './local/dietLightTheme';
 import { LIGHT_SURFACE, TYPE } from '../constants/theme';
 import {
   completeInAppUpdate,
@@ -25,6 +26,8 @@ export default function InAppUpdateBanner() {
   const pathname = usePathname() || '/';
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
+  // Owner, 10 Nov 2026: the diet accent (was the brand red in Veg mode too).
+  const d = useDietLight();
 
   const quiet = QUIET_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   const visible =
@@ -68,14 +71,14 @@ export default function InAppUpdateBanner() {
         accessibilityLiveRegion="polite"
       >
         <View style={st.row}>
-          <View style={[st.icon, { backgroundColor: colors.redMuted }]}>
+          <View style={[st.icon, { backgroundColor: d.soft }]}>
             {busy ? (
-              <ActivityIndicator size="small" color={colors.red} />
+              <ActivityIndicator size="small" color={d.acc} />
             ) : (
               <Ionicons
                 name={s.phase === 'downloaded' ? 'checkmark-circle' : s.phase === 'failed' ? 'alert-circle' : 'arrow-down-circle'}
                 size={22}
-                color={colors.red}
+                color={d.acc}
               />
             )}
           </View>
@@ -87,11 +90,11 @@ export default function InAppUpdateBanner() {
 
         {s.phase === 'downloading' && (
           <View
-            style={[st.track, { backgroundColor: colors.redMuted }]}
+            style={[st.track, { backgroundColor: d.soft }]}
             accessibilityRole="progressbar"
             accessibilityValue={pct !== null ? { min: 0, max: 100, now: pct } : undefined}
           >
-            <View style={[st.fill, { backgroundColor: colors.red, width: `${pct !== null ? Math.max(4, pct) : 12}%` }]} />
+            <View style={[st.fill, { backgroundColor: d.acc, width: `${pct !== null ? Math.max(4, pct) : 12}%` }]} />
           </View>
         )}
 
@@ -113,11 +116,11 @@ export default function InAppUpdateBanner() {
             {showPrimary && (
               <Pressable
                 onPress={() => { onPrimary(); }}
-                style={({ pressed }) => [st.primary, { backgroundColor: colors.red }, pressed && st.pressed]}
+                style={({ pressed }) => [st.primary, { backgroundColor: d.acc }, pressed && st.pressed]}
                 accessibilityRole="button"
                 accessibilityLabel={primaryLabel === 'Restart' ? 'Restart ZenWe to install the update' : `${primaryLabel} ZenWe`}
               >
-                <Text style={st.primaryText} maxFontSizeMultiplier={1.4}>{primaryLabel}</Text>
+                <Text style={[st.primaryText, { color: d.onAcc }]} maxFontSizeMultiplier={1.4}>{primaryLabel}</Text>
               </Pressable>
             )}
           </View>

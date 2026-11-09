@@ -1,6 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Platform, StatusBar } from 'react-native';
-import { COLORS, SHADOWS, RADIUS } from '../constants/theme';
+import { SHADOWS, RADIUS } from '../constants/theme';
+import { dietNow, isDarkNow } from '../utils/themeNow';
 import { recordJsError } from '../utils/crashReporting';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -43,16 +44,19 @@ export class ErrorBoundary extends Component<Props, State> {
         return this.props.fallback;
       }
 
+      // Owner, 10 Nov 2026: the app's one diet look (class component: the diet tokens are read outside React).
+      const d = dietNow();
+      const dark = isDarkNow();
       return (
-        <SafeAreaView style={styles.container}>
-          <StatusBar barStyle="light-content" backgroundColor="#09090B" />
-          <View style={styles.card}>
-            <View style={styles.iconCircle}>
-              <Ionicons name="alert-circle-outline" size={30} color={COLORS.gold} />
+        <SafeAreaView style={[styles.container, { backgroundColor: d.page }]}>
+          <StatusBar barStyle={dark ? 'light-content' : 'dark-content'} backgroundColor={d.page} />
+          <View style={[styles.card, { backgroundColor: d.card, borderColor: d.edge }]}>
+            <View style={[styles.iconCircle, { backgroundColor: dark ? d.top : d.soft, borderColor: d.line }]}>
+              <Ionicons name="alert-circle-outline" size={30} color={d.acc} />
             </View>
 
-            <Text style={styles.title}>Something went wrong</Text>
-            <Text style={styles.subtitle}>
+            <Text style={[styles.title, { color: d.dk }]}>Something went wrong</Text>
+            <Text style={[styles.subtitle, { color: d.muteInk }]}>
               This screen could not load. Your orders and basket are safe. Tap below to try again.
             </Text>
 
@@ -64,8 +68,8 @@ export class ErrorBoundary extends Component<Props, State> {
               </View>
             )}
 
-            <TouchableOpacity style={styles.primaryButton} activeOpacity={0.85} onPress={this.handleReset}>
-              <Text style={styles.primaryButtonText}>Try again</Text>
+            <TouchableOpacity style={[styles.primaryButton, { backgroundColor: d.acc, shadowColor: d.acc }]} activeOpacity={0.85} onPress={this.handleReset}>
+              <Text style={[styles.primaryButtonText, { color: d.onAcc }]}>Try again</Text>
             </TouchableOpacity>
             {this.props.onGoHome && (
               <TouchableOpacity
@@ -73,7 +77,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 activeOpacity={0.7}
                 onPress={() => { try { this.props.onGoHome?.(); } catch { /* still reset below */ } this.handleReset(); }}
               >
-                <Text style={{ color: '#A1A1AA', fontSize: 13, fontWeight: '700' }}>Go to Home</Text>
+                <Text style={{ color: d.muteInk, fontSize: 13, fontWeight: '700' }}>Go to Home</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -148,7 +152,7 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     width: '100%',
-    backgroundColor: COLORS.red,
+    backgroundColor: '#C8143F',
     paddingVertical: 14,
     borderRadius: RADIUS.md,
     alignItems: 'center',

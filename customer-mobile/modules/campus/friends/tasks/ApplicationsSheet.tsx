@@ -13,6 +13,7 @@ import { APPLICATION_META, nameOf, taskErrorMessage } from './tasksShared';
 import { ErrorBox, ReputationLine, StatusPill } from './TasksUi';
 import { useTasksNav } from './tasksNav';
 
+import { themedSheet } from '../../../../utils/themeNow';
 /**
  * Poster only: everyone who applied, with their note and real task reputation. Choosing one moves
  * the task to "Helper selected"; the server guarantees a single helper even if two taps race.
@@ -184,11 +185,11 @@ export const ApplicationsSheet: React.FC<{ task: Task | null; visible: boolean; 
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   note: { padding: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.warnSoft, marginBottom: FS.sm },
   app: { padding: FS.md, borderRadius: FR.card, backgroundColor: FriendsColors.cardHi, borderWidth: 1, borderColor: FriendsColors.line },
   more: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   appFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: FS.md },
   choose: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, paddingHorizontal: 16, borderRadius: FR.pill, backgroundColor: FriendsColors.accent },
   chooseText: { fontSize: 14, fontWeight: '800', color: FriendsColors.accentInk },
-});
+}));

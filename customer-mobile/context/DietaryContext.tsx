@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { setDietNow } from '../utils/themeNow';
 
 export type DietMode = 'all' | 'veg' | 'egg' | 'eggarian' | 'non-veg' | 'nonveg';
 
@@ -129,6 +130,10 @@ export function DietaryProvider({ children }: { children: React.ReactNode }) {
 
     return true;
   }, [dietPrefs]);
+
+  // Sections whose colours live outside React (Services: PG, Co-Ride, Rentals, Events, Tech) read the diet from here
+  // (utils/themeNow), the same way ThemeContext publishes light/dark. Veg and Eggarian wear the Veg look.
+  setDietNow(dietPrefs.mode === 'veg' || dietPrefs.mode === 'eggarian');
 
   // Memoized: an inline object re-rendered every useDietary() screen on each provider render.
   const value = useMemo<DietaryContextType>(() => ({

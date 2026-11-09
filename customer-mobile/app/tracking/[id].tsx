@@ -623,7 +623,7 @@ export default function TrackingScreen() {
   if (loadingOrder && !orderInfo) {
     return (
       <View style={[s.container, { backgroundColor: bg, justifyContent: 'center', alignItems: 'center', padding: 24 }]}>
-        <ActivityIndicator size="large" color={COLORS.gold} />
+        <ActivityIndicator size="large" color={acc} />
         <Text style={{ fontSize: 13, fontWeight: '700', color: txt, letterSpacing: 0.2, marginTop: 18 }}>
           Loading your order…
         </Text>
@@ -637,8 +637,8 @@ export default function TrackingScreen() {
   if (orderError && !orderInfo) {
     return (
       <View style={[s.container, { backgroundColor: bg, justifyContent: 'center', alignItems: 'center', padding: 24 }]}>
-        <View style={[s.cancelledCircle, { borderColor: COLORS.goldBorder, backgroundColor: 'rgba(212,175,122,0.1)' }]}>
-          <Ionicons name="cloud-offline-outline" size={32} color={COLORS.gold} />
+        <View style={[s.cancelledCircle, { borderColor: dl.line, backgroundColor: dl.soft }]}>
+          <Ionicons name="cloud-offline-outline" size={32} color={acc} />
         </View>
         <Text style={[s.cancelledTitle, { color: txt, marginTop: 16 }]}>Couldn't load this order</Text>
         <Text style={[s.cancelledDesc, { color: txtSec, textAlign: 'center', marginTop: 8 }]}>
@@ -646,17 +646,17 @@ export default function TrackingScreen() {
         </Text>
         {(orderNeedsSignIn || !user) ? (
           <TouchableOpacity
-            style={[s.returnBtn, { backgroundColor: COLORS.gold, marginTop: 24 }]}
+            style={[s.returnBtn, { backgroundColor: acc, marginTop: 24 }]}
             onPress={() => router.push('/login' as any)}
           >
-            <Text style={[s.returnBtnText, { color: '#000' }]}>Sign in</Text>
+            <Text style={[s.returnBtnText, { color: dl.onAcc }]}>Sign in</Text>
           </TouchableOpacity>
         ) : orderErrorRetryable && !!orderId && (
           <TouchableOpacity
-            style={[s.returnBtn, { backgroundColor: COLORS.gold, marginTop: 24 }]}
+            style={[s.returnBtn, { backgroundColor: acc, marginTop: 24 }]}
             onPress={() => { setLoadingOrder(true); fetchOrder(); }}
           >
-            <Text style={[s.returnBtnText, { color: '#000' }]}>Try again</Text>
+            <Text style={[s.returnBtnText, { color: dl.onAcc }]}>Try again</Text>
           </TouchableOpacity>
         )}
         <TouchableOpacity style={{ marginTop: 16 }} onPress={() => goHome(router, '/(tabs)/orders')}>
@@ -918,7 +918,7 @@ export default function TrackingScreen() {
         {/* ── MEGA BASKET: approve the shopping and the final bill ── */}
         {orderInfo?.category === 'Mega Basket' && status < 6 && (
           <StaggeredSection delay={80} direction="up">
-            <View style={{ backgroundColor: cardBg, borderColor: COLORS.goldBorder, borderWidth: 1, padding: 16, borderRadius: 20, marginBottom: 16 }}>
+            <View style={{ backgroundColor: cardBg, borderColor: dl.line, borderWidth: 1, padding: 16, borderRadius: 20, marginBottom: 16 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                 <View style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', padding: 8, borderRadius: 10 }}>
                   <Ionicons name="basket-outline" size={16} color="#F59E0B" />
@@ -1140,7 +1140,7 @@ export default function TrackingScreen() {
         {/* ── RATE (delivered, not rated yet) ── */}
         {status >= 6 && orderInfo?.rating == null && (
           <StaggeredSection delay={260} direction="up">
-            <TouchableOpacity style={[s.rateCta, { backgroundColor: cardBg }]} onPress={() => setShowRatingModal(true)}>
+            <TouchableOpacity style={[s.rateCta, { backgroundColor: cardBg, borderColor: dl.line }]} onPress={() => setShowRatingModal(true)}>
               {null}
               <View style={{ flex: 1 }}>
                 <Text style={[s.rateCtaTitle, { color: txt }]}>How was your order?</Text>
@@ -1154,7 +1154,7 @@ export default function TrackingScreen() {
         )}
         {status >= 6 && orderInfo?.rating != null && (
           <StaggeredSection delay={260} direction="up">
-            <View style={[s.rateCta, { backgroundColor: cardBg }]}>
+            <View style={[s.rateCta, { backgroundColor: cardBg, borderColor: dl.line }]}>
               {legacy ? <Ionicons name="heart-outline" size={20} color={COLORS.gold} /> : (
                 <View style={{ flexDirection: 'row', gap: 2 }}>{[1, 2, 3, 4, 5].map((i) => <Ionicons key={i} name="star" size={16} color={i <= Number(orderInfo.rating) ? '#F5B301' : '#E5E7EB'} />)}</View>
               )}
@@ -1220,10 +1220,10 @@ export default function TrackingScreen() {
         <View style={[s.modalOverlay, { justifyContent: 'center' }]}>
           <TouchableOpacity style={StyleSheet.absoluteFill} onPress={() => setZoomPin(false)} />
           <View style={[s.zoomPinBox, { backgroundColor: cardBg, borderColor: border }]}>
-            <Text style={s.zoomTitle}>Delivery PIN</Text>
+            <Text style={[s.zoomTitle, { color: acc }]}>Delivery PIN</Text>
             <Text style={[s.zoomDesc, { color: txtSec }]}>Show this PIN to your rider at handover</Text>
-            <View style={s.zoomPinDisplay}>
-              <Text style={s.zoomPinText}>{orderInfo?.deliveryPin}</Text>
+            <View style={[s.zoomPinDisplay, { backgroundColor: acc, shadowColor: acc }]}>
+              <Text style={[s.zoomPinText, { color: dl.onAcc }]}>{orderInfo?.deliveryPin}</Text>
             </View>
             <TouchableOpacity style={s.zoomCloseBtn} onPress={() => setZoomPin(false)}>
               <Text style={s.zoomCloseText}>Close</Text>
@@ -1318,11 +1318,11 @@ export default function TrackingScreen() {
               )}
 
               {/* Submit rating */}
-              <TouchableOpacity style={[s.submitRatingBtn, submittingRating && { opacity: 0.7 }]} onPress={handleSubmitRating} disabled={submittingRating}>
+              <TouchableOpacity style={[s.submitRatingBtn, { backgroundColor: acc, shadowColor: acc }, submittingRating && { opacity: 0.7 }]} onPress={handleSubmitRating} disabled={submittingRating}>
                 {submittingRating ? (
-                  <ActivityIndicator color="#000" />
+                  <ActivityIndicator color={dl.onAcc} />
                 ) : (
-                  <Text style={s.submitRatingText}>Submit rating</Text>
+                  <Text style={[s.submitRatingText, { color: dl.onAcc }]}>Submit rating</Text>
                 )}
               </TouchableOpacity>
 

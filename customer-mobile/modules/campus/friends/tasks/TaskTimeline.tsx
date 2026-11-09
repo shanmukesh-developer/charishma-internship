@@ -8,6 +8,7 @@ const TINT = SectionTints.tasks;
 import { formatLocal } from '../shared/RelativeTime';
 import type { Task } from '../api/tasksApi';
 
+import { themedSheet } from '../../../../utils/themeNow';
 interface Step {
   key: string;
   label: string;
@@ -109,7 +110,7 @@ export const TaskTimeline: React.FC<{ task: Task }> = ({ task }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   wrap: { padding: FS.lg, borderRadius: FR.card, backgroundColor: FriendsColors.card, borderWidth: StyleSheet.hairlineWidth * 2, borderColor: FriendsColors.line },
   row: { flexDirection: 'row', gap: FS.md },
   rail: { width: 20, alignItems: 'center' },
@@ -119,4 +120,4 @@ const styles = StyleSheet.create({
   line: { width: 2, flex: 1, minHeight: 18, borderRadius: 1, backgroundColor: FriendsColors.line, marginVertical: 3 },
   lineDone: { backgroundColor: TINT.line },
   body: { flex: 1, paddingBottom: FS.md },
-});
+}));

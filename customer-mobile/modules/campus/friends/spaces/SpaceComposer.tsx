@@ -11,6 +11,7 @@ import { Space, SpaceParticipation, SpacePatch, SPACES_DEFAULT_META, createSpace
 import { NotRecorded, Stepper } from './SpacesUi';
 import { formatCountdown, formatSpaceTime, localZoneLabel, useSpacesNav } from './spacesShared';
 
+import { themedSheet } from '../../../../utils/themeNow';
 const MIN = 60 * 1000;
 const HOUR = 60 * MIN;
 const DAY = 24 * HOUR;
@@ -415,7 +416,7 @@ export const SpaceComposer: React.FC<{
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   post: { minHeight: 36, paddingHorizontal: 16, borderRadius: FR.pill, backgroundColor: FriendsColors.accent, alignItems: 'center', justifyContent: 'center', marginRight: FS.sm },
   postText: { fontSize: 14, fontWeight: '800', color: FriendsColors.accentInk },
   error: { flexDirection: 'row', gap: 8, padding: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.dangerSoft, marginBottom: FS.md },
@@ -464,4 +465,4 @@ const styles = StyleSheet.create({
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: FS.sm },
   notes: { marginTop: FS.xl, gap: FS.sm, padding: FS.md, borderRadius: FR.card, backgroundColor: FriendsColors.card, borderWidth: 1, borderColor: FriendsColors.lineSoft },
   netNote: { flexDirection: 'row', gap: 6, alignItems: 'flex-start' },
-});
+}));

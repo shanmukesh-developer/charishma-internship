@@ -30,6 +30,7 @@ import {
 import { markCampusMessagesRead } from '../campusSocketClient';
 import { getUser } from '../../../utils/auth';
 
+import { themedSheet } from '../../../utils/themeNow';
 interface CatchMeUpModalProps {
   visible: boolean;
   onClose: () => void;
@@ -354,7 +355,7 @@ export const CatchMeUpModal: React.FC<CatchMeUpModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   container: {
     flex: 1,
     backgroundColor: CampusColors.paper,
@@ -501,4 +502,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-});
+}));

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, SHADOWS, RADIUS, surfaceLift } from '../constants/theme';
+import { useDietLight } from '../components/local/dietLightTheme';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useDietary } from '../context/DietaryContext';
@@ -72,6 +73,7 @@ export default function NotificationsScreen() {
   const topPad = useTopInset();
   const router = useRouter();
   const { isDark, colors } = useTheme();
+  const d = useDietLight();
   const { user } = useAuth();
   const { dietMode } = useDietary();
   const signedIn = !!user;
@@ -357,29 +359,30 @@ export default function NotificationsScreen() {
       switch (type) {
         case 'emergency': return ['#EF4F5F', '#EF4F5F'];
         case 'warning': return ['#F59E0B', '#F59E0B'];
-        case 'promo': return ['#D4AF7A', '#D4AF7A'];
+        case 'promo': return [d.acc, d.acc];
         case 'friend_accepted': return ['#10B981', '#10B981'];
-        case 'chat_message': return ['#3B82F6', '#3B82F6'];
-        default: return ['#3B82F6', '#3B82F6'];
+        case 'chat_message': return [d.acc, d.acc];
+        default: return [d.acc, d.acc];
       }
     } else {
       switch (type) {
         case 'emergency': return ['#EF4F5F', '#EF4F5F'];
         case 'warning': return ['#D97706', '#D97706'];
-        case 'promo': return ['#B45309', '#B45309'];
+        case 'promo': return [d.acc, d.acc];
         case 'friend_accepted': return ['#059669', '#059669'];
-        case 'chat_message': return ['#2563EB', '#2563EB'];
-        default: return ['#2563EB', '#2563EB'];
+        case 'chat_message': return [d.acc, d.acc];
+        default: return [d.acc, d.acc];
       }
     }
   };
 
   const txt = colors.text;
   const txtSec = colors.textSecondary;
-  const bg = colors.bg;
-  const cardBg = colors.card;
+  // Owner, 10 Nov 2026: the app's one diet look (light band header, diet page, white cards, the diet accent).
+  const bg = d.page;
+  const cardBg = d.card;
   const border = colors.border;
-  const goldColor = isDark ? COLORS.gold : colors.gold;
+  const goldColor = d.acc;
 
   const nonVegWords = ['chicken', 'mutton', 'meat', 'beef', 'pork', 'fish', 'prawn', 'wings', 'tandoori chicken', 'shawarma'];
   const displayedNotifications = notifications.filter(n => {
@@ -394,11 +397,11 @@ export default function NotificationsScreen() {
   });
 
   return (
-    <View style={[s.container, { paddingTop: topPad, backgroundColor: bg }]}>
+    <View style={[s.container, { paddingTop: topPad, backgroundColor: d.top }]}>
       {/* Header */}
-      <View style={[s.header, { borderBottomColor: border, backgroundColor: cardBg }]}>
+      <View style={[s.header, { borderBottomColor: d.top, backgroundColor: d.top }]}>
         <TouchableOpacity
-          style={[s.backBtn, { borderColor: border, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F3F4F6' }]}
+          style={[s.backBtn, { borderColor: d.line, backgroundColor: d.card }]}
           accessibilityRole="button"
           accessibilityLabel="Back"
           onPress={() => {
@@ -409,7 +412,7 @@ export default function NotificationsScreen() {
             }
           }}
         >
-          <Ionicons name="arrow-back" size={20} color={txt} />
+          <Ionicons name="arrow-back" size={20} color={d.dk} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={[s.subText, { color: goldColor }]}>
@@ -418,7 +421,7 @@ export default function NotificationsScreen() {
               return unread > 0 ? `${unread} unread` : 'All caught up';
             })()}
           </Text>
-          <Text style={[s.title, { color: txt }]}>Notifications</Text>
+          <Text style={[s.title, { color: d.dk }]}>Notifications</Text>
         </View>
         {notifications.length > 0 && (
         <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -440,11 +443,12 @@ export default function NotificationsScreen() {
 
       {/* Main Content */}
       {loading ? (
-        <View style={s.center}>
+        <View style={[s.center, { backgroundColor: bg }]}>
           <ActivityIndicator size="large" color={goldColor} />
         </View>
       ) : displayedNotifications.length === 0 ? (
         <ScrollView
+          style={{ backgroundColor: bg }}
           contentContainerStyle={[s.center, { flexGrow: 1 }]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={goldColor} />}
         >
@@ -460,7 +464,7 @@ export default function NotificationsScreen() {
         </ScrollView>
       ) : (
         <ScrollView
-          style={{ flex: 1 }}
+          style={{ flex: 1, backgroundColor: bg }}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={s.scrollContent}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={goldColor} />}

@@ -25,6 +25,7 @@ import {
   ackCampusAnnouncement,
 } from '../campusApi';
 
+import { themedSheet } from '../../../utils/themeNow';
 interface ClassworkScreenProps {
   currentUser: CampusUserData | null;
   onBack: () => void;
@@ -285,7 +286,7 @@ export const ClassworkScreen: React.FC<ClassworkScreenProps> = ({ currentUser, o
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   safeArea: { flex: 1, backgroundColor: CampusColors.paper },
   header: {
     flexDirection: 'row',
@@ -374,4 +375,4 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   turnInText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
-});
+}));

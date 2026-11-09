@@ -30,6 +30,7 @@ import {
   useSpacesNav,
 } from './spacesShared';
 
+import { themedSheet } from '../../../../utils/themeNow';
 const POLL_LIVE_MS = 20000;
 
 /**
@@ -382,7 +383,7 @@ const Fact: React.FC<{ icon: React.ReactNode; text: string; sub?: string }> = ({
   </View>
 );
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   round: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   hero: { backgroundColor: FriendsColors.card, borderRadius: FR.card, borderWidth: 1, borderColor: 'rgba(212,175,122,0.3)', padding: FS.lg },
   heroLive: { borderColor: 'rgba(243,139,128,0.45)' },
@@ -393,4 +394,4 @@ const styles = StyleSheet.create({
   speaker: { width: '25%', alignItems: 'center', paddingVertical: FS.sm },
   speakerName: { fontSize: 13, fontWeight: '700', color: FriendsColors.ink, marginTop: 6, maxWidth: '92%' },
   note: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', padding: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.dangerSoft },
-});
+}));

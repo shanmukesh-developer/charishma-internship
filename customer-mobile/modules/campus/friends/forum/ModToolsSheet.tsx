@@ -7,6 +7,7 @@ import { FriendsColors, FS, FT, FR, fui } from '../friendsTheme';
 import { modPost, modComment, ForumPost, ForumComment, ForumPostModAction, ForumCommentModAction, FORUM_LIMITS } from '../api/forumApi';
 import { forumErrorMessage } from './forumShared';
 
+import { themedSheet } from '../../../../utils/themeNow';
 type Target = { kind: 'post'; post: ForumPost } | { kind: 'comment'; comment: ForumComment };
 
 type Row = { action: ForumPostModAction | ForumCommentModAction; label: string; hint: string; icon: React.ReactNode; destructive?: boolean; needsReason?: boolean };
@@ -160,6 +161,6 @@ export const ModToolsSheet: React.FC<{
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   error: { marginTop: FS.md, padding: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.dangerSoft, color: FriendsColors.danger, fontSize: 13, fontWeight: '600' },
-});
+}));

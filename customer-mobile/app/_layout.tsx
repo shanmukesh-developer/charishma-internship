@@ -1,6 +1,7 @@
 import 'react-native-gesture-handler';
 import React from 'react';
 import { Stack, useNavigationContainerRef, usePathname, useRouter } from 'expo-router';
+import { bootAppText, useAppTextEpoch } from '../utils/appText';
 import { Platform, View, StyleSheet, Alert, ActivityIndicator, LogBox, InteractionManager, BackHandler } from 'react-native';
 
 // Web preview only: react-native-web renders nested touchables as nested <button>s and logs a
@@ -99,6 +100,19 @@ function BackToHomeFromDeepLink() {
   return null;
 }
 
+/** After a font / size change re-mounted the app: back to the font screen the change was made on. */
+function ReopenAfterAppText() {
+  const router = useRouter();
+  React.useEffect(() => {
+    const to = (globalThis as any).__zenweReopenAfterText;
+    if (!to) return;
+    (globalThis as any).__zenweReopenAfterText = undefined;
+    const t = setTimeout(() => { try { router.push(to as any); } catch { /* navigation not ready */ } }, 50);
+    return () => clearTimeout(t);
+  }, [router]);
+  return null;
+}
+
 const AppTree = React.memo(function AppTree({ isDark, onSettled }: { isDark: boolean; onSettled: () => void }) {
   return (
     // initialWindowMetrics: real status-bar / notch insets from the first frame (without it every inset reads 0
@@ -127,6 +141,7 @@ const AppTree = React.memo(function AppTree({ isDark, onSettled }: { isDark: boo
             {/* "A new version of ZenWe is ready" (Play in-app update); waits while on /checkout */}
             <InAppUpdateBanner />
             <SettleSignal onSettled={onSettled} />
+            <ReopenAfterAppText />
           </OptionsSheetProvider>
           </CartProvider>
         </AuthProvider>
@@ -145,9 +160,15 @@ function AppContainer() {
   const [showIntro, setShowIntro] = React.useState(true);
 
   // Preload Ionicons so tab bar icons render on Expo Web
-  const [fontsLoaded, fontError] = useFonts({
+  const [iconFontsLoaded, fontError] = useFonts({
     ...Ionicons.font,
   });
+  // App font and text size from Settings (utils/appText): loaded before the first screen (4 s at most).
+  const [appTextReady, setAppTextReady] = React.useState(false);
+  React.useEffect(() => { bootAppText().finally(() => setAppTextReady(true)); }, []);
+  const fontsLoaded = iconFontsLoaded && appTextReady;
+  // A new font or size re-mounts the app (Text does not re-render on its own); the font screen opens again after.
+  const appTextEpoch = useAppTextEpoch();
 
   // Own-domain move: learn / verify / self-heal the API address for the NEXT launch (constants/api.ts).
   React.useEffect(() => { scheduleApiEndpointCheck(); }, []);
@@ -226,7 +247,7 @@ function AppContainer() {
           <ActivityIndicator size="large" color="#F59E0B" />
         </View>
       ) : (
-        <AppTree isDark={isDark} onSettled={handleSettled} />
+        <AppTree key={`text-${appTextEpoch}`} isDark={isDark} onSettled={handleSettled} />
       )}
       {/* Sponsored splash: one admin-created store ad right after the intro, once per open (components/adSplash). */}
       <AdSplashHost introDone={!showIntro} />

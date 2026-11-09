@@ -3,6 +3,7 @@ import { Modal, View, Text, StyleSheet, TouchableOpacity, Animated, Dimensions }
 import * as Haptics from 'expo-haptics';
 import { COLORS } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
+import { useDietLight } from './local/dietLightTheme';
 
 export interface AlertButton {
   text?: string;
@@ -19,6 +20,7 @@ export let showGlobalAlert: (
 
 export default function ThemedAlert() {
   const { isDark, colors } = useTheme();
+  const d = useDietLight();
   const [visible, setVisible] = useState(false);
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
@@ -85,7 +87,7 @@ export default function ThemedAlert() {
   const activeBg = isDark ? colors.card : COLORS.bgLightCard;
   const activeText = isDark ? COLORS.textPrimary : COLORS.textDark;
   const activeSubText = isDark ? COLORS.textSecondary : COLORS.textDarkSecondary;
-  const activeBorder = isDark ? COLORS.borderGold : COLORS.borderLight;
+  const activeBorder = isDark ? d.edge : COLORS.borderLight;
 
   // Long labels stack full width instead of wrapping inside two side-by-side buttons.
   const stackButtons = buttons.length > 2 || buttons.some((b) => String(b.text || '').length > 14);
@@ -124,16 +126,16 @@ export default function ThemedAlert() {
               
               let btnBg = 'transparent';
               let borderCol = 'transparent';
-              let textCol: string = COLORS.gold;
+              let textCol: string = d.acc;
 
               if (!isCancel) {
                 if (isDestructive) {
                   btnBg = COLORS.red;
                   textCol = '#FFFFFF';
                 } else {
-                  // Owner, 5 Nov 2026 (QA Q1): one action colour across the app, the brand red, not the old gold.
-                  btnBg = COLORS.red;
-                  textCol = '#FFFFFF';
+                  // Owner, 5 Nov 2026 (QA Q1): one action colour across the app; 10 Nov 2026: the diet accent.
+                  btnBg = d.acc;
+                  textCol = d.onAcc;
                 }
               } else {
                 textCol = activeSubText;

@@ -30,7 +30,7 @@ function ServiceCard({ title, body, art, ratio, price, badge, tone, onPress, wid
   const blue = tone === 'blue';
   const artW = width - 24;
   return (
-    <Tap onPress={onPress} label={`${title}. ${body}${price ? `. ${price}` : ''}`} style={[st.service, { width, borderColor: blue ? '#CFE0FB' : CR.mintLine }]}>
+    <Tap onPress={onPress} label={`${title}. ${body}${price ? `. ${price}` : ''}`} style={[st.service, { width, borderColor: blue ? CR.tint2 : CR.mintLine }]}>
       <LinearGradient colors={blue ? [CR.card, CR.tint] : [CR.card, CR.mint]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
       {badge ? <View style={st.badge}><Text style={st.badgeText}>{badge}</Text></View> : null}
       <View style={{ height: Math.min(84, artW / Math.max(1.3, ratio) + 6), justifyContent: 'flex-end', alignItems: 'center', marginTop: 8 }}>
@@ -63,7 +63,7 @@ function PoolIcons() {
 function QuickCard({ solid, title, body, icon: Icon, badge: Badge, onPress, width, status }: { solid: boolean; title: string; body: string; icon: any; badge?: any; onPress: () => void; width: number; status?: { text: string; done: boolean } | null }) {
   return (
     <Tap onPress={onPress} label={`${title} ${body}`} style={[st.quick, { width }]}>
-      <LinearGradient colors={solid ? ['#2F7BF5', '#1D4ED8'] : [CR.tint, CR.tint2]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
+      <LinearGradient colors={solid ? [CR.primarySoft, CR.primaryDeep] : [CR.tint, CR.tint2]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
       <View style={[st.quickIcon, { backgroundColor: solid ? 'rgba(255,255,255,0.16)' : CR.card, borderColor: solid ? 'rgba(255,255,255,0.28)' : CR.tint2 }]}>
         <Icon size={24} color={solid ? '#FFFFFF' : CR.primary} strokeWidth={STROKE} />
         {Badge ? <View style={[st.quickBadge, { backgroundColor: solid ? CR.primaryDeep : CR.primary }]}><Badge size={12} color="#FFFFFF" strokeWidth={1.8} /></View> : null}

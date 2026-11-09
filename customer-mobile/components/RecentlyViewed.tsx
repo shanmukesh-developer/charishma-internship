@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { COLORS, SHADOWS } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
+import { dietNow } from '../utils/themeNow';
 
 const { width: SW } = Dimensions.get('window');
 const CARD_SIZE = 152;
@@ -41,7 +42,7 @@ export async function saveRecentlyViewed(item: ViewedItem) {
 }
 
 /** accent: the Home Non-veg / Veg theme colour (owner redesign, 9 Nov 2026). */
-export default function RecentlyViewed({ accent = COLORS.red }: { accent?: string } = {}) {
+export default function RecentlyViewed({ accent = dietNow().acc }: { accent?: string } = {}) {
   const router = useRouter();
   const { isDark, colors } = useTheme();
   const [items, setItems] = useState<ViewedItem[]>([]);

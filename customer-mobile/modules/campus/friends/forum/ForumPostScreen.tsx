@@ -47,6 +47,7 @@ import { ReviewBlock } from './ReviewParts';
 import { blockedDetails, compactCount, forumBus, forumCache, forumErrorMessage, forumPostLink } from './forumShared';
 import { useCampusOffline } from '../shared/OfflineBanner';
 
+import { themedSheet } from '../../../../utils/themeNow';
 const COMMENT_SORTS: { key: ForumCommentSort; label: string }[] = [
   { key: 'best', label: 'Best' },
   { key: 'new', label: 'Newest' },
@@ -625,7 +626,7 @@ export const ForumPostScreen: React.FC<{ id: string; initial?: ForumPost | null 
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   postCard: { backgroundColor: FriendsColors.card, borderRadius: FR.card, borderWidth: 1, borderColor: FriendsColors.line, padding: FS.lg },
   notice: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: FS.md, padding: FS.sm, borderRadius: FR.sm, backgroundColor: FriendsColors.warnSoft },
   image: { width: '100%', aspectRatio: 4 / 3, borderRadius: FR.md, marginTop: FS.md, backgroundColor: FriendsColors.cardHi },
@@ -643,5 +644,5 @@ const styles = StyleSheet.create({
   anonBtn: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: FriendsColors.line, alignItems: 'center', justifyContent: 'center' },
   sendBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: FriendsColors.accent, alignItems: 'center', justifyContent: 'center' },
   sendError: { fontSize: 12, fontWeight: '600', color: FriendsColors.danger, paddingHorizontal: 4, paddingBottom: 6 },
-});
+}));
 

@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { KeyboardAvoidingView } from './KeyboardAvoidingView';
 import { useTheme } from '../context/ThemeContext';
+import { useDietLight } from './local/dietLightTheme';
 import { ENDPOINTS } from '../constants/api';
 import { apiFetch, readJson, normalizePhone, NETWORK_ERROR_MESSAGE } from '../utils/auth';
 import { usePhoneOtp, isSmsSendFailure } from '../utils/phoneOtp';
@@ -26,6 +27,7 @@ const RED = '#EF4444';
 
 export default function DeleteAccountModal({ visible, phone, onClose, onDeleted }: Props) {
   const { colors, isDark } = useTheme();
+  const d = useDietLight();
   const [step, setStep] = useState<Step>('info');
   const [checking, setChecking] = useState(false);
   const [blockers, setBlockers] = useState<{ code: string; message: string }[]>([]);
@@ -220,8 +222,8 @@ export default function DeleteAccountModal({ visible, phone, onClose, onDeleted 
                 <>
                   <Text style={[s.title, { color: txt }]}>Account deleted</Text>
                   <Text style={[s.body, { color: sub }]}>Your ZenWe account and personal data have been deleted. Thank you for using ZenWe.</Text>
-                  <TouchableOpacity style={[s.dangerBtn, { backgroundColor: colors.gold }]} onPress={finish}>
-                    <Text style={s.dangerText}>OK</Text>
+                  <TouchableOpacity style={[s.dangerBtn, { backgroundColor: d.acc }]} onPress={finish}>
+                    <Text style={[s.dangerText, { color: d.onAcc }]}>OK</Text>
                   </TouchableOpacity>
                 </>
               )}

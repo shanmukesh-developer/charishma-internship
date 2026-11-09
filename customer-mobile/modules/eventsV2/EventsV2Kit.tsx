@@ -1,5 +1,5 @@
 /**
- * Campus Events v2 kit (night look on every screen):
+ * Campus Events v2 kit (the app's diet look on every screen, owner 10 Nov 2026):
  *   Press        press-scale tappable (web-safe role)        NightHeader  back, title, sub, actions (glass)
  *   SectionHead  title + sub + right action                   ChipRow      glass chips, violet gradient when on
  *   CTA          glossy violet button with a shine sweep      IconSquare   glossy gradient square + thin icon
@@ -12,6 +12,7 @@ import { PressScale, FadeInUp } from '../others/motion';
 import { BUTTON_ROLE } from '../../utils/pressRole';
 import { useTopInset } from '../../utils/useTopInset';
 import { NIGHT, RADIUS, W, hexA, shadow } from './eventsV2Theme';
+import { isDarkNow, themedSheet } from '../../utils/themeNow';
 import { IArrowLeft } from './EventsV2Icons';
 import { useNav } from './eventsV2Nav';
 
@@ -33,7 +34,7 @@ export function NightHeader({ title, sub, right, onBack, transparent }: { title?
   const top = useTopInset(36, 44);
   return (
     <View style={[st.head, { paddingTop: top }, transparent ? { backgroundColor: 'transparent' } : null]}>
-      <Press onPress={onBack || nav.back} label="Back" style={st.headBtn} scaleTo={0.9}><IArrowLeft size={19} color="#FFFFFF" strokeWidth={1.8} /></Press>
+      <Press onPress={onBack || nav.back} label="Back" style={[st.headBtn, transparent ? st.headBtnPhoto : null]} scaleTo={0.9}><IArrowLeft size={19} color={transparent ? '#FFFFFF' : NIGHT.ink} strokeWidth={1.8} /></Press>
       <View style={{ flex: 1, marginLeft: 12, minWidth: 0 }}>
         {title ? <Text style={st.headTitle} numberOfLines={1} accessibilityRole="header">{title}</Text> : null}
         {sub ? <Text style={st.headSub} numberOfLines={1}>{sub}</Text> : null}
@@ -43,8 +44,8 @@ export function NightHeader({ title, sub, right, onBack, transparent }: { title?
   );
 }
 
-export function HeaderIcon({ onPress, label, children }: { onPress: () => void; label: string; children: React.ReactNode }) {
-  return <Press onPress={onPress} label={label} style={[st.headBtn, { marginLeft: 8 }]} scaleTo={0.9}>{children}</Press>;
+export function HeaderIcon({ onPress, label, children, onPhoto }: { onPress: () => void; label: string; children: React.ReactNode; onPhoto?: boolean }) {
+  return <Press onPress={onPress} label={label} style={[st.headBtn, onPhoto ? st.headBtnPhoto : null, { marginLeft: 8 }]} scaleTo={0.9}>{children}</Press>;
 }
 
 export function SectionHead({ title, sub, right, style }: { title: string; sub?: string; right?: React.ReactNode; style?: StyleProp<ViewStyle> }) {
@@ -68,7 +69,7 @@ export function ChipRow<T extends string>({ items, active, onSelect, style }: { 
           <Press key={c.key} onPress={() => onSelect(c.key)} label={c.label} style={[st.chip, on ? st.chipOn : null]} scaleTo={0.94}>
             {on ? <LinearGradient colors={[NIGHT.go[0], NIGHT.go[1]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} /> : null}
             {on ? <LinearGradient colors={['rgba(255,255,255,0.28)', 'rgba(255,255,255,0)']} style={[StyleSheet.absoluteFill, { height: '55%' }]} /> : null}
-            <Text style={[st.chipText, on ? { color: '#FFFFFF' } : null]}>{c.label}</Text>
+            <Text style={[st.chipText, on ? { color: NIGHT.onAcc } : null]}>{c.label}</Text>
           </Press>
         );
       })}
@@ -80,13 +81,13 @@ export function CTA({ label, onPress, sub, disabled, busy, style, tone = 'violet
   const w = usePageW();
   const glass = tone === 'glass';
   return (
-    <Press onPress={disabled || busy ? undefined : onPress} label={label} disabled={disabled} style={[st.cta, glass ? st.ctaGlass : shadow(3, '#3A1C9E'), disabled ? { opacity: 0.5 } : null, style]}>
-      {!glass ? <LinearGradient colors={['#A585FA', '#7C55EC', '#6233D8']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} /> : null}
+    <Press onPress={disabled || busy ? undefined : onPress} label={label} disabled={disabled} style={[st.cta, glass ? st.ctaGlass : shadow(3, NIGHT.violetDeep), disabled ? { opacity: 0.5 } : null, style]}>
+      {!glass ? <LinearGradient colors={[NIGHT.go[0], NIGHT.violet, NIGHT.violetDeep]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} /> : null}
       {!glass ? <LinearGradient colors={['rgba(255,255,255,0.26)', 'rgba(255,255,255,0)']} style={[StyleSheet.absoluteFill, { height: '52%' }]} /> : null}
-      {busy ? <ActivityIndicator color="#FFFFFF" /> : (
+      {busy ? <ActivityIndicator color={glass ? NIGHT.violet : NIGHT.onAcc} /> : (
         <View style={{ alignItems: 'center' }}>
-          <Text style={st.ctaText} numberOfLines={1}>{label}</Text>
-          {sub ? <Text style={st.ctaSub} numberOfLines={1}>{sub}</Text> : null}
+          <Text style={[st.ctaText, glass ? { color: NIGHT.ink } : null]} numberOfLines={1}>{label}</Text>
+          {sub ? <Text style={[st.ctaSub, glass ? { color: NIGHT.sub } : null]} numberOfLines={1}>{sub}</Text> : null}
         </View>
       )}
     </Press>
@@ -108,7 +109,7 @@ export function IconSquare({ colors, size = 40, radius = 13, children }: { color
 export function Glass({ children, style, index }: { children: React.ReactNode; style?: StyleProp<ViewStyle>; index?: number }) {
   const body = (
     <View style={[st.glass, shadow(2), style]}>
-      <LinearGradient colors={['rgba(255,255,255,0.10)', 'rgba(255,255,255,0.03)']} start={{ x: 0, y: 0 }} end={{ x: 0.6, y: 1 }} style={StyleSheet.absoluteFill} />
+      {isDarkNow() ? <LinearGradient colors={['rgba(255,255,255,0.05)', 'rgba(255,255,255,0.01)']} start={{ x: 0, y: 0 }} end={{ x: 0.6, y: 1 }} style={StyleSheet.absoluteFill} /> : null}
       {children}
     </View>
   );
@@ -132,23 +133,25 @@ export function SampleTag({ style }: { style?: StyleProp<ViewStyle> }) {
   );
 }
 
-export const st = StyleSheet.create({
+export const st = themedSheet(() => ({
   head: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 12, backgroundColor: NIGHT.page },
-  headBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.28)', alignItems: 'center', justifyContent: 'center' },
+  headBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: NIGHT.glass, borderWidth: StyleSheet.hairlineWidth, borderColor: NIGHT.border, alignItems: 'center', justifyContent: 'center' },
+  /** Back button over a photo (event detail): dark glass so the white arrow reads. */
+  headBtnPhoto: { backgroundColor: hexA(NIGHT.scrim, 0.45), borderColor: 'rgba(255,255,255,0.35)' },
   headTitle: { fontSize: 18, fontWeight: W.title, color: NIGHT.ink, letterSpacing: -0.2 },
   headSub: { fontSize: 12.5, color: NIGHT.sub, marginTop: 1 },
   secTitle: { fontSize: 19, lineHeight: 24, fontWeight: W.title, color: NIGHT.ink, letterSpacing: -0.3 },
   secSub: { fontSize: 13, lineHeight: 18, color: NIGHT.faint, marginTop: 2 },
-  chip: { height: 36, paddingHorizontal: 15, borderRadius: RADIUS.pill, backgroundColor: NIGHT.glass, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.22)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  chip: { height: 36, paddingHorizontal: 15, borderRadius: RADIUS.pill, backgroundColor: NIGHT.glass, borderWidth: StyleSheet.hairlineWidth, borderColor: NIGHT.border, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   chipOn: { borderColor: 'transparent' },
-  chipText: { fontSize: 13, color: 'rgba(240,238,255,0.9)', fontWeight: W.label },
+  chipText: { fontSize: 13, color: NIGHT.sub, fontWeight: W.label },
   cta: { height: 54, borderRadius: 18, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', paddingHorizontal: 18 },
-  ctaGlass: { backgroundColor: NIGHT.glass2, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.28)' },
-  ctaText: { color: '#FFFFFF', fontSize: 16, fontWeight: W.title, letterSpacing: 0.2 },
-  ctaSub: { color: 'rgba(255,255,255,0.8)', fontSize: 11.5, marginTop: 1 },
+  ctaGlass: { backgroundColor: NIGHT.glass, borderWidth: StyleSheet.hairlineWidth, borderColor: NIGHT.border },
+  ctaText: { color: NIGHT.onAcc, fontSize: 16, fontWeight: W.title, letterSpacing: 0.2 },
+  ctaSub: { color: hexA(NIGHT.onAcc, 0.82), fontSize: 11.5, marginTop: 1 },
   glass: { borderRadius: RADIUS.xl, backgroundColor: NIGHT.card, borderWidth: StyleSheet.hairlineWidth, borderColor: NIGHT.line, overflow: 'hidden' },
   tag: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, height: 24, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, alignSelf: 'flex-start', maxWidth: '100%' },
   tagText: { fontSize: 11.5, fontWeight: W.label },
   sample: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, backgroundColor: NIGHT.sampleSoft, borderWidth: StyleSheet.hairlineWidth, borderColor: '#EED9A4', alignSelf: 'flex-start' },
   sampleText: { fontSize: 10.5, color: NIGHT.sample, fontWeight: W.label },
-});
+}));

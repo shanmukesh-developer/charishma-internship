@@ -5,28 +5,31 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SHADOWS, RADIUS } from '../constants/theme';
+import { SHADOWS, RADIUS } from '../constants/theme';
+import { useDietLight } from '../components/local/dietLightTheme';
 import { goHome } from '../utils/goHome';
 
 export default function NotFoundScreen() {
   const router = useRouter();
+  // Owner, 10 Nov 2026: the app's one diet look (light red / light green page, white card, the diet accent).
+  const d = useDietLight();
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#09090B" />
-      <View style={styles.card}>
-        <View style={styles.iconCircle}>
-          <Ionicons name="compass-outline" size={30} color={COLORS.gold} />
+    <View style={[styles.container, { backgroundColor: d.page }]}>
+      <StatusBar barStyle={d.isDark ? 'light-content' : 'dark-content'} backgroundColor={d.page} />
+      <View style={[styles.card, { backgroundColor: d.card, borderColor: d.edge }]}>
+        <View style={[styles.iconCircle, { backgroundColor: d.isDark ? d.top : d.soft, borderColor: d.line }]}>
+          <Ionicons name="compass-outline" size={30} color={d.acc} />
         </View>
-        <Text style={styles.title}>This page isn't here</Text>
-        <Text style={styles.subtitle}>The link may be old, or what it pointed to has been removed.</Text>
+        <Text style={[styles.title, { color: d.dk }]}>This page isn't here</Text>
+        <Text style={[styles.subtitle, { color: d.muteInk }]}>The link may be old, or what it pointed to has been removed.</Text>
         <TouchableOpacity
-          style={styles.primaryButton}
+          style={[styles.primaryButton, { backgroundColor: d.acc, shadowColor: d.acc }]}
           activeOpacity={0.85}
           onPress={() => goHome(router)}
           accessibilityRole="button"
           accessibilityLabel="Go to Home"
         >
-          <Text style={styles.primaryButtonText}>Go to Home</Text>
+          <Text style={[styles.primaryButtonText, { color: d.onAcc }]}>Go to Home</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -80,7 +83,7 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     width: '100%',
-    backgroundColor: COLORS.red,
+    backgroundColor: '#C8143F',
     paddingVertical: 14,
     borderRadius: RADIUS.md,
     alignItems: 'center',

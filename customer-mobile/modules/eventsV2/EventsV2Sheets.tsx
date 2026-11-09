@@ -6,7 +6,8 @@ import React from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { NIGHT, W, shadow, tileOf } from './eventsV2Theme';
+import { NIGHT, W, hexA, shadow, tileOf } from './eventsV2Theme';
+import { themedSheet } from '../../utils/themeNow';
 import { CTA, Press } from './EventsV2Kit';
 import GlossyIcon from './EventsV2Glossy';
 import { useNav } from './eventsV2Nav';
@@ -20,9 +21,9 @@ export default function EventsV2Sheets() {
       <Pressable style={s.backdrop} onPress={nav.closeSheet} accessibilityLabel="Close" />
       {sh?.kind === 'sample' ? (
         <View style={[s.sheet, shadow(3), { paddingBottom: Math.max(insets.bottom, 12) + 14 }]} accessibilityViewIsModal>
-          <LinearGradient colors={['#2A2668', '#1A1848']} style={StyleSheet.absoluteFill} />
+          <LinearGradient colors={[NIGHT.card, NIGHT.card2]} style={StyleSheet.absoluteFill} />
           <View style={s.grab} />
-          <View style={{ alignSelf: 'center', marginTop: 6 }}>
+          <View style={{ alignSelf: 'center', marginTop: 6, borderRadius: 37, backgroundColor: NIGHT.violet }}>
             <GlossyIcon kind={tileOf(sh.ev.category)} size={74} />
           </View>
           <Text style={s.title} accessibilityRole="header">This is a sample event</Text>
@@ -39,12 +40,12 @@ export default function EventsV2Sheets() {
   );
 }
 
-const s = StyleSheet.create({
-  backdrop: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: 'rgba(8,6,30,0.6)' },
-  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingTop: 10, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.18)', maxWidth: 560, alignSelf: 'center', width: '100%' },
-  grab: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.3)', marginBottom: 8 },
+const s = themedSheet(() => ({
+  backdrop: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: hexA(NIGHT.scrim, 0.55) },
+  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingTop: 10, overflow: 'hidden', backgroundColor: NIGHT.card, borderWidth: StyleSheet.hairlineWidth, borderColor: NIGHT.line, maxWidth: 560, alignSelf: 'center', width: '100%' },
+  grab: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: NIGHT.border, marginBottom: 8 },
   title: { color: NIGHT.ink, fontSize: 19, fontWeight: W.title, textAlign: 'center', marginTop: 10 },
   body: { color: NIGHT.sub, fontSize: 13.5, lineHeight: 20, textAlign: 'center', marginTop: 8 },
   link: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: 12, marginTop: 4 },
   linkText: { color: NIGHT.violet, fontSize: 14, fontWeight: W.label },
-});
+}));

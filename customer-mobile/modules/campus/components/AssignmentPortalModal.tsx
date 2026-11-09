@@ -27,6 +27,7 @@ import { CampusColors, CampusLayout } from '../../../constants/campusTheme';
 import { submitCampusAssignment, fetchMyAssignments, CampusAssignment } from '../campusApi';
 import { getUser } from '../../../utils/auth';
 
+import { themedSheet } from '../../../utils/themeNow';
 type MySubmission = {
   status?: string;
   turnedInAt?: string;
@@ -326,7 +327,7 @@ export const AssignmentPortalModal: React.FC<AssignmentPortalModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   container: {
     flex: 1,
     backgroundColor: CampusColors.paper,
@@ -502,4 +503,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-});
+}));

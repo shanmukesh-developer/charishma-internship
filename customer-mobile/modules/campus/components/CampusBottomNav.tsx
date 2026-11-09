@@ -6,6 +6,7 @@ import { CampusColors, CampusLayout } from '../../../constants/campusTheme';
 import { CampusTab } from '../../../types/campus';
 import { FriendsChrome } from '../friends/friendsTheme';
 
+import { themedSheet } from '../../../utils/themeNow';
 interface CampusBottomNavProps {
   activeTab: CampusTab;
   onSelectTab: (tab: CampusTab) => void;
@@ -85,7 +86,7 @@ export const CampusBottomNav: React.FC<CampusBottomNavProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   container: {
     flexDirection: 'row',
     backgroundColor: CampusColors.card,
@@ -146,4 +147,4 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FFFFFF',
   },
-});
+}));

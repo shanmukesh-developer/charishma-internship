@@ -20,6 +20,7 @@ import {
 } from './spacesSocket';
 import { ROLE_LABEL, isOnStage, isRoomMod } from './spacesShared';
 
+import { themedSheet } from '../../../../utils/themeNow';
 /** Host can act on anyone but the host; a co-host only on speakers and listeners (server rule, mirrored for the UI). */
 const canActOn = (actor: SpaceRole | null, target: SpaceRole) => {
   if (target === 'host' || !actor) return false;
@@ -373,8 +374,8 @@ export const HostLeaveSheet: React.FC<{
   </FriendsSheet>
 );
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   cat: { flexDirection: 'row', alignItems: 'center', gap: FS.md, paddingVertical: 10, paddingHorizontal: FS.sm, borderRadius: FR.md, minHeight: 48 },
   catOn: { backgroundColor: FriendsColors.accentSoft },
   doneIcon: { width: 52, height: 52, borderRadius: 26, backgroundColor: FriendsColors.accent, alignItems: 'center', justifyContent: 'center' },
-});
+}));

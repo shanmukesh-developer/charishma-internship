@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, TextInput,
 import { KeyboardAvoidingView } from './KeyboardAvoidingView';
 import { COLORS, SHADOWS } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
+import { useDietLight } from './local/dietLightTheme';
+import { dietNow, isDarkNow, mixHex, themedSheet } from '../utils/themeNow';
 import { Customizations } from '../context/CartContext';
 import SymbolIcon from './SymbolIcon';
 
@@ -349,6 +351,7 @@ interface CustomizeDrawerProps {
 
 export default function CustomizeDrawer({ isOpen, onClose, onConfirm, itemName, basePrice, tags, category, isVegetarian = true }: CustomizeDrawerProps) {
   const { isDark, colors } = useTheme();
+  const diet = useDietLight();
   // Callers often pass a fresh `[]` each render; key on the contents so a parent re-render
   // does not rebuild the options and wipe the student's choices.
   const tagsKey = (tags || []).join('|');
@@ -475,13 +478,13 @@ export default function CustomizeDrawer({ isOpen, onClose, onConfirm, itemName, 
                           style={s.optionItem}
                         >
                           <View style={s.optionItemLeft}>
-                            <View style={[s.radioDot, { borderColor: isSelected ? COLORS.red : (isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)') }]}>
+                            <View style={[s.radioDot, { borderColor: isSelected ? diet.acc : (isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)') }]}>
                               {isSelected && <View style={s.radioDotInner} />}
                             </View>
                             <Text style={[s.optionItemLabel, { color: textClr }]}>{o.label}</Text>
                           </View>
                           {o.priceAdd ? (
-                            <Text style={[s.priceAddText, { color: isSelected ? COLORS.red : subTextClr }]}>
+                            <Text style={[s.priceAddText, { color: isSelected ? diet.acc : subTextClr }]}>
                               +₹{o.priceAdd}
                             </Text>
                           ) : null}
@@ -504,13 +507,13 @@ export default function CustomizeDrawer({ isOpen, onClose, onConfirm, itemName, 
                           style={s.optionItem}
                         >
                           <View style={s.optionItemLeft}>
-                            <View style={[s.checkbox, { borderColor: isSelected ? COLORS.red : (isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'), backgroundColor: isSelected ? `${COLORS.red}20` : 'transparent' }]}>
+                            <View style={[s.checkbox, { borderColor: isSelected ? diet.acc : (isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'), backgroundColor: isSelected ? diet.soft : 'transparent' }]}>
                               {isSelected && <SymbolIcon name="checkmark" style={s.checkboxCheck} />}
                             </View>
                             <Text style={[s.optionItemLabel, { color: textClr }]}>{o.label}</Text>
                           </View>
                           {o.priceAdd ? (
-                            <Text style={[s.priceAddText, { color: isSelected ? COLORS.red : subTextClr }]}>
+                            <Text style={[s.priceAddText, { color: isSelected ? diet.acc : subTextClr }]}>
                               +₹{o.priceAdd}
                             </Text>
                           ) : null}
@@ -611,7 +614,10 @@ export function summarizeCustomizations(c?: Customizations): string {
   return parts.join(' • ');
 }
 
-const s = StyleSheet.create({
+/** The diet accent as a fill under white text (a deeper step in dark). */
+const accFill = () => (isDarkNow() ? mixHex(dietNow().acc, '#000000', 0.3) : dietNow().acc);
+// Owner, 10 Nov 2026: the diet accent (red Non-veg / green Veg) replaces the app red; one sheet per look.
+const s = themedSheet(() => ({
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
   backdrop: { ...StyleSheet.absoluteFill },
   drawerContainer: { borderTopLeftRadius: 32, borderTopRightRadius: 32, maxHeight: '85%', overflow: 'hidden' },
@@ -621,7 +627,7 @@ const s = StyleSheet.create({
   headerLeft: { flex: 1, paddingRight: 10 },
   headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headerTitle: { fontSize: 15, fontWeight: '900', letterSpacing: 0.5 },
-  itemName: { fontSize: 12, fontWeight: '900', color: COLORS.red, letterSpacing: 2, marginTop: 4 },
+  itemName: { fontSize: 12, fontWeight: '900', color: dietNow().acc, letterSpacing: 2, marginTop: 4 },
   
   vegOuter: { width: 14, height: 14, borderWidth: 1.5, borderRadius: 3, alignItems: 'center', justifyContent: 'center' },
   vegInner: { width: 6, height: 6, borderRadius: 3 },
@@ -630,17 +636,17 @@ const s = StyleSheet.create({
   optionsList: { paddingHorizontal: 20, paddingTop: 16 },
   
   optionSection: { marginBottom: 24 },
-  optionLabel: { fontSize: 12, fontWeight: '900', color: COLORS.red, letterSpacing: 2, marginBottom: 10 },
+  optionLabel: { fontSize: 12, fontWeight: '900', color: dietNow().acc, letterSpacing: 2, marginBottom: 10 },
   
   optionsBox: { borderRadius: 20, borderWidth: 1, padding: 12 },
   optionItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10 },
   optionItemLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
   
   radioDot: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  radioDotInner: { width: 9, height: 9, borderRadius: 4.5, backgroundColor: COLORS.red },
+  radioDotInner: { width: 9, height: 9, borderRadius: 4.5, backgroundColor: dietNow().acc },
   
   checkbox: { width: 18, height: 18, borderRadius: 4, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  checkboxCheck: { color: COLORS.red, fontSize: 12, fontWeight: '900' },
+  checkboxCheck: { color: dietNow().acc, fontSize: 12, fontWeight: '900' },
   
   optionItemLabel: { fontSize: 12, fontWeight: '700' },
   priceAddText: { fontSize: 12, fontWeight: '800' },
@@ -656,13 +662,13 @@ const s = StyleSheet.create({
   cancelBtnFooter: { paddingVertical: 10, paddingHorizontal: 16 },
   cancelBtnText: { fontSize: 12, fontWeight: '900', letterSpacing: 2 },
   
-  confirmBtn: { backgroundColor: COLORS.red, paddingVertical: 12, paddingHorizontal: 20, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  confirmBtn: { backgroundColor: accFill(), paddingVertical: 12, paddingHorizontal: 20, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   confirmBtnText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900', letterSpacing: 2 },
   confirmBtnShadow: {
-    shadowColor: COLORS.red,
+    shadowColor: accFill(),
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
   }
-});
+}));

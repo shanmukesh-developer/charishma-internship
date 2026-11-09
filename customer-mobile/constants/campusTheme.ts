@@ -4,8 +4,9 @@
  */
 
 import { Platform } from 'react-native';
+import { fixedDietTokens, mixHex } from '../utils/themeNow';
 
-export const CampusColors = {
+const CAMPUS_BASE = {
   // Light Theme (Default)
   paper: '#F4F1EA',
   card: '#FFFFFF',
@@ -49,6 +50,23 @@ export const CampusColors = {
   lavender: '#C8B6FF',
   nightMuted: '#B9B4CC',
 };
+
+/**
+ * Owner, 10 Nov 2026: one look everywhere. Campus (always drawn light) wears the diet look: the light red (Non-veg) or
+ * light green (Veg) page and the diet accent replace the old paper + royal blue. Warm / rose / violet stay as the
+ * section's meaning tints; ink, lines and the dark "night" / "secret" surfaces are unchanged. Read at render.
+ */
+export const CampusColors: typeof CAMPUS_BASE = fixedDietTokens(false, (d) => ({
+  ...CAMPUS_BASE,
+  paper: d.pageDeep,
+  line: d.line,
+  placeholderFill: mixHex(d.pageDeep, d.un, 0.4),
+  accent: d.acc,
+  accentDeep: d.accDeep,
+  accentSoft: d.soft,
+  accentText: d.acc,
+  accentOnDark: mixHex(d.acc, '#FFFFFF', 0.55),
+}));
 
 export const CampusDarkColors = {
   // Full Dark Mode Mapping

@@ -17,27 +17,29 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
+import { useDietLight } from '../../components/local/dietLightTheme';
+import { mixHex } from '../../utils/themeNow';
 import { ACCENTS, SURFACE, shadow as othersShadow } from '../others/othersTheme';
 import { connectSocket } from '../../utils/socket';
 import { readCache, writeCache } from '../../utils/swrCache';
 import { serverNow } from '../../utils/serverClock';
 import { autoRideApi, availabilityChip, type PaymentMethod, type PublicSettings, type TripStatusBlock } from './autoRideApi';
 
-export const AUTO_BLUE = ACCENTS.auto.solid;
 export const AUTO_YELLOW = '#FACC15';
 export const AUTO_GREEN = '#16A34A';
-export const AUTO_GRAD: [string, string] = [ACCENTS.auto.deep, ACCENTS.auto.solid];
 export const AUTO_HOME = '/(tabs)/services?tab=coride&sub=auto';
 
 // ── Palette ──────────────────────────────────────────────────────────────────
 
 export const usePalette = () => {
   const { isDark, colors } = useTheme();
+  // Owner, 10 Nov 2026: one look - the diet page and accent (red Non-veg / green Veg) replace the old blue.
+  const d = useDietLight();
   return useMemo(() => ({
     isDark,
-    bg: isDark ? SURFACE.dark.page : SURFACE.light.page,
+    bg: d.page,
     card: isDark ? SURFACE.dark.card : SURFACE.light.card,
-    card2: isDark ? '#1F1F24' : '#F3F5F8',
+    card2: isDark ? '#1F1F24' : d.sel,
     text: colors.text,
     sub: colors.textSecondary,
     muted: colors.textMuted,
@@ -45,7 +47,12 @@ export const usePalette = () => {
     input: isDark ? '#1F1F24' : '#F6F7F9',
     inputBorder: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(15,23,42,0.10)',
     accent: isDark ? ACCENTS.auto.ink.dark : ACCENTS.auto.ink.light,
-    button: AUTO_BLUE,
+    button: ACCENTS.auto.solid,
+    /** Hero gradient (white text on it). */
+    grad: [ACCENTS.auto.deep, ACCENTS.auto.solid] as [string, string],
+    /** Header band and its dark ink. */
+    band: d.top,
+    bandInk: d.dk,
     accentSoft: isDark ? ACCENTS.auto.tint.dark : ACCENTS.auto.tint.light,
     danger: isDark ? '#F87171' : '#DC2626',
     dangerSoft: isDark ? 'rgba(248,113,113,0.14)' : '#FEECEC',
@@ -54,7 +61,7 @@ export const usePalette = () => {
     warn: isDark ? '#FBBF24' : '#B45309',
     warnSoft: isDark ? 'rgba(245,158,11,0.14)' : '#FDF4E3',
     shadow: othersShadow(isDark),
-  }), [isDark, colors]);
+  }), [isDark, colors, d]);
 };
 export type Palette = ReturnType<typeof usePalette>;
 
@@ -260,17 +267,17 @@ export function AHeader({ title, subtitle, right, onBack }: { title: string; sub
   const router = useRouter();
   const insets = useSafeAreaInsets();
   return (
-    <View style={[s.header, { backgroundColor: p.bg, paddingTop: Math.max(insets.top, 12) + 4 }]}>
+    <View style={[s.header, { backgroundColor: p.band, paddingTop: Math.max(insets.top, 12) + 4 }]}>
       <PressScale
         accessibilityRole="button"
         accessibilityLabel="Go back"
         onPress={onBack || (() => (router.canGoBack() ? router.back() : router.replace(AUTO_HOME as any)))}
         style={s.backBtn}
       >
-        <Ionicons name="chevron-back" size={24} color={p.text} />
+        <Ionicons name="chevron-back" size={24} color={p.bandInk} />
       </PressScale>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={[s.hTitle, { color: p.text }]} numberOfLines={1}>{plain(title)}</Text>
+        <Text style={[s.hTitle, { color: p.bandInk }]} numberOfLines={1}>{plain(title)}</Text>
         {subtitle ? <Text style={[s.hSub, { color: p.sub }]} numberOfLines={1}>{plain(subtitle)}</Text> : null}
       </View>
       {right}
@@ -441,8 +448,9 @@ export const refreshAutoRideStatus = async () => {
 };
 
 export function AutoHero({ title, subtitle, kicker = 'ZenWe Auto · verified drivers' }: { title: string; subtitle: string; kicker?: string }) {
+  const p = usePalette();
   return (
-    <LinearGradient colors={AUTO_GRAD} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
+    <LinearGradient colors={p.grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
       <Text style={{ fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.85)' }}>{kicker}</Text>
       <Text style={{ fontSize: 20, fontWeight: '800', color: '#fff', marginTop: 4 }}>{title}</Text>
       <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', marginTop: 5, lineHeight: 18 }}>{subtitle}</Text>

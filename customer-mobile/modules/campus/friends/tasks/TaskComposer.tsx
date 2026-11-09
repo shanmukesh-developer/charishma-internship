@@ -15,6 +15,7 @@ import { ErrorBox, taskUi } from './TasksUi';
 import { PaymentNoticeCard } from './PaymentNoticeCard';
 import { useTasksNav } from './tasksNav';
 
+import { themedSheet } from '../../../../utils/themeNow';
 interface Draft {
   title: string;
   description: string;
@@ -523,7 +524,7 @@ const Stepper: React.FC<{ label: string; sub?: string; onMinus: () => void; onPl
   </View>
 );
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   post: { minWidth: 72, minHeight: 40, paddingHorizontal: 16, borderRadius: FR.pill, backgroundColor: FriendsColors.accent, alignItems: 'center', justifyContent: 'center', marginRight: FS.sm },
   postText: { fontSize: 14, fontWeight: '800', color: FriendsColors.accentInk },
   refusal: { padding: FS.lg, borderRadius: FR.card, borderWidth: 1, borderColor: 'rgba(243,139,128,0.35)', backgroundColor: 'rgba(243,139,128,0.06)', marginBottom: FS.lg },
@@ -540,4 +541,4 @@ const styles = StyleSheet.create({
   skill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, minHeight: 32, borderRadius: FR.pill, backgroundColor: FriendsColors.accentSoft },
   skillText: { fontSize: 12, fontWeight: '700', color: FriendsColors.accent },
   addSkill: { width: 46, borderRadius: FR.md, backgroundColor: FriendsColors.cardHi, borderWidth: 1, borderColor: FriendsColors.line, alignItems: 'center', justifyContent: 'center' },
-});
+}));

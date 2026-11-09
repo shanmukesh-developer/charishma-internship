@@ -37,6 +37,7 @@ import {
 } from '../campusApi';
 import ShimmerLoader from '../../../components/ShimmerLoader';
 
+import { themedSheet } from '../../../utils/themeNow';
 // Fallback for older servers: the question's promptDate is an IST (Asia/Kolkata) calendar date.
 const istToday = () => new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10);
 
@@ -452,7 +453,7 @@ export const PulseTab: React.FC<PulseTabProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   offlineBanner: {
     backgroundColor: CampusColors.warmSoft,
     borderRadius: 12,
@@ -913,4 +914,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: CampusColors.accentDeep,
   },
-});
+}));

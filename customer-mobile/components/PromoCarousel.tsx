@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, PanResponder } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS } from '../constants/theme';
+import { dietNow } from '../utils/themeNow';
 import { useTheme } from '../context/ThemeContext';
 import { useReduceMotion } from '../utils/reduceMotion';
 import SafeImage from './SafeImage';
@@ -96,9 +96,9 @@ export default function PromoCarousel({ offers, containerStyle, accent: sectionA
   if (!offers || offers.length === 0) return null;
   const currentOffer = offers[currentIndex] || offers[0];
 
-  const accent = sectionAccent || (isDark ? COLORS.gold : COLORS.red);
-  const ctaText = sectionAccent ? '#FFFFFF' : isDark ? '#0A0A0B' : '#FFFFFF';
-  const labelColor = sectionAccent ? 'rgba(255,255,255,0.9)' : isDark ? COLORS.goldLight : 'rgba(255,255,255,0.9)';
+  const accent = sectionAccent || dietNow().acc;
+  const ctaText = sectionAccent ? '#FFFFFF' : dietNow().onAcc;
+  const labelColor = 'rgba(255,255,255,0.9)';
 
   return (
     <View

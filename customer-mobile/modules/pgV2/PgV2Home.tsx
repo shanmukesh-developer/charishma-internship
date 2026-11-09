@@ -54,8 +54,9 @@ const artBox = (width: number) => { const w = Math.round(width * 0.72); return {
 function Hero({ width, index, onHold }: { width: number; index: number; onHold: (held: boolean) => void }) {
   return (
     <Pressable onPressIn={() => onHold(true)} onPressOut={() => onHold(false)} accessible={false} style={{ height: HERO_H }}>
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: HERO_BASE }]} />
-      <LinearGradient colors={['rgba(99,82,216,0)', 'rgba(214,96,190,0.16)']} start={{ x: 0.2, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+      {/* The diet band (owner, 10 Nov 2026): the header's light band runs on into the hero with no seam. */}
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: PG2.heroTop }]} />
+      <LinearGradient colors={[PG2.heroTop, PG2.heroBottom]} start={{ x: 0.2, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
       <View style={{ paddingHorizontal: GUTTER + 4, paddingTop: 14, width: Math.round(width * 0.56) }}>
         <Text style={st.h1Light}>Find your</Text>
         <Text style={st.h1}>Perfect PG{'\n'}Stay</Text>
@@ -144,9 +145,9 @@ export function PgV2HomeBody() {
 }
 
 const st = themedSheet(() => ({
-  h1Light: { color: '#FFFFFF', fontSize: 24, fontWeight: W.body, letterSpacing: -0.3 },
-  h1: { color: '#FFFFFF', fontSize: 28, lineHeight: 34, fontWeight: W.title, letterSpacing: -0.4 },
-  tagline: { color: 'rgba(255,255,255,0.9)', fontSize: 12.5, lineHeight: 17, fontWeight: W.label, marginTop: 8 },
+  h1Light: { color: PG2.ink, fontSize: 24, fontWeight: W.body, letterSpacing: -0.3 },
+  h1: { color: PG2.ink, fontSize: 28, lineHeight: 34, fontWeight: W.title, letterSpacing: -0.4 },
+  tagline: { color: PG2.ink2, fontSize: 12.5, lineHeight: 17, fontWeight: W.label, marginTop: 8 },
   sheet: { marginTop: -22, marginHorizontal: GUTTER, backgroundColor: PG2.card, borderRadius: R.xl, padding: GUTTER, zIndex: 1 },
   filterLabel: { fontSize: 13.5, fontWeight: W.label, color: PG2.ink, marginBottom: 10 },
   tiles: { flexDirection: 'row', gap: 10 },

@@ -12,6 +12,7 @@ import { Notice, PrimaryButton, StepDots } from './ConnectUi';
 import { ONBOARDING_STEPS } from './ConnectGate';
 import { connectErrorMessage } from './connectShared';
 
+import { themedSheet } from '../../../../utils/themeNow';
 const profileReady = (p: ConnectMyProfile | null) => !!p && p.displayName.trim().length >= 2 && p.lookingFor.length > 0 && p.photos.length > 0;
 
 /**
@@ -104,7 +105,7 @@ export const ConnectOnboarding: React.FC<{
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   back: { flexDirection: 'row', alignItems: 'center', gap: 2, minHeight: 36, alignSelf: 'flex-start' },
   error: { fontSize: 13, fontWeight: '600', color: FriendsColors.danger },
-});
+}));

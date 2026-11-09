@@ -1,5 +1,5 @@
 /**
- * My registrations (app/campus-events/my?tab), night look. Tabs Upcoming / Pending / Waitlisted / Completed /
+ * My registrations (app/campus-events/my?tab), diet look. Tabs Upcoming / Pending / Waitlisted / Completed /
  * Cancelled from GET /my/registrations?tab=. Each card: photo, title, date, venue, code, type, team, payment,
  * status and the actions that apply. Only the student's own real registrations (never samples).
  */
@@ -10,6 +10,7 @@ import { campusEventsApi, CampusEventsError, fmtWhen, inr, PAYMENT_STATUS_LABEL,
 import { useCampusEventsStatus } from '../campusEvents/ui';
 import { useCampusEventsLive } from '../campusEvents/useCampusEventsLive';
 import { NIGHT, W } from './eventsV2Theme';
+import { themedSheet } from '../../utils/themeNow';
 import { ChipRow, Glass, HeaderIcon, NightHeader, Press, Tag } from './EventsV2Kit';
 import { EventPhoto } from './EventsV2Media';
 import { StateBlock } from './EventsV2States';
@@ -27,7 +28,7 @@ const TABS: { key: MyTab; label: string; empty: string }[] = [
 function Btn({ label, onPress, solid }: { label: string; onPress: () => void; solid?: boolean }) {
   return (
     <Press onPress={onPress} label={label} style={[s.btn, solid ? s.btnSolid : null]} scaleTo={0.95}>
-      <Text style={[s.btnText, solid ? { color: '#FFFFFF' } : null]}>{label}</Text>
+      <Text style={[s.btnText, solid ? { color: NIGHT.onAcc } : null]}>{label}</Text>
     </Press>
   );
 }
@@ -54,7 +55,7 @@ function RegCard({ r, index }: { r: Registration; index: number }) {
       </Press>
       <View style={{ paddingHorizontal: 12, paddingBottom: 12 }}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-          <Tag label={m.label} color={good ? NIGHT.green : r.status === 'REJECTED' ? NIGHT.red : r.status === 'CANCELLED' || r.status === 'EXPIRED' ? '#CFCBEA' : NIGHT.amber} />
+          <Tag label={m.label} color={good ? NIGHT.green : r.status === 'REJECTED' ? NIGHT.red : r.status === 'CANCELLED' || r.status === 'EXPIRED' ? NIGHT.mute : NIGHT.amber} />
           {r.payment && r.payment.status !== 'NONE' ? <Tag label={`${inr(r.payment.total)} · ${PAYMENT_STATUS_LABEL[r.payment.status]}`} color={['DUE_AT_VENUE', 'PENDING', 'REFUND_PENDING'].includes(r.payment.status) ? NIGHT.amber : r.payment.status === 'FAILED' ? NIGHT.red : NIGHT.green} /> : null}
           {ticket ? <Tag label="Ticket ready" color={NIGHT.violet} /> : r.ticketStatus === 'USED' ? <Tag label="Checked in" color={NIGHT.sky} /> : null}
         </View>
@@ -91,7 +92,7 @@ export default function EventsV2Mine() {
   const meta = TABS.find((t) => t.key === tab)!;
   return (
     <View style={{ flex: 1 }}>
-      <NightHeader title="My registrations" sub="View and manage your events" right={<HeaderIcon onPress={() => nav.push({ name: 'tickets' })} label="My tickets"><ITicket size={18} color="#FFFFFF" strokeWidth={1.8} /></HeaderIcon>} />
+      <NightHeader title="My registrations" sub="View and manage your events" right={<HeaderIcon onPress={() => nav.push({ name: 'tickets' })} label="My tickets"><ITicket size={18} color={NIGHT.ink} strokeWidth={1.8} /></HeaderIcon>} />
       <ChipRow items={TABS} active={tab} onSelect={setTab} style={{ paddingBottom: 14 }} />
       {err && !list ? (err.status === 401
         ? <StateBlock kind="signin" title="Sign in to see your registrations" body="Use your student account." action="Sign in" onAction={() => nav.go('/login')} />
@@ -110,13 +111,13 @@ export default function EventsV2Mine() {
   );
 }
 
-const s = StyleSheet.create({
+const s = themedSheet(() => ({
   thumb: { width: 84, height: 96, borderRadius: 14, overflow: 'hidden' },
   title: { color: NIGHT.ink, fontSize: 15, fontWeight: W.display, lineHeight: 19 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   rowText: { color: NIGHT.sub, fontSize: 12, flexShrink: 1 },
   code: { color: NIGHT.faint, fontSize: 11.5 },
-  btn: { height: 36, paddingHorizontal: 14, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: NIGHT.glass, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.25)' },
+  btn: { height: 36, paddingHorizontal: 14, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: NIGHT.glass, borderWidth: StyleSheet.hairlineWidth, borderColor: NIGHT.border },
   btnSolid: { backgroundColor: NIGHT.violetDeep, borderColor: NIGHT.violet },
-  btnText: { color: '#E4DBFF', fontSize: 12.5, fontWeight: W.label },
-});
+  btnText: { color: NIGHT.accInk, fontSize: 12.5, fontWeight: W.label },
+}));

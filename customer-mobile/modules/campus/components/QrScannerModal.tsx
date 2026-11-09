@@ -16,6 +16,7 @@ import * as Haptics from 'expo-haptics';
 import { CampusColors, CampusLayout } from '../../../constants/campusTheme';
 import { previewCampusGroup } from '../campusApi';
 
+import { themedSheet } from '../../../utils/themeNow';
 interface QrScannerModalProps {
   visible: boolean;
   onClose: () => void;
@@ -214,7 +215,7 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ visible, onClose
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   container: {
     flex: 1,
     backgroundColor: '#0F172A',
@@ -329,4 +330,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-});
+}));

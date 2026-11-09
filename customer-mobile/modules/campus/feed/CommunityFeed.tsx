@@ -19,6 +19,7 @@ import { useLiveSync } from '../../../utils/useLiveSync';
 import ShimmerLoader from '../../../components/ShimmerLoader';
 import { ActionMenu } from '../friends/shared/ActionMenu';
 import SymbolIcon from '../../../components/SymbolIcon';
+import { useDietLight } from '../../../components/local/dietLightTheme';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
@@ -239,6 +240,9 @@ const PostCard = React.memo(function PostCard({ post, idx, myUserId, signedIn, i
   cardBg: string; border: string; txt: string; txtSec: string; isDark: boolean; actions: PostCardActions;
 }) {
   const bgGrad = postBgHash(post.id);
+  // Owner, 10 Nov 2026: the diet accent replaces the old gold / brown accent (light-only Campus keeps the light accent).
+  const dl = useDietLight();
+  const accent = isDark ? dl.acc : CampusColors.accent;
   const isLiked = isLikedByMe(post, myUserId);
   const rotation = (idx % 2 === 0 ? '-1.5deg' : '1.5deg');
 
@@ -284,7 +288,7 @@ const PostCard = React.memo(function PostCard({ post, idx, myUserId, signedIn, i
                 <Text style={s.reviewStars}>{'★'.repeat(Math.min(5, Math.round(Number(post.starRating))))}{'☆'.repeat(Math.max(0, 5 - Math.min(5, Math.round(Number(post.starRating)))))}</Text>
               ) : null}
               {post.restaurantName ? (
-                <Text style={[s.reviewRestaurant, { color: isDark ? COLORS.gold : '#8b5a2b' }]} numberOfLines={1}>📍 {post.restaurantName.toUpperCase()}</Text>
+                <Text style={[s.reviewRestaurant, { color: accent }]} numberOfLines={1}>📍 {post.restaurantName.toUpperCase()}</Text>
               ) : null}
               {post.productName ? (
                 <Text style={[s.reviewProduct, { color: txtSec }]} numberOfLines={1}>🍽️ {post.productName}</Text>
@@ -337,7 +341,7 @@ const PostCard = React.memo(function PostCard({ post, idx, myUserId, signedIn, i
               style={s.repliesTrigger} 
               onPress={() => actions.toggleThread(post.id)}
             >
-              <Text style={[s.repliesTriggerText, { color: isDark ? COLORS.gold : '#8b5a2b' }]}>
+              <Text style={[s.repliesTriggerText, { color: accent }]}>
                 {expanded ? 'HIDE REPLIES ▲' : `SHOW REPLIES (${post.replies.length}) ▼`}
               </Text>
             </TouchableOpacity>
@@ -429,9 +433,14 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
 
   const txt = embedded ? CampusColors.ink : isDark ? '#FFF' : '#3e2723';
   const txtSec = embedded ? CampusColors.muted : isDark ? '#AAA' : '#666';
-  const bg = embedded ? CampusColors.paper : isDark ? '#0A0A0C' : '#f4f1ea';
+  const bg = embedded ? CampusColors.paper : isDark ? '#0A0A0C' : CampusColors.paper;
   const cardBg = embedded ? CampusColors.card : isDark ? '#141416' : '#fdfcf0';
   const border = embedded ? CampusColors.line : isDark ? 'rgba(255,255,255,0.06)' : 'rgba(139,90,43,0.1)';
+  // Owner, 10 Nov 2026: one look - the diet accent (red Non-veg / green Veg) replaces the old gold / brown accent.
+  // Embedded in the light-only Campus hub it uses the light diet accent.
+  const dl = useDietLight();
+  const accent = isDark ? dl.acc : CampusColors.accent;
+  const onAccent = isDark ? dl.onAcc : '#FFFFFF';
   const mountedRef = React.useRef(true);
   React.useEffect(() => {
     mountedRef.current = true;
@@ -1320,7 +1329,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
             }}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Text style={[s.backText, { color: isDark ? COLORS.gold : '#8b5a2b' }]}>◀ BACK</Text>
+            <Text style={[s.backText, { color: accent }]}>◀ BACK</Text>
           </TouchableOpacity>
         </View>
 
@@ -1335,20 +1344,20 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
         {/* Tab Controls */}
         <View style={[s.tabContainer, { backgroundColor: cardBg, borderColor: border }]}>
           <DopaminePressable 
-            style={[s.tabBtn, activeTab === 'all' && [s.tabBtnActive, { backgroundColor: isDark ? COLORS.gold : '#3e2723' }], { flex: 1 }]} 
+            style={[s.tabBtn, activeTab === 'all' && [s.tabBtnActive, { backgroundColor: accent }], { flex: 1 }]} 
             onPress={() => setActiveTab('all')}
             sound="tabSwitch"
             activeScale={0.96}
           >
-            <Text style={[s.tabLabel, activeTab === 'all' && [s.tabLabelActive, { color: isDark ? '#000' : '#fff' }], { paddingVertical: 8 }]}>ALL POSTS</Text>
+            <Text style={[s.tabLabel, activeTab === 'all' && [s.tabLabelActive, { color: onAccent }], { paddingVertical: 8 }]}>ALL POSTS</Text>
           </DopaminePressable>
           <DopaminePressable 
-            style={[s.tabBtn, activeTab === 'wall' && [s.tabBtnActive, { backgroundColor: isDark ? COLORS.gold : '#3e2723' }], { flex: 1 }]} 
+            style={[s.tabBtn, activeTab === 'wall' && [s.tabBtnActive, { backgroundColor: accent }], { flex: 1 }]} 
             onPress={() => setActiveTab('wall')}
             sound="tabSwitch"
             activeScale={0.96}
           >
-            <Text style={[s.tabLabel, activeTab === 'wall' && [s.tabLabelActive, { color: isDark ? '#000' : '#fff' }], { paddingVertical: 8 }]}>📸 THE WALL</Text>
+            <Text style={[s.tabLabel, activeTab === 'wall' && [s.tabLabelActive, { color: onAccent }], { paddingVertical: 8 }]}>📸 THE WALL</Text>
           </DopaminePressable>
         </View>
         </>)}
@@ -1373,21 +1382,21 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
           style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ padding: 16, paddingBottom: 110 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={isDark ? COLORS.gold : '#8b5a2b'} colors={[COLORS.gold]} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={accent} colors={[accent]} />}
         >
           {/* Wall Sub-Tab Selector */}
           <View style={{ flexDirection: 'row', backgroundColor: cardBg, borderRadius: 16, borderWidth: 1, borderColor: border, padding: 4, marginBottom: 14 }}>
             <TouchableOpacity
-              style={{ flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center', backgroundColor: wallSubTab === 'live' ? (isDark ? COLORS.gold : '#3e2723') : 'transparent' }}
+              style={{ flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center', backgroundColor: wallSubTab === 'live' ? accent : 'transparent' }}
               onPress={() => setWallSubTab('live')}
             >
-              <Text style={{ fontSize: 12, fontWeight: '900', color: wallSubTab === 'live' ? (isDark ? '#000' : '#fff') : txtSec, letterSpacing: 1 }}>📸 LIVE CONTEST</Text>
+              <Text style={{ fontSize: 12, fontWeight: '900', color: wallSubTab === 'live' ? onAccent : txtSec, letterSpacing: 1 }}>📸 LIVE CONTEST</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={{ flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center', backgroundColor: wallSubTab === 'hof' ? (isDark ? COLORS.gold : '#3e2723') : 'transparent' }}
+              style={{ flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center', backgroundColor: wallSubTab === 'hof' ? accent : 'transparent' }}
               onPress={() => setWallSubTab('hof')}
             >
-              <Text style={{ fontSize: 12, fontWeight: '900', color: wallSubTab === 'hof' ? (isDark ? '#000' : '#fff') : txtSec, letterSpacing: 1 }}>🏆 HALL OF FAME</Text>
+              <Text style={{ fontSize: 12, fontWeight: '900', color: wallSubTab === 'hof' ? onAccent : txtSec, letterSpacing: 1 }}>🏆 HALL OF FAME</Text>
             </TouchableOpacity>
           </View>
 
@@ -1396,10 +1405,10 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
               {!activeWallEvent && wallError && !loadingWall && (
                 <View style={s.emptyState}>
                   <Text style={{ fontSize: 40, marginBottom: 8 }}>📡</Text>
-                  <Text style={[s.emptyTitle, { color: isDark ? COLORS.gold : '#8b5a2b' }]}>COULDN'T LOAD THE WALL</Text>
+                  <Text style={[s.emptyTitle, { color: accent }]}>COULDN'T LOAD THE WALL</Text>
                   <Text style={[s.emptySubtitle, { color: txtSec, textAlign: 'center' }]}>Check your connection and try again.</Text>
-                  <TouchableOpacity onPress={() => fetchWallActive()} style={[s.retryBtn, { backgroundColor: isDark ? COLORS.gold : '#8b5a2b' }]}>
-                    <Text style={[s.retryText, { color: isDark ? '#000' : '#fff' }]}>RETRY</Text>
+                  <TouchableOpacity onPress={() => fetchWallActive()} style={[s.retryBtn, { backgroundColor: accent }]}>
+                    <Text style={[s.retryText, { color: onAccent }]}>RETRY</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -1407,10 +1416,10 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
               {!activeWallEvent && !wallError && !loadingWall && (
                 <View style={s.emptyState}>
                   <Text style={{ fontSize: 40, marginBottom: 8 }}>📸</Text>
-                  <Text style={[s.emptyTitle, { color: isDark ? COLORS.gold : '#8b5a2b', textAlign: 'center' }]}>NO CONTEST RIGHT NOW</Text>
+                  <Text style={[s.emptyTitle, { color: accent, textAlign: 'center' }]}>NO CONTEST RIGHT NOW</Text>
                   <Text style={[s.emptySubtitle, { color: txtSec, textAlign: 'center' }]}>The next photo contest will show up here. Check out past winners in the Hall of Fame!</Text>
-                  <TouchableOpacity onPress={() => setWallSubTab('hof')} style={[s.retryBtn, { backgroundColor: isDark ? COLORS.gold : '#8b5a2b' }]}>
-                    <Text style={[s.retryText, { color: isDark ? '#000' : '#fff' }]}>SEE HALL OF FAME</Text>
+                  <TouchableOpacity onPress={() => setWallSubTab('hof')} style={[s.retryBtn, { backgroundColor: accent }]}>
+                    <Text style={[s.retryText, { color: onAccent }]}>SEE HALL OF FAME</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -1517,7 +1526,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
               ) : !activeWallEvent ? null : wallSubmissions.length === 0 ? (
                 <View style={s.emptyState}>
                   <Text style={{ fontSize: 40, marginBottom: 8 }}>🖼️</Text>
-                  <Text style={[s.emptyTitle, { color: isDark ? COLORS.gold : '#8b5a2b' }]}>THE WALL IS EMPTY</Text>
+                  <Text style={[s.emptyTitle, { color: accent }]}>THE WALL IS EMPTY</Text>
                   <Text style={[s.emptySubtitle, { color: txtSec, textAlign: 'center' }]}>Be the first to post a photo for this contest!</Text>
                 </View>
               ) : (
@@ -1759,7 +1768,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
           initialNumToRender={6}
           maxToRenderPerBatch={6}
           windowSize={9}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={isDark ? COLORS.gold : '#8b5a2b'} colors={[COLORS.gold]} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={accent} colors={[accent]} />}
           ListHeaderComponent={
             <>
         {!embedded && (
@@ -1769,7 +1778,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
             {
               backgroundColor: cardBg,
               borderColor: isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 90, 43, 0.15)',
-              shadowColor: isDark ? '#D4AF37' : '#8b5a2b',
+              shadowColor: accent,
             }
           ]}
           onPress={() => router.push('/friends' as any)}
@@ -1788,7 +1797,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[s.friendsCardTitle, { color: txt }]}>Campus</Text>
-              <Text style={[s.friendsCardSub, { color: isDark ? COLORS.gold : '#8b5a2b' }]}>Chats, groups and Pulse</Text>
+              <Text style={[s.friendsCardSub, { color: accent }]}>Chats, groups and Pulse</Text>
             </View>
             <View style={s.streakPulseContainer}>
               <FloatingPulse color="#FF5A00">
@@ -1800,7 +1809,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
             Chat with classmates, join class and club groups, and catch up on what's happening on campus.
           </Text>
           <View style={s.friendsFooter}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}><Text style={[s.friendsFooterText, { color: isDark ? COLORS.gold : '#8b5a2b' }]}>Open Campus</Text><SymbolIcon name="chevron-forward" style={[s.friendsFooterText, { color: isDark ? COLORS.gold : '#8b5a2b' }]} scale={1} /></View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}><Text style={[s.friendsFooterText, { color: accent }]}>Open Campus</Text><SymbolIcon name="chevron-forward" style={[s.friendsFooterText, { color: accent }]} scale={1} /></View>
           </View>
         </DopaminePressable>
         )}
@@ -1808,7 +1817,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
         {/* ── BIRTHDAY CELEBRATIONS STORY ROW ── */}
         <View style={s.birthdaySection}>
           <View style={s.birthdaySectionHeader}>
-            <Text style={[s.birthdaySectionTitle, { color: isDark ? COLORS.gold : '#8b5a2b' }]}>🎂 CELEBRATIONS</Text>
+            <Text style={[s.birthdaySectionTitle, { color: accent }]}>🎂 CELEBRATIONS</Text>
             {user?.role?.toLowerCase() === 'admin' && pendingBirthdays.length > 0 && (
               <TouchableOpacity onPress={() => setShowAdminPanelModal(true)}>
                 <Text style={[s.adminBadgeText, { color: COLORS.red }]}>ADMIN QUEUE ({pendingBirthdays.length})</Text>
@@ -1867,7 +1876,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
         {/* ── TRENDING ── */}
         {!search && posts.length > 3 && trending.some(t => (t.likes || 0) + (t.replyCount || 0) > 0) &&(
           <View style={s.trendingSection}>
-            <Text style={[s.trendingTitle, { color: isDark ? COLORS.gold : '#8b5a2b' }]}>🔥 TRENDING NOW</Text>
+            <Text style={[s.trendingTitle, { color: accent }]}>🔥 TRENDING NOW</Text>
             <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false} style={s.trendingScroll}>
               {trending.map(tp => (
                 <View key={tp.id} style={[s.trendingCard, { backgroundColor: cardBg, borderColor: border }]}>
@@ -1901,8 +1910,8 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                   flexDirection: 'row',
                   alignItems: 'center',
                   gap: 6,
-                  backgroundColor: isActive ? (isDark ? COLORS.gold : '#3e2723') : cardBg,
-                  borderColor: isActive ? (isDark ? COLORS.gold : '#3e2723') : border,
+                  backgroundColor: isActive ? accent : cardBg,
+                  borderColor: isActive ? accent : border,
                   borderWidth: 1,
                   paddingHorizontal: 12,
                   paddingVertical: 7,
@@ -1910,11 +1919,11 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                 }}
                 onPress={() => setFeedCategory(cat.id as any)}
               >
-                <Text style={{ fontSize: 12, fontWeight: '900', color: isActive ? (isDark ? '#000' : '#fff') : txtSec }}>
+                <Text style={{ fontSize: 12, fontWeight: '900', color: isActive ? onAccent : txtSec }}>
                   {cat.label}
                 </Text>
                 <View style={{ backgroundColor: isActive ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.06)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 }}>
-                  <Text style={{ fontSize: 12, fontWeight: '900', color: isActive ? (isDark ? '#000' : '#fff') : txtSec }}>{cat.count}</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '900', color: isActive ? onAccent : txtSec }}>{cat.count}</Text>
                 </View>
               </TouchableOpacity>
             );
@@ -1940,31 +1949,31 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
         ) : postsError && posts.length === 0 ? (
           <View style={s.emptyState}>
             <Text style={{ fontSize: 44, marginBottom: 12 }}>📡</Text>
-            <Text style={[s.emptyTitle, { color: isDark ? COLORS.gold : '#8b5a2b', textAlign: 'center' }]}>COULDN'T LOAD POSTS</Text>
+            <Text style={[s.emptyTitle, { color: accent, textAlign: 'center' }]}>COULDN'T LOAD POSTS</Text>
             <Text style={[s.emptySubtitle, { color: txtSec, textAlign: 'center' }]}>Check your connection and try again.</Text>
-            <TouchableOpacity onPress={retryPosts} style={[s.retryBtn, { backgroundColor: isDark ? COLORS.gold : '#8b5a2b' }]}>
-              <Text style={[s.retryText, { color: isDark ? '#000' : '#fff' }]}>RETRY</Text>
+            <TouchableOpacity onPress={retryPosts} style={[s.retryBtn, { backgroundColor: accent }]}>
+              <Text style={[s.retryText, { color: onAccent }]}>RETRY</Text>
             </TouchableOpacity>
           </View>
         ) : filtered.length === 0 ? (
           <View style={s.emptyState}>
             <Text style={{ fontSize: 48, marginBottom: 12 }}>{search ? '🔍' : '🖼️'}</Text>
-            <Text style={[s.emptyTitle, { color: isDark ? COLORS.gold : '#8b5a2b', textAlign: 'center' }]}>
+            <Text style={[s.emptyTitle, { color: accent, textAlign: 'center' }]}>
               {search ? 'NO MATCHES' : feedCategory === 'reviews' ? 'NO REVIEWS YET' : 'BLANK CANVAS'}
             </Text>
             <Text style={[s.emptySubtitle, { color: txtSec, textAlign: 'center' }]}>
               {search ? `Nothing found for "${search}".` : 'Be the first to post on the wall.'}
             </Text>
             {search ? (
-              <TouchableOpacity onPress={() => setSearch('')} style={[s.retryBtn, { backgroundColor: isDark ? COLORS.gold : '#8b5a2b' }]}>
-                <Text style={[s.retryText, { color: isDark ? '#000' : '#fff' }]}>CLEAR SEARCH</Text>
+              <TouchableOpacity onPress={() => setSearch('')} style={[s.retryBtn, { backgroundColor: accent }]}>
+                <Text style={[s.retryText, { color: onAccent }]}>CLEAR SEARCH</Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
                 onPress={() => checkAuthAndRun(() => { setReplyingTo(null); setIsReviewDraft(feedCategory === 'reviews'); setShowComposer(true); })}
-                style={[s.retryBtn, { backgroundColor: isDark ? COLORS.gold : '#8b5a2b' }]}
+                style={[s.retryBtn, { backgroundColor: accent }]}
               >
-                <Text style={[s.retryText, { color: isDark ? '#000' : '#fff' }]}>{feedCategory === 'reviews' ? 'WRITE A REVIEW' : 'CREATE A POST'}</Text>
+                <Text style={[s.retryText, { color: onAccent }]}>{feedCategory === 'reviews' ? 'WRITE A REVIEW' : 'CREATE A POST'}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -1987,9 +1996,9 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
 
       {/* Floating Compose Button (Only on ALL POSTS tab) */}
       {activeTab === 'all' && (
-        <FloatingPulse color={isDark ? COLORS.gold : '#8b5a2b'} style={s.composeFabWrap}>
+        <FloatingPulse color={accent} style={s.composeFabWrap}>
           <ActionPressable 
-            style={[s.composeFab, { backgroundColor: isDark ? COLORS.gold : '#8b5a2b' }]} 
+            style={[s.composeFab, { backgroundColor: accent }]} 
             onPress={() => {
               checkAuthAndRun(() => {
                 setReplyingTo(null);
@@ -2022,7 +2031,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                   >
                     {replyingTo && (
                       <View style={[s.replyBanner, { backgroundColor: isDark ? '#1C1B1F' : 'rgba(139,90,43,0.05)', borderColor: border }]}>
-                        <Text style={[s.replyBannerText, { color: isDark ? COLORS.gold : '#8b5a2b' }]}>REPLYING TO {(replyingTo.userName || 'Student').toUpperCase()}</Text>
+                        <Text style={[s.replyBannerText, { color: accent }]}>REPLYING TO {(replyingTo.userName || 'Student').toUpperCase()}</Text>
                         <Text style={[s.replyBannerSub, { color: txtSec }]} numberOfLines={1}>{replyingTo.content}</Text>
                       </View>
                     )}
@@ -2040,10 +2049,10 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                       <View style={[s.reviewToggleRow, { backgroundColor: isDark ? '#222' : '#fff', borderColor: border }]}>
                         <Text style={[s.reviewToggleLabel, { color: txt }]}>POST AS FOOD REVIEW?</Text>
                         <TouchableOpacity 
-                          style={[s.toggleBtn, isReviewDraft && [s.toggleBtnActive, { backgroundColor: isDark ? COLORS.gold : '#8b5a2b', borderColor: isDark ? COLORS.gold : '#8b5a2b' }]] as any}
+                          style={[s.toggleBtn, isReviewDraft && [s.toggleBtnActive, { backgroundColor: accent, borderColor: accent }]] as any}
                           onPress={() => setIsReviewDraft(!isReviewDraft)}
                         >
-                          <Text style={[s.toggleBtnText, isReviewDraft && { color: isDark ? '#000' : '#fff' }]}>
+                          <Text style={[s.toggleBtnText, isReviewDraft && { color: onAccent }]}>
                             {isReviewDraft ? 'YES' : 'NO'}
                           </Text>
                         </TouchableOpacity>
@@ -2060,7 +2069,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                           ))}
                         </View>
                         {reviewStores === null ? (
-                          <ActivityIndicator size="small" color={isDark ? COLORS.gold : '#8b5a2b'} />
+                          <ActivityIndicator size="small" color={accent} />
                         ) : reviewStores.length === 0 ? (
                           <Text style={{ fontSize: 12, fontWeight: '700', color: txtSec }}>
                             You can review a place once an order from it has been delivered to you.
@@ -2075,9 +2084,9 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                                   onPress={() => { setReviewStoreId(sel ? null : st.id); setRestaurantName(sel ? '' : st.name); }}
                                   accessibilityRole="radio"
                                   accessibilityState={{ selected: sel }}
-                                  style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, borderWidth: 1, borderColor: sel ? (isDark ? COLORS.gold : '#8b5a2b') : border, backgroundColor: sel ? (isDark ? COLORS.gold : '#8b5a2b') : (isDark ? '#222' : '#fff') }}
+                                  style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, borderWidth: 1, borderColor: sel ? accent : border, backgroundColor: sel ? accent : (isDark ? '#222' : '#fff') }}
                                 >
-                                  <Text style={{ fontSize: 12, fontWeight: '800', color: sel ? (isDark ? '#000' : '#fff') : txt }} numberOfLines={1}>📍 {st.name}</Text>
+                                  <Text style={{ fontSize: 12, fontWeight: '800', color: sel ? onAccent : txt }} numberOfLines={1}>📍 {st.name}</Text>
                                 </TouchableOpacity>
                               );
                             })}
@@ -2100,9 +2109,9 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                                 paddingHorizontal: 10,
                                 paddingVertical: 6,
                                 borderRadius: 14,
-                                backgroundColor: isSel ? (isDark ? COLORS.gold : '#3e2723') : (isDark ? '#222' : '#F5F5F0'),
+                                backgroundColor: isSel ? accent : (isDark ? '#222' : '#F5F5F0'),
                                 borderWidth: 1,
-                                borderColor: isSel ? (isDark ? COLORS.gold : '#3e2723') : border
+                                borderColor: isSel ? accent : border
                               }}
                               onPress={() => {
                                 // One mood tag at a time: drop the previous [tag] prefix before adding the new one.
@@ -2119,7 +2128,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                                 }
                               }}
                             >
-                              <Text style={{ fontSize: 12, fontWeight: '800', color: isSel ? (isDark ? '#000' : '#fff') : txt }}>{mood}</Text>
+                              <Text style={{ fontSize: 12, fontWeight: '800', color: isSel ? onAccent : txt }}>{mood}</Text>
                             </TouchableOpacity>
                           );
                         })}
@@ -2168,15 +2177,15 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                       </DopaminePressable>
 
                       <ActionPressable 
-                        style={[s.composerSubmit, { backgroundColor: isDark ? COLORS.gold : '#8b5a2b' }, posting && { opacity: 0.5 }, { flex: 2 }] as any} 
+                        style={[s.composerSubmit, { backgroundColor: accent }, posting && { opacity: 0.5 }, { flex: 2 }] as any} 
                         onPress={handlePost} 
                         disabled={posting}
                         sound="success"
                       >
                         {posting ? (
-                          <ActivityIndicator size="small" color={isDark ? '#000' : '#fff'} />
+                          <ActivityIndicator size="small" color={onAccent} />
                         ) : (
-                          <Text style={[s.submitText, { color: isDark ? '#000' : '#fff' }]}>{replyingTo ? 'REPLY 💬' : 'PIN POST 📌'}</Text>
+                          <Text style={[s.submitText, { color: onAccent }]}>{replyingTo ? 'REPLY 💬' : 'PIN POST 📌'}</Text>
                         )}
                       </ActionPressable>
                     </View>
@@ -2266,7 +2275,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
 
                     {/* Name and count */}
                     <Text style={[s.bdayCandidateName, { color: txt }]}>{selectedBirthday.candidateName}</Text>
-                    <Text style={[s.bdayWishCountText, { color: isDark ? COLORS.gold : '#8b5a2b' }]}>
+                    <Text style={[s.bdayWishCountText, { color: accent }]}>
                       ❤️ {selectedBirthday.wishCount || 0} {selectedBirthday.wishCount === 1 ? 'wish' : 'wishes'} so far
                     </Text>
 
@@ -2279,7 +2288,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                       >
                         {loadingWishes && selectedBirthdayWishes.length === 0 ? (
                           <View style={{ paddingVertical: 24, alignItems: 'center' }}>
-                            <ActivityIndicator size="small" color={isDark ? COLORS.gold : '#FF69B4'} />
+                            <ActivityIndicator size="small" color={isDark ? accent : '#FF69B4'} />
                           </View>
                         ) : selectedBirthdayWishes.length === 0 ? (
                           <View style={{ paddingVertical: 24, alignItems: 'center' }}>
@@ -2288,7 +2297,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                         ) : (
                           selectedBirthdayWishes.map((w, idx) => (
                             <View key={w.id || idx} style={[s.wishBubble, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }]}>
-                              <Text style={[s.wishBubbleUser, { color: isDark ? COLORS.gold : '#8b5a2b' }]}>{w.userName}</Text>
+                              <Text style={[s.wishBubbleUser, { color: accent }]}>{w.userName}</Text>
                               <Text style={[s.wishBubbleText, { color: txt }]}>{w.message || 'Happy Birthday! 🎉'}</Text>
                             </View>
                           ))
@@ -2311,7 +2320,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                     </View>
 
                     {alreadyWished && (
-                      <Text style={{ fontSize: 12, fontWeight: '800', color: isDark ? COLORS.gold : '#FF69B4', marginBottom: 10 }}>
+                      <Text style={{ fontSize: 12, fontWeight: '800', color: isDark ? accent : '#FF69B4', marginBottom: 10 }}>
                         ✅ Your wish has been sent!
                       </Text>
                     )}
@@ -2330,7 +2339,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                         onSubmitEditing={() => submitWish()}
                       />
                       <TouchableOpacity
-                        style={[s.bdayWishSendBtn, { backgroundColor: isDark ? COLORS.gold : '#FF69B4' }, (!birthdayWishMessage.trim() || submittingWish) && { opacity: 0.5 }]}
+                        style={[s.bdayWishSendBtn, { backgroundColor: isDark ? accent : '#FF69B4' }, (!birthdayWishMessage.trim() || submittingWish) && { opacity: 0.5 }]}
                         onPress={() => submitWish()}
                         disabled={submittingWish || !birthdayWishMessage.trim()}
                       >
@@ -2419,7 +2428,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                   </TouchableOpacity>
 
                   <TouchableOpacity 
-                    style={[s.modalSubmitBtn, { backgroundColor: isDark ? COLORS.gold : '#8b5a2b' }]} 
+                    style={[s.modalSubmitBtn, { backgroundColor: accent }]} 
                     onPress={submitBirthday}
                     disabled={submittingBirthday}
                   >
@@ -2522,7 +2531,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                 ) : (
                   <View style={{ alignItems: 'center' }}>
                     <Text style={{ fontSize: 32 }}>📷</Text>
-                    <Text style={{ color: isDark ? COLORS.gold : '#8b5a2b', fontSize: 12, fontWeight: '700', marginTop: 4 }}>Select Photo from Gallery</Text>
+                    <Text style={{ color: accent, fontSize: 12, fontWeight: '700', marginTop: 4 }}>Select Photo from Gallery</Text>
                   </View>
                 )}
               </TouchableOpacity>
@@ -2532,11 +2541,11 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
                   <Text style={[s.modalCancelText, { color: txtSec }]}>CANCEL</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={[s.modalSubmitBtn, { backgroundColor: isDark ? COLORS.gold : '#8b5a2b' }]} onPress={submitWallPhoto} disabled={submittingWallPhoto}>
+                <TouchableOpacity style={[s.modalSubmitBtn, { backgroundColor: accent }]} onPress={submitWallPhoto} disabled={submittingWallPhoto}>
                   {submittingWallPhoto ? (
-                    <ActivityIndicator size="small" color={isDark ? '#000' : '#fff'} />
+                    <ActivityIndicator size="small" color={onAccent} />
                   ) : (
-                    <Text style={[s.modalSubmitText, { color: isDark ? '#000' : '#fff' }]}>UPLOAD ENTRY 🚀</Text>
+                    <Text style={[s.modalSubmitText, { color: onAccent }]}>UPLOAD ENTRY 🚀</Text>
                   )}
                 </TouchableOpacity>
               </View>

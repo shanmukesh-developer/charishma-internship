@@ -29,6 +29,8 @@ import { apiFetch } from '../../utils/auth';
 import { useLiveSync, affectsProduct, affectsStore } from '../../utils/useLiveSync';
 import { isLocalVendorType, vendorCallNumber, callVendor, stallPayCopy } from '../../utils/localVendor';
 import { useTheme } from '../../context/ThemeContext';
+import { useDietLight } from '../../components/local/dietLightTheme';
+import { dietNow, mixHex, themedSheet } from '../../utils/themeNow';
 import AdSlot from '../../components/AdSlot';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
@@ -163,6 +165,11 @@ export default function ProductDetailScreen() {
   const { cart, addToCart, updateQuantity } = useCart();
   const { user } = useAuth();
   const { isDark, colors } = useTheme();
+  // Owner, 10 Nov 2026: one look - the diet accent (red Non-veg / green Veg) for the item page's actions; in dark a
+  // deeper step so the white labels stay readable.
+  const diet = useDietLight();
+  const dFill = diet.isDark ? mixHex(diet.acc, '#000000', 0.3) : diet.acc;
+  const dGrad = [dFill, mixHex(dFill, '#000000', 0.16)] as const;
   const [customizing, setCustomizing] = useState(false);
   const askOptions = useAskOptions();
 
@@ -437,7 +444,7 @@ export default function ProductDetailScreen() {
   if (loadState === 'loading') {
     return (
       <View style={[styles.loadingBox, { backgroundColor: colors.bg }]}>
-        <ActivityIndicator size="large" color={COLORS.red} />
+        <ActivityIndicator size="large" color={diet.acc} />
         <Text style={{ marginTop: 12, fontSize: 12, fontWeight: '800', color: COLORS.inkMuted }}>
           Loading item…
         </Text>
@@ -467,7 +474,7 @@ export default function ProductDetailScreen() {
         </Text>
         {isError ? (
           <TouchableOpacity
-            style={{ backgroundColor: COLORS.red, paddingHorizontal: 28, paddingVertical: 14, borderRadius: 16, ...SHADOWS.redGlow }}
+            style={{ backgroundColor: dFill, paddingHorizontal: 28, paddingVertical: 14, borderRadius: 16, ...SHADOWS.redGlow, shadowColor: dFill }}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
               loadProduct();
@@ -477,7 +484,7 @@ export default function ProductDetailScreen() {
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
-            style={{ backgroundColor: COLORS.red, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 16, ...SHADOWS.redGlow }}
+            style={{ backgroundColor: dFill, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 16, ...SHADOWS.redGlow, shadowColor: dFill }}
             onPress={() => goHome(router)}
           >
             <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '900' }}>Back to Home</Text>
@@ -706,8 +713,8 @@ export default function ProductDetailScreen() {
           {Array.isArray(product.tags) && product.tags.some((t: any) => String(t || '').trim()) ? (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6, marginBottom: 2 }}>
               {product.tags.map((t: any) => String(t || '').trim()).filter(Boolean).slice(0, 4).map((t: string) => (
-                <View key={t} style={{ borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, backgroundColor: isDark ? 'rgba(239,79,95,0.16)' : 'rgba(239,79,95,0.10)' }}>
-                  <Text style={{ fontSize: 12, fontWeight: '800', color: '#EF4F5F' }} numberOfLines={1} maxFontSizeMultiplier={1.2}>{t}</Text>
+                <View key={t} style={{ borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, backgroundColor: diet.soft }}>
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: diet.acc }} numberOfLines={1} maxFontSizeMultiplier={1.2}>{t}</Text>
                 </View>
               ))}
             </View>
@@ -1080,14 +1087,14 @@ export default function ProductDetailScreen() {
                   else addWithStoreCheck(productPayload());
                 }}
               >
-                <LinearGradient colors={['#10B981', '#059669']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.bottomCtaGradient}>
+                <LinearGradient colors={dGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.bottomCtaGradient}>
                   <Text style={styles.bottomAddCtaText}>{customizable ? 'Customise and add' : 'Add to basket'}</Text>
                   <SymbolIcon name="add" style={styles.bottomAddPlusText} />
                 </LinearGradient>
               </TouchableOpacity>
             ) : (directOrder || isStall) && product.restaurantId ? (
               <TouchableOpacity activeOpacity={0.86} style={styles.bottomAddCtaBtn} onPress={() => router.push(`/restaurant/${product.restaurantId}` as any)}>
-                <LinearGradient colors={['#F97316', '#EA580C']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.bottomCtaGradient}>
+                <LinearGradient colors={dGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.bottomCtaGradient}>
                   <Text style={styles.bottomAddCtaText}>View stall</Text>
                 </LinearGradient>
               </TouchableOpacity>
@@ -1097,7 +1104,7 @@ export default function ProductDetailScreen() {
                 style={styles.bottomAddCtaBtn}
                 onPress={() => router.push(`/category/${SERVICE_CATEGORY_BY_VENDOR[String(product.vendorType || '').toUpperCase()]}` as any)}
               >
-                <LinearGradient colors={['#3B82F6', '#2563EB']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.bottomCtaGradient}>
+                <LinearGradient colors={dGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.bottomCtaGradient}>
                   <Text style={styles.bottomAddCtaText}>Book this service</Text>
                 </LinearGradient>
               </TouchableOpacity>
@@ -1154,7 +1161,7 @@ export default function ProductDetailScreen() {
                 router.push(`/(tabs)/basket?basket=${basketKindOf({ isStall: !!product.isStall, vendorType: product.vendorType })}` as any);
               }}
             >
-              <LinearGradient colors={['#10B981', '#059669']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.bottomCtaGradient}>
+              <LinearGradient colors={dGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.bottomCtaGradient}>
                 <View>
                   <Text style={styles.bottomCartTotalLabel}>{plural(qty, 'item')}</Text>
                   <Text style={styles.bottomCartTotalVal}>{formatINR(qty * (Number(product.price) || 0))}</Text>
@@ -1273,7 +1280,8 @@ export default function ProductDetailScreen() {
 
 
 
-const styles = StyleSheet.create({
+// Diet-following sheet (one per look: light/dark x Non-veg/Veg).
+const styles = themedSheet(() => ({
   container: {
     flex: 1,
     maxWidth: 600,
@@ -1353,7 +1361,7 @@ const styles = StyleSheet.create({
   },
   dotActive: {
     width: 18,
-    backgroundColor: COLORS.primary,
+    backgroundColor: dietNow().acc,
   },
 
   // ZONE 2: CORE INFO SHEET
@@ -1622,7 +1630,7 @@ const styles = StyleSheet.create({
   readMoreLink: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#2563EB',
+    color: dietNow().acc,
   },
   highlightsGrid: {
     flexDirection: 'row',
@@ -1809,7 +1817,7 @@ const styles = StyleSheet.create({
 
   // RATINGS & REVIEWS
   writeReviewTopBtn: {
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    backgroundColor: dietNow().soft,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 8,
@@ -1817,7 +1825,7 @@ const styles = StyleSheet.create({
   writeReviewTopBtnText: {
     fontSize: 12,
     fontWeight: '900',
-    color: COLORS.primary,
+    color: dietNow().acc,
   },
   ratingOverviewBox: {
     flexDirection: 'row',
@@ -2026,17 +2034,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 12,
-    backgroundColor: 'rgba(99, 102, 241, 0.08)',
+    backgroundColor: dietNow().soft,
     borderWidth: 1,
     borderColor: 'transparent',
   },
   tagPillActive: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: dietNow().acc,
   },
   tagPillText: {
     fontSize: 12,
     fontWeight: '800',
-    color: COLORS.primary,
+    color: dietNow().acc,
   },
   reviewTextInput: {
     borderWidth: 1,
@@ -2047,7 +2055,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   submitReviewBtn: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: dietNow().acc,
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
@@ -2149,4 +2157,4 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
   },
-});
+}));

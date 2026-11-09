@@ -37,6 +37,7 @@ import {
 } from '../campusApi';
 import { CampusUserData } from '../../../types/campus';
 
+import { themedSheet } from '../../../utils/themeNow';
 interface RidePoolModalProps {
   visible: boolean;
   onClose: () => void;
@@ -474,7 +475,7 @@ export const RidePoolModal: React.FC<RidePoolModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   container: {
     flex: 1,
     backgroundColor: CampusColors.paper,
@@ -784,4 +785,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-});
+}));

@@ -9,6 +9,7 @@ import { connectCampusSocket } from '../campusSocketClient';
 import { CatchMeUpModal } from '../components/CatchMeUpModal';
 import { Avatar, EmptyState, ErrorState, SkeletonRows, Segmented, Button, T, S, R, ui } from '../ui';
 
+import { themedSheet } from '../../../utils/themeNow';
 interface ChatItem {
   id: string;
   name: string;
@@ -380,7 +381,7 @@ export const ChatsTab: React.FC<ChatsTabProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   searchWrap: {
     flex: 1,
     flexDirection: 'row',
@@ -418,4 +419,4 @@ const styles = StyleSheet.create({
   rowTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 },
   unread: { minWidth: 20, height: 20, borderRadius: 10, backgroundColor: CampusColors.accent, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
   unreadText: { fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
-});
+}));

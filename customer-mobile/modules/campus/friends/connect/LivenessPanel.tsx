@@ -11,6 +11,7 @@ import { Checkbox } from './ConnectGate';
 import { GhostButton, Notice, PrimaryButton } from './ConnectUi';
 import { connectErrorMessage } from './connectShared';
 
+import { themedSheet } from '../../../../utils/themeNow';
 const useCountdown = (iso: string | null) => {
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -189,11 +190,11 @@ export const LivenessPanel: React.FC<{
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   center: { alignItems: 'center', gap: FS.sm, paddingVertical: FS.md },
   icon: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', backgroundColor: FriendsColors.accentSoft, marginBottom: 4 },
   prompt: { padding: FS.xl, borderRadius: FR.hero, backgroundColor: FriendsColors.card, borderWidth: 1, borderColor: 'rgba(212,175,122,0.4)', alignItems: 'center', gap: FS.sm },
   promptText: { fontSize: 20, lineHeight: 27, fontWeight: '800', color: FriendsColors.ink, textAlign: 'center' },
   timer: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   error: { fontSize: 13, fontWeight: '600', color: FriendsColors.danger },
-});
+}));

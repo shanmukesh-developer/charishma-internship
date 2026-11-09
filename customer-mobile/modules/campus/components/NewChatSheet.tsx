@@ -14,6 +14,7 @@ import {
 } from '../campusApi';
 import { Sheet, Avatar, ListRow, EmptyState, ErrorState, Button, T, S, R, ui } from '../ui';
 
+import { themedSheet } from '../../../utils/themeNow';
 interface NewChatSheetProps {
   visible: boolean;
   onClose: () => void;
@@ -314,7 +315,7 @@ export const NewChatSheet: React.FC<NewChatSheetProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -342,4 +343,4 @@ const styles = StyleSheet.create({
   smallBtnMuted: { backgroundColor: CampusColors.paper },
   smallBtnText: { fontSize: 12, fontWeight: '700', color: CampusColors.ink },
   note: { flexDirection: 'row', gap: 6, alignItems: 'center', marginTop: S.md },
-});
+}));

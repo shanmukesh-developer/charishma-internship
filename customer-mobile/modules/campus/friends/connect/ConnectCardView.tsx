@@ -7,6 +7,7 @@ import type { ConnectCard, ConnectStatus } from '../api/connectApi';
 import { ConnectPhotoView, ConnectTag } from './ConnectUi';
 import { lookingForLabel, yearLabel } from './connectShared';
 
+import { themedSheet } from '../../../../utils/themeNow';
 /** Photo carousel: tap the left / right half to move between photos (bars show where you are). */
 export const PhotoCarousel: React.FC<{
   card: ConnectCard;
@@ -104,7 +105,7 @@ export const ConnectCardView: React.FC<{
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   bars: { position: 'absolute', top: 10, left: 12, right: 12, flexDirection: 'row', gap: 4, zIndex: 2 },
   bar: { flex: 1, height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.3)' },
   half: { position: 'absolute', top: 0, bottom: 90, width: '50%', zIndex: 1 },
@@ -115,4 +116,4 @@ const styles = StyleSheet.create({
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
   more: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-});
+}));

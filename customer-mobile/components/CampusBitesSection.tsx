@@ -8,6 +8,7 @@ const BTN_ROLE = Platform.OS === 'web' ? undefined : ('button' as const);
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, TYPE, surfaceLift } from '../constants/theme';
+import { dietNow } from '../utils/themeNow';
 import { useTheme } from '../context/ThemeContext';
 import { API_URL } from '../constants/api';
 import { isLocalVendor } from '../utils/localVendor';
@@ -325,7 +326,7 @@ const CampusBitesSection = forwardRef<CampusBitesSectionHandle, CampusBitesSecti
   const border = isDark ? COLORS.borderDark : COLORS.borderLight;
   // Restrained palette: ONE accent (gold in dark, the app's primary accent in light) for actions only;
   // everything else neutral theme colours.
-  const accent = isDark ? COLORS.gold : COLORS.red;
+  const accent = dietNow().acc;
 
   // Nothing to show yet: skeleton while the first stall list (or the home list) is still loading.
   const waiting = allVendors.length === 0 && (stallsSWR.loading || (homeLoading && !stallsSWR.data));

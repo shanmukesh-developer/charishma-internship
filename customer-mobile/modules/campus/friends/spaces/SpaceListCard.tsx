@@ -10,6 +10,7 @@ import { SpaceStatusBadge } from './SpacesUi';
 import { ReminderButton } from './ReminderButton';
 import { endReasonText, formatCountdown, formatLiveFor, formatSpaceTime, plural, useSpacesNav } from './spacesShared';
 
+import { themedSheet } from '../../../../utils/themeNow';
 /** One Space in Live now / Upcoming / Mine. */
 export const SpaceListCard: React.FC<{ space: Space; onPress: (s: Space) => void; onMore?: (s: Space) => void; onChanged?: (s: Space) => void }> = ({
   space,
@@ -103,7 +104,7 @@ export const SpaceListCard: React.FC<{ space: Space; onPress: (s: Space) => void
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   card: { backgroundColor: FriendsColors.card, borderRadius: FR.card, borderWidth: StyleSheet.hairlineWidth * 2, borderColor: FriendsColors.line, padding: FS.lg },
   liveCard: { borderColor: 'rgba(243,139,128,0.45)' },
   top: { flexDirection: 'row', alignItems: 'center', gap: FS.sm },
@@ -116,4 +117,4 @@ const styles = StyleSheet.create({
   stat: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   join: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44, paddingHorizontal: 16, borderRadius: FR.pill, backgroundColor: FriendsColors.accent },
   joinText: { fontSize: 13, fontWeight: '800', color: FriendsColors.accentInk },
-});
+}));

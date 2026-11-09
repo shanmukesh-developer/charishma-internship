@@ -9,7 +9,8 @@ import React, { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { NIGHT, TILES, TILE_CATEGORIES, W, shadow } from './eventsV2Theme';
+import { NIGHT, TILES, TILE_CATEGORIES, W, hexA, shadow } from './eventsV2Theme';
+import { themedSheet } from '../../utils/themeNow';
 import { CATEGORY_PHOTO } from './eventsV2Art';
 import { Press, FadeInUp, SectionHead, usePageW } from './EventsV2Kit';
 import { useNav } from './eventsV2Nav';
@@ -49,7 +50,7 @@ export default function CategoryTiles() {
               >
                 <Image source={CATEGORY_PHOTO[t.key]} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} accessibilityIgnoresInvertColors />
                 <LinearGradient
-                  colors={['rgba(16,15,51,0)', 'rgba(16,15,51,0.55)', 'rgba(16,15,51,0.94)']}
+                  colors={[hexA(NIGHT.scrim, 0), hexA(NIGHT.scrim, 0.55), hexA(NIGHT.scrim, 0.94)]}
                   locations={[0.38, 0.66, 1]}
                   style={StyleSheet.absoluteFill}
                 />
@@ -67,10 +68,10 @@ export default function CategoryTiles() {
   );
 }
 
-const s = StyleSheet.create({
+const s = themedSheet(() => ({
   tile: { borderRadius: 18, overflow: 'hidden', backgroundColor: NIGHT.card },
   foot: { position: 'absolute', left: 12, right: 12, bottom: 12 },
   label: { color: '#FFFFFF', fontSize: 15, lineHeight: 19, fontWeight: W.title, letterSpacing: -0.1 },
-  count: { color: 'rgba(232,230,255,0.8)', fontSize: 12, lineHeight: 16, marginTop: 2 },
+  count: { color: 'rgba(255,255,255,0.82)', fontSize: 12, lineHeight: 16, marginTop: 2 },
   rim: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.16)' },
-});
+}));

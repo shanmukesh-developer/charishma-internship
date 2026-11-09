@@ -564,7 +564,11 @@ export default function HighClassPromoCarousel({
 
   const scrollTo = useCallback((offset: number, animated: boolean) => {
     listRef.current?.scrollToOffset?.({ offset, animated });
-  }, []);
+    // Owner, 10 Nov 2026 ("after a point of time ads are crashing"): an instant jump (the loop wrapping back to the
+    // first card) does not always send a scroll event on Android, so scrollX stayed at the old clone position and
+    // every card after the first loop drew shrunk and faded. The instant jump sets scrollX itself.
+    if (!animated) scrollX.setValue(offset);
+  }, [scrollX]);
 
   const settle = useCallback(
     (x: number, fromUser: boolean) => {

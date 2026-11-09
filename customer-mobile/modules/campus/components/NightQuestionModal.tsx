@@ -31,6 +31,7 @@ import {
   PulseAnswer,
 } from '../campusApi';
 
+import { themedSheet } from '../../../utils/themeNow';
 interface NightQuestionModalProps {
   visible: boolean;
   onClose: () => void;
@@ -263,7 +264,7 @@ export const NightQuestionModal: React.FC<NightQuestionModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   errorWrap: {
     alignItems: 'center',
     gap: 12,
@@ -481,4 +482,4 @@ const styles = StyleSheet.create({
     color: CampusColors.lavender,
     fontWeight: '700',
   },
-});
+}));

@@ -7,6 +7,7 @@ import { PulsePoll, votePulsePoll } from '../api/pulseApi';
 import { errorCode } from '../api/core';
 import { pollTimeLeft, pulseErrorMessage } from './pulseShared';
 
+import { themedSheet } from '../../../../utils/themeNow';
 /**
  * Poll on a Pulse post. Results stay hidden until the viewer votes (or the poll ends, or it's
  * their own poll). One vote per person, no changes; the server is authoritative.
@@ -109,7 +110,7 @@ export const PollView: React.FC<{
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   wrap: { marginTop: FS.sm, gap: 6 },
   option: {
     minHeight: 44,
@@ -129,4 +130,4 @@ const styles = StyleSheet.create({
   resultRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: FS.md, paddingVertical: 8 },
   pct: { fontSize: 13, fontWeight: '800', color: FriendsColors.muted, minWidth: 38, textAlign: 'right' },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
-});
+}));

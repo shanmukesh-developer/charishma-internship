@@ -210,7 +210,7 @@ const st = themedSheet(() => ({
   small: { fontSize: 12, color: PG2.muted },
   sampleTag: { fontSize: 11, color: PG2.muted, borderWidth: StyleSheet.hairlineWidth, borderColor: PG2.line, borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
   reportBtn: { alignSelf: 'flex-end', minHeight: 32, justifyContent: 'center' },
-  scrim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,16,60,0.35)' },
+  scrim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(18,12,14,0.35)' },
   sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: PG2.card, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: GUTTER + 4 },
   sheetTitle: { fontSize: 17, fontWeight: W.title, color: PG2.ink, marginBottom: 12 },
   input: { marginTop: 12, minHeight: 110, borderRadius: R.md, borderWidth: 1, borderColor: PG2.line, padding: 12, fontSize: 14, color: PG2.ink, textAlignVertical: 'top' },

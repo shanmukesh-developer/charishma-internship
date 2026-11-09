@@ -1,12 +1,13 @@
 /**
  * Look of the campus services screens (category page, booking flow, booking tracking).
- * Every service family wears the Tech & repairs purple (modules/others/othersTheme.ts ACCENTS).
+ * Every service family wears the diet accent (owner, 10 Nov 2026; modules/others/othersTheme.ts ACCENTS), read at render.
  * Light-first: white cards with a soft shadow on a light grey page; dark mode keeps the layout
  * with dark surfaces and the same accent.
  */
 import { useMemo } from 'react';
 import { Platform, type ViewStyle } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
+import { useDietLight } from '../../components/local/dietLightTheme';
 import { ACCENTS as OTHERS_ACCENTS, SURFACE, STATUS, shadow as othersShadow } from '../others/othersTheme';
 
 export type ServiceFamily = 'repairs' | 'tailoring' | 'print' | 'laundry' | 'general';
@@ -27,12 +28,8 @@ const fromTokens = (k: 'repairs' | 'tailoring' | 'print' | 'laundry' | 'services
   const t = OTHERS_ACCENTS[k];
   return { base: t.solid, deep: t.deep, onDark: t.ink.dark, tint: t.tint.light };
 };
-const ACCENTS: Record<ServiceFamily, Accent> = {
-  repairs: fromTokens('repairs'),
-  tailoring: fromTokens('tailoring'),
-  print: fromTokens('print'),
-  laundry: fromTokens('laundry'),
-  general: fromTokens('services'),
+const FAMILY_KEY: Record<ServiceFamily, 'repairs' | 'tailoring' | 'print' | 'laundry' | 'services'> = {
+  repairs: 'repairs', tailoring: 'tailoring', print: 'print', laundry: 'laundry', general: 'services',
 };
 
 export const familyOf = (shelfOrCategory: string | undefined | null): ServiceFamily => {
@@ -88,14 +85,15 @@ export interface ServicePalette {
 
 export const useServicePalette = (family: ServiceFamily): ServicePalette => {
   const { isDark, colors } = useTheme();
+  const d = useDietLight();
   return useMemo(() => {
-    const a = ACCENTS[family];
+    const a = fromTokens(FAMILY_KEY[family]);
     const sf = isDark ? SURFACE.dark : SURFACE.light;
     const stt = isDark ? STATUS.dark : STATUS.light;
     const shadow: ViewStyle = othersShadow(isDark);
     return {
       isDark,
-      page: sf.page,
+      page: d.page,
       card: sf.card,
       raised: sf.raised,
       field: sf.field,
@@ -114,7 +112,7 @@ export const useServicePalette = (family: ServiceFamily): ServicePalette => {
       warnBg: stt.warnTint,
       shadow,
     };
-  }, [family, isDark, colors]);
+  }, [family, isDark, colors, d]);
 };
 
 /** "#RRGGBB" + alpha -> rgba(). */

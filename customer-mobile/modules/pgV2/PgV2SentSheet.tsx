@@ -53,13 +53,13 @@ export default function PgV2SentSheet({ open, info, onViewBookings, onDone }: { 
 }
 
 const st = themedSheet(() => ({
-  scrim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,16,60,0.42)' },
+  scrim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(18,12,14,0.42)' },
   sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: PG2.card, borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingHorizontal: GUTTER + 4, paddingTop: 10, alignItems: 'center' },
   grabber: { width: 40, height: 4, borderRadius: 2, backgroundColor: PG2.line, marginBottom: 18 },
   artOuter: { width: 104, height: 104, alignItems: 'center', justifyContent: 'center' },
   artMid: { width: 88, height: 88, borderRadius: 44, borderWidth: StyleSheet.hairlineWidth, borderColor: PG2.line, alignItems: 'center', justifyContent: 'center' },
   artInner: { width: 62, height: 62, borderRadius: 31, backgroundColor: PG2.primary, alignItems: 'center', justifyContent: 'center' },
-  spark: { position: 'absolute', width: 8, height: 8, borderRadius: 4, backgroundColor: '#B7A6FA' },
+  spark: { position: 'absolute', width: 8, height: 8, borderRadius: 4, backgroundColor: PG2.lavender2 },
   title: { marginTop: 14, fontSize: 21, fontWeight: W.title, color: PG2.ink, letterSpacing: -0.3 },
   pg: { marginTop: 4, fontSize: 13.5, color: PG2.muted },
   facts: { marginTop: 14, flexDirection: 'row', alignItems: 'center', backgroundColor: PG2.page, borderRadius: R.md, paddingVertical: 10, paddingHorizontal: 14, borderWidth: 1, borderColor: PG2.lineSoft, maxWidth: '100%' },

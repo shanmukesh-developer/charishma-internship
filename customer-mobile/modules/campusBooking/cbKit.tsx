@@ -121,9 +121,9 @@ export function PlaceButton({ label, onPress, busy, busyLabel, disabled, style }
       {busy ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <ActivityIndicator color="#fff" />
-          <Text style={[k.placeText, { fontSize: 13 }]}>{busyLabel || 'Please wait…'}</Text>
+          <Text style={[k.placeText, { fontSize: 13, color: p.onAccent }]}>{busyLabel || 'Please wait…'}</Text>
         </View>
-      ) : <Text style={k.placeText}>{label}</Text>}
+      ) : <Text style={[k.placeText, { color: p.onAccent }]}>{label}</Text>}
     </ActionPressable>
   );
 }

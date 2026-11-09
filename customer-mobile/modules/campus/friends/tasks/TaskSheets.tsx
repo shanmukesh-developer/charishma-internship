@@ -11,6 +11,7 @@ import { TASK_LIMITS, UserTaskReputation, fetchTaskReputation } from '../api/tas
 import { ErrorBox, ReputationLine, taskUi } from './TasksUi';
 import { taskErrorMessage } from './tasksShared';
 
+import { themedSheet } from '../../../../utils/themeNow';
 const len = (s: string) => Array.from(s.trim()).length;
 
 /**
@@ -373,10 +374,10 @@ export const ReputationStars: React.FC<{ rating: number; size?: number }> = ({ r
 
 export { ReputationLine };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   stars: { flexDirection: 'row', justifyContent: 'center', gap: 4, marginVertical: FS.md },
   star: { width: 52, height: 52, alignItems: 'center', justifyContent: 'center' },
   statRow: { flexDirection: 'row', gap: FS.sm },
   stat: { flex: 1, padding: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.cardHi, alignItems: 'center' },
   review: { padding: FS.md, borderBottomWidth: 1, borderBottomColor: FriendsColors.lineSoft },
-});
+}));

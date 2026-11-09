@@ -8,6 +8,7 @@ import { fileReport, REPORT_CATEGORIES, REPORT_NOTE_MAX, ReportCategory, ReportT
 import { errorCode } from '../api/core';
 import { dial } from '../../../../utils/dial';
 
+import { themedSheet } from '../../../../utils/themeNow';
 /** C2: the confirmation every surface shows after a report (Google Play UGC policy). */
 export const REPORTED_CONFIRMATION = 'Reported — thanks, our team will review it within 24 hours.';
 
@@ -180,7 +181,7 @@ export const ReportSheet: React.FC<{
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   doneIcon: {
     width: 56,
     height: 56,
@@ -199,4 +200,4 @@ const styles = StyleSheet.create({
   },
   errorBox: { marginTop: FS.md, padding: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.dangerSoft },
   errorText: { fontSize: 13, lineHeight: 18, fontWeight: '600', color: FriendsColors.danger },
-});
+}));

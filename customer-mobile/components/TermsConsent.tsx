@@ -5,6 +5,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { COLORS } from '../constants/theme';
 import { openLegal } from '../utils/legal';
 import SymbolIcon from './SymbolIcon';
+import { useDietLight } from './local/dietLightTheme';
 
 interface Props {
   isDark?: boolean;
@@ -15,12 +16,14 @@ interface Props {
 
 export default function TermsConsent({ isDark, checked, onToggle, disabled }: Props) {
   const muted = isDark ? COLORS.textSecondary : '#617088';
+  // Owner, 10 Nov 2026: links and the tick take the diet accent (was the old gold).
+  const d = useDietLight();
   const text = (
     <Text style={[s.text, { color: muted }]}>
       {onToggle ? 'I agree to the ' : 'By continuing you agree to the '}
-      <Text style={s.link} onPress={() => openLegal('terms')} accessibilityRole="link">Terms of Service</Text>
+      <Text style={[s.link, { color: d.acc }]} onPress={() => openLegal('terms')} accessibilityRole="link">Terms of Service</Text>
       {' and '}
-      <Text style={s.link} onPress={() => openLegal('privacy')} accessibilityRole="link">Privacy Policy</Text>
+      <Text style={[s.link, { color: d.acc }]} onPress={() => openLegal('privacy')} accessibilityRole="link">Privacy Policy</Text>
       {onToggle ? ' (I am 18+ or have a parent / guardian\'s consent).' : '.'}
     </Text>
   );
@@ -34,9 +37,9 @@ export default function TermsConsent({ isDark, checked, onToggle, disabled }: Pr
         accessibilityState={{ checked: !!checked, disabled: !!disabled }}
         accessibilityLabel="I agree to the Terms of Service and Privacy Policy"
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        style={[s.box, { borderColor: checked ? COLORS.gold : muted, backgroundColor: checked ? COLORS.gold : 'transparent' }]}
+        style={[s.box, { borderColor: checked ? d.acc : muted, backgroundColor: checked ? d.acc : 'transparent' }]}
       >
-        {checked ? <SymbolIcon name="checkmark" style={s.tick} /> : null}
+        {checked ? <SymbolIcon name="checkmark" style={[s.tick, { color: d.onAcc }]} /> : null}
       </TouchableOpacity>
       <View style={{ flex: 1 }}>{text}</View>
     </View>
@@ -46,7 +49,7 @@ export default function TermsConsent({ isDark, checked, onToggle, disabled }: Pr
 const s = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 12 },
   text: { fontSize: 12, lineHeight: 16, fontWeight: '600' },
-  link: { color: COLORS.gold, fontWeight: '800', textDecorationLine: 'underline' },
+  link: { color: '#C8143F', fontWeight: '800', textDecorationLine: 'underline' },
   box: { width: 20, height: 20, borderRadius: 6, borderWidth: 2, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
   tick: { color: '#000', fontSize: 13, fontWeight: '900', lineHeight: 15 },
 });

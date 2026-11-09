@@ -210,7 +210,7 @@ export default function CbHome() {
       {latest && latestTotals && latestTotals.count > 0 ? (
         <View style={[st.cartWrap, { bottom: 16 + insets.bottom }]}>
           <DopaminePressable
-            style={st.cartBar}
+            style={[st.cartBar, { backgroundColor: p.accent, shadowColor: p.accent }]}
             onPress={() => router.push(`/campus-booking/cart/${latest.stallId}` as any)}
             accessibilityRole="button"
             accessibilityLabel={`View cart, ${latestTotals.count} items, item total ${inr(latestTotals.total)}`}

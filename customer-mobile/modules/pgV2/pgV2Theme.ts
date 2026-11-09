@@ -5,7 +5,7 @@
  * app's current theme (utils/themeNow); the light values are unchanged from the board.
  */
 import { Platform, type ViewStyle } from 'react-native';
-import { themedTokens } from '../../utils/themeNow';
+import { dietTokens, mixHex, type DietTokens } from '../../utils/themeNow';
 
 const PG2_LIGHT = {
   primary: '#5538EE',
@@ -104,7 +104,42 @@ const PG2_DARK: Pg2Palette = {
   ],
 };
 
-export const PG2: Pg2Palette = themedTokens(PG2_LIGHT, PG2_DARK);
+/**
+ * Owner, 10 Nov 2026 ("fix one perfect non ai color", chose "Match rest of app"): PG wears the app's diet look -
+ * the light red (Non-veg) / light green (Veg) band, white cards and the one diet accent (utils/themeNow dietTokens).
+ * The brand roles (primary, hero, lavender tints, lines, page) take the diet; meaning colours (price green, star,
+ * amber, red, boys / girls / co-ed chips, meal and menu tints) keep the board's values.
+ */
+export function pgDiet(d: DietTokens, dark: boolean): Pg2Palette {
+  const base = dark ? PG2_DARK : PG2_LIGHT;
+  // Filled buttons carry white text: in dark mode the bright accent is taken a step deeper so the label reads.
+  const fill = dark ? mixHex(d.acc, '#000000', 0.3) : d.acc;
+  const tint = dark ? mixHex(d.card, d.acc, 0.14) : d.soft;
+  return {
+    ...base,
+    primary: fill,
+    primaryDeep: dark ? mixHex(fill, '#000000', 0.12) : d.accDeep,
+    primaryPress: mixHex(dark ? fill : d.accDeep, '#000000', 0.12),
+    // Starts in the page colour: the selected folder tab above flows straight into it (owner, 10 Nov 2026).
+    heroTop: d.page,
+    heroMid: d.page,
+    heroBottom: dark ? mixHex(d.page, d.top, 0.6) : d.sel,
+    ink: dark ? base.ink : mixHex('#17171F', d.dk, 0.35),
+    ink2: dark ? base.ink2 : '#3E404C',
+    muted: dark ? base.muted : '#7E8190',
+    faint: dark ? base.faint : '#A7AAB6',
+    line: dark ? mixHex(d.card, '#FFFFFF', 0.08) : d.line,
+    lineSoft: dark ? mixHex(d.card, '#FFFFFF', 0.05) : mixHex(d.line, '#FFFFFF', 0.45),
+    page: d.page,
+    card: d.card,
+    lavender: tint,
+    lavender2: dark ? mixHex(d.card, d.acc, 0.22) : mixHex(d.soft, d.un, 0.6),
+    lavenderInk: d.acc,
+    starOff: dark ? base.starOff : '#DEDAE0',
+  };
+}
+
+export const PG2: Pg2Palette = dietTokens(pgDiet);
 
 export const R = { sm: 10, md: 14, lg: 16, xl: 20, pill: 999 } as const;
 export const GUTTER = 16;
@@ -113,9 +148,9 @@ export const GUTTER = 16;
 export const W = { title: '600', label: '500', body: '400' } as const;
 
 export const shadow = (level: 1 | 2 = 1): ViewStyle => Platform.select({
-  web: { boxShadow: level === 1 ? '0 4px 16px rgba(40,32,110,0.06)' : '0 10px 28px rgba(40,32,110,0.10)' } as ViewStyle,
+  web: { boxShadow: level === 1 ? '0 4px 16px rgba(43,30,34,0.06)' : '0 10px 28px rgba(43,30,34,0.10)' } as ViewStyle,
   default: {
-    shadowColor: '#28206E',
+    shadowColor: '#2B1E22',
     shadowOpacity: level === 1 ? 0.07 : 0.12,
     shadowRadius: level === 1 ? 12 : 20,
     shadowOffset: { width: 0, height: level === 1 ? 4 : 8 },

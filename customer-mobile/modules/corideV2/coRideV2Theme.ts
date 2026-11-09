@@ -6,7 +6,7 @@
  * Weights stay light: titles 600, labels 500, body 400 (never bold, never ALL CAPS).
  */
 import { Platform, type ViewStyle } from 'react-native';
-import { themedTokens } from '../../utils/themeNow';
+import { dietTokens, mixHex, type DietTokens } from '../../utils/themeNow';
 
 const CR_LIGHT = {
   primary: '#1D5FE8',
@@ -75,16 +75,49 @@ const CR_DARK: CrPalette = {
   whatsapp: '#25C364',
 };
 
-export const CR: CrPalette = themedTokens(CR_LIGHT, CR_DARK);
+/**
+ * Owner, 10 Nov 2026 ("fix one perfect non ai color", chose "Match rest of app"): Co-Ride wears the app's diet look -
+ * light red (Non-veg) / light green (Veg) band, white cards, the one diet accent (utils/themeNow dietTokens). The blue
+ * brand roles take the diet; meaning colours (mint Shared auto, green, amber, red, star, WhatsApp) keep their values.
+ */
+function crDiet(d: DietTokens, dark: boolean): CrPalette {
+  const base = dark ? CR_DARK : CR_LIGHT;
+  // Filled buttons carry white text: in dark mode the bright accent is taken a step deeper so the label reads.
+  const fill = dark ? mixHex(d.acc, '#000000', 0.3) : d.acc;
+  return {
+    ...base,
+    primary: fill,
+    primaryDeep: dark ? mixHex(fill, '#000000', 0.12) : d.accDeep,
+    primarySoft: dark ? mixHex(fill, '#FFFFFF', 0.08) : mixHex(d.acc, '#FFFFFF', 0.1),
+    primaryLight: mixHex(fill, '#FFFFFF', 0.25),
+    ink: dark ? base.ink : mixHex('#17171F', d.dk, 0.35),
+    ink2: dark ? base.ink2 : '#3E404C',
+    muted: dark ? base.muted : '#7B7F8E',
+    faint: dark ? base.faint : '#A7AAB6',
+    line: dark ? mixHex(d.card, '#FFFFFF', 0.08) : d.line,
+    lineSoft: dark ? mixHex(d.card, '#FFFFFF', 0.05) : mixHex(d.line, '#FFFFFF', 0.45),
+    page: d.page,
+    // Starts in the page colour: the selected folder tab above flows straight into it (owner, 10 Nov 2026).
+    heroTop: d.page,
+    heroBottom: dark ? mixHex(d.top, d.page, 0.5) : d.sel,
+    card: d.card,
+    field: dark ? mixHex(d.card, '#FFFFFF', 0.05) : '#F4F4F6',
+    tint: dark ? mixHex(d.card, d.acc, 0.14) : d.soft,
+    tint2: dark ? mixHex(d.card, d.acc, 0.22) : mixHex(d.soft, d.un, 0.6),
+    tintInk: dark ? d.acc : d.accDeep,
+  };
+}
+
+export const CR: CrPalette = dietTokens(crDiet);
 
 export const R = { sm: 10, md: 14, lg: 16, xl: 20, pill: 999 } as const;
 export const GUTTER = 16;
 export const W = { title: '600', label: '500', body: '400' } as const;
 
 export const shadow = (level: 1 | 2 = 1): ViewStyle => Platform.select({
-  web: { boxShadow: level === 1 ? '0 3px 14px rgba(20,44,110,0.06)' : '0 10px 28px rgba(20,44,110,0.12)' } as ViewStyle,
+  web: { boxShadow: level === 1 ? '0 3px 14px rgba(43,30,34,0.06)' : '0 10px 28px rgba(43,30,34,0.12)' } as ViewStyle,
   default: {
-    shadowColor: '#142C6E',
+    shadowColor: '#2B1E22',
     shadowOpacity: level === 1 ? 0.07 : 0.13,
     shadowRadius: level === 1 ? 12 : 20,
     shadowOffset: { width: 0, height: level === 1 ? 4 : 8 },

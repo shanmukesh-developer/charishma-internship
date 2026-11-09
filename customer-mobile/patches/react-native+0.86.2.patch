@@ -1,0 +1,33 @@
+diff --git a/node_modules/react-native/Libraries/Text/Text.js b/node_modules/react-native/Libraries/Text/Text.js
+--- a/node_modules/react-native/Libraries/Text/Text.js
++++ b/node_modules/react-native/Libraries/Text/Text.js
+@@ -553,4 +553,11 @@ const styles = StyleSheet.create({
+   },
+ });
+ 
+-export default TextImpl;
++// ZenWe: app-wide font and text size (customer-mobile/utils/appText.ts sets globalThis.__zenweTextStyle).
++function ZenWeAppText(props: any): React.Node {
++  const apply = (globalThis: any).__zenweTextStyle;
++  if (typeof apply !== 'function') return <TextImpl {...props} />;
++  return <TextImpl {...props} style={apply(props.style)} />;
++}
++ZenWeAppText.displayName = 'Text';
++export default (ZenWeAppText: any);
+diff --git a/node_modules/react-native/Libraries/Components/TextInput/TextInput.js b/node_modules/react-native/Libraries/Components/TextInput/TextInput.js
+--- a/node_modules/react-native/Libraries/Components/TextInput/TextInput.js
++++ b/node_modules/react-native/Libraries/Components/TextInput/TextInput.js
+@@ -990,4 +990,12 @@ const verticalAlignToTextAlignVerticalMap = {
+ } as const;
+ 
+ // $FlowFixMe[unclear-type] Unclear type. Using `any` type is not safe.
+-export default TextInput as any as TextInputType;
++// ZenWe: app-wide font and text size (customer-mobile/utils/appText.ts sets globalThis.__zenweTextStyle).
++function ZenWeAppTextInput(props: any): React.Node {
++  const apply = (globalThis: any).__zenweTextStyle;
++  if (typeof apply !== 'function') return <TextInput {...props} />;
++  return <TextInput {...props} style={apply(props.style)} />;
++}
++ZenWeAppTextInput.displayName = 'TextInput';
++(ZenWeAppTextInput: any).State = (TextInput: any).State;
++export default ZenWeAppTextInput as any as TextInputType;

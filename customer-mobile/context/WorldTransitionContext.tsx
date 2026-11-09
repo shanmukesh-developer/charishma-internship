@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { playSound, resumeAudio } from '../utils/sounds';
+import { fixedDietTokens } from '../utils/themeNow';
 
 export type WorldType = 'food' | 'pg' | 'bikepool' | 'others' | 'comms';
 
@@ -9,13 +10,15 @@ interface WorldTheme {
   colors: string[];
 }
 
-export const WORLD_THEMES: Record<WorldType, WorldTheme> = {
+// Owner, 10 Nov 2026: one look - PG and Co-Ride open on the diet accent (was indigo / emerald), Groceries on its own
+// green header colour (was violet -> pink). Food and Campus keep their warm art gradients.
+export const WORLD_THEMES: Record<WorldType, WorldTheme> = fixedDietTokens(false, (d): Record<WorldType, WorldTheme> => ({
   food: { label: 'Food', colors: ['#EF4F5F', '#F5A623'] },
-  pg: { label: 'PG stays', colors: ['#6366F1', '#4F46E5'] },
-  bikepool: { label: 'Co-Ride', colors: ['#10B981', '#059669'] },
-  others: { label: 'Groceries', colors: ['#8B5CF6', '#EC4899'] },
+  pg: { label: 'PG stays', colors: [d.acc, d.accDeep] },
+  bikepool: { label: 'Co-Ride', colors: [d.acc, d.accDeep] },
+  others: { label: 'Groceries', colors: ['#1E8E3E', '#146C2E'] },
   comms: { label: 'Campus', colors: ['#F43F5E', '#FB923C'] },
-};
+}));
 
 interface WorldTransitionContextType {
   isTransitioning: boolean;

@@ -6,6 +6,7 @@ import { FriendsHeader } from '../shared/FriendsUi';
 import { taskErrorMessage, toneColor, toneSoft } from './tasksShared';
 import type { TaskReputation } from '../api/tasksApi';
 
+import { themedSheet } from '../../../../utils/themeNow';
 /** Header for screens inside the Tasks stack. */
 export const TaskHeader: React.FC<{ title: string; subtitle?: string | null; onBack: () => void; right?: React.ReactNode }> = (props) => (
   <FriendsHeader {...props} section="tasks" />
@@ -99,13 +100,13 @@ export const ErrorBox: React.FC<{ message: string | null }> = ({ message }) =>
     </View>
   ) : null;
 
-export const taskUi = StyleSheet.create({
+export const taskUi = themedSheet(() => ({
   section: { fontSize: 12, fontWeight: '800', letterSpacing: 0.8, color: FriendsColors.muted, textTransform: 'uppercase', marginBottom: FS.sm },
   label: { fontSize: 12, fontWeight: '800', letterSpacing: 0.4, color: FriendsColors.muted, marginBottom: 6, marginTop: FS.lg },
   counter: { fontSize: 12, color: FriendsColors.faint, textAlign: 'right', marginTop: 4 },
-});
+}));
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -136,4 +137,4 @@ const styles = StyleSheet.create({
   softText: { flex: 1, fontSize: 12, fontWeight: '600', color: FriendsColors.warn },
   errorBox: { marginTop: FS.md, padding: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.dangerSoft },
   errorText: { fontSize: 13, lineHeight: 18, fontWeight: '600', color: FriendsColors.danger },
-});
+}));

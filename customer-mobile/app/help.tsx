@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from '
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
-import { COLORS } from '../constants/theme';
+import { useDietLight } from '../components/local/dietLightTheme';
 import { HELP_FAQ } from '../constants/helpFaq';
 import { useTopInset } from '../utils/useTopInset';
 import { useSWRJson } from '../utils/swrCache';
@@ -14,6 +14,7 @@ export default function HelpScreen() {
   const topPad = useTopInset();
   const router = useRouter();
   const { isDark, colors } = useTheme();
+  const d = useDietLight();
   const [open, setOpen] = useState<string | null>(null);
   // The Campus answers point at the Campus button on Home, which is hidden while the admins have Campus switched off
   // (GET /api/config/sections campus.live; until its launch after Sankranti, 3 Nov 2026): hide them meanwhile.
@@ -21,25 +22,26 @@ export default function HelpScreen() {
   const campusOff = sectionsSWR.data?.sections?.campus?.live === false;
   const faq = campusOff ? HELP_FAQ.filter((section) => section.title !== 'Campus') : HELP_FAQ;
 
-  const bg = colors.bg;
-  const cardBg = colors.card;
+  // Owner, 10 Nov 2026: the app's one diet look (light band header, diet page, white cards, the diet accent).
+  const bg = d.page;
+  const cardBg = d.card;
   const txt = colors.text;
   const txtSec = colors.textSecondary;
   const border = colors.border;
-  const accent = isDark ? COLORS.gold : colors.gold;
+  const accent = d.acc;
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)/profile' as any));
 
   return (
-    <View style={[s.container, { paddingTop: topPad, backgroundColor: bg }]}>
-      <View style={[s.header, { borderBottomColor: border }]}>
-        <TouchableOpacity style={[s.backBtn, { borderColor: border }]} onPress={goBack} accessibilityRole="button" accessibilityLabel="Back">
-          <Ionicons name="chevron-back" size={18} color={txt} />
+    <View style={[s.container, { paddingTop: topPad, backgroundColor: d.top }]}>
+      <View style={[s.header, { borderBottomColor: d.top }]}>
+        <TouchableOpacity style={[s.backBtn, { borderColor: d.line, backgroundColor: d.card }]} onPress={goBack} accessibilityRole="button" accessibilityLabel="Back">
+          <Ionicons name="chevron-back" size={18} color={d.dk} />
         </TouchableOpacity>
-        <Text style={[s.title, { color: txt }]} accessibilityRole="header">Help and FAQ</Text>
+        <Text style={[s.title, { color: d.dk }]} accessibilityRole="header">Help and FAQ</Text>
       </View>
 
-      <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ backgroundColor: bg }} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
         {faq.map((section) => (
           <View key={section.title} style={s.section}>
             <Text style={[s.sectionTitle, { color: txtSec }]} accessibilityRole="header">{section.title}</Text>

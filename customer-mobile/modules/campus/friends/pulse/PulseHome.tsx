@@ -20,6 +20,7 @@ import { PulseNav, PulseNavContext, PulseRoute, PulseComposerRequest } from './p
 import { itemKey, pulseBus, pulseCache } from './pulseShared';
 import { usePulsePaged } from './usePulsePaged';
 
+import { themedSheet } from '../../../../utils/themeNow';
 export interface PulseHomeProps extends LegacyPulseProps {
   /** Pulse is on for this student (/friends/eligibility features.pulse). */
   enabled: boolean;
@@ -444,7 +445,7 @@ const PulseFeedHome: React.FC<PulseHomeProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   root: { flex: 1, backgroundColor: FriendsColors.bg },
   layer: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: FriendsColors.bg },
   hidden: { display: 'none' },
@@ -484,4 +485,4 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     elevation: 8,
   },
-});
+}));

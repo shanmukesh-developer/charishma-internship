@@ -60,6 +60,7 @@ import { DisputeSheet, ReasonSheet, ReputationStars, TaskReviewSheet } from './T
 import { TaskTimeline } from './TaskTimeline';
 import { useTasksNav } from './tasksNav';
 
+import { themedSheet } from '../../../../utils/themeNow';
 type SheetKind = null | 'apply' | 'submit' | 'reject' | 'cancel' | 'dispute' | 'review' | 'applications' | 'upi' | 'menu';
 
 const has = (t: Task | null, a: TaskAction) => !!t && t.actions.includes(a);
@@ -745,7 +746,7 @@ const ReviewRow: React.FC<{ label: string; review: { rating: number; text: strin
   </View>
 );
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   round: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   stale: { padding: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.warnSoft, minHeight: 44, justifyContent: 'center' },
   hero: {
@@ -775,4 +776,4 @@ const styles = StyleSheet.create({
   link: { fontSize: 14, fontWeight: '800', color: FriendsColors.accent },
   reviewRow: { padding: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.cardHi },
   viewer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', alignItems: 'center', justifyContent: 'center' },
-});
+}));

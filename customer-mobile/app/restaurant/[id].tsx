@@ -15,6 +15,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, SHADOWS, surfaceLift } from '../../constants/theme';
+import { useDietLight } from '../../components/local/dietLightTheme';
+import { mixHex } from '../../utils/themeNow';
 import { API_URL } from '../../constants/api';
 import { apiFetch } from '../../utils/auth';
 import NightClosureBanner from '../../components/NightClosureBanner';
@@ -104,6 +106,9 @@ const MenuAddControl = React.memo(function MenuAddControl({ itemId, soldOut, cus
 }) {
   const { cart } = useCartState();
   const { updateQuantity } = useCartActions();
+  const { isDark: dark } = useTheme();
+  // Solid soft tint of the store's accent (no see-through fill under the card shadow on Android).
+  const tintSoft = /^#[0-9a-f]{6}$/i.test(tint) ? mixHex(tint, dark ? '#000000' : '#FFFFFF', dark ? 0.8 : 0.92) : '#FFF5F6';
   const qtyInCart = cart.reduce((acc, c) => (String(c.id) === itemId ? acc + c.quantity : acc), 0);
   const plainLine = cart.find((c) => c.cartKey === itemId);
   return (
@@ -140,8 +145,8 @@ const MenuAddControl = React.memo(function MenuAddControl({ itemId, soldOut, cus
         style={[
           st.menuAddBtn,
           isAdded
-            ? { backgroundColor: '#EF4F5F', borderColor: '#EF4F5F' }
-            : { backgroundColor: '#FFF5F6', borderColor: '#EF4F5F' },
+            ? { backgroundColor: tint, borderColor: tint }
+            : { backgroundColor: tintSoft, borderColor: tint },
           blocked && { backgroundColor: '#F3F4F6', borderColor: '#9CA3AF' },
         ]}
         onPress={onAdd}
@@ -149,7 +154,7 @@ const MenuAddControl = React.memo(function MenuAddControl({ itemId, soldOut, cus
       >
         <Text style={[
           st.menuAddBtnText,
-          isAdded ? { color: '#fff' } : { color: '#EF4F5F' },
+          isAdded ? { color: '#fff' } : { color: tint },
           blocked && { color: '#6B7280' },
         ]}>
           {isAdded ? 'Added' : closed ? 'Closed' : eliteLocked ? 'Elite' : customizable && qtyInCart > 0 ? `Add (${qtyInCart})` : 'Add'}
@@ -170,7 +175,7 @@ const RestaurantFloatingCart = React.memo(function RestaurantFloatingCart({ tint
   return (
     <FloatingPulse color={tint} style={st.floatingCartContainer}>
       <DopaminePressable
-        style={[st.floatingCart, { backgroundColor: tint, width: '100%' }]}
+        style={[st.floatingCart, { backgroundColor: tint, shadowColor: tint, width: '100%' }]}
         onPress={() => onOpen(kind)}
         accessibilityRole="button"
         accessibilityLabel={`View basket, ${plural(totalItems, 'item')}, item total ${formatINR(totalPrice)}`}
@@ -205,6 +210,10 @@ export default function RestaurantDetail() {
   const { user } = useAuth();
   const { isDark, colors } = useTheme();
   const { dietMode, setDietMode, isItemAllowed } = useDietary();
+  // Owner, 10 Nov 2026: the store page wears the diet accent (red Non-veg / green Veg); in dark a deeper step so
+  // white text on it stays readable. A partner's own brand accent (brandTheme) still wins.
+  const diet = useDietLight();
+  const dFill = diet.isDark ? mixHex(diet.acc, '#000000', 0.3) : diet.acc;
 
   // Instant first paint: this store's last good response, or its entry in the cached home list
   // (which carries the menu). The network refresh below replaces it a moment later.
@@ -368,8 +377,8 @@ export default function RestaurantDetail() {
 
   if (loading) {
     return (
-      <View style={[st.container, st.center, { backgroundColor: isDark ? '#08090C' : COLORS.bgLight, padding: 24 }]}>
-        <ActivityIndicator size="large" color={isDark ? COLORS.gold : COLORS.red} />
+      <View style={[st.container, st.center, { backgroundColor: isDark ? '#08090C' : diet.pageDeep, padding: 24 }]}>
+        <ActivityIndicator size="large" color={diet.acc} />
         <Text style={{ color: isDark ? 'rgba(255,255,255,0.6)' : COLORS.textSecondary, fontSize: 12, fontWeight: '800', letterSpacing: 0.2, marginTop: 16 }}>
           Loading menu…
         </Text>
@@ -380,7 +389,7 @@ export default function RestaurantDetail() {
   if (!restaurant) {
     const notFound = !!loadError?.notFound;
     return (
-      <View style={[st.container, { backgroundColor: isDark ? '#08090C' : COLORS.bgLight, paddingTop: topPad, paddingHorizontal: 20 }]}>
+      <View style={[st.container, { backgroundColor: isDark ? '#08090C' : diet.pageDeep, paddingTop: topPad, paddingHorizontal: 20 }]}>
         <TouchableOpacity
           style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E5E7EB', alignItems: 'center', justifyContent: 'center', marginBottom: 30 }}
           accessibilityRole="button"
@@ -399,17 +408,17 @@ export default function RestaurantDetail() {
           </Text>
           {!notFound && (
             <TouchableOpacity
-              style={{ backgroundColor: COLORS.red, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 16, marginBottom: 12, ...SHADOWS.redGlow }}
+              style={{ backgroundColor: dFill, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 16, marginBottom: 12, ...SHADOWS.redGlow, shadowColor: dFill }}
               onPress={() => loadRestaurant('initial')}
             >
               <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '900' }}>Try again</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity
-            style={{ paddingHorizontal: 24, paddingVertical: 12, borderRadius: 16, borderWidth: 1, borderColor: COLORS.red }}
+            style={{ paddingHorizontal: 24, paddingVertical: 12, borderRadius: 16, borderWidth: 1, borderColor: diet.acc }}
             onPress={() => goHome(router)}
           >
-            <Text style={{ color: COLORS.red, fontSize: 13, fontWeight: '900' }}>Back to Home</Text>
+            <Text style={{ color: diet.acc, fontSize: 13, fontWeight: '900' }}>Back to Home</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -418,7 +427,7 @@ export default function RestaurantDetail() {
 
   // Partner branding set by the admin (Restaurant.brandTheme)
   const brand = parseJson(restaurant.brandTheme);
-  const accent = brand ? (brand.accentColor || (isDark ? COLORS.gold : colors.gold)) : (isDark ? COLORS.gold : COLORS.red);
+  const accent = brand ? (brand.accentColor || dFill) : dFill;
   const txt = brand ? (brand.fontColor || '#fff') : colors.text;
   const txtSec = brand ? (brand.fontColor ? brand.fontColor + 'B0' : colors.textSecondary) : colors.textSecondary;
   const cardBg = brand ? 'rgba(0,0,0,0.6)' : colors.card;
@@ -557,21 +566,21 @@ export default function RestaurantDetail() {
           end={{ x: 1, y: 1 }}
         />
       ) : (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: isDark ? colors.bg : COLORS.bgLight }} />
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: isDark ? colors.bg : diet.pageDeep }} />
       )}
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         onScroll={onMenuScroll}
         scrollEventThrottle={200}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadRestaurant('refresh'); }} tintColor={accent} colors={[COLORS.red]} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadRestaurant('refresh'); }} tintColor={accent} colors={[accent]} />}
       >
         {/* Hero Banner */}
         <View style={st.hero}>
           {heroImg ? (
             <SafeImage source={{ uri: heroImg }} style={st.heroImg} maxWidth={800} placeholderIcon="storefront-outline" />
           ) : (
-            <View style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? '#1A1A1F' : '#FDE8EA' }}>
+            <View style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? '#1A1A1F' : diet.top }}>
               <Ionicons name={isLocalVendor || !isFoodStore ? 'storefront-outline' : 'restaurant-outline'} size={64} color={isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.25)'} />
             </View>
           )}
@@ -631,7 +640,7 @@ export default function RestaurantDetail() {
                   <Text style={[st.infoCardDesc, { color: txtSec, marginBottom: 0 }]} numberOfLines={descOpen ? undefined : 3}>{intro}</Text>
                 )}
                 {hasMore && (
-                  <Text onPress={() => setDescOpen((v) => !v)} style={{ color: brand ? accent : '#EF4F5F', fontSize: 12, fontWeight: '800', marginTop: 4 }} accessibilityRole="button">
+                  <Text onPress={() => setDescOpen((v) => !v)} style={{ color: accent, fontSize: 12, fontWeight: '800', marginTop: 4 }} accessibilityRole="button">
                     {descOpen ? 'Less' : 'More'}
                   </Text>
                 )}
@@ -731,7 +740,7 @@ export default function RestaurantDetail() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10 }} contentContainerStyle={{ paddingHorizontal: 16 }}>
             {shopChips.map((f) => {
               const on = shopFilter === f.key;
-              const activeBg = brand ? accent : '#EF4F5F';
+              const activeBg = accent;
               return (
                 <DopaminePressable
                   key={f.key}
@@ -743,7 +752,7 @@ export default function RestaurantDetail() {
                   accessibilityState={{ selected: on }}
                   accessibilityLabel={`Filter: ${f.label}`}
                 >
-                  <Ionicons name={f.icon} size={13} color={on ? '#FFF' : f.tint} />
+                  <Ionicons name={f.icon} size={13} color={on ? '#FFF' : f.key === 'under99' ? accent : f.tint} />
                   <Text style={[st.categoryText, { color: on ? '#FFF' : txt }]} maxFontSizeMultiplier={1.3}>{f.label}</Text>
                   {on ? <Ionicons name="close" size={12} color="#FFF" /> : null}
                 </DopaminePressable>
@@ -763,7 +772,7 @@ export default function RestaurantDetail() {
                   style={[
                     st.categoryPill,
                     { backgroundColor: cardBg, borderColor: border },
-                    isActive ? { backgroundColor: brand ? accent : '#EF4F5F', borderColor: brand ? accent : '#EF4F5F' } : {}
+                    isActive ? { backgroundColor: accent, borderColor: accent } : {}
                   ]}
                   onPress={() => setActiveCategory(cat)}
                   sound="tabSwitch"
@@ -792,7 +801,7 @@ export default function RestaurantDetail() {
               <Text style={{ color: txtSec, fontSize: 12, marginTop: 4, textAlign: 'center', lineHeight: 16 }}>
                 {`Nothing on this menu matches "${menuSearch.trim()}". Try another word.`}
               </Text>
-              <TouchableOpacity style={[st.emptyMenuBtn, { backgroundColor: brand ? accent : '#EF4F5F' }]} onPress={() => setMenuSearch('')}>
+              <TouchableOpacity style={[st.emptyMenuBtn, { backgroundColor: accent }]} onPress={() => setMenuSearch('')}>
                 <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '900' }}>Clear search</Text>
               </TouchableOpacity>
             </View>
@@ -802,7 +811,7 @@ export default function RestaurantDetail() {
             <View style={[st.emptyMenu, { backgroundColor: cardBg, borderColor: border }]}>
               <Ionicons name="filter-outline" size={36} color={txtSec} style={{ marginBottom: 8 }} />
               <Text style={{ color: txt, fontSize: 14, fontWeight: '800', textAlign: 'center' }}>{`No ${shopFilterLabel.toLowerCase()} items${activeCategory !== 'All' ? ` in ${activeCategory}` : ''}`}</Text>
-              <TouchableOpacity style={[st.emptyMenuBtn, { backgroundColor: brand ? accent : '#EF4F5F' }]} onPress={() => setShopFilter('all')}>
+              <TouchableOpacity style={[st.emptyMenuBtn, { backgroundColor: accent }]} onPress={() => setShopFilter('all')}>
                 <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '900' }}>Show all items</Text>
               </TouchableOpacity>
             </View>
@@ -820,7 +829,7 @@ export default function RestaurantDetail() {
                   : 'This store is still adding items. Check back later.'}
               </Text>
               {hiddenByDiet > 0 && dietMode !== 'all' && (
-                <TouchableOpacity style={[st.emptyMenuBtn, { backgroundColor: brand ? accent : '#EF4F5F' }]} onPress={() => setDietMode('all')}>
+                <TouchableOpacity style={[st.emptyMenuBtn, { backgroundColor: accent }]} onPress={() => setDietMode('all')}>
                   <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '900' }}>Show all items</Text>
                 </TouchableOpacity>
               )}
@@ -863,13 +872,13 @@ export default function RestaurantDetail() {
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4, marginBottom: 2 }}>
                       {item.tags.map((t: any) => String(t || '').trim()).filter(Boolean).slice(0, 3).map((t: string) => (
                         <View key={t} style={{ borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, backgroundColor: isDark ? 'rgba(239,79,95,0.16)' : 'rgba(239,79,95,0.10)' }}>
-                          <Text style={{ fontSize: 11, fontWeight: '800', color: brand ? accent : '#EF4F5F' }} numberOfLines={1} maxFontSizeMultiplier={1.2}>{t.length > 22 ? `${t.slice(0, 21)}…` : t}</Text>
+                          <Text style={{ fontSize: 11, fontWeight: '800', color: accent }} numberOfLines={1} maxFontSizeMultiplier={1.2}>{t.length > 22 ? `${t.slice(0, 21)}…` : t}</Text>
                         </View>
                       ))}
                     </View>
                   ) : null}
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginVertical: 2, flexWrap: 'wrap' }}>
-                    <Text style={[st.menuItemPrice, { color: brand ? accent : '#EF4F5F' }]}>{formatINR(variantGroup ? (fromPrice(optionGroups) ?? item.price) : item.price)}</Text>
+                    <Text style={[st.menuItemPrice, { color: accent }]}>{formatINR(variantGroup ? (fromPrice(optionGroups) ?? item.price) : item.price)}</Text>
                     {Number.isFinite(kcal) && kcal > 0 && (
                       <Text style={{ fontSize: 12, color: txtSec, fontWeight: '700' }}>· {Math.round(kcal)} kcal</Text>
                     )}
@@ -901,7 +910,7 @@ export default function RestaurantDetail() {
                       blocked={!orderable || eliteLocked || stallOffline}
                       closed={!orderable || stallOffline}
                       eliteLocked={eliteLocked}
-                      tint={brand ? accent : '#EF4F5F'}
+                      tint={accent}
                       onAdd={() => handleAddToCart(item)}
                     />
                   </View>
@@ -912,7 +921,7 @@ export default function RestaurantDetail() {
           })}
           {filteredMenu.length > menuLimit && (
             <View style={{ alignItems: 'center', paddingVertical: 12 }}>
-              <ActivityIndicator size="small" color={brand ? accent : '#EF4F5F'} />
+              <ActivityIndicator size="small" color={accent} />
             </View>
           )}
         </View>
@@ -920,7 +929,7 @@ export default function RestaurantDetail() {
       </ScrollView>
 
       {/* Floating Basket Bar (own component: re-renders alone when the basket changes) */}
-      <RestaurantFloatingCart tint={brand ? accent : '#EF4F5F'} kind={basketKindOf({ isStall: isLocalVendor, vendorType: restaurant.vendorType })} onOpen={openBasket} />
+      <RestaurantFloatingCart tint={accent} kind={basketKindOf({ isStall: isLocalVendor, vendorType: restaurant.vendorType })} onOpen={openBasket} />
 
       {customizingItem && (
         <CustomizeDrawer
@@ -934,7 +943,7 @@ export default function RestaurantDetail() {
           isVegetarian={isVegItem(customizingItem)}
         />
       )}
-      {pastHero ? <StatusBarScrim color={brand ? (brand.primaryColor || '#1A0000') : isDark ? colors.bg : COLORS.bgLight} /> : null}
+      {pastHero ? <StatusBarScrim color={brand ? (brand.primaryColor || '#1A0000') : isDark ? colors.bg : diet.pageDeep} /> : null}
     </View>
   );
 }

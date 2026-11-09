@@ -221,7 +221,7 @@ export const k = themedSheet(() => ({
   card: { backgroundColor: CR.card, borderRadius: R.lg, ...shadow(1) },
   iconBtn: { alignItems: 'center', justifyContent: 'center' },
   dot: { position: 'absolute', top: 9, right: 10, width: 7, height: 7, borderRadius: 4, backgroundColor: '#E5484D', borderWidth: 1.5, borderColor: CR.card },
-  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(11,26,74,0.38)' },
+  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(18,12,14,0.38)' },
   sheet: { backgroundColor: CR.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 8, maxHeight: '92%' },
   grabber: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: CR.line, marginBottom: 6 },
   sheetHead: { flexDirection: 'row', alignItems: 'center', paddingLeft: GUTTER + 4, paddingRight: GUTTER - 4, paddingVertical: 6 },

@@ -18,6 +18,7 @@ import { FriendsButton } from './FriendsUi';
 import { LinearGradient } from 'expo-linear-gradient';
 import { formatLocal } from './RelativeTime';
 
+import { themedSheet } from '../../../../utils/themeNow';
 /** Plain-language copy for each eligibility reason (most fundamental first). */
 const REASON_COPY: Record<FriendsReason, { title: string; body: string }> = {
   ACCOUNT_SUSPENDED: {
@@ -223,7 +224,7 @@ export const GuidelinesGate: React.FC<{
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   icon: {
     width: 72,
     height: 72,
@@ -237,4 +238,4 @@ const styles = StyleSheet.create({
   acceptedRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   errorBox: { marginTop: FS.lg, padding: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.dangerSoft },
   errorText: { fontSize: 13, lineHeight: 18, fontWeight: '600', color: FriendsColors.danger },
-});
+}));

@@ -1,5 +1,5 @@
 /**
- * Event detail pieces (night look): organiser row, the glass info card (when, where + map link, seats left with a
+ * Event detail pieces (diet look): organiser row, the glass info card (when, where + map link, seats left with a
  * fill bar, registration window), the price card (fees + how you can pay), agenda, text blocks and updates.
  */
 import React from 'react';
@@ -7,6 +7,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { fmtRange, fmtWhen, inr, teamSizeLabel, type Announcement, type PaymentMode } from '../campusEvents/campusEventsApi';
 import { NIGHT, QUICK, W } from './eventsV2Theme';
+import { themedSheet } from '../../utils/themeNow';
 import { Glass, IconSquare, Press } from './EventsV2Kit';
 import { IArmchair, IBadgeCheck, IBanknote, ICalendar, IClock, IMegaphone, INavigation, IPin, IUsers, IWallet } from './EventsV2Icons';
 import type { EvEvent } from './eventsV2Demo';
@@ -58,8 +59,8 @@ export function InfoCard({ ev, onMap }: { ev: EvEvent; onMap: () => void }) {
   const unit = c?.kind === 'TEAMS' ? 'team places' : 'seats';
   return (
     <Glass style={{ padding: 14, gap: 4 }} index={1}>
-      <InfoRow colors={QUICK.regs} icon={<ICalendar size={18} color="#FFFFFF" strokeWidth={1.8} />} label="Date and time" value={fmtRange(ev.startAt, ev.endAt)} />
-      <InfoRow colors={QUICK.create} icon={<IPin size={18} color="#FFFFFF" strokeWidth={1.8} />} label="Venue" value={ev.venue || 'Venue to be announced'} extra={ev.venueDirections}>
+      <InfoRow colors={QUICK.regs} icon={<ICalendar size={18} color={NIGHT.onAcc} strokeWidth={1.8} />} label="Date and time" value={fmtRange(ev.startAt, ev.endAt)} />
+      <InfoRow colors={QUICK.create} icon={<IPin size={18} color={NIGHT.onAcc} strokeWidth={1.8} />} label="Venue" value={ev.venue || 'Venue to be announced'} extra={ev.venueDirections}>
         {ev.venue ? (
           <Press onPress={onMap} label="Open the venue in maps" style={s.mapBtn} scaleTo={0.95}>
             <INavigation size={13} color={NIGHT.violet} strokeWidth={1.9} />
@@ -68,14 +69,14 @@ export function InfoCard({ ev, onMap }: { ev: EvEvent; onMap: () => void }) {
         ) : null}
       </InfoRow>
       {seats ? (
-        <InfoRow colors={QUICK.checkin} icon={<IArmchair size={18} color="#FFFFFF" strokeWidth={1.8} />} label="Seats" value={seats.remaining != null ? (seats.remaining > 0 ? `${seats.remaining} of ${seats.capacity} ${unit} left` : `All ${unit} taken`) : `${seats.capacity} ${unit}`} extra={seats.waitlistCount ? `${seats.waitlistCount} on the waitlist` : null}>
+        <InfoRow colors={QUICK.checkin} icon={<IArmchair size={18} color={NIGHT.onAcc} strokeWidth={1.8} />} label="Seats" value={seats.remaining != null ? (seats.remaining > 0 ? `${seats.remaining} of ${seats.capacity} ${unit} left` : `All ${unit} taken`) : `${seats.capacity} ${unit}`} extra={seats.waitlistCount ? `${seats.waitlistCount} on the waitlist` : null}>
           {pct != null ? <View style={s.track}><LinearGradient colors={[NIGHT.violet, NIGHT.pink]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ width: `${Math.round(pct * 100)}%`, height: '100%', borderRadius: 3 }} /></View> : null}
         </InfoRow>
       ) : null}
-      {ev.format === 'SLOT' ? <InfoRow colors={QUICK.checkin} icon={<IClock size={18} color="#FFFFFF" strokeWidth={1.8} />} label="Time slots" value={`Pick a slot on the next step · up to ${ev.maxBookingsPerStudent} per student`} /> : null}
-      {ev.team ? <InfoRow colors={QUICK.tickets} icon={<IUsers size={18} color="#FFFFFF" strokeWidth={1.8} />} label="Team event" value={teamSizeLabel(ev.team.min, ev.team.max)} extra={ev.team.maxTeams ? `${ev.team.maxTeams} teams max` : null} /> : null}
+      {ev.format === 'SLOT' ? <InfoRow colors={QUICK.checkin} icon={<IClock size={18} color={NIGHT.onAcc} strokeWidth={1.8} />} label="Time slots" value={`Pick a slot on the next step · up to ${ev.maxBookingsPerStudent} per student`} /> : null}
+      {ev.team ? <InfoRow colors={QUICK.tickets} icon={<IUsers size={18} color={NIGHT.onAcc} strokeWidth={1.8} />} label="Team event" value={teamSizeLabel(ev.team.min, ev.team.max)} extra={ev.team.maxTeams ? `${ev.team.maxTeams} teams max` : null} /> : null}
       {ev.regClosesAt || ev.regOpensAt ? (
-        <InfoRow colors={QUICK.tickets} icon={<IClock size={18} color="#FFFFFF" strokeWidth={1.8} />} label="Registration" value={`${ev.regOpensAt && new Date(ev.regOpensAt).getTime() > Date.now() ? `Opens ${fmtWhen(ev.regOpensAt)}` : 'Open now'}${ev.regClosesAt ? ` · closes ${fmtWhen(ev.regClosesAt)}` : ''}`} />
+        <InfoRow colors={QUICK.tickets} icon={<IClock size={18} color={NIGHT.onAcc} strokeWidth={1.8} />} label="Registration" value={`${ev.regOpensAt && new Date(ev.regOpensAt).getTime() > Date.now() ? `Opens ${fmtWhen(ev.regOpensAt)}` : 'Open now'}${ev.regClosesAt ? ` · closes ${fmtWhen(ev.regClosesAt)}` : ''}`} />
       ) : null}
     </Glass>
   );
@@ -164,10 +165,10 @@ export function Updates({ list }: { list: Announcement[] }) {
   );
 }
 
-const s = StyleSheet.create({
+const s = themedSheet(() => ({
   org: { flexDirection: 'row', alignItems: 'center', marginTop: 16, marginBottom: 14 },
-  orgAvatar: { width: 46, height: 46, borderRadius: 23, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.45)' },
-  orgInitials: { color: '#FFFFFF', fontSize: 15, fontWeight: W.title },
+  orgAvatar: { width: 46, height: 46, borderRadius: 23, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: NIGHT.accLine },
+  orgInitials: { color: NIGHT.onAcc, fontSize: 15, fontWeight: W.title },
   orgBy: { color: NIGHT.faint, fontSize: 11.5 },
   orgName: { color: NIGHT.ink, fontSize: 15, fontWeight: W.title, flexShrink: 1 },
   orgSub: { color: NIGHT.sub, fontSize: 12, marginTop: 1 },
@@ -175,9 +176,9 @@ const s = StyleSheet.create({
   infoLabel: { color: NIGHT.faint, fontSize: 11.5 },
   infoValue: { color: NIGHT.ink, fontSize: 14, fontWeight: W.label, marginTop: 1, lineHeight: 19 },
   infoExtra: { color: NIGHT.sub, fontSize: 12, marginTop: 2 },
-  mapBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', marginTop: 6, height: 30, paddingHorizontal: 11, borderRadius: 15, backgroundColor: 'rgba(167,139,250,0.14)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(167,139,250,0.45)' },
-  mapText: { color: '#DCD2FF', fontSize: 12, fontWeight: W.label },
-  track: { height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.1)', marginTop: 7, overflow: 'hidden' },
+  mapBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', marginTop: 6, height: 30, paddingHorizontal: 11, borderRadius: 15, backgroundColor: NIGHT.accSoft, borderWidth: StyleSheet.hairlineWidth, borderColor: NIGHT.accLine },
+  mapText: { color: NIGHT.accInk, fontSize: 12, fontWeight: W.label },
+  track: { height: 6, borderRadius: 3, backgroundColor: NIGHT.track, marginTop: 7, overflow: 'hidden' },
   cardTitle: { color: NIGHT.ink, fontSize: 15, fontWeight: W.title, marginBottom: 8 },
   body: { color: NIGHT.sub, fontSize: 13, lineHeight: 19 },
   line: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 4 },
@@ -187,10 +188,10 @@ const s = StyleSheet.create({
   payChip: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 30, paddingHorizontal: 11, borderRadius: 15, backgroundColor: NIGHT.glass, borderWidth: StyleSheet.hairlineWidth, borderColor: NIGHT.line },
   payText: { color: NIGHT.ink, fontSize: 12, fontWeight: W.label },
   agRow: { flexDirection: 'row' },
-  agDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: NIGHT.violet, borderWidth: 2, borderColor: '#E4DBFF', marginTop: 3 },
-  agLine: { flex: 1, width: 2, backgroundColor: 'rgba(167,139,250,0.35)', marginTop: 2 },
-  agTime: { color: NIGHT.violet, fontSize: 12, fontWeight: W.label },
+  agDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: NIGHT.violet, borderWidth: 2, borderColor: NIGHT.accLine, marginTop: 3 },
+  agLine: { flex: 1, width: 2, backgroundColor: NIGHT.accLine, marginTop: 2 },
+  agTime: { color: NIGHT.accInk, fontSize: 12, fontWeight: W.label },
   agLabel: { color: NIGHT.ink, fontSize: 13.5, marginTop: 1 },
   blockTitle: { color: NIGHT.ink, fontSize: 16, fontWeight: W.title, marginBottom: 6 },
   blockBody: { color: NIGHT.sub, fontSize: 13.5, lineHeight: 21 },
-});
+}));

@@ -44,8 +44,8 @@ export default function ServicesV2List({ shelf }: { shelf: ServiceShelf }) {
         title={meta.title}
         right={(
           <>
-            <BarIcon onPress={() => { setSearching((v) => !v); if (searching) setQ(''); }} label={searching ? 'Close search' : `Search ${meta.title}`}><ISearch size={21} color="#FFFFFF" strokeWidth={1.7} /></BarIcon>
-            <BarIcon onPress={() => openMyBookings(router)} label="My service bookings"><IReceipt size={21} color="#FFFFFF" strokeWidth={1.7} /></BarIcon>
+            <BarIcon onPress={() => { setSearching((v) => !v); if (searching) setQ(''); }} label={searching ? 'Close search' : `Search ${meta.title}`}><ISearch size={21} color={TV.onBand} strokeWidth={1.7} /></BarIcon>
+            <BarIcon onPress={() => openMyBookings(router)} label="My service bookings"><IReceipt size={21} color={TV.onBand} strokeWidth={1.7} /></BarIcon>
           </>
         )}
       >

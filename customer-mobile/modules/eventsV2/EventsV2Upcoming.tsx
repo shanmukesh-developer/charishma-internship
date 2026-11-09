@@ -11,7 +11,8 @@
  */
 import React, { useMemo, useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { NIGHT, TILES, W, hexA, shadow } from './eventsV2Theme';
+import { NIGHT, W, shadow } from './eventsV2Theme';
+import { themedSheet } from '../../utils/themeNow';
 import { Press, SectionHead, usePageW, FadeInUp, SampleTag } from './EventsV2Kit';
 import { EventCardV2 } from './EventsV2Cards';
 import { StateBlock } from './EventsV2States';
@@ -24,7 +25,6 @@ const RANGES: { key: WhenKey; label: string; days: number | null }[] = [
   { key: 'month', label: 'This month', days: 30 },
   { key: 'any', label: 'All upcoming', days: null },
 ];
-const AVATAR: readonly string[] = TILES.map((t) => t.grad[0]);
 const MENU_W = 176;
 const MENU_ITEM_H = 44;
 
@@ -43,9 +43,9 @@ function RangeMenu({ value, onChange }: { value: WhenKey; onChange: (k: WhenKey)
   return (
     <View ref={anchorRef} collapsable={false}>
       <Press onPress={open} label={`Showing ${cur.label.toLowerCase()}, change range`} style={[s.drop, at ? s.dropOn : null]} scaleTo={0.96}>
-        <ICalendar size={14} color="#D9CCFF" strokeWidth={1.7} />
+        <ICalendar size={14} color={NIGHT.accInk} strokeWidth={1.7} />
         <Text style={s.dropText}>{cur.label}</Text>
-        <IChevronDown size={14} color="#D9CCFF" strokeWidth={1.8} />
+        <IChevronDown size={14} color={NIGHT.accInk} strokeWidth={1.8} />
       </Press>
       <Modal visible={!!at} transparent animationType="fade" onRequestClose={close} statusBarTranslucent navigationBarTranslucent>
         <Pressable style={StyleSheet.absoluteFill} onPress={close} accessibilityLabel="Close range menu" accessibilityRole="button" />
@@ -55,7 +55,7 @@ function RangeMenu({ value, onChange }: { value: WhenKey; onChange: (k: WhenKey)
               const on = x.key === value;
               return (
                 <Press key={x.key} onPress={() => { onChange(x.key); close(); }} label={`${x.label}${on ? ', selected' : ''}`} style={[s.menuItem, on ? s.menuItemOn : null]} scaleTo={0.98}>
-                  <Text style={[s.menuText, on ? { color: '#FFFFFF', fontWeight: W.title } : null]}>{x.label}</Text>
+                  <Text style={[s.menuText, on ? { color: NIGHT.ink, fontWeight: W.title } : null]}>{x.label}</Text>
                   {on ? <ICheck size={15} color={NIGHT.violet} strokeWidth={2} /> : null}
                 </Press>
               );
@@ -107,13 +107,12 @@ export function Clubs() {
       <SectionHead title="Clubs on campus" sub="Clubs with upcoming events" />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
         {d.clubs.map((c, i) => {
-          const g = AVATAR[i % AVATAR.length];
           const initials = c.name.split(/\s+/).filter(Boolean).slice(0, 2).map((x) => x[0]).join('').toUpperCase();
           return (
             <FadeInUp key={c.id} index={i}>
               <Press onPress={() => nav.push({ name: 'explore', club: c.id })} label={`${c.name}, ${c.eventCount} event${c.eventCount === 1 ? '' : 's'}${c.isDemoContent ? ', sample' : ''}`} style={s.club} scaleTo={0.95}>
-                <View style={[s.clubAvatar, { backgroundColor: hexA(g, 0.16), borderColor: hexA(g, 0.45) }]}>
-                  <Text style={[s.clubInitials, { color: g }]}>{initials}</Text>
+                <View style={s.clubAvatar}>
+                  <Text style={s.clubInitials}>{initials}</Text>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 8 }}>
                   <Text style={s.clubName} numberOfLines={2}>{c.name}</Text>
@@ -130,19 +129,19 @@ export function Clubs() {
   );
 }
 
-const s = StyleSheet.create({
-  drop: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 36, paddingHorizontal: 12, borderRadius: 18, backgroundColor: NIGHT.glass, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.24)' },
-  dropOn: { backgroundColor: NIGHT.glass2, borderColor: 'rgba(167,139,250,0.6)' },
-  dropText: { color: '#FFFFFF', fontSize: 12.5, fontWeight: W.label },
-  menu: { position: 'absolute', width: MENU_W, borderRadius: 14, backgroundColor: '#25225E', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.2)', padding: 6 },
+const s = themedSheet(() => ({
+  drop: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 36, paddingHorizontal: 12, borderRadius: 18, backgroundColor: NIGHT.glass, borderWidth: StyleSheet.hairlineWidth, borderColor: NIGHT.border },
+  dropOn: { backgroundColor: NIGHT.glass2, borderColor: NIGHT.accLine },
+  dropText: { color: NIGHT.ink, fontSize: 12.5, fontWeight: W.label },
+  menu: { position: 'absolute', width: MENU_W, borderRadius: 14, backgroundColor: NIGHT.card, borderWidth: StyleSheet.hairlineWidth, borderColor: NIGHT.border, padding: 6 },
   menuItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, height: MENU_ITEM_H, borderRadius: 10 },
-  menuItemOn: { backgroundColor: 'rgba(167,139,250,0.14)' },
-  menuText: { color: 'rgba(232,230,255,0.86)', fontSize: 14 },
+  menuItemOn: { backgroundColor: NIGHT.accSoft },
+  menuText: { color: NIGHT.sub, fontSize: 14 },
   all: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginHorizontal: 16, marginTop: 12, height: 46, borderRadius: 16, backgroundColor: NIGHT.glass, borderWidth: StyleSheet.hairlineWidth, borderColor: NIGHT.line },
-  allText: { color: '#E4DBFF', fontSize: 14, fontWeight: W.label },
+  allText: { color: NIGHT.accInk, fontSize: 14, fontWeight: W.label },
   club: { width: 96, alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6, borderRadius: 20, backgroundColor: NIGHT.card, borderWidth: StyleSheet.hairlineWidth, borderColor: NIGHT.line },
-  clubAvatar: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  clubInitials: { fontSize: 16, fontWeight: W.title, letterSpacing: 0.3 },
+  clubAvatar: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', borderWidth: 1, backgroundColor: NIGHT.accSoft, borderColor: NIGHT.accLine },
+  clubInitials: { color: NIGHT.accInk, fontSize: 16, fontWeight: W.title, letterSpacing: 0.3 },
   clubName: { color: NIGHT.ink, fontSize: 12, lineHeight: 15, fontWeight: W.label, maxWidth: 72, textAlign: 'center', minHeight: 30, textAlignVertical: 'center' },
   clubSub: { color: NIGHT.faint, fontSize: 11, marginTop: 1 },
-});
+}));

@@ -10,6 +10,7 @@ import { RelativeTime } from '../shared/RelativeTime';
 import { CATEGORY_META, FULFILLMENT_LABEL, deadlineLabel, formatInr, nameOf, taskBadge } from './tasksShared';
 import { StatusPill } from './TasksUi';
 
+import { themedSheet } from '../../../../utils/themeNow';
 /** One task on the board or in My Tasks. Tapping opens the detail; "…" opens report / block. */
 export const TaskCard: React.FC<{ task: Task; onPress: (t: Task) => void; onMore?: (t: Task) => void; showPoster?: boolean }> = memo(
   ({ task, onPress, onMore, showPoster = true }) => {
@@ -97,7 +98,7 @@ export const TaskCard: React.FC<{ task: Task; onPress: (t: Task) => void; onMore
   }
 );
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   card: {
     backgroundColor: FriendsColors.card,
     borderRadius: FR.card,
@@ -115,4 +116,4 @@ const styles = StyleSheet.create({
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: FS.md, marginTop: FS.md },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 4, maxWidth: '60%' },
   posterRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: FS.md, paddingTop: FS.sm, borderTopWidth: 1, borderTopColor: FriendsColors.lineSoft },
-});
+}));

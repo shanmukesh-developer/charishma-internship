@@ -16,6 +16,7 @@ import { SpaceComposer } from './SpaceComposer';
 import { SpaceRoomScreen } from './SpaceRoomScreen';
 import { LiveDot, NotRecorded, SpaceSoftError } from './SpacesUi';
 
+import { themedSheet } from '../../../../utils/themeNow';
 export interface SpacesHomeProps {
   /** Space id from a deep link / notification (/friends?tab=friends&sub=spaces&id=...). */
   focusId?: string | null;
@@ -393,7 +394,7 @@ export const SpacesHome: React.FC<SpacesHomeProps> = ({ focusId, userId, active 
 
 const Sep = () => <View style={{ height: FS.md }} />;
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   root: { flex: 1, backgroundColor: FriendsColors.bg },
   layer: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: FriendsColors.bg },
   hidden: { display: 'none' },
@@ -422,4 +423,4 @@ const styles = StyleSheet.create({
     zIndex: 15,
     elevation: 8,
   },
-});
+}));

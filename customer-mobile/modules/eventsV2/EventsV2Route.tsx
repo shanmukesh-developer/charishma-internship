@@ -1,5 +1,5 @@
 /**
- * Frame for a full-screen Campus Events v2 route (app/campus-events/*): the navigator, the night page and the sheets.
+ * Frame for a full-screen Campus Events v2 route (app/campus-events/*): the navigator, the diet page and the sheets.
  */
 import React from 'react';
 import { View } from 'react-native';

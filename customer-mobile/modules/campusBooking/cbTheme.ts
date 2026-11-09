@@ -21,6 +21,8 @@ export interface CbPalette {
   /** The one action accent: the app red in light, gold in dark (CampusBitesSection). */
   accent: string;
   accentSoft: string;
+  /** Text / icons on an accent fill. */
+  onAccent: string;
   /** Open / closed text (CampusBitesSection). */
   openInk: string;
   closedInk: string;
@@ -49,6 +51,7 @@ export function useCbTheme(): CbPalette {
     muted: COLORS.textMuted,
     accent: d.acc,
     accentSoft: d.soft,
+    onAccent: d.onAcc,
     openInk: d.acc,
     closedInk: d.muteInk,
     chipBg: isDark ? 'rgba(255,255,255,0.05)' : '#F4F4F5',

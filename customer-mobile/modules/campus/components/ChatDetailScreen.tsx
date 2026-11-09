@@ -58,6 +58,7 @@ import {
   getCampusConnectionState,
 } from '../campusSocketClient';
 
+import { themedSheet } from '../../../utils/themeNow';
 export interface ChatMessage {
   id: string;
   senderId: string;
@@ -1014,7 +1015,7 @@ export const ChatDetailScreen: React.FC<ChatDetailScreenProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   safeArea: {
     flex: 1,
     backgroundColor: CampusColors.paper,
@@ -1414,4 +1415,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: CampusColors.ink,
   },
-});
+}));

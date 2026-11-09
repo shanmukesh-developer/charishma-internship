@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Sparkles, Copy } from '../../../../components/lucide';
 import { FriendsColors, FS, FT, FR } from '../friendsTheme';
 
+import { themedSheet } from '../../../../utils/themeNow';
 /** Daily Spark: the same conversation prompt for both people of a match, new every day (IST). */
 export const SparkCard: React.FC<{ spark: { date: string; prompt: string } | null; compact?: boolean }> = ({ spark, compact }) => {
   if (!spark || !spark.prompt) return null;
@@ -41,10 +42,10 @@ export const SparkCard: React.FC<{ spark: { date: string; prompt: string } | nul
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   card: { borderRadius: FR.card, padding: FS.lg, gap: FS.sm, borderWidth: 1, borderColor: 'rgba(232,196,127,0.25)' },
   head: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   copy: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 32, paddingHorizontal: 8 },
   prompt: { fontSize: 18, lineHeight: 25, fontWeight: '700', color: FriendsColors.ink },
   compact: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-});
+}));

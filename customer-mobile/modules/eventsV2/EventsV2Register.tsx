@@ -1,5 +1,5 @@
 /**
- * Registration / ticket flow (app/campus-events/register/:id), night look. Logic in useEventsV2Register (same
+ * Registration / ticket flow (app/campus-events/register/:id), diet look. Logic in useEventsV2Register (same
  * rules as before). Payment shows only the modes the server allows now (Free · Pay at the venue · ZCS Wallet when
  * switched on; online only if its server switch is on). A sample id never reaches the server.
  */
@@ -10,6 +10,7 @@ import { useAuth } from '../../context/AuthContext';
 import { KeyboardAvoidingView } from '../../components/KeyboardAvoidingView';
 import { fmtClock, inr, mmss } from '../campusEvents/campusEventsApi';
 import { NIGHT, W } from './eventsV2Theme';
+import { themedSheet } from '../../utils/themeNow';
 import { CTA, Glass, NightHeader } from './EventsV2Kit';
 import { Notice, StateBlock } from './EventsV2States';
 import { SlideIn } from '../others/motion';
@@ -159,7 +160,7 @@ export default function EventsV2Register() {
   return <Flow />;
 }
 
-const s = StyleSheet.create({
+const s = themedSheet(() => ({
   h: { color: NIGHT.ink, fontSize: 20, fontWeight: W.title, letterSpacing: -0.3, marginBottom: 4 },
   sub: { color: NIGHT.sub, fontSize: 13, marginBottom: 14 },
   cardTitle: { color: NIGHT.ink, fontSize: 14.5, fontWeight: W.title, marginBottom: 6 },
@@ -167,5 +168,5 @@ const s = StyleSheet.create({
   kv: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6, gap: 12 },
   kvLabel: { color: NIGHT.sub, fontSize: 13, flexShrink: 0, maxWidth: '45%' },
   kvValue: { color: NIGHT.ink, fontSize: 13.5, fontWeight: W.label, textAlign: 'right', flexShrink: 1 },
-  bar: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingTop: 12, backgroundColor: 'rgba(19,18,58,0.97)', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: NIGHT.line },
-});
+  bar: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingTop: 12, backgroundColor: NIGHT.bar, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: NIGHT.line },
+}));

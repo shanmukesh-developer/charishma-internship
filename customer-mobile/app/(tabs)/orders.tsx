@@ -690,15 +690,16 @@ export default function OrdersScreen() {
         </Text>
         <TouchableOpacity 
           style={{ 
-            backgroundColor: COLORS.red, 
+            backgroundColor: d.acc, 
             paddingHorizontal: 32, 
             paddingVertical: 14, 
             borderRadius: 16, 
-            ...SHADOWS.redGlow 
+            ...SHADOWS.redGlow,
+            shadowColor: d.acc,
           }} 
           onPress={() => router.push('/login' as any)}
         >
-          <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '700', letterSpacing: 0.3 }}>Sign in or sign up</Text>
+          <Text style={{ color: d.onAcc, fontSize: 12, fontWeight: '700', letterSpacing: 0.3 }}>Sign in or sign up</Text>
         </TouchableOpacity>
       </View>
     );
@@ -730,8 +731,8 @@ export default function OrdersScreen() {
           <Ionicons name="cloud-offline-outline" size={44} color={txtSec} style={{ marginBottom: 12 }} />
           <Text style={[st.emptyTitle, { color: txt }]}>Couldn't load your bookings</Text>
           <Text style={[st.emptyDesc, { color: txtSec }]}>{bookingsError}</Text>
-          <TouchableOpacity style={[st.browseBtn, { backgroundColor: COLORS.gold || '#D4AF7A' }]} activeOpacity={0.85} onPress={fetchBookings}>
-            <Text style={[st.browseBtnText, { color: '#000' }]}>Try again</Text>
+          <TouchableOpacity style={[st.browseBtn, { backgroundColor: d.acc }]} activeOpacity={0.85} onPress={fetchBookings}>
+            <Text style={[st.browseBtnText, { color: d.onAcc }]}>Try again</Text>
           </TouchableOpacity>
         </View>
       );
@@ -744,8 +745,8 @@ export default function OrdersScreen() {
           <Text style={[st.emptyDesc, { color: txtSec }]}>
             Repairs, laundry and tailoring you book will show up here with their live status.
           </Text>
-          <TouchableOpacity style={[st.browseBtn, { backgroundColor: COLORS.red }]} activeOpacity={0.85} onPress={() => router.push({ pathname: '/(tabs)/services', params: { tab: 'services' } } as any)}>
-            <Text style={st.browseBtnText}>Browse services</Text>
+          <TouchableOpacity style={[st.browseBtn, { backgroundColor: d.acc }]} activeOpacity={0.85} onPress={() => router.push({ pathname: '/(tabs)/services', params: { tab: 'services' } } as any)}>
+            <Text style={[st.browseBtnText, { color: d.onAcc }]}>Browse services</Text>
           </TouchableOpacity>
         </View>
       );
@@ -831,8 +832,8 @@ export default function OrdersScreen() {
                 </Text>
                 {b.status === 'DIAGNOSED_QUOTED' && (
                   <ActionPressable style={{ borderRadius: 16, overflow: 'hidden', marginTop: 12 }} onPress={() => { if (!busy) acceptQuote(b); }} sound="click">
-                    <LinearGradient colors={['#D4AF7A', '#F0D9A8']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={st.trackBtnGradient}>
-                      {busy ? <ActivityIndicator size="small" color="#000" /> : <Text style={st.trackBtnText}>Accept quote · {formatINR(b.quotedAmount)}</Text>}
+                    <LinearGradient colors={[d.acc, d.acc]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={st.trackBtnGradient}>
+                      {busy ? <ActivityIndicator size="small" color={d.onAcc} /> : <Text style={[st.trackBtnText, { color: d.onAcc }]}>Accept quote · {formatINR(b.quotedAmount)}</Text>}
                     </LinearGradient>
                   </ActionPressable>
                 )}
@@ -865,7 +866,7 @@ export default function OrdersScreen() {
         scrollEventThrottle={250}
         onScroll={onOrdersScroll}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={goldColor} colors={[COLORS.red, COLORS.gold]} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={goldColor} colors={[d.acc]} />
         }
       >
         <View style={{ backgroundColor: d.top, paddingTop: topPad + 8, paddingBottom: 14, borderBottomLeftRadius: 26, borderBottomRightRadius: 26, marginBottom: 18 }}>
@@ -957,11 +958,11 @@ export default function OrdersScreen() {
               {error}
             </Text>
             <TouchableOpacity
-              style={[st.browseBtn, { backgroundColor: COLORS.gold || '#D4AF7A' }]}
+              style={[st.browseBtn, { backgroundColor: d.acc }]}
               activeOpacity={0.85}
               onPress={() => fetchOrders('initial')}
             >
-              <Text style={[st.browseBtnText, { color: '#000' }]}>Try again</Text>
+              <Text style={[st.browseBtnText, { color: d.onAcc }]}>Try again</Text>
             </TouchableOpacity>
           </View>
         ) : orders.length === 0 ? (
@@ -974,11 +975,11 @@ export default function OrdersScreen() {
               Your food and grocery orders will show up here.
             </Text>
             <TouchableOpacity 
-              style={[st.browseBtn, { backgroundColor: COLORS.red }]}
+              style={[st.browseBtn, { backgroundColor: d.acc }]}
               activeOpacity={0.85}
               onPress={() => router.push('/(tabs)' as any)}
             >
-              <Text style={st.browseBtnText}>Browse restaurants</Text>
+              <Text style={[st.browseBtnText, { color: d.onAcc }]}>Browse restaurants</Text>
             </TouchableOpacity>
           </View>
         ) : !loading && listOrders.filter(o => {
@@ -999,11 +1000,11 @@ export default function OrdersScreen() {
                 : 'Delivered and cancelled orders will show up here.'}
             </Text>
             <TouchableOpacity 
-              style={[st.browseBtn, { backgroundColor: COLORS.red }]}
+              style={[st.browseBtn, { backgroundColor: d.acc }]}
               activeOpacity={0.85}
               onPress={() => searchQ ? setOrderSearch('') : filter === 'ACTIVE' ? router.push('/(tabs)' as any) : setFilter('ALL')}
             >
-              <Text style={st.browseBtnText}>
+              <Text style={[st.browseBtnText, { color: d.onAcc }]}>
                 {searchQ ? 'Clear search' : filter === 'ACTIVE' ? 'Browse restaurants' : 'See all orders'}
               </Text>
             </TouchableOpacity>
@@ -1189,7 +1190,7 @@ export default function OrdersScreen() {
                     paddingVertical: 8,
                     paddingHorizontal: 12,
                     borderRadius: 12,
-                    backgroundColor: isDark ? 'rgba(212,175,122,0.15)' : 'rgba(239,79,95,0.08)',
+                    backgroundColor: d.soft,
                     flexDirection: 'row',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -1214,7 +1215,7 @@ export default function OrdersScreen() {
                     paddingVertical: 8,
                     paddingHorizontal: 12,
                     borderRadius: 12,
-                    backgroundColor: isDark ? 'rgba(212,175,122,0.12)' : 'rgba(201,151,46,0.08)',
+                    backgroundColor: d.soft,
                     flexDirection: 'row',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -1232,7 +1233,7 @@ export default function OrdersScreen() {
               {isExpanded && (
                 <View style={[st.details, { borderTopColor: border }]}>
                   {showPin && (
-                    <View style={[st.otpSection, { borderColor: isDark ? 'rgba(212,175,122,0.3)' : 'rgba(201,151,46,0.3)', backgroundColor: isDark ? 'rgba(212,175,122,0.08)' : 'rgba(201,151,46,0.08)' }]}>
+                    <View style={[st.otpSection, { borderColor: d.line, backgroundColor: d.soft }]}>
                       <Text style={{ fontSize: 12, fontWeight: '700', color: goldColor, letterSpacing: 0.3, marginBottom: 4 }}>Delivery PIN</Text>
                       <View style={st.otpBox}>
                         <Text style={[st.otpText, { color: goldColor }]}>{o.deliveryPin}</Text>

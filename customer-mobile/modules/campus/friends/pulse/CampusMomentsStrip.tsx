@@ -15,6 +15,7 @@ import { FriendsAvatar } from '../shared/FriendsAvatar';
 import { SkeletonBlock } from '../shared/FriendsSkeleton';
 import { formatRelative } from '../shared/RelativeTime';
 
+import { themedSheet } from '../../../../utils/themeNow';
 // ── Data ──────────────────────────────────────────────────────────────────────
 interface Birthday {
   id: string;
@@ -697,7 +698,7 @@ const BirthdaysSheet: React.FC<{
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   card: {
     width: 188,
     minHeight: 148,
@@ -736,4 +737,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 4,
   },
-});
+}));

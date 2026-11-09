@@ -12,6 +12,7 @@ import ITrophy from 'lucide-react-native/icons/trophy';
 import IPresentation from 'lucide-react-native/icons/presentation';
 import IUsersRound from 'lucide-react-native/icons/users-round';
 import type { TileKey } from './eventsV2Theme';
+import { themedSheet } from '../../utils/themeNow';
 
 export const CATEGORY_ICON: Record<TileKey, typeof ICalendar> = {
   all: ICalendar,
@@ -35,6 +36,6 @@ export default function GlossyIcon({ kind, size = 52 }: { kind: TileKey; size?: 
   );
 }
 
-const s = StyleSheet.create({
+const s = themedSheet(() => ({
   ring: { alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.34)' },
-});
+}));

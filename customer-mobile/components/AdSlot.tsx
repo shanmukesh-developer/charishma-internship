@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ActivityIndicator, Linking } from 'react-native';
 import { COLORS, RADIUS, SHADOWS } from '../constants/theme';
+import { dietNow, themedSheet } from '../utils/themeNow';
 import { LinearGradient } from 'expo-linear-gradient';
 
 export type AdPlacement = 'rail' | 'interstitial' | 'spotlight' | 'pdp_footer';
@@ -75,7 +76,7 @@ export default function AdSlot({ placement, containerStyle }: AdSlotProps) {
   if (loading) {
     return (
       <View style={[styles.skeleton, placement === 'interstitial' && styles.interstitialSkeleton, containerStyle]}>
-        <ActivityIndicator size="small" color={COLORS.primary} />
+        <ActivityIndicator size="small" color={dietNow().acc} />
       </View>
     );
   }
@@ -175,11 +176,12 @@ export default function AdSlot({ placement, containerStyle }: AdSlotProps) {
   );
 }
 
-const styles = StyleSheet.create({
+// Owner, 10 Nov 2026: the old purple is gone - ad labels and the CTA wear the diet accent (read per look).
+const styles = themedSheet(() => ({
   skeleton: {
     height: 48,
     borderRadius: RADIUS.md,
-    backgroundColor: COLORS.primarySoft,
+    backgroundColor: dietNow().soft,
     alignItems: 'center',
     justifyContent: 'center',
     marginVertical: 6,
@@ -249,7 +251,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 10,
     left: 10,
-    backgroundColor: COLORS.primarySoft,
+    backgroundColor: dietNow().soft,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: RADIUS.sm,
@@ -257,7 +259,7 @@ const styles = StyleSheet.create({
   sponsoredBadgeText: {
     fontSize: 12,
     fontWeight: '900',
-    color: COLORS.primary,
+    color: dietNow().acc,
     letterSpacing: 1,
   },
   interstitialInfo: {
@@ -279,7 +281,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   interstitialCtaBtn: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: dietNow().acc,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: RADIUS.pill,
@@ -294,8 +296,8 @@ const styles = StyleSheet.create({
   pdpFooterBox: {
     borderRadius: RADIUS.xl,
     borderWidth: 1,
-    borderColor: 'rgba(108, 43, 217, 0.15)',
-    backgroundColor: COLORS.primarySoft,
+    borderColor: dietNow().line,
+    backgroundColor: dietNow().soft,
     padding: 12,
     marginVertical: 16,
   },
@@ -307,7 +309,7 @@ const styles = StyleSheet.create({
   pdpAdLabel: {
     fontSize: 12,
     fontWeight: '900',
-    color: COLORS.primary,
+    color: dietNow().acc,
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
@@ -335,7 +337,7 @@ const styles = StyleSheet.create({
   pdpBrandText: {
     fontSize: 12,
     fontWeight: '700',
-    color: COLORS.primary,
+    color: dietNow().acc,
     marginTop: 4,
   },
   railCard: {
@@ -362,4 +364,4 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.inkMuted,
   },
-});
+}));

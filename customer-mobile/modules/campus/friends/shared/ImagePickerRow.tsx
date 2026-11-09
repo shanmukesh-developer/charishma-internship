@@ -5,6 +5,7 @@ import { ImagePlus, X } from '../../../../components/lucide';
 import { pickAndUploadImage, alertUploadError, MediaPurpose, UploadedImage, resolveMediaUrl } from '../../../../utils/imageUpload';
 import { FriendsColors, FS, FR } from '../friendsTheme';
 
+import { themedSheet } from '../../../../utils/themeNow';
 /**
  * Attach up to `max` photos to a Friends composer. Photos are compressed and uploaded right away
  * (POST /api/campus/media with the given purpose); the composer sends only the returned links / ids.
@@ -74,7 +75,7 @@ export const ImagePickerRow: React.FC<{
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   thumb: { borderRadius: FR.md, overflow: 'hidden', backgroundColor: FriendsColors.cardHi },
   remove: {
     position: 'absolute',
@@ -97,4 +98,4 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   count: { fontSize: 12, color: FriendsColors.faint, fontWeight: '600' },
-});
+}));

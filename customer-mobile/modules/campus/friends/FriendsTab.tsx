@@ -17,6 +17,7 @@ import { TasksHome } from './tasks/TasksHome';
 import { ConnectHome } from './connect/ConnectHome';
 import { SpacesHome } from './spaces/SpacesHome';
 
+import { themedSheet } from '../../../utils/themeNow';
 // Last eligibility answer, so switching tabs back to Friends renders instantly (refreshed in the background).
 let cachedEligibility: { userId: string; value: FriendsEligibility } | null = null;
 
@@ -281,7 +282,7 @@ export const FriendsTab: React.FC<FriendsTabProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   root: { flex: 1, backgroundColor: FriendsColors.bg },
   page: { flex: 1 },
   hidden: { display: 'none' },
@@ -306,4 +307,4 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth * 2,
     borderBottomColor: 'rgba(243,139,128,0.25)',
   },
-});
+}));

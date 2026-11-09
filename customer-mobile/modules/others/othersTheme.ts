@@ -6,6 +6,8 @@
 import { useMemo } from 'react';
 import { Platform, type TextStyle, type ViewStyle } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
+import { useDietary } from '../../context/DietaryContext';
+import { dietFor, fixedDietTokens } from '../../utils/themeNow';
 
 export type OthersSection =
   | 'food' | 'services' | 'repairs' | 'tailoring' | 'print' | 'laundry'
@@ -22,21 +24,22 @@ export interface Accent {
   tint: { light: string; dark: string };
 }
 
-// Tailoring, print and laundry live under the Tech & repairs pill, so they wear its purple (owner rule:
-// each Others section keeps one accent; green is Food's, blue is PG / Co-Ride / Auto's).
-export const ACCENTS: Record<OthersSection, Accent> = {
-  food: { solid: '#1E8E3E', deep: '#146C2E', ink: { light: '#1E8E3E', dark: '#5CCB85' }, tint: { light: '#E7F4EA', dark: 'rgba(76,193,122,0.14)' } },
-  services: { solid: '#5B4CF0', deep: '#3B2FC4', ink: { light: '#5B4CF0', dark: '#A49BFF' }, tint: { light: '#EFEDFF', dark: 'rgba(164,155,255,0.15)' } },
-  repairs: { solid: '#5B4CF0', deep: '#3B2FC4', ink: { light: '#5B4CF0', dark: '#A49BFF' }, tint: { light: '#EFEDFF', dark: 'rgba(164,155,255,0.15)' } },
-  tailoring: { solid: '#5B4CF0', deep: '#3B2FC4', ink: { light: '#5B4CF0', dark: '#A49BFF' }, tint: { light: '#EFEDFF', dark: 'rgba(164,155,255,0.15)' } },
-  print: { solid: '#5B4CF0', deep: '#3B2FC4', ink: { light: '#5B4CF0', dark: '#A49BFF' }, tint: { light: '#EFEDFF', dark: 'rgba(164,155,255,0.15)' } },
-  laundry: { solid: '#5B4CF0', deep: '#3B2FC4', ink: { light: '#5B4CF0', dark: '#A49BFF' }, tint: { light: '#EFEDFF', dark: 'rgba(164,155,255,0.15)' } },
-  pg: { solid: '#2563EB', deep: '#1E40AF', ink: { light: '#2563EB', dark: '#60A5FA' }, tint: { light: '#EBF2FF', dark: 'rgba(96,165,250,0.14)' } },
-  coride: { solid: '#2563EB', deep: '#1E40AF', ink: { light: '#2563EB', dark: '#7CA8FF' }, tint: { light: '#EAF1FF', dark: 'rgba(124,168,255,0.15)' } },
-  auto: { solid: '#2563EB', deep: '#1E40AF', ink: { light: '#2563EB', dark: '#7CA8FF' }, tint: { light: '#EAF1FF', dark: 'rgba(124,168,255,0.15)' } },
-  deals: { solid: '#5B3FD6', deep: '#4B2BC8', ink: { light: '#5B3FD6', dark: '#A894FF' }, tint: { light: '#EFEBFF', dark: 'rgba(124,92,255,0.16)' } },
-  neutral: { solid: '#334155', deep: '#1E293B', ink: { light: '#334155', dark: '#CBD5E1' }, tint: { light: '#F1F3F6', dark: 'rgba(255,255,255,0.07)' } },
+// Owner, 10 Nov 2026: one look everywhere. Every Others section (services, repairs, tailoring, print, laundry, PG,
+// Co-Ride, Auto, Deals) wears the diet accent - red for Non-veg, green for Veg - instead of its old purple / blue.
+// Food keeps its own green (the Groceries header); neutral stays slate. Read at render (the diet can change).
+const dietAccent = (): Accent => {
+  const l = dietFor(false);
+  const d = dietFor(true);
+  return { solid: l.acc, deep: l.accDeep, ink: { light: l.acc, dark: d.acc }, tint: { light: l.soft, dark: d.soft } };
 };
+export const ACCENTS: Record<OthersSection, Accent> = fixedDietTokens(false, (): Record<OthersSection, Accent> => {
+  const a = dietAccent();
+  return {
+    food: { solid: '#1E8E3E', deep: '#146C2E', ink: { light: '#1E8E3E', dark: '#5CCB85' }, tint: { light: '#E7F4EA', dark: 'rgba(76,193,122,0.14)' } },
+    services: a, repairs: a, tailoring: a, print: a, laundry: a, pg: a, coride: a, auto: a, deals: a,
+    neutral: { solid: '#334155', deep: '#1E293B', ink: { light: '#334155', dark: '#CBD5E1' }, tint: { light: '#F1F3F6', dark: 'rgba(255,255,255,0.07)' } },
+  };
+});
 
 /** Others section pill key -> its accent. Rentals and Events keep the app accent for now (undefined). */
 export const PILL_ACCENT: Record<string, OthersSection | undefined> = {
@@ -104,6 +107,7 @@ export const hexAlpha = (hex: string, alpha: number) => {
 /** Resolved colours for one section in the current theme. */
 export const useOthersTheme = (section: OthersSection = 'neutral') => {
   const { isDark, colors } = useTheme();
+  const { dietMode } = useDietary();
   return useMemo(() => {
     const a = ACCENTS[section];
     const sf = isDark ? SURFACE.dark : SURFACE.light;
@@ -123,6 +127,6 @@ export const useOthersTheme = (section: OthersSection = 'neutral') => {
       shadow: shadow(isDark),
       shadowHigh: shadow(isDark, 2),
     };
-  }, [section, isDark, colors]);
+  }, [section, isDark, colors, dietMode]);
 };
 export type OthersTheme = ReturnType<typeof useOthersTheme>;

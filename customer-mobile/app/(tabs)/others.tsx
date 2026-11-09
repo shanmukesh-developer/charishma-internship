@@ -28,6 +28,9 @@ import SafeImage from '../../components/SafeImage';
 import ShimmerLoader from '../../components/ShimmerLoader';
 import StatusBarScrim from '../../components/StatusBarScrim';
 import { TV } from '../../modules/servicesV2/servicesV2Theme';
+import { NIGHT as RENTALS_PAGE } from '../../modules/rentalsV2/rentalsV2Theme';
+import { NIGHT as EVENTS_PAGE } from '../../modules/eventsV2/eventsV2Theme';
+import { useDietLight } from '../../components/local/dietLightTheme';
 import { DV } from '../../modules/dealsV2/dealsV2Theme';
 import { PgV2OthersSection } from '../../modules/pgV2/PgV2Route';
 import { reloadPgV2List } from '../../modules/pgV2/pgV2Data';
@@ -289,10 +292,9 @@ const SECTION_HEADER: Record<string, HeaderColors> = {
   neutral: { top: '#1B2433', bottom: '#263247', pillOnBg: '#F1F3F6', pillOnInk: '#1E293B' },
 };
 // Sections that draw a page of a fixed colour in every theme give the bottom bar that page's colour (the rest follow
-// the theme): Rentals and Campus events are night pages; Tech & repairs and Deals are light pages in the light theme.
+// the theme): Tech & repairs and Deals are light pages in the light theme. Rentals and Campus events used to be night
+// pages; since 10 Nov 2026 every Services section wears the diet look (light in light mode), so they follow the theme.
 const PAGE_BAR_TONE: Record<string, TabBarTone | undefined> = {
-  rentals: { bg: '#141438', dark: true },
-  events: { bg: '#13123A', dark: true },
   services: { bg: '#FFFFFF', dark: false },
   promos: { bg: '#FFFFFF', dark: false },
 };
@@ -592,6 +594,12 @@ export function HubScreen({ hub }: { hub: Hub }) {
   // Real status-bar inset, never less than the old fixed padding (utils/useTopInset)
   const topPad = useTopInset(36, Platform.OS === 'web' ? 12 : 44);
   const { isDark, toggleTheme, colors } = useTheme();
+  // Services hub (owner, 10 Nov 2026: "fix one perfect non ai color", chose "Match rest of app"): every section wears
+  // the diet look - the light red (Non-veg) / light green (Veg) band with dark ink, white cards, one accent.
+  const dl = useDietLight();
+  const dietHeader: HeaderColors = { top: dl.top, bottom: dl.top, pillOnBg: dl.acc, pillOnInk: dl.onAcc, ink: dl.dk, pillOffBg: dl.card, pillOffLine: dl.line, page: dl.page };
+  // The sections' palettes are read at render from utils/themeNow (theme + diet); keyed by both so a switch redraws them.
+  const lookKey = `${isDark ? 'dark' : 'light'}-${dl.veg ? 'veg' : 'nonveg'}`;
   // Live window width (follows rotation / window resizes); the screen is capped at 600 wide.
   const { width: winW } = useWindowDimensions();
   const pageW = Math.min(winW, 600);
@@ -685,7 +693,10 @@ export function HubScreen({ hub }: { hub: Hub }) {
     const pgInfo = (sectionsSWR.data?.sections as Record<string, { live?: boolean; count?: number }> | undefined)?.pg;
     if (!pgInfo) return;
     autoStartDoneRef.current = true;
-    if (activeTab === 'pg' && Number(pgInfo.count) === 0) setActiveTab('services');
+    // Owner, 10 Nov 2026 ("while opening Services, PGs must open first"): Services always starts on PG stays, even
+    // with no listings yet. The 5 Nov empty-PG jump to Tech & repairs is switched off (kept here, unused).
+    const SKIP_EMPTY_PG = false as boolean;
+    if (SKIP_EMPTY_PG && activeTab === 'pg' && Number(pgInfo.count) === 0) setActiveTab('services');
   }, [hub, tab, sectionsSWR.data, activeTab]);
   useEffect(() => {
     // A hidden section (no live listings) or one of the other hub falls back to this hub's first visible section.
@@ -1391,11 +1402,12 @@ export function HubScreen({ hub }: { hub: Hub }) {
   const DEAL_CARD_W = Math.floor((pageW - 32 - 12) / 2);
   const spinWheelSize = Math.min(pageW - 64, 320);
 
-  const accentGradient: [string, string] = isDark ? [COLORS.gold, COLORS.goldLight] : ['#EF4F5F', '#D43F4F'];
-  // Solid accent (pills, buttons) and the accent used for small text (a step darker in light for contrast).
-  const accent = isDark ? COLORS.gold : COLORS.red;
-  const onAccent = isDark ? '#0A0A0B' : '#FFFFFF';
-  const accentInk = isDark ? COLORS.gold : COLORS.redDark;
+  // Owner, 10 Nov 2026: the diet accent (red Non-veg / green Veg), light and dark - no more red / gold split.
+  const accentGradient: [string, string] = [dl.acc, dl.acc];
+  // Solid accent (pills, buttons) and the accent used for small text.
+  const accent = dl.acc;
+  const onAccent = dl.onAcc;
+  const accentInk = dl.acc;
   // Soft card surfaces: light = white with the layered shadow, dark = raised grey with a hairline.
   const fieldSurface = isDark
     ? { backgroundColor: OTHERS_SURFACE.dark.card, borderColor: 'rgba(255,255,255,0.08)' }
@@ -1410,20 +1422,20 @@ export function HubScreen({ hub }: { hub: Hub }) {
     heroBg: isDark ? '#14241A' : '#EAF5EC',
     plate: isDark ? '#232327' : '#F4F5F7',
   };
-  // Deals & spin accent: purple / indigo (owner's choice, 22 Oct).
+  // Deals & spin accent: the diet accent (owner, 10 Nov 2026: one look everywhere; was purple / indigo).
   const dp = {
-    solid: isDark ? '#7C5CFF' : OTHERS_ACCENTS.deals.solid,
+    solid: OTHERS_ACCENTS.deals.solid,
     ink: isDark ? OTHERS_ACCENTS.deals.ink.dark : OTHERS_ACCENTS.deals.ink.light,
     tint: isDark ? OTHERS_ACCENTS.deals.tint.dark : OTHERS_ACCENTS.deals.tint.light,
-    heroA: isDark ? '#3B2A99' : '#6D4AFF',
-    heroB: isDark ? '#24185F' : OTHERS_ACCENTS.deals.deep,
+    heroA: OTHERS_ACCENTS.deals.solid,
+    heroB: OTHERS_ACCENTS.deals.deep,
   };
   const greenShadow = Platform.select<any>({
     web: { boxShadow: '0px 2px 8px rgba(30,142,62,0.28)' },
     default: { shadowColor: '#1E8E3E', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 3 },
   });
   const activePillShadow = Platform.select<any>({
-    web: { boxShadow: isDark ? '0px 2px 10px rgba(212,175,122,0.22)' : '0px 2px 8px rgba(239,79,95,0.28)' },
+    web: { boxShadow: `0px 2px 8px ${accent}47` },
     default: { shadowColor: accent, shadowOffset: { width: 0, height: 3 }, shadowOpacity: isDark ? 0.2 : 0.26, shadowRadius: 8, elevation: 3 },
   });
 
@@ -1604,8 +1616,8 @@ export function HubScreen({ hub }: { hub: Hub }) {
   // category grid, campus chips and popular rentals. Inner screens are app/rentals/* routes.
   if (activeTab === 'rentals') {
     return (
-      <View style={{ flex: 1, backgroundColor: '#141438' }}>
-        <RentalsV2Home sections={visibleTabs} onSection={selectTab} />
+      <View style={{ flex: 1, backgroundColor: RENTALS_PAGE.page }}>
+        <RentalsV2Home key={lookKey} sections={visibleTabs} onSection={selectTab} />
       </View>
     );
   }
@@ -1614,9 +1626,9 @@ export function HubScreen({ hub }: { hub: Hub }) {
   // categories and real services / store items. Lists are app/category/*, details app/services/*.
   if (activeTab === 'services') {
     return (
-      <View style={{ flex: 1, backgroundColor: isDark ? '#0A0B12' : '#F4F5FB' }}>
-        {/* Keyed by theme: the section's colours come from its tokens at render (utils/themeNow). */}
-        <ServicesV2Home key={isDark ? 'dark' : 'light'} sections={visibleTabs} onSection={selectTab} />
+      <View style={{ flex: 1, backgroundColor: TV.page }}>
+        {/* Keyed by theme and diet: the section's colours come from its tokens at render (utils/themeNow). */}
+        <ServicesV2Home key={lookKey} sections={visibleTabs} onSection={selectTab} />
         <StatusBarScrim color={TV.header[0]} />
       </View>
     );
@@ -1637,21 +1649,21 @@ export function HubScreen({ hub }: { hub: Hub }) {
   // glossy category tiles, Quick Access, Upcoming Events and Clubs. Inner screens are app/campus-events/* routes.
   if (activeTab === 'events') {
     return (
-      <View style={{ flex: 1, backgroundColor: '#13123A' }}>
-        <EventsV2Home sections={visibleTabs} onSection={selectTab} />
+      <View style={{ flex: 1, backgroundColor: EVENTS_PAGE.page }}>
+        <EventsV2Home key={lookKey} sections={visibleTabs} onSection={selectTab} />
       </View>
     );
   }
 
   return (
-    <View style={[s.container, { paddingTop: 0, backgroundColor: bg }]}>
+    <View style={[s.container, { paddingTop: 0, backgroundColor: hub === 'services' ? dl.page : bg }]}>
       <AmbientBackground />
       {/* ── HEADER: the same header as Food & groceries (modules/foodV2/FoodV2SectionHeader); only the accent changes ── */}
       <SectionHeader
         topPad={topPad}
         pageW={Math.min(SW, 600)}
         compact={SW < 360}
-        colors={SECTION_HEADER[activeTab] || SECTION_HEADER.neutral}
+        colors={hub !== 'services' && activeTab === 'food' ? SECTION_HEADER.food : dietHeader}
         subtitle={SECTION_SUBTITLE[activeTab] || 'Campus services'}
         hints={activeTab === 'pg' ? PG_SEARCH_HINTS : activeTab === 'coride' ? CORIDE_SEARCH_HINTS : activeTab === 'events' ? EVENTS_SEARCH_HINTS : STORE_SEARCH_HINTS}
         searchLabel={activeTab === 'pg' ? 'Search PGs by area or name' : activeTab === 'coride' ? 'Search lifts by destination' : activeTab === 'events' ? 'Search events and venues' : 'Search the campus store'}
@@ -1688,7 +1700,7 @@ export function HubScreen({ hub }: { hub: Hub }) {
           showsVerticalScrollIndicator={false}
           nestedScrollEnabled={true}
           keyboardShouldPersistTaps="handled"
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.red} colors={[COLORS.red]} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={dl.acc} colors={[dl.acc]} />}
         >
           {/* ── HERO CAROUSEL CARD ── */}
           {activeTab !== 'food' && activeTab !== 'promos' && activeTab !== 'events' && activeTab !== 'pg' && activeTab !== 'coride' && (
@@ -1698,10 +1710,10 @@ export function HubScreen({ hub }: { hub: Hub }) {
           )}
 
         {/* ── PG STAYS TAB (modules/pgV2): hero, filters, My bookings and buildings near campus ── */}
-        {activeTab === 'pg' && <PgV2OthersSection />}
+        {activeTab === 'pg' && <PgV2OthersSection key={lookKey} />}
 
         {/* ── CO-RIDE TAB (modules/corideV2): hero, route, pool / auto, leaving now, routes, quick actions, rides ── */}
-        {activeTab === 'coride' && <CoRideV2OthersSection />}
+        {activeTab === 'coride' && <CoRideV2OthersSection key={lookKey} />}
 
         {/* ── DEALS & SPINS TAB ── */}
         {activeTab === 'promos' && (

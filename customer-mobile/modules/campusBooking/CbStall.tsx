@@ -111,7 +111,7 @@ export default function CbStall({ id }: { id: string }) {
     <View style={[st.container, { backgroundColor: p.page }]}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        refreshControl={sample ? undefined : <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={p.accent} colors={[COLORS.red]} />}
+        refreshControl={sample ? undefined : <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={p.accent} colors={[p.accent]} />}
       >
         {/* Hero */}
         <View style={st.hero}>
@@ -310,7 +310,7 @@ export default function CbStall({ id }: { id: string }) {
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               <View style={st.badgeContainer}><Text style={st.badgeText}>{cart.count}</Text></View>
-              <Text style={st.floatingCartText}>Item total {inr(cart.total)}</Text>
+              <Text style={[st.floatingCartText, { color: p.onAccent }]}>Item total {inr(cart.total)}</Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}><Text style={st.proceedText}>View cart</Text><SymbolIcon name="chevron-forward" style={st.proceedText} scale={1} /></View>
           </DopaminePressable>

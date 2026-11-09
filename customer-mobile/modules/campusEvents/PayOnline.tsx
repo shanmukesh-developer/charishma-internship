@@ -15,7 +15,7 @@ import { usePalette, Btn, Notice } from './ui';
 
 type Phase = 'order' | 'checkout' | 'verifying' | 'confirmed' | 'failed' | 'pending' | 'error';
 
-const html = (o: { keyId: string; orderId: string; amountPaise: number; currency: string; title: string }) => `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"/>
+const html = (o: { keyId: string; orderId: string; amountPaise: number; currency: string; title: string; color: string }) => `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <style>body{margin:0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;color:#555}</style></head>
 <body><p>Opening secure payment…</p>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
@@ -27,7 +27,7 @@ const html = (o: { keyId: string; orderId: string; amountPaise: number; currency
       name: 'ZenWe Campus Events', description: ${JSON.stringify(o.title.slice(0, 80))},
       handler: function(){ send({ type: 'done' }); },
       modal: { ondismiss: function(){ send({ type: 'dismissed' }); } },
-      theme: { color: '#7C3AED' }
+      theme: { color: ${JSON.stringify(o.color)} }
     });
     rzp.on('payment.failed', function(r){ send({ type: 'failed', reason: (r && r.error && r.error.description) || '' }); });
     rzp.open();
@@ -87,7 +87,7 @@ export default function PayOnline({ visible, registrationId, title, onClose }: {
         {phase === 'checkout' && order ? (
           <WebView
             originWhitelist={['*']}
-            source={{ html: html({ ...order, title }), baseUrl: 'https://checkout.razorpay.com' }}
+            source={{ html: html({ ...order, title, color: p.grad[0] }), baseUrl: 'https://checkout.razorpay.com' }}
             javaScriptEnabled
             onMessage={(e) => {
               let m: any = null;

@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Animated, Easing, StyleSheet, ViewStyle, StyleProp, Dimensions, Platform, type LayoutChangeEvent } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useReduceMotion, isReduceMotionOn } from '../utils/reduceMotion';
+import { dietNow } from '../utils/themeNow';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -155,7 +156,7 @@ interface PulseGlowProps {
   style?: StyleProp<ViewStyle>;
 }
 
-export function PulseGlow({ size, color = '#EF4F5F', children, style }: PulseGlowProps) {
+export function PulseGlow({ size, color = dietNow().acc, children, style }: PulseGlowProps) {
   const pulseScale = useRef(new Animated.Value(1)).current;
   const pulseOpacity = useRef(new Animated.Value(0.6)).current;
   const reduce = useReduceMotion();
@@ -212,7 +213,7 @@ interface FloatingPulseProps {
   onLayout?: (e: LayoutChangeEvent) => void;
 }
 
-export function FloatingPulse({ children, color = '#EF4F5F', style, onLayout }: FloatingPulseProps) {
+export function FloatingPulse({ children, color = dietNow().acc, style, onLayout }: FloatingPulseProps) {
   const breathScale = useRef(new Animated.Value(1)).current;
   const breathOpacity = useRef(new Animated.Value(0.15)).current;
   const reduce = useReduceMotion();

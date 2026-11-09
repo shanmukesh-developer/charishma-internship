@@ -19,6 +19,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
+import { useDietLight } from '../../components/local/dietLightTheme';
+import { mixHex } from '../../utils/themeNow';
 import FssaiLine from '../../components/FssaiLine';
 import { useAuth } from '../../context/AuthContext';
 import { useCart, MAX_ITEM_QTY } from '../../context/CartContext';
@@ -121,6 +123,7 @@ function CategoryDetailScreen() {
   const rawId = Array.isArray(params.id) ? params.id[0] : params.id;
   const router = useRouter();
   const { isDark, colors } = useTheme();
+  const diet = useDietLight();
   const { user } = useAuth();
   // Shop categories fill the campus store basket.
   const { addToCart: addAnyBasket, baskets, basketCounts, basketTotals, updateQuantity } = useCart();
@@ -323,15 +326,16 @@ function CategoryDetailScreen() {
     });
   };
 
-  // Light / dark tokens for this screen (stores use the app red; services use the booking sheet's blue)
+  // Light / dark tokens for this screen. Owner, 10 Nov 2026: stores and services both wear the diet accent (red
+  // Non-veg / green Veg; in dark a deeper fill under white labels) - the old services blue is gone.
   const t = {
     surface: isDark ? '#111114' : '#FFFFFF',
     soft: isDark ? 'rgba(255,255,255,0.06)' : '#F1F3F5',
-    accent: isDark ? '#60A5FA' : '#1D4ED8',
-    accentBg: isDark ? 'rgba(96,165,250,0.16)' : '#EFF4FF',
-    primary: isServiceCategory ? (isDark ? '#3B82F6' : '#1D4ED8') : COLORS.red,
+    accent: diet.acc,
+    accentBg: diet.soft,
+    primary: isDark ? mixHex(diet.acc, '#000000', 0.3) : diet.acc,
     muted: isDark ? '#3F3F46' : '#9CA3AF',
-    link: isDark ? '#38BDF8' : '#0369A1',
+    link: diet.acc,
   };
 
   const StateView = ({ icon, title, body, action, onAction }: { icon: IconName; title: string; body: string; action?: string; onAction?: () => void }) => (
@@ -562,7 +566,7 @@ function CategoryDetailScreen() {
       {/* Campus night closure (9 PM to 6 AM): one clear banner instead of a "closed" line per store */}
       {!isServiceCategory && <NightClosureBanner style={{ marginBottom: 4 }} />}
       {!isServiceCategory && closedStore && !closedStore.campusClosed && (
-        <View style={[s.banner, { backgroundColor: isDark ? 'rgba(99,102,241,0.14)' : 'rgba(99,102,241,0.08)' }]}>
+        <View style={[s.banner, { backgroundColor: diet.soft }]}>
           <Ionicons name="time-outline" size={18} color={txtSec} />
           <Text style={[s.bannerText, { color: txt }]}>
             {closedStore.takesSlotOrders && closedStore.nextSlotLabel
@@ -595,7 +599,7 @@ function CategoryDetailScreen() {
           columnWrapperStyle={s.columnWrapper}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.red} colors={[COLORS.red]} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={diet.acc} colors={[diet.acc]} />}
           ListFooterComponent={!isServiceCategory && Object.keys(stores).length > 0 ? (
             <View style={{ paddingTop: 8, paddingBottom: 4 }}>
               {Object.values(stores).map((st) => (
@@ -614,7 +618,7 @@ function CategoryDetailScreen() {
       ) : (
         <ScrollView
           contentContainerStyle={{ flexGrow: 1 }}
-          refreshControl={CATEGORY_META[categoryId] ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.red} colors={[COLORS.red]} /> : undefined}
+          refreshControl={CATEGORY_META[categoryId] ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={diet.acc} colors={[diet.acc]} /> : undefined}
           keyboardShouldPersistTaps="handled"
         >
           {renderEmpty()}

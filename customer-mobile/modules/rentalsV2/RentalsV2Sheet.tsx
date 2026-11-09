@@ -70,7 +70,7 @@ export function Options<T extends string>({ items, value, onChange }: { items: {
 
 const sh = themedSheet(() => ({
   sheet: { backgroundColor: DAY.card, borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingTop: 8 },
-  handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: '#DEDCEE', marginBottom: 6 },
+  handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: DAY.line, marginBottom: 6 },
   titleRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 8 },
   title: { flex: 1, fontSize: 18, fontWeight: W.title, color: DAY.ink },
   close: { width: 34, height: 34, borderRadius: 17, backgroundColor: DAY.lineSoft, alignItems: 'center', justifyContent: 'center' },

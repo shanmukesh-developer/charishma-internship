@@ -25,6 +25,7 @@ import { CampusColors } from '../../../constants/campusTheme';
 import { connectCampusSocket } from '../campusSocketClient';
 import { WEBRTC_CALL_HTML } from '../webrtcCallHtml';
 
+import { themedSheet } from '../../../utils/themeNow';
 export type CampusCallRole = 'caller' | 'callee';
 
 export interface CampusCallSession {
@@ -428,7 +429,7 @@ export const CampusCallModal: React.FC<CampusCallModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   container: {
     flex: 1,
     backgroundColor: '#0F172A',
@@ -623,4 +624,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 12,
   },
-});
+}));

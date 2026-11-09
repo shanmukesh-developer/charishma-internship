@@ -18,7 +18,7 @@ import { PressScale, FadeInUp } from '../others/motion';
 import { BUTTON_ROLE } from '../../utils/pressRole';
 import { useTopInset } from '../../utils/useTopInset';
 import { formatINR, plural } from '../../utils/format';
-import { TV, RADIUS, W, shadow } from './servicesV2Theme';
+import { TV, RADIUS, W, shadow, hexA } from './servicesV2Theme';
 import { IArrowLeft, ICash, IClipboard, ICloudOff, IHouse, IMinus, IPlus, IRuler, ISearch, ITag, IWifiOff, IX, IBag, IChevronRight, IClock } from './ServicesV2Icons';
 import type { TrustIcon } from './servicesV2Data';
 import { themedSheet } from '../../utils/themeNow';
@@ -49,7 +49,7 @@ export function TopBar({ title, sub, right, onBack, children }: { title: string;
     <LinearGradient colors={[TV.header[0], TV.header[1], TV.header[2]]} start={{ x: 0, y: 0 }} end={{ x: 0.5, y: 1 }} style={{ paddingTop: top, paddingBottom: children ? 14 : 10 }}>
       <View style={k.barRow}>
         <Press onPress={onBack || back} label="Back" style={k.barBtn} scaleTo={0.9}>
-          <IArrowLeft size={22} color="#FFFFFF" strokeWidth={1.7} />
+          <IArrowLeft size={22} color={TV.onBand} strokeWidth={1.7} />
         </Press>
         <View style={{ flex: 1, minWidth: 0, marginLeft: 2 }}>
           <Text style={k.barTitle} numberOfLines={1} accessibilityRole="header">{title}</Text>
@@ -116,12 +116,12 @@ export function HeroCard({ photo, title, line, trust, cta, onCta, photoPosition 
   const w = usePageW();
   const compact = w < 380;
   return (
-    <View style={[k.hero, trust ? null : { minHeight: 148 }, shadow(2, TV.heroInk), style]}>
+    <View style={[k.hero, trust ? null : { minHeight: 148 }, shadow(2), style]}>
       <View style={k.heroPhoto}>
         <Image source={photo} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition={photoPosition} accessibilityIgnoresInvertColors />
       </View>
-      <LinearGradient colors={[TV.heroInk, TV.heroInk, 'rgba(16,21,74,0.62)', 'rgba(16,21,74,0.12)', 'rgba(16,21,74,0)']} locations={[0, 0.37, 0.52, 0.76, 0.9]} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={StyleSheet.absoluteFill} />
-      {trust ? <LinearGradient colors={['rgba(16,21,74,0)', 'rgba(16,21,74,0.9)']} locations={[0.45, 0.92]} style={StyleSheet.absoluteFill} /> : null}
+      <LinearGradient colors={[TV.heroInk, TV.heroInk, hexA(TV.heroInk, 0.62), hexA(TV.heroInk, 0.12), hexA(TV.heroInk, 0)]} locations={[0, 0.37, 0.52, 0.76, 0.9]} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={StyleSheet.absoluteFill} />
+      {trust ? <LinearGradient colors={[hexA(TV.heroInk, 0), hexA(TV.heroInk, 0.9)]} locations={[0.45, 0.92]} style={StyleSheet.absoluteFill} /> : null}
       <View style={{ padding: 16, paddingBottom: trust ? 10 : 16, maxWidth: compact ? '66%' : '62%' }}>
         <Text style={[k.heroTitle, compact ? { fontSize: 18, lineHeight: 23 } : null]} accessibilityRole="header">{title}</Text>
         <Text style={k.heroLine} numberOfLines={3}>{line}</Text>
@@ -138,7 +138,7 @@ export function HeroCard({ photo, title, line, trust, cta, onCta, photoPosition 
             const Icon = TRUST_ICON[t.icon];
             return (
               <View key={t.text} style={[k.trustItem, i > 0 ? k.trustSep : null]}>
-                <View style={k.trustIcon}><Icon size={15} color="#FFFFFF" strokeWidth={1.7} /></View>
+                <View style={k.trustIcon}><Icon size={15} color={TV.onBand} strokeWidth={1.7} /></View>
                 <Text style={k.trustText} numberOfLines={2}>{t.text}</Text>
               </View>
             );
@@ -187,8 +187,8 @@ export function BasketBar({ count, total, onPress }: { count: number; total: num
   if (count <= 0) return null;
   return (
     <View style={[k.basketWrap, { bottom: 12 + insets.bottom }]} pointerEvents="box-none">
-      <Press onPress={onPress} label={`${plural(count, 'item')} in the Groceries basket, ${formatINR(total)}. View basket.`} style={[k.basket, shadow(3, TV.heroInk)]} scaleTo={0.98}>
-        <LinearGradient colors={[TV.header[1], TV.header[2]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+      <Press onPress={onPress} label={`${plural(count, 'item')} in the Groceries basket, ${formatINR(total)}. View basket.`} style={[k.basket, shadow(3)]} scaleTo={0.98}>
+        <LinearGradient colors={[TV.go[1], TV.go[2]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
         <View style={k.basketIcon}><IBag size={18} color="#FFFFFF" strokeWidth={1.7} /></View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={k.basketCount} numberOfLines={1}>{plural(count, 'item')} · Campus store</Text>
@@ -238,8 +238,8 @@ export function SkeletonRows({ count = 4 }: { count?: number }) {
 export const k = themedSheet(() => ({
   barRow: { flexDirection: 'row', alignItems: 'center', paddingLeft: 6, paddingRight: 8, minHeight: 48 },
   barBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  barTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: W.title, letterSpacing: -0.1 },
-  barSub: { color: TV.onDarkSub, fontSize: 12, marginTop: 1 },
+  barTitle: { color: TV.onBand, fontSize: 18, fontWeight: W.title, letterSpacing: -0.1 },
+  barSub: { color: TV.onBandSub, fontSize: 12, marginTop: 1 },
   search: { flexDirection: 'row', alignItems: 'center', gap: 9, height: 46, borderRadius: 23, backgroundColor: TV.card, paddingLeft: 15, paddingRight: 4, marginHorizontal: 16 },
   searchInput: { flex: 1, fontSize: 14.5, color: TV.ink, paddingVertical: 8, minWidth: 0 },
   searchClear: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
@@ -248,15 +248,15 @@ export const k = themedSheet(() => ({
   chipText: { fontSize: 13, color: TV.ink2, fontWeight: W.label },
   hero: { marginHorizontal: 16, borderRadius: RADIUS.xl, overflow: 'hidden', backgroundColor: TV.heroInk, minHeight: 168 },
   heroPhoto: { position: 'absolute', top: 0, bottom: 0, right: 0, width: '64%' },
-  heroTitle: { color: '#FFFFFF', fontSize: 19.5, lineHeight: 24, fontWeight: W.title, letterSpacing: -0.2 },
-  heroLine: { color: TV.onDarkSub, fontSize: 12.5, lineHeight: 17.5, marginTop: 6 },
+  heroTitle: { color: TV.onBand, fontSize: 19.5, lineHeight: 24, fontWeight: W.title, letterSpacing: -0.2 },
+  heroLine: { color: TV.onBandSub, fontSize: 12.5, lineHeight: 17.5, marginTop: 6 },
   heroCta: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', marginTop: 12, height: 36, paddingHorizontal: 14, borderRadius: 18, backgroundColor: TV.card },
   heroCtaText: { color: TV.accentDeep, fontSize: 13, fontWeight: W.title },
   trustRow: { flexDirection: 'row', marginTop: 'auto', paddingHorizontal: 8, paddingBottom: 12, paddingTop: 4 },
   trustItem: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 5 },
-  trustSep: { borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: 'rgba(255,255,255,0.28)' },
-  trustIcon: { width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center' },
-  trustText: { flex: 1, color: '#FFFFFF', fontSize: 11, lineHeight: 14, fontWeight: W.label },
+  trustSep: { borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: TV.onBandLine },
+  trustIcon: { width: 26, height: 26, borderRadius: 13, backgroundColor: TV.onBandWell, borderWidth: StyleSheet.hairlineWidth, borderColor: TV.onBandLine, alignItems: 'center', justifyContent: 'center' },
+  trustText: { flex: 1, color: TV.onBand, fontSize: 11, lineHeight: 14, fontWeight: W.label },
   secHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 10 },
   secTitle: { flex: 1, fontSize: 17, fontWeight: W.title, color: TV.ink, letterSpacing: -0.2 },
   secLink: { flexDirection: 'row', alignItems: 'center', gap: 2, minHeight: 36, paddingLeft: 8 },

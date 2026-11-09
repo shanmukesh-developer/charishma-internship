@@ -20,6 +20,7 @@ import { ForumComposer } from './ForumComposer';
 import { ForumUserSheet, MyStandingCard } from './KarmaBadges';
 import { RequestCommunitySheet } from './CommunitySheets';
 
+import { themedSheet } from '../../../../utils/themeNow';
 export interface ForumHomeProps {
   /** Post id from a deep link / notification (/friends?tab=friends&sub=forum&id=...). */
   focusId?: string | null;
@@ -464,7 +465,7 @@ export const ForumHome: React.FC<ForumHomeProps> = ({ focusId, userId, roles, ac
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   root: { flex: 1, backgroundColor: FriendsColors.bg },
   layer: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: FriendsColors.bg },
   hidden: { display: 'none' },
@@ -519,4 +520,4 @@ const styles = StyleSheet.create({
   guideStudent: { backgroundColor: 'rgba(212,175,122,0.06)', borderColor: 'rgba(212,175,122,0.3)' },
   guideLabel: { fontSize: 12, fontWeight: '800', letterSpacing: 0.4, textTransform: 'uppercase' },
   stale: { padding: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.warnSoft, minHeight: 44, flexDirection: 'row', alignItems: 'center' },
-});
+}));

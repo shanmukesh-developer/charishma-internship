@@ -9,6 +9,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
+import { useDietLight } from './local/dietLightTheme';
 import SafeImage from './SafeImage';
 
 export type OptionChoice = { label: string; price: number; mrp?: number; isDefault?: boolean };
@@ -112,10 +113,12 @@ export function cleanPicks(groups: OptionGroup[], picks: OptionPicks): OptionPic
 const rupee = (n: number) => `₹${Number.isInteger(n) ? n : n.toFixed(2)}`;
 
 /** The choice groups drawn inline. `accent` colours the selection (green in Groceries, red elsewhere). */
-export function OptionsPicker({ groups, picks, onChange, accent = '#EF4F5F' }: {
+export function OptionsPicker({ groups, picks, onChange, accent: accentProp }: {
   groups: OptionGroup[]; picks: OptionPicks; onChange: (p: OptionPicks) => void; accent?: string;
 }) {
   const { colors } = useTheme();
+  const diet = useDietLight();
+  const accent = accentProp || diet.acc;
   const set = (name: string, v: string | string[] | undefined) => {
     const next = { ...picks };
     if (v === undefined) delete next[name]; else next[name] = v;
@@ -222,6 +225,7 @@ export function useAskOptions(): Ask {
 
 export function OptionsSheetProvider({ children }: { children: React.ReactNode }) {
   const { colors } = useTheme();
+  const diet = useDietLight();
   const insets = useSafeAreaInsets();
   const [req, setReq] = useState<AskInput | null>(null);
   const [picks, setPicks] = useState<OptionPicks>({});
@@ -240,7 +244,7 @@ export function OptionsSheetProvider({ children }: { children: React.ReactNode }
     done?.(r);
   };
 
-  const accent = req?.accent || colors.red;
+  const accent = req?.accent || diet.acc;
   const unit = req ? optionsUnitPrice(req.price, req.groups, picks) : 0;
   const missing = req ? missingChoice(req.groups, picks) : null;
   const value = useMemo(() => ask, [ask]);
@@ -273,7 +277,7 @@ export function OptionsSheetProvider({ children }: { children: React.ReactNode }
                 style={[st.cta, { backgroundColor: missing ? colors.border : accent }]}
                 accessibilityRole="button"
               >
-                <Text style={st.ctaText}>{missing || `${req.cta || 'Add to basket'} · ${rupee(unit)}`}</Text>
+                <Text style={[st.ctaText, { color: missing ? colors.textSecondary : accent === diet.acc ? diet.onAcc : '#fff' }]}>{missing || `${req.cta || 'Add to basket'} · ${rupee(unit)}`}</Text>
               </Pressable>
             </View>
           </View>

@@ -16,6 +16,7 @@ import {
 } from '../api/forumApi';
 import { POST_TYPE_META, blockedDetails, forumErrorMessage } from './forumShared';
 
+import { themedSheet } from '../../../../utils/themeNow';
 /** Community rules + moderators. */
 export const RulesSheet: React.FC<{ community: ForumCommunity | null; visible: boolean; onClose: () => void }> = ({ community, visible, onClose }) => {
   const [full, setFull] = useState<ForumCommunity | null>(null);
@@ -275,10 +276,10 @@ export const EditCommunitySheet: React.FC<{ community: ForumCommunity | null; vi
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   label: { ...FT.kicker, marginTop: FS.md, marginBottom: 6 } as any,
   rule: { flexDirection: 'row', gap: FS.md, padding: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.cardHi },
   ruleNo: { width: 20, fontSize: 14, fontWeight: '800', color: FriendsColors.accent },
   typeWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: FS.sm },
   error: { marginTop: FS.md, padding: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.dangerSoft, color: FriendsColors.danger, fontSize: 13, fontWeight: '600' },
-});
+}));

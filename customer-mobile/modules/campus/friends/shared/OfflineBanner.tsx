@@ -4,6 +4,7 @@ import { WifiOff } from '../../../../components/lucide';
 import { getCampusConnectionState, subscribeCampusConnection, CampusConnectionState } from '../../campusSocketClient';
 import { FriendsColors, FS, FR } from '../friendsTheme';
 
+import { themedSheet } from '../../../../utils/themeNow';
 /** Shown after this long without a live connection (avoids flashing during a quick reconnect). */
 const SHOW_AFTER_MS = 2500;
 
@@ -49,7 +50,7 @@ export const OfflineBanner: React.FC<{ message?: string }> = ({ message }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   wrap: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -65,4 +66,4 @@ const styles = StyleSheet.create({
     borderColor: FriendsColors.warnLine,
   },
   text: { flex: 1, fontSize: 12, fontWeight: '600', color: FriendsColors.warn },
-});
+}));

@@ -9,6 +9,7 @@ import { PulseSpaceCard, setSpaceReminder } from '../api/pulseApi';
 import { formatStartsAt, pulseErrorMessage } from './pulseShared';
 import { usePulseNav } from './pulseNav';
 
+import { themedSheet } from '../../../../utils/themeNow';
 /**
  * A scheduled or live Space in the Pulse feed. The server sends these only while Spaces is on,
  * so this renders whatever arrives; tapping opens the Space in Friends > Spaces.
@@ -106,7 +107,7 @@ export const SpaceCard: React.FC<{ card: PulseSpaceCard; onChanged: (c: PulseSpa
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   card: {
     backgroundColor: FriendsColors.card,
     borderRadius: FR.card,
@@ -133,4 +134,4 @@ const styles = StyleSheet.create({
   },
   remindOn: { backgroundColor: FriendsColors.accent },
   remindText: { fontSize: 13, fontWeight: '800', color: FriendsColors.accent },
-});
+}));

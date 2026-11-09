@@ -94,7 +94,7 @@ export default function ServicesV2Detail({ shelf, id }: { shelf: ServiceShelf; i
 
   return (
     <View style={{ flex: 1, backgroundColor: TV.page }}>
-      <TopBar title="Service details" sub={SHELF_META[shelf].title} right={<BarIcon onPress={() => openMyBookings(router)} label="My service bookings"><IReceipt size={21} color="#FFFFFF" strokeWidth={1.7} /></BarIcon>} />
+      <TopBar title="Service details" sub={SHELF_META[shelf].title} right={<BarIcon onPress={() => openMyBookings(router)} label="My service bookings"><IReceipt size={21} color={TV.onBand} strokeWidth={1.7} /></BarIcon>} />
       <ScrollView contentContainerStyle={{ paddingTop: 14, paddingBottom: 120 + insets.bottom }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <FadeIn>
           <View style={[d.photo, shadow(2)]}>
@@ -205,7 +205,7 @@ export default function ServicesV2Detail({ shelf, id }: { shelf: ServiceShelf; i
 
 const d = themedSheet(() => ({
   photo: { marginHorizontal: 16, height: 200, borderRadius: RADIUS.xl, overflow: 'hidden', backgroundColor: TV.plate },
-  tag: { position: 'absolute', left: 12, top: 12, paddingHorizontal: 10, height: 26, borderRadius: 13, backgroundColor: 'rgba(16,21,74,0.82)', justifyContent: 'center' },
+  tag: { position: 'absolute', left: 12, top: 12, paddingHorizontal: 10, height: 26, borderRadius: 13, backgroundColor: 'rgba(18,12,14,0.72)', justifyContent: 'center' },
   tagText: { color: '#FFFFFF', fontSize: 12, fontWeight: W.label },
   pad: { paddingHorizontal: 16, marginTop: 16 },
   title: { fontSize: 20, lineHeight: 26, color: TV.ink, fontWeight: W.title, letterSpacing: -0.2 },

@@ -40,7 +40,9 @@ const TabIcon = React.memo(function TabIcon({ name, focused, iconName, color, sh
 
   return (
     <View style={styles.tabIconWrap}>
-      {focused && <View style={[styles.activeIndicator, { backgroundColor: accent }]} />}
+      {/* In the layout (not absolute) with a fixed gap, so it can never touch the icon (owner, 10 Nov 2026);
+          an invisible one on other tabs keeps every icon at the same height. */}
+      <View style={[styles.activeIndicator, { backgroundColor: focused ? accent : 'transparent' }]} />
       <View style={{ position: 'relative' }}>
         {iconName === LOCAL_STORE_ICON ? (
           <LocalStoreIcon size={22} color={focused ? accent : color} filled={focused} style={focused ? styles.tabIconActive : styles.tabIcon} />
@@ -97,7 +99,8 @@ export default function TabLayout() {
         borderTopWidth: 1,
         // Light bar: it lifts off the page with a soft shadow, no top outline
         borderTopColor: dark ? 'rgba(255,255,255,0.08)' : 'transparent',
-        height: Platform.OS === 'ios' ? 88 : 60 + insets.bottom,
+        // 66: room for the active line above the icon (owner, 10 Nov 2026: the line was merging with the icons)
+        height: Platform.OS === 'ios' ? 92 : 66 + insets.bottom,
         paddingTop: 8,
         paddingBottom: Platform.OS === 'ios' ? 24 : insets.bottom > 0 ? insets.bottom : 8,
         elevation: 20,
@@ -161,15 +164,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     // 68: five slots fit a 360dp screen (72 each) and "Groceries" fits without shrinking at normal font size.
     width: 68,
-    paddingTop: 9,
+    paddingTop: 0,
     position: 'relative',
   },
   activeIndicator: {
-    position: 'absolute',
-    top: 0,
-    width: 24,
+    width: 26,
     height: 3,
     borderRadius: 2,
+    marginBottom: 7,
     backgroundColor: COLORS.red,
   },
   tabIcon: {

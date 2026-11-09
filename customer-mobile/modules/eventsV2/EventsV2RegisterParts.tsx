@@ -1,5 +1,5 @@
 /**
- * Registration pieces (night look): the step bar, the event summary with its photo, check rows, payment option
+ * Registration pieces (diet look): the step bar, the event summary with its photo, check rows, payment option
  * cards, organiser question inputs and the dark text field.
  */
 import React from 'react';
@@ -7,6 +7,7 @@ import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { fmtRange, type PaymentMode, type Question } from '../campusEvents/campusEventsApi';
 import { NIGHT, QUICK, W, hexA } from './eventsV2Theme';
+import { themedSheet } from '../../utils/themeNow';
 import { Glass, IconSquare, Press } from './EventsV2Kit';
 import { EventPhoto } from './EventsV2Media';
 import { IBanknote, ICalendar, ICheck, IPin, IWallet, ILock } from './EventsV2Icons';
@@ -46,8 +47,8 @@ export function Summary({ ev, slotLabel }: { ev: EvEvent; slotLabel?: string }) 
 
 export function CheckRow({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
   return (
-    <Press onPress={() => onChange(!value)} label={label} style={[s.check, value ? { borderColor: hexA('#A78BFA', 0.7), backgroundColor: 'rgba(167,139,250,0.12)' } : null]} scaleTo={0.98}>
-      <View style={[s.box, value ? { backgroundColor: NIGHT.violetDeep, borderColor: NIGHT.violet } : null]}>{value ? <ICheck size={15} color="#FFFFFF" strokeWidth={2.4} /> : null}</View>
+    <Press onPress={() => onChange(!value)} label={label} style={[s.check, value ? { borderColor: NIGHT.accLine, backgroundColor: NIGHT.accSoft } : null]} scaleTo={0.98}>
+      <View style={[s.box, value ? { backgroundColor: NIGHT.violetDeep, borderColor: NIGHT.violet } : null]}>{value ? <ICheck size={15} color={NIGHT.onAcc} strokeWidth={2.4} /> : null}</View>
       <Text style={s.checkText}>{label}</Text>
     </Press>
   );
@@ -58,7 +59,7 @@ export function PayOption({ m, on, onPress }: { m: PaymentMode; on: boolean; onP
   return (
     <Press onPress={onPress} label={`${PAY_LABEL[m]}. ${PAY_HINT[m]}`} style={[s.pay, on ? s.payOn : null]} scaleTo={0.98}>
       <IconSquare colors={colors} size={40}>
-        {m === 'WALLET' ? <IWallet size={19} color="#FFFFFF" strokeWidth={1.8} /> : m === 'ONLINE' ? <ILock size={19} color="#FFFFFF" strokeWidth={1.8} /> : <IBanknote size={19} color="#FFFFFF" strokeWidth={1.8} />}
+        {m === 'WALLET' ? <IWallet size={19} color={NIGHT.onAcc} strokeWidth={1.8} /> : m === 'ONLINE' ? <ILock size={19} color={NIGHT.onAcc} strokeWidth={1.8} /> : <IBanknote size={19} color={NIGHT.onAcc} strokeWidth={1.8} />}
       </IconSquare>
       <View style={{ flex: 1, marginLeft: 12 }}>
         <Text style={s.payTitle}>{PAY_LABEL[m]}</Text>
@@ -72,7 +73,7 @@ export function PayOption({ m, on, onPress }: { m: PaymentMode; on: boolean; onP
 export function Field({ label, value, onChange, error, multiline, numeric, maxLength, required }: { label: string; value: string; onChange: (v: string) => void; error?: string; multiline?: boolean; numeric?: boolean; maxLength?: number; required?: boolean }) {
   return (
     <View style={{ marginBottom: 14 }}>
-      <Text style={s.label}>{label}{required ? <Text style={{ color: NIGHT.pink }}> *</Text> : null}</Text>
+      <Text style={s.label}>{label}{required ? <Text style={{ color: NIGHT.accInk }}> *</Text> : null}</Text>
       <TextInput value={value} onChangeText={onChange} placeholderTextColor={NIGHT.faint} accessibilityLabel={label} multiline={multiline} keyboardType={numeric ? 'numeric' : 'default'} maxLength={maxLength}
         style={[s.input, multiline ? { minHeight: 96, textAlignVertical: 'top', paddingTop: 12 } : null, error ? { borderColor: NIGHT.red } : null]} />
       {error ? <Text style={s.err} accessibilityLiveRegion="polite">{error}</Text> : null}
@@ -91,14 +92,14 @@ export function QuestionInput({ q, value, onChange, error }: { q: Question; valu
     };
     return (
       <View style={{ marginBottom: 16 }}>
-        <Text style={s.label}>{q.label}{q.required ? <Text style={{ color: NIGHT.pink }}> *</Text> : null}</Text>
+        <Text style={s.label}>{q.label}{q.required ? <Text style={{ color: NIGHT.accInk }}> *</Text> : null}</Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
           {opts.map((o) => {
             const on = isOn(o);
             return (
               <Press key={o} onPress={() => press(o)} label={o} style={[s.opt, on ? s.optOn : null]} scaleTo={0.95}>
-                {on && q.type === 'MULTI_CHOICE' ? <ICheck size={13} color="#FFFFFF" strokeWidth={2.2} /> : null}
-                <Text style={[s.optText, on ? { color: '#FFFFFF' } : null]}>{o}</Text>
+                {on && q.type === 'MULTI_CHOICE' ? <ICheck size={13} color={NIGHT.onAcc} strokeWidth={2.2} /> : null}
+                <Text style={[s.optText, on ? { color: NIGHT.onAcc } : null]}>{o}</Text>
               </Press>
             );
           })}
@@ -113,26 +114,26 @@ export function QuestionInput({ q, value, onChange, error }: { q: Question; valu
   );
 }
 
-const s = StyleSheet.create({
-  seg: { flex: 1, height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.1)', overflow: 'hidden' },
+const s = themedSheet(() => ({
+  seg: { flex: 1, height: 5, borderRadius: 3, backgroundColor: NIGHT.track, overflow: 'hidden' },
   stepText: { color: NIGHT.sub, fontSize: 12, marginTop: 7 },
   thumb: { width: 78, height: 78, borderRadius: 14, overflow: 'hidden' },
   sumTitle: { color: NIGHT.ink, fontSize: 15, fontWeight: W.display },
   row: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   rowText: { color: NIGHT.sub, fontSize: 12, flexShrink: 1 },
   check: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, borderWidth: 1, borderColor: NIGHT.line, backgroundColor: NIGHT.glass, marginBottom: 10, minHeight: 54 },
-  box: { width: 24, height: 24, borderRadius: 8, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)', alignItems: 'center', justifyContent: 'center' },
+  box: { width: 24, height: 24, borderRadius: 8, borderWidth: 1.5, borderColor: NIGHT.border, alignItems: 'center', justifyContent: 'center' },
   checkText: { flex: 1, color: NIGHT.ink, fontSize: 13.5, lineHeight: 19 },
   pay: { flexDirection: 'row', alignItems: 'center', padding: 13, borderRadius: 18, borderWidth: 1, borderColor: NIGHT.line, backgroundColor: NIGHT.card, marginBottom: 10 },
-  payOn: { borderColor: NIGHT.violet, backgroundColor: 'rgba(167,139,250,0.12)' },
+  payOn: { borderColor: NIGHT.violet, backgroundColor: NIGHT.accSoft },
   payTitle: { color: NIGHT.ink, fontSize: 14.5, fontWeight: W.title },
   payHint: { color: NIGHT.sub, fontSize: 12, marginTop: 2 },
-  radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)', alignItems: 'center', justifyContent: 'center' },
+  radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: NIGHT.border, alignItems: 'center', justifyContent: 'center' },
   radioDot: { width: 11, height: 11, borderRadius: 6, backgroundColor: NIGHT.violet },
   label: { color: NIGHT.sub, fontSize: 12.5, fontWeight: W.label, marginBottom: 7 },
-  input: { minHeight: 48, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', backgroundColor: NIGHT.glass, color: NIGHT.ink, paddingHorizontal: 14, fontSize: 14.5 },
+  input: { minHeight: 48, borderRadius: 14, borderWidth: 1, borderColor: NIGHT.border, backgroundColor: NIGHT.glass, color: NIGHT.ink, paddingHorizontal: 14, fontSize: 14.5 },
   err: { color: NIGHT.red, fontSize: 12, marginTop: 5 },
-  opt: { flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: 40, paddingHorizontal: 14, borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.25)', backgroundColor: NIGHT.glass },
+  opt: { flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: 40, paddingHorizontal: 14, borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, borderColor: NIGHT.border, backgroundColor: NIGHT.glass },
   optOn: { backgroundColor: NIGHT.violetDeep, borderColor: NIGHT.violet },
   optText: { color: NIGHT.sub, fontSize: 13, fontWeight: W.label },
-});
+}));

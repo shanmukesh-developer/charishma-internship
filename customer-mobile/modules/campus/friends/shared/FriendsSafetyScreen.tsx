@@ -31,6 +31,7 @@ import { FriendsSkeleton } from './FriendsSkeleton';
 import { RelativeTime, formatLocal } from './RelativeTime';
 import { identityLabel } from './IdentityChip';
 
+import { themedSheet } from '../../../../utils/themeNow';
 const NOTIF_ROWS: { key: keyof FriendsNotifPrefs; label: string; hint: string }[] = [
   { key: 'replies', label: 'Replies', hint: 'Replies to your posts and comments' },
   { key: 'mentions', label: 'Mentions', hint: 'When someone mentions you' },
@@ -386,7 +387,7 @@ const NavRow: React.FC<{ icon: React.ReactNode; label: string; hint?: string; on
   </TouchableOpacity>
 );
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   section: { ...StyleSheet.flatten(FT.kicker), marginTop: FS.xl, marginBottom: FS.sm },
   notice: {
     flexDirection: 'row',
@@ -400,4 +401,4 @@ const styles = StyleSheet.create({
   smallBtn: { minHeight: 36, justifyContent: 'center', paddingHorizontal: 8 },
   status: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: FR.pill, backgroundColor: FriendsColors.cardHi },
   statusText: { fontSize: 12, fontWeight: '800', color: FriendsColors.muted },
-});
+}));

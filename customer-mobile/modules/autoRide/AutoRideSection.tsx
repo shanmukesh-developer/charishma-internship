@@ -341,8 +341,8 @@ export function TripCard({ t, now, mode = 'shared', onView, onBook, onFull, onMi
 
         <View style={{ flexDirection: 'row', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
           {!t.sharedBookingAllowed ? <Badge label="Seat booking closed" color="#64748B" /> : null}
-          {t.fullAutoFare && !full ? <Badge label={t.privateBookingAllowed ? `Whole auto ${inr(t.fullAutoFare)}` : 'Whole auto not possible now'} color={t.privateBookingAllowed ? '#2563EB' : '#64748B'} /> : null}
-          {t.seatSelectionEnabled ? <Badge label="Pick your seat" color="#2563EB" /> : null}
+          {t.fullAutoFare && !full ? <Badge label={t.privateBookingAllowed ? `Whole auto ${inr(t.fullAutoFare)}` : 'Whole auto not possible now'} color={t.privateBookingAllowed ? p.button : '#64748B'} /> : null}
+          {t.seatSelectionEnabled ? <Badge label="Pick your seat" color={p.button} /> : null}
         </View>
       </PressScale>
 

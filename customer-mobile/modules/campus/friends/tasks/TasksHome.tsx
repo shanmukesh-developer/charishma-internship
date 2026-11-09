@@ -21,6 +21,7 @@ import { TaskComposer } from './TaskComposer';
 import { ReputationSheet } from './TaskSheets';
 import { PaymentNoticeCard } from './PaymentNoticeCard';
 
+import { themedSheet } from '../../../../utils/themeNow';
 export interface TasksHomeProps {
   /** Task id from a deep link / notification (/friends?tab=friends&sub=tasks&id=...). */
   focusId?: string | null;
@@ -412,7 +413,7 @@ export const TasksHome: React.FC<TasksHomeProps> = ({ focusId, onOpenChat, userI
 
 const Sep = () => <View style={{ height: FS.md }} />;
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   root: { flex: 1, backgroundColor: FriendsColors.bg },
   layer: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: FriendsColors.bg },
   hidden: { display: 'none' },
@@ -466,4 +467,4 @@ const styles = StyleSheet.create({
   sortOn: { backgroundColor: FriendsColors.cardHi },
   sortText: { fontSize: 12, fontWeight: '700', color: FriendsColors.muted },
   endRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-});
+}));

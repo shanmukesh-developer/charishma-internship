@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { CachedImage as Image } from './SafeImage';
 import ShimmerLoader from './ShimmerLoader';
 import { COLORS, surfaceLift } from '../constants/theme';
+import { dietNow } from '../utils/themeNow';
 import { useTheme } from '../context/ThemeContext';
 import { useCartState } from '../context/CartContext';
 
@@ -26,9 +27,10 @@ export const stallPalette = (isDark: boolean) => ({
   txt: isDark ? COLORS.textPrimary : COLORS.textDark,
   txtSec: isDark ? COLORS.textSecondary : COLORS.textDarkSecondary,
   border: isDark ? COLORS.borderDark : COLORS.borderLight,
-  accent: isDark ? COLORS.gold : COLORS.red,
-  /** Text on a filled accent (white on red, near-black on gold). */
-  onAccent: isDark ? '#09090B' : '#FFFFFF',
+  // Owner, 10 Nov 2026: the diet accent (red Non-veg / green Veg), light and dark - no more red/gold split.
+  accent: dietNow().acc,
+  /** Text on a filled accent. */
+  onAccent: dietNow().onAcc,
   /** Photo well behind a missing photo, and its storefront icon. */
   photoBg: isDark ? '#232327' : '#EDEDF0',
   photoIcon: isDark ? '#71717A' : '#A1A1AA',

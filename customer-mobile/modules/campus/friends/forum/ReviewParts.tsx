@@ -10,6 +10,7 @@ import { Stars } from './Stars';
 import { CONTEXT_LABELS, REVIEW_KIND_META, blockedDetails, forumErrorMessage } from './forumShared';
 import { useForumNav } from './forumNav';
 
+import { themedSheet } from '../../../../utils/themeNow';
 /** Who may try to reply: the server decides (linked faculty, official account managers, admins). */
 export const mayOfferRightOfReply = (roles: string[], review: ForumReview) =>
   !review.response && !review.isMine && review.status === 'published' && (roles.includes('faculty') || roles.includes('campus_admin'));
@@ -228,7 +229,7 @@ const ResponseSheet: React.FC<{
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   wrap: { marginTop: FS.md, padding: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.cardHi, borderWidth: 1, borderColor: FriendsColors.lineSoft },
   top: { flexDirection: 'row', alignItems: 'center', gap: FS.md, minHeight: 44 },
   ctxRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: FS.sm },
@@ -240,4 +241,4 @@ const styles = StyleSheet.create({
   respRole: { fontSize: 12, fontWeight: '800', color: FriendsColors.gold },
   respBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 36, paddingHorizontal: 10, borderRadius: FR.pill, backgroundColor: FriendsColors.card },
   error: { marginTop: FS.md, padding: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.dangerSoft, color: FriendsColors.danger, fontSize: 13, fontWeight: '600' },
-});
+}));

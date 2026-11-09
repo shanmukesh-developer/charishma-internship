@@ -43,7 +43,7 @@ function YourRentals() {
         {tiles.map((t, i) => (
           <FadeInUp key={t.key} index={i} style={{ flex: 1 }}>
             <Press onPress={t.onPress} label={t.label} style={h.tile}>
-              <View style={h.tileIcon}><t.Icon size={18} color="#E9E3FF" strokeWidth={1.6} /></View>
+              <View style={h.tileIcon}><t.Icon size={18} color={NIGHT.violet} strokeWidth={1.6} /></View>
               <Text style={h.tileText} numberOfLines={1}>{t.label}</Text>
               {t.badge ? <View style={h.badge}><Text style={h.badgeText}>{t.badge}</Text></View> : null}
             </Press>
@@ -53,14 +53,14 @@ function YourRentals() {
       {featureOff ? <Text style={[g.campusKm, { marginTop: 10, paddingHorizontal: 6 }]}>Student vehicle rentals are paused right now. Your existing trips still work.</Text> : null}
       <FadeInUp index={3}>
         <Press onPress={listVehicle} label="List your vehicle" style={h.list}>
-          <LinearGradient colors={['#8673CA', '#6F5BB0', '#594496']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+          <LinearGradient colors={[NIGHT.fill[0], NIGHT.fill[1], NIGHT.fill[2]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
           <LinearGradient colors={['rgba(255,255,255,0.22)', 'rgba(255,255,255,0)']} style={[StyleSheet.absoluteFill, { height: '55%' }]} />
           <View style={h.listIcon}><IKey size={20} color="#FFFFFF" strokeWidth={1.6} /></View>
           <View style={{ flex: 1 }}>
             <Text style={h.listTitle}>List your vehicle</Text>
             <Text style={h.listSub} numberOfLines={2}>{elig && !elig.eligible ? 'Verify your college email or ID first' : 'Rent out or lend your bike or car to verified students'}</Text>
           </View>
-          <View style={h.listGo}><IArrowRight size={15} color="#5B3FE0" strokeWidth={2} /></View>
+          <View style={h.listGo}><IArrowRight size={15} color={NIGHT.fill[1]} strokeWidth={2} /></View>
         </Press>
       </FadeInUp>
       <Press onPress={() => router.push('/category/rentals' as any)} label="Rental stores" style={[g.campus, { marginTop: 10, height: 52, paddingHorizontal: 14 }]}>
@@ -84,7 +84,7 @@ export function RentalsV2HomeBody({ sections, scrollY }: { sections?: { key: str
     <Animated.ScrollView style={{ flex: 1, backgroundColor: NIGHT.page }} contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}
       scrollEventThrottle={16}
       onScroll={scrollY ? Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true }) : undefined}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#C4B5FD" colors={['#7C5CF0']} progressViewOffset={60} />}>
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={NIGHT.violet} colors={[NIGHT.violet]} progressViewOffset={60} />}>
       <HomeTop sections={sections} />
       <CategoryGrid />
       <NearCampus />
@@ -96,8 +96,8 @@ export function RentalsV2HomeBody({ sections, scrollY }: { sections?: { key: str
 
 const h = themedSheet(() => ({
   tile: { height: 74, borderRadius: 14, backgroundColor: NIGHT.chip, borderWidth: 1, borderColor: NIGHT.chipLine, alignItems: 'center', justifyContent: 'center', gap: 7, paddingHorizontal: 6 },
-  tileIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(167,139,250,0.18)', alignItems: 'center', justifyContent: 'center' },
-  tileText: { color: '#FFFFFF', fontSize: 11.5, fontWeight: W.label },
+  tileIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: NIGHT.soft, alignItems: 'center', justifyContent: 'center' },
+  tileText: { color: NIGHT.ink, fontSize: 11.5, fontWeight: W.label },
   badge: { position: 'absolute', top: 7, right: 9, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: NIGHT.bellDot, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
   badgeText: { color: '#FFFFFF', fontSize: 11, fontWeight: W.title },
   list: { marginTop: 12, minHeight: 72, borderRadius: 18, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12 },

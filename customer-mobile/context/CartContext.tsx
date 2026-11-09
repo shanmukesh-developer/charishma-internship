@@ -503,13 +503,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [setCart]);
 
   const handleHostRoom = useCallback(async () => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let code = 'ZN-';
-    // 10 characters (~1e15 codes) so live baskets can't be found by guessing codes (the server also
-    // rate-limits joins).
-    for (let i = 0; i < 10; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
+    // Owner, 10 Nov 2026: "ZN-" and 4 random digits (easy to say to a roommate). Guessing is held back by the
+    // server's join limit (20 codes per 10 minutes per phone / network); the host sees every item and who added it.
+    const code = `ZN-${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
     setRoomCode(code);
     setIsHosting(true);
     setIsJoined(false);
@@ -522,7 +518,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     let formatted = inputCode.trim().toUpperCase().replace(/\s+/g, '');
     if (!formatted.startsWith('ZN-')) formatted = `ZN-${formatted.replace(/^ZN/, '')}`;
     if (!ROOM_CODE_RE.test(formatted)) {
-      Alert.alert('Check the code', 'Room codes look like ZN-8B2A4KQ7XM. Please check with your roommate and try again.');
+      Alert.alert('Check the code', 'Room codes look like ZN-4821. Please check with your roommate and try again.');
       return;
     }
     setRoomCode(formatted);

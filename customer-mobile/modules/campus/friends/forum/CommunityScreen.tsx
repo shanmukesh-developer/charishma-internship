@@ -26,6 +26,7 @@ import { FreshersGuideCard } from './FreshersGuideCard';
 import { RulesSheet, EditCommunitySheet } from './CommunitySheets';
 import { POST_TYPE_META, communityIcon, compactCount, forumCache, forumErrorMessage, patchPostList } from './forumShared';
 
+import { themedSheet } from '../../../../utils/themeNow';
 const SORTS: { key: ForumSort; label: string; icon: React.ReactNode }[] = [
   { key: 'hot', label: 'Hot', icon: <Flame size={13} color={FriendsColors.muted} /> },
   { key: 'new', label: 'New', icon: <Clock size={13} color={FriendsColors.muted} /> },
@@ -276,7 +277,7 @@ export const CommunityScreen: React.FC<{ id: string; initial?: ForumCommunity | 
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   hero: { flexDirection: 'row', alignItems: 'center', gap: FS.md },
   heroIcon: { width: 52, height: 52, borderRadius: 16, backgroundColor: FriendsColors.accentSoft, alignItems: 'center', justifyContent: 'center' },
   joinBtn: { minHeight: 40, paddingHorizontal: 16 },
@@ -298,4 +299,4 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 6,
   },
-});
+}));

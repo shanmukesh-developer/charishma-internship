@@ -217,7 +217,7 @@ export function RestaurantsOpener({ theme, count, avatars }: { theme: HomeTheme;
   );
 }
 
-// 'all' (owner, 10 Nov 2026: "add an All option after Restaurants, Fast food and Tiffins") shows every kitchen;
+// 'all' (owner, 10 Nov 2026: an All option, first tab and the default) shows every kitchen;
 // restaurantKind() never returns it.
 export type RestaurantKind = 'rest' | 'fast' | 'tiffin' | 'all';
 const KIND_LABEL: Record<RestaurantKind, string> = { rest: 'Restaurants', fast: 'Fast food', tiffin: 'Tiffins', all: 'All' };
@@ -231,7 +231,8 @@ export function restaurantKind(r: any): RestaurantKind {
 }
 
 export function RestaurantKindTabs({ value, counts, onChange, theme, isDark, pageBg }: { value: RestaurantKind; counts: Record<RestaurantKind, number>; onChange: (k: RestaurantKind) => void; theme: HomeTheme; isDark: boolean; pageBg: string }) {
-  const kinds: RestaurantKind[] = ['rest', 'fast', 'tiffin', 'all'];
+  // All first (owner, 10 Nov 2026: "all button must be first").
+  const kinds: RestaurantKind[] = ['all', 'rest', 'fast', 'tiffin'];
   const panel = isDark ? '#17171C' : '#FFFFFF';
   const unBg = isDark ? 'rgba(255,255,255,0.06)' : `${theme.acc}14`;
   return (
@@ -263,7 +264,7 @@ export function RestaurantKindTabs({ value, counts, onChange, theme, isDark, pag
 /** The white panel the kind tabs open into (first / last tab square that top corner). */
 export function KindPanel({ value, isDark, children }: { value: RestaurantKind; isDark: boolean; children: React.ReactNode }) {
   return (
-    <View style={[st.kindPanel, { backgroundColor: isDark ? '#17171C' : '#FFFFFF' }, value === 'rest' && { borderTopLeftRadius: 0 }, value === 'all' && { borderTopRightRadius: 0 }]}>
+    <View style={[st.kindPanel, { backgroundColor: isDark ? '#17171C' : '#FFFFFF' }, value === 'all' && { borderTopLeftRadius: 0 }, value === 'tiffin' && { borderTopRightRadius: 0 }]}>
       {children}
     </View>
   );

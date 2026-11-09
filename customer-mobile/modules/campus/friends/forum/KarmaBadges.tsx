@@ -9,6 +9,7 @@ import { IdentityChip, identityLabel } from '../shared/IdentityChip';
 import { ActionMenu } from '../shared/ActionMenu';
 import { BADGE_META, forumBadges, forumErrorMessage } from './forumShared';
 
+import { themedSheet } from '../../../../utils/themeNow';
 const BADGE_ICON: Record<string, typeof Award> = {
   helpful_answer: Award,
   community_helper: HandHelping,
@@ -211,7 +212,7 @@ export const MyStandingCard: React.FC<{ userId: string | null | undefined; refre
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 2, borderRadius: FR.pill, backgroundColor: FriendsColors.goldSoft },
   pillText: { fontSize: 12, fontWeight: '800', color: FriendsColors.gold },
@@ -231,5 +232,5 @@ const styles = StyleSheet.create({
     borderColor: FriendsColors.line,
   },
   standingIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: FriendsColors.goldSoft, borderWidth: 1, borderColor: 'rgba(232,196,127,0.3)', alignItems: 'center', justifyContent: 'center' },
-});
+}));
 

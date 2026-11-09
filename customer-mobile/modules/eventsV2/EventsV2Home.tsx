@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { Animated, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { NIGHT, W } from './eventsV2Theme';
+import { themedSheet } from '../../utils/themeNow';
 import { HomeTop } from './EventsV2HomeTop';
 import CategoryTiles from './EventsV2Categories';
 import QuickAccess from './EventsV2QuickAccess';
@@ -71,8 +72,8 @@ function HostLine() {
   );
 }
 
-const s = StyleSheet.create({
+const s = themedSheet(() => ({
   link: { color: NIGHT.violet, fontWeight: W.title },
   host: { alignSelf: 'center', marginTop: 22, minHeight: 44, justifyContent: 'center', paddingHorizontal: 16 },
   hostText: { color: NIGHT.sub, fontSize: 13 },
-});
+}));

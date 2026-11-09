@@ -13,6 +13,7 @@ import {
 import { ScreenModal, Sheet, Avatar, ListRow, EmptyState, ErrorState, SkeletonRows, Button, T, S, R, ui } from '../ui';
 import { ActionMenu } from '../friends/shared/ActionMenu';
 
+import { themedSheet } from '../../../utils/themeNow';
 const TYPE_OPTIONS: { key: string; label: string; hint: string }[] = [
   { key: 'study', label: 'Study group', hint: 'Friends, projects, lab partners' },
   { key: 'club', label: 'Club', hint: 'Clubs, teams and societies' },
@@ -328,7 +329,7 @@ export const GroupsScreen: React.FC<GroupsScreenProps> = ({ visible, onClose, on
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: S.sm },
   chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: R.pill, borderWidth: 1, borderColor: CampusColors.chipBorder, backgroundColor: CampusColors.card },
   chipActive: { backgroundColor: CampusColors.ink, borderColor: CampusColors.ink },
@@ -345,4 +346,4 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: CampusColors.line,
   },
-});
+}));

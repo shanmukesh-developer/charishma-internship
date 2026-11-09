@@ -27,8 +27,8 @@ export function DateStrip({ days, value, onChange }: { days: { date: string; slo
           <TouchableOpacity key={d.date} onPress={() => onChange(d.date)} accessibilityRole="radio" accessibilityState={{ checked: on }}
             accessibilityLabel={`${dayLabel(d.date)}, ${open} slot${open === 1 ? '' : 's'} open`}
             style={[s.day, { backgroundColor: on ? p.accent : p.card2, borderColor: on ? p.accent : p.border }]}>
-            <Text style={{ fontSize: 12, fontWeight: '800', color: on ? '#fff' : p.sub }}>{dow}</Text>
-            <Text style={{ fontSize: 13.5, fontWeight: '900', color: on ? '#fff' : p.text, marginTop: 2 }} numberOfLines={1}>{rest.join(' ') || dayLabel(d.date)}</Text>
+            <Text style={{ fontSize: 12, fontWeight: '800', color: on ? p.onAccent : p.sub }}>{dow}</Text>
+            <Text style={{ fontSize: 13.5, fontWeight: '900', color: on ? p.onAccent : p.text, marginTop: 2 }} numberOfLines={1}>{rest.join(' ') || dayLabel(d.date)}</Text>
             <Text style={{ fontSize: 12, fontWeight: '800', color: on ? 'rgba(255,255,255,0.9)' : open ? p.success : p.danger, marginTop: 3 }}>{open ? `${open} open` : 'Full'}</Text>
           </TouchableOpacity>
         );

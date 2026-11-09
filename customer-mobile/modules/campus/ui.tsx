@@ -23,10 +23,11 @@ import { CampusColors, CampusLayout } from '../../constants/campusTheme';
 import { resolveMediaUrl } from '../../utils/imageUpload';
 import ShimmerLoader from '../../components/ShimmerLoader';
 
+import { themedSheet } from '../../utils/themeNow';
 export const S = CampusLayout.spacing;
 export const R = CampusLayout.radius;
 
-export const T = StyleSheet.create({
+export const T = themedSheet(() => ({
   h1: { fontSize: 22, fontWeight: '800', color: CampusColors.ink, letterSpacing: -0.3 },
   h2: { fontSize: 17, fontWeight: '700', color: CampusColors.ink },
   h3: { fontSize: 15, fontWeight: '700', color: CampusColors.ink },
@@ -34,7 +35,7 @@ export const T = StyleSheet.create({
   muted: { fontSize: 13, lineHeight: 18, color: CampusColors.muted },
   small: { fontSize: 12, color: CampusColors.muted },
   kicker: { fontSize: 12, fontWeight: '800', letterSpacing: 0.8, color: CampusColors.muted, textTransform: 'uppercase' },
-});
+}));
 
 const initialsOf = (name?: string | null) => {
   const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
@@ -304,7 +305,7 @@ export const ListRow: React.FC<{
   );
 };
 
-export const ui = StyleSheet.create({
+export const ui = themedSheet(() => ({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: CampusColors.card,
@@ -437,4 +438,4 @@ export const ui = StyleSheet.create({
     backgroundColor: CampusColors.accentSoft,
   },
   pillText: { fontSize: 12, fontWeight: '800', color: CampusColors.accentDeep },
-});
+}));

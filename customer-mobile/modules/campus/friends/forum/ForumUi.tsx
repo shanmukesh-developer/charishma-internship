@@ -9,6 +9,7 @@ import type { ForumPost } from '../api/forumApi';
 import { ForumPostCard } from './ForumPostCard';
 import { forumBus, forumErrorMessage, patchPostList } from './forumShared';
 
+import { themedSheet } from '../../../../utils/themeNow';
 /** Header for screens inside the Forum stack (back arrow, title, optional right slot). */
 export const ForumHeader: React.FC<{ title: string; subtitle?: string | null; onBack: () => void; right?: React.ReactNode }> = (props) => (
   <FriendsHeader {...props} section="forum" />
@@ -143,7 +144,7 @@ export const PostList: React.FC<{
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -167,4 +168,4 @@ const styles = StyleSheet.create({
     minHeight: 44,
   },
   softText: { flex: 1, fontSize: 12, fontWeight: '600', color: FriendsColors.warn },
-});
+}));

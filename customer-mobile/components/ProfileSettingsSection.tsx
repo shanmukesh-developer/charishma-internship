@@ -11,8 +11,11 @@ import { View, Text, StyleSheet, Switch, TouchableOpacity, Platform } from 'reac
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { useTheme } from '../context/ThemeContext';
-import { COLORS, surfaceLift } from '../constants/theme';
+import { surfaceLift } from '../constants/theme';
+import { useDietLight } from './local/dietLightTheme';
 import { openLegal, type LegalPage } from '../utils/legal';
+import { useRouter } from 'expo-router';
+import { APP_FONTS, TEXT_SIZES, getAppTextPrefs } from '../utils/appText';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -41,9 +44,11 @@ export default function ProfileSettingsSection({
   onDeleteAccount?: () => void;
 }) {
   const { isDark, toggleTheme, colors } = useTheme();
-  const gold = isDark ? COLORS.gold : colors.gold;
-  const card = [st.group, { backgroundColor: colors.card, borderColor: colors.border }, surfaceLift(isDark)];
-  const tint = isDark ? 'rgba(212,175,122,0.14)' : 'rgba(184,134,11,0.10)';
+  // Owner, 10 Nov 2026: settings icons and switches take the diet accent (was the old gold).
+  const d = useDietLight();
+  const gold = d.acc;
+  const card = [st.group, { backgroundColor: d.card, borderColor: colors.border }, surfaceLift(isDark)];
+  const tint = d.soft;
   const track = { false: isDark ? '#3A3A3C' : '#D1D5DB', true: gold };
 
   const legal: { key: LegalPage; icon: IconName; title: string }[] = [
@@ -62,6 +67,10 @@ export default function ProfileSettingsSection({
   );
   const Divider = () => <View style={[st.divider, { backgroundColor: colors.border }]} />;
   const Chevron = () => <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />;
+
+  const router = useRouter();
+  const textPrefs = getAppTextPrefs();
+  const fontSummary = `${APP_FONTS.find((f) => f.key === textPrefs.font)?.label || 'Phone default'} · ${TEXT_SIZES.find((s) => Math.abs(s.scale - textPrefs.size) < 0.001)?.label || 'Default'} size`;
 
   return (
     <View style={st.wrap}>
@@ -85,6 +94,16 @@ export default function ProfileSettingsSection({
           </View>
           <Switch value={soundsOn} onValueChange={onSoundsChange} trackColor={track} thumbColor="#FFFFFF" {...WEB_THUMB} accessibilityLabel="App sounds" />
         </View>
+        <Divider />
+        {/* Owner, 10 Nov 2026: app font + text size (app/text-and-font.tsx) */}
+        <TouchableOpacity style={st.row} onPress={() => router.push('/text-and-font' as any)} activeOpacity={0.6} accessibilityRole="button" accessibilityLabel="Font and text size">
+          <Icon name="text-outline" />
+          <View style={st.rowText}>
+            <Text style={[st.title, { color: colors.text }]}>Font & text size</Text>
+            <Text style={[st.sub, { color: colors.textSecondary }]} numberOfLines={1}>{fontSummary}</Text>
+          </View>
+          <Chevron />
+        </TouchableOpacity>
       </View>
 
       {/* Help and legal */}

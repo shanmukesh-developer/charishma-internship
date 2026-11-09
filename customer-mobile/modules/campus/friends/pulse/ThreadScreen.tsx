@@ -13,6 +13,7 @@ import { usePulsePaged } from './usePulsePaged';
 import { pulseBus, pulseCache, pulseErrorMessage } from './pulseShared';
 import { usePulseNav } from './pulseNav';
 
+import { themedSheet } from '../../../../utils/themeNow';
 /**
  * One conversation: the thread it belongs to (root, parent), the post itself, then its direct
  * replies oldest first. Replying follows the root's reply setting (the server decides).
@@ -241,7 +242,7 @@ export const ThreadScreen: React.FC<{ id: string; initial?: PulsePost | null }> 
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   root: { flex: 1, backgroundColor: FriendsColors.bg },
   context: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.card, minHeight: 44 },
   parentWrap: { opacity: 0.92 },
@@ -271,4 +272,4 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: FriendsColors.line,
   },
-});
+}));

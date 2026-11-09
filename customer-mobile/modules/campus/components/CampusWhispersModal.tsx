@@ -33,6 +33,7 @@ import {
 } from '../campusApi';
 import { ActionMenu } from '../friends/shared/ActionMenu';
 
+import { themedSheet } from '../../../utils/themeNow';
 interface CampusWhispersModalProps {
   visible: boolean;
   onClose: () => void;
@@ -373,7 +374,7 @@ export const CampusWhispersModal: React.FC<CampusWhispersModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   errorWrap: {
     alignItems: 'center',
     gap: 12,
@@ -645,4 +646,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-});
+}));

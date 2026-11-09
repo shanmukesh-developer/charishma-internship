@@ -1,5 +1,5 @@
 /**
- * My tickets (app/campus-events/tickets), night look: ticket-shaped cards (photo stub, perforation notches,
+ * My tickets (app/campus-events/tickets), diet look: ticket-shaped cards (photo stub, perforation notches,
  * event, time, holder, code, status). "All tickets" adds used, cancelled and void ones. Opens the QR ticket.
  */
 import React, { useCallback, useEffect, useState } from 'react';
@@ -8,13 +8,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { campusEventsApi, CampusEventsError, fmtClock, fmtWhen, TICKET_STATUS_META, type Ticket } from '../campusEvents/campusEventsApi';
 import { useCampusEventsLive } from '../campusEvents/useCampusEventsLive';
 import { NIGHT, W, shadow } from './eventsV2Theme';
+import { themedSheet } from '../../utils/themeNow';
 import { ChipRow, NightHeader, Press, Tag, FadeInUp } from './EventsV2Kit';
 import { EventPhoto } from './EventsV2Media';
 import { Notice, StateBlock } from './EventsV2States';
 import { ICalendar, IChevronRight, IUser } from './EventsV2Icons';
 import { useNav } from './eventsV2Nav';
 
-const statusColor = (t: Ticket) => (t.status === 'ACTIVE' ? NIGHT.green : t.status === 'USED' ? NIGHT.sky : t.status === 'VOID' ? NIGHT.red : '#CFCBEA');
+const statusColor = (t: Ticket) => (t.status === 'ACTIVE' ? NIGHT.green : t.status === 'USED' ? NIGHT.sky : t.status === 'VOID' ? NIGHT.red : NIGHT.mute);
 
 function TicketCard({ t, index }: { t: Ticket; index: number }) {
   const nav = useNav();
@@ -22,7 +23,7 @@ function TicketCard({ t, index }: { t: Ticket; index: number }) {
   return (
     <FadeInUp index={index} style={{ marginHorizontal: 16, marginBottom: 14 }}>
       <Press onPress={() => nav.push({ name: 'ticket', id: t.id })} label={`${t.event?.title}, ${m.label} ticket, opens the QR`} style={[s.card, shadow(2), t.status !== 'ACTIVE' ? { opacity: 0.78 } : null]} scaleTo={0.98}>
-        <LinearGradient colors={['#2A266C', '#1C1A4A']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+        <LinearGradient colors={[NIGHT.card, NIGHT.card2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
         <View style={s.stub}><EventPhoto e={{ category: 'OTHER', posterUrl: t.event?.posterUrl || null }} scrim={false} iconSize={44} /></View>
         <View style={s.perf}>{Array.from({ length: 7 }).map((_, i) => <View key={i} style={s.dot} />)}</View>
         <View style={{ flex: 1, paddingVertical: 12, paddingRight: 8, gap: 4 }}>
@@ -80,13 +81,13 @@ export default function EventsV2Tickets() {
   );
 }
 
-const s = StyleSheet.create({
-  card: { flexDirection: 'row', borderRadius: 20, overflow: 'hidden', minHeight: 118, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.16)' },
+const s = themedSheet(() => ({
+  card: { flexDirection: 'row', borderRadius: 20, overflow: 'hidden', minHeight: 118, backgroundColor: NIGHT.card, borderWidth: StyleSheet.hairlineWidth, borderColor: NIGHT.line },
   stub: { width: 92, overflow: 'hidden' },
   perf: { width: 16, alignItems: 'center', justifyContent: 'space-evenly', paddingVertical: 10 },
-  dot: { width: 3, height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.28)' },
+  dot: { width: 3, height: 3, borderRadius: 2, backgroundColor: NIGHT.border },
   notch: { position: 'absolute', left: 92 + 8 - 11, width: 22, height: 22, borderRadius: 11, backgroundColor: NIGHT.page },
   title: { color: NIGHT.ink, fontSize: 15, fontWeight: W.display, lineHeight: 19 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   rowText: { color: NIGHT.sub, fontSize: 12, flexShrink: 1 },
-});
+}));

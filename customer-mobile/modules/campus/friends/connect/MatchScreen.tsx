@@ -14,6 +14,7 @@ import { GhostButton, PrimaryButton } from './ConnectUi';
 import { SparkCard } from './SparkCard';
 import { connectBus, connectErrorMessage, isConnectGateError, matchName } from './connectShared';
 
+import { themedSheet } from '../../../../utils/themeNow';
 /** One match: their card, today's Spark, Message (existing campus chat), Unmatch, Block, Report. */
 export const MatchScreen: React.FC<{
   id: string;
@@ -173,8 +174,8 @@ export const MatchScreen: React.FC<{
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   top: { flexDirection: 'row', alignItems: 'center', gap: FS.sm, paddingHorizontal: FS.sm, minHeight: 56, borderBottomWidth: 1, borderBottomColor: FriendsColors.lineSoft },
   icon: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   callsOff: { flexDirection: 'row', gap: FS.sm, padding: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.card, borderWidth: 1, borderColor: FriendsColors.lineSoft },
-});
+}));

@@ -12,14 +12,15 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
+import { useDietLight } from '../../components/local/dietLightTheme';
+import { mixHex } from '../../utils/themeNow';
 import { connectSocket } from '../../utils/socket';
 import { istDate, istDayLabel, fmtTime } from './rentalsApi';
 
 /** Shown when a vehicle photo cannot load (never the food fallback). */
 export const VEHICLE_FALLBACK = 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?w=600&q=70';
-export const ACCENT = '#0EA5E9';
-export const ACCENT_DARK = '#0284C7';
-export const GRAD: [string, string] = ['#0EA5E9', '#6366F1'];
+// Owner, 10 Nov 2026: the old sky-blue -> indigo accent is gone; every Rentals / Auto / Campus screen built on these
+// blocks wears the app's one diet look (light red band + red accent for Non-veg, light green + green for Veg).
 
 /**
  * `icon` props accept an Ionicons glyph name ('car-outline'); older callers may still pass an emoji
@@ -36,26 +37,33 @@ export function RIcon({ name, size = 18, color }: { name: string; size?: number;
 
 export const usePalette = () => {
   const { isDark, colors } = useTheme();
+  const d = useDietLight();
   return useMemo(() => ({
     isDark,
-    bg: colors.bg,
-    card: colors.card,
-    card2: isDark ? '#1F1F23' : '#F4F6FA',
+    bg: d.page,
+    card: d.card,
+    card2: isDark ? mixHex(d.card, d.acc, 0.08) : d.sel,
     text: colors.text,
     sub: colors.textSecondary,
     muted: colors.textMuted,
-    border: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(15,23,42,0.08)',
+    border: isDark ? 'rgba(255,255,255,0.12)' : d.line,
     input: colors.inputBg,
     inputBorder: colors.inputBorder,
-    accent: ACCENT,
-    accentSoft: isDark ? 'rgba(14,165,233,0.16)' : '#E0F2FE',
+    accent: d.acc,
+    accentDeep: mixHex(d.acc, isDark ? '#FFFFFF' : '#000000', isDark ? 0.12 : 0.16),
+    accentSoft: d.soft,
+    /** Text / icons on an accent fill. */
+    onAccent: d.onAcc,
+    /** Header band and the dark ink on it. */
+    band: d.top,
+    bandInk: d.dk,
     danger: '#EF4444',
     dangerSoft: isDark ? 'rgba(239,68,68,0.15)' : '#FEE2E2',
     success: '#10B981',
     successSoft: isDark ? 'rgba(16,185,129,0.15)' : '#D1FAE5',
     warn: '#F59E0B',
     warnSoft: isDark ? 'rgba(245,158,11,0.15)' : '#FEF3C7',
-  }), [isDark, colors]);
+  }), [isDark, colors, d]);
 };
 export type Palette = ReturnType<typeof usePalette>;
 
@@ -63,17 +71,17 @@ export function RHeader({ title, subtitle, right, onBack }: { title: string; sub
   const p = usePalette();
   const router = useRouter();
   return (
-    <View style={[st.header, { borderBottomColor: p.border, backgroundColor: p.bg }]}>
+    <View style={[st.header, { borderBottomColor: p.band, backgroundColor: p.band }]}>
       <TouchableOpacity
         accessibilityRole="button"
         accessibilityLabel="Go back"
         onPress={onBack || (() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/services?tab=rentals' as any)))}
-        style={[st.backBtn, { backgroundColor: p.card2 }]}
+        style={[st.backBtn, { backgroundColor: p.card }]}
       >
-        <Ionicons name="chevron-back" size={20} color={p.text} />
+        <Ionicons name="chevron-back" size={20} color={p.bandInk} />
       </TouchableOpacity>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={[st.hTitle, { color: p.text }]} numberOfLines={1}>{title}</Text>
+        <Text style={[st.hTitle, { color: p.bandInk }]} numberOfLines={1}>{title}</Text>
         {subtitle ? <Text style={[st.hSub, { color: p.sub }]} numberOfLines={1}>{subtitle}</Text> : null}
       </View>
       {right}
@@ -111,10 +119,10 @@ export function Btn({ label, onPress, kind = 'primary', loading, disabled, style
   const p = usePalette();
   const off = disabled || loading;
   const pad = small ? { paddingVertical: 9, paddingHorizontal: 14 } : { paddingVertical: 14, paddingHorizontal: 18 };
-  const fg = kind === 'primary' || kind === 'danger' || kind === 'success' ? '#fff' : kind === 'ghost' ? p.accent : p.text;
+  const fg = kind === 'primary' ? p.onAccent : kind === 'danger' || kind === 'success' ? '#fff' : kind === 'ghost' ? p.accent : p.text;
   const ion = isIoniconName(icon);
   const content = loading
-    ? <ActivityIndicator color={kind === 'primary' || kind === 'danger' || kind === 'success' ? '#fff' : p.accent} />
+    ? <ActivityIndicator color={kind === 'primary' ? p.onAccent : kind === 'danger' || kind === 'success' ? '#fff' : p.accent} />
     : (
       <>
         {ion ? <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={small ? 14 : 16} color={fg} style={{ marginRight: 6 }} /> : null}
@@ -124,7 +132,7 @@ export function Btn({ label, onPress, kind = 'primary', loading, disabled, style
   if (kind === 'primary') {
     return (
       <TouchableOpacity accessibilityRole="button" accessibilityLabel={label} disabled={off} onPress={onPress} activeOpacity={0.85} style={[{ opacity: off ? 0.55 : 1, borderRadius: 14, overflow: 'hidden' }, style]}>
-        <LinearGradient colors={GRAD} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[st.btn, pad]}>{content}</LinearGradient>
+        <LinearGradient colors={[p.accent, p.accentDeep]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[st.btn, pad]}>{content}</LinearGradient>
       </TouchableOpacity>
     );
   }
@@ -265,7 +273,7 @@ export function DateTimeSelect({ label, date, time, onChange, days = 30, minDate
           return (
             <TouchableOpacity key={d} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={istDayLabel(d)} onPress={() => onChange({ date: d, time })}
               style={[st.dateChip, { backgroundColor: on ? p.accent : p.card2, borderColor: on ? p.accent : p.border }]}>
-              <Text style={{ fontSize: 12, fontWeight: '900', color: on ? '#fff' : p.text }}>{istDayLabel(d)}</Text>
+              <Text style={{ fontSize: 12, fontWeight: '900', color: on ? p.onAccent : p.text }}>{istDayLabel(d)}</Text>
             </TouchableOpacity>
           );
         })}

@@ -155,7 +155,7 @@ export function Segmented<T extends string>({ options, value, onChange, variant 
     <View style={[k.seg, variant === 'underline' && { padding: 0, gap: 0 }]} accessibilityRole="tablist">
       {options.map((o) => {
         const on = o.key === value;
-        const fill = variant === 'fill' ? PG2.primary : variant === 'soft' ? '#8A6CF6' : 'transparent';
+        const fill = variant === 'fill' ? PG2.primary : variant === 'soft' ? PG2.primaryDeep : 'transparent';
         return (
           <Tap key={o.key} onPress={() => onChange(o.key)} role="tab" selected={on} label={o.label}
             style={[k.segItem, on && variant !== 'underline' && { backgroundColor: fill }, variant === 'underline' && { borderRadius: 0 }]}>

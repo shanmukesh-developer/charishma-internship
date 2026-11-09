@@ -27,6 +27,7 @@ import { StarPicker } from './Stars';
 import { POST_TYPE_META, REVIEW_KIND_META, REVIEW_CONTEXT_FIELDS, blockedDetails, forumBus, forumErrorMessage, communityIcon } from './forumShared';
 import type { ComposerRequest } from './forumNav';
 
+import { themedSheet } from '../../../../utils/themeNow';
 type Draft = {
   communityId: string | null;
   type: ForumPostType;
@@ -680,7 +681,7 @@ export const ForumComposer: React.FC<{
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   publish: { minHeight: 38, paddingHorizontal: 16, borderRadius: FR.pill, backgroundColor: FriendsColors.accent, alignItems: 'center', justifyContent: 'center', marginRight: FS.sm },
   label: { fontSize: 12, fontWeight: '800', letterSpacing: 0.8, color: FriendsColors.muted, textTransform: 'uppercase', marginTop: FS.lg, marginBottom: 6 },
   counter: { fontSize: 12, color: FriendsColors.faint, textAlign: 'right', marginTop: 4 },
@@ -707,4 +708,4 @@ const styles = StyleSheet.create({
   linkRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.cardHi, marginBottom: FS.sm },
   anonRow: { flexDirection: 'row', alignItems: 'center', gap: FS.md, marginTop: FS.xl, padding: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.card, borderWidth: 1, borderColor: FriendsColors.line },
   error: { marginTop: FS.md, padding: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.dangerSoft, color: FriendsColors.danger, fontSize: 13, fontWeight: '600' },
-});
+}));

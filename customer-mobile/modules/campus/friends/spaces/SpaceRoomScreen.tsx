@@ -31,6 +31,7 @@ import { AudienceSeat, LiveDot, NotRecorded, StageSeat } from './SpacesUi';
 import { HostLeaveSheet, ParticipantSheet, SpaceReportSheet } from './SpaceRoomSheets';
 import { endReasonText, formatLiveFor, hostName, hostUserId, isOnStage, isRoomMod, plural, spaceBus, spaceLink, useSpacesNav } from './spacesShared';
 
+import { themedSheet } from '../../../../utils/themeNow';
 type Phase = 'joining' | 'live' | 'ended' | 'removed' | 'replaced' | 'error';
 type Conn = 'ok' | 'connecting' | 'reconnecting' | 'failed';
 
@@ -814,7 +815,7 @@ const ConnBadge: React.FC<{ conn: Conn; turn: boolean; onRetry: () => void }> = 
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: FriendsColors.bg, zIndex: 20 },
   hidden: { opacity: 0, zIndex: -1, transform: [{ translateY: 4000 }] },
   header: { flexDirection: 'row', alignItems: 'center', gap: FS.sm, paddingHorizontal: FS.sm, paddingVertical: FS.sm, minHeight: 56, borderBottomWidth: StyleSheet.hairlineWidth * 2, borderBottomColor: SectionTints.spaces.line },
@@ -859,4 +860,4 @@ const styles = StyleSheet.create({
   handText: { fontSize: 14, fontWeight: '800', color: FriendsColors.ink },
   toast: { position: 'absolute', left: FS.lg, right: FS.lg, bottom: 112, padding: FS.md, borderRadius: FR.pill, backgroundColor: FriendsColors.overlaySurface, borderWidth: 1, borderColor: FriendsColors.lineStrong, shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 8 },
   toastText: { fontSize: 13, fontWeight: '600', color: FriendsColors.ink, textAlign: 'center' },
-});
+}));

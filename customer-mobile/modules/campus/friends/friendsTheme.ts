@@ -7,15 +7,17 @@
  *
  * Layers   base (bg) → raised (card) → raisedHi (cardHi, inputs/chips) → overlay (sheets/menus)
  * Text     ink (primary, 17:1) → muted (secondary, 8:1) → faint (tertiary, 5.4:1) — all WCAG AA on bg & card
- * Brand    one lavender→violet accent (Zenvy violet, matches COLORS.primary) with dark ink on fills;
- *          gold is reserved for verified / top-rated marks.
+ * Brand    the app's one diet accent (owner, 10 Nov 2026): bright red for Non-veg, bright green for Veg, on the
+ *          diet's dark page and cards (was the old gold accent); gold is reserved for verified / top-rated marks.
+ *          Tokens are read at render (utils/themeNow fixedDietTokens) and the sheets below are themedSheet()s.
  * Sections each sub-tab has a subtle tint (headers, chips, icons, indicator) — see SectionTints.
  */
 import { Platform, StyleSheet } from 'react-native';
+import { fixedDietTokens, hexAlpha, themedSheet } from '../../../utils/themeNow';
 import { CampusLayout } from '../../../constants/campusTheme';
 import type { FriendsSubTab } from '../../../types/campus';
 
-export const FriendsColors = {
+const FRIENDS_BASE = {
   // ── Layers ────────────────────────────────────────────────────────────────
   /** Screen background (base layer). */
   bg: '#09090B',
@@ -64,30 +66,49 @@ export const FriendsColors = {
   mask: '#27272A',
 };
 
+export const FriendsColors: typeof FRIENDS_BASE = fixedDietTokens(true, (d) => ({
+  ...FRIENDS_BASE,
+  bg: d.page,
+  card: d.card,
+  accent: d.acc,
+  accentStrong: d.accDeep,
+  accentInk: d.onAcc,
+  accentSoft: hexAlpha(d.acc, 0.13),
+  accentLine: hexAlpha(d.acc, 0.3),
+}));
+
 /** Per-section accent tints (used subtly: tab indicator, header dot, chips, icons). */
-export const SectionTints: Record<FriendsSubTab, { fg: string; soft: string; line: string; gradient: readonly [string, string] }> = {
-  pulse: { fg: '#D4AF7A', soft: 'rgba(212,175,122,0.13)', line: 'rgba(212,175,122,0.30)', gradient: ['#D4AF7A', '#D4AF7A'] },
+type Tint = { fg: string; soft: string; line: string; gradient: readonly [string, string] };
+export const SectionTints: Record<FriendsSubTab, Tint> = fixedDietTokens(true, (d): Record<FriendsSubTab, Tint> => ({
+  pulse: { fg: d.acc, soft: hexAlpha(d.acc, 0.13), line: hexAlpha(d.acc, 0.3), gradient: [d.acc, d.acc] },
   spaces: { fg: '#7FDEC4', soft: 'rgba(127,222,196,0.12)', line: 'rgba(127,222,196,0.28)', gradient: ['#7FDEC4', '#7FDEC4'] },
   forum: { fg: '#9DB4FF', soft: 'rgba(157,180,255,0.13)', line: 'rgba(157,180,255,0.30)', gradient: ['#9DB4FF', '#9DB4FF'] },
   tasks: { fg: '#F2C07E', soft: 'rgba(242,192,126,0.12)', line: 'rgba(242,192,126,0.28)', gradient: ['#F2C07E', '#F2C07E'] },
   connect: { fg: '#F5A8C4', soft: 'rgba(245,168,196,0.12)', line: 'rgba(245,168,196,0.28)', gradient: ['#F5A8C4', '#F5A8C4'] },
-};
+}));
 
 /** Gradients (expo-linear-gradient colour stops). */
-export const FriendsGradients = {
+const GRADIENTS_BASE = {
   /** Primary buttons, active indicators, FABs. */
-  brand: ['#D4AF7A', '#D4AF7A', '#D4AF7A'] as const,
-  /** Avatar rings for live / highlighted people (gold → lavender → violet). */
-  ring: ['#D4AF7A', '#D4AF7A', '#D4AF7A'] as const,
+  brand: ['#D4AF7A', '#D4AF7A', '#D4AF7A'] as readonly [string, string, string],
+  /** Avatar rings for live / highlighted people. */
+  ring: ['#D4AF7A', '#D4AF7A', '#D4AF7A'] as readonly [string, string, string],
   /** Verified-only gold. */
   gold: ['#E8C47F', '#E8C47F'] as const,
   /** Soft top glow on cards (draw at the top edge, ~48px tall). */
   cardGlow: ['rgba(0,0,0,0)', 'rgba(0,0,0,0)'] as const,
   /** Header wash under the sub-tab bar / stack headers. */
-  header: ['#09090B', '#09090B'] as const,
+  header: ['#09090B', '#09090B'] as readonly [string, string],
   /** Bottom scrim over images. */
   scrim: ['rgba(9,9,11,0)', 'rgba(9,9,11,0.85)'] as const,
 };
+
+export const FriendsGradients: typeof GRADIENTS_BASE = fixedDietTokens(true, (d) => ({
+  ...GRADIENTS_BASE,
+  brand: [d.acc, d.acc, d.acc] as const,
+  ring: [d.acc, d.acc, d.acc] as const,
+  header: [d.page, d.page] as const,
+}));
 
 export const FS = CampusLayout.spacing;
 export const FR = { ...CampusLayout.radius, sheet: 24, input: 14, chip: 999 };
@@ -112,7 +133,7 @@ export const FElevation = {
 export const FMotion = { fast: 140, base: 220, slow: 360 };
 
 /** Type scale. */
-export const FT = StyleSheet.create({
+export const FT = themedSheet(() => ({
   display: { fontSize: 28, fontWeight: '800', color: FriendsColors.ink, letterSpacing: -0.6 },
   h1: { fontSize: 22, fontWeight: '800', color: FriendsColors.ink, letterSpacing: -0.4 },
   h2: { fontSize: 17, fontWeight: '700', color: FriendsColors.ink, letterSpacing: -0.2 },
@@ -122,9 +143,9 @@ export const FT = StyleSheet.create({
   small: { fontSize: 12, lineHeight: 16, color: FriendsColors.muted },
   caption: { fontSize: 12, lineHeight: 14, color: FriendsColors.faint, fontWeight: '600' },
   kicker: { fontSize: 12, fontWeight: '800', letterSpacing: 0.9, color: FriendsColors.faint, textTransform: 'uppercase' },
-});
+}));
 
-export const fui = StyleSheet.create({
+export const fui = themedSheet(() => ({
   screen: { flex: 1, backgroundColor: FriendsColors.bg },
   card: {
     backgroundColor: FriendsColors.card,
@@ -223,10 +244,10 @@ export const fui = StyleSheet.create({
     justifyContent: 'center',
   },
   badgeText: { fontSize: 12, fontWeight: '800', color: FriendsColors.accentInk },
-});
+}));
 
 /** Header / bottom-nav colours for the dark tone (Campus hub chrome while Friends is open). */
-export const FriendsChrome = {
+export const FriendsChrome = fixedDietTokens(true, () => ({
   bg: FriendsColors.bg,
   surface: FriendsColors.card,
   line: FriendsColors.line,
@@ -235,4 +256,4 @@ export const FriendsChrome = {
   accent: FriendsColors.accent,
   accentSoft: FriendsColors.accentSoft,
   accentInk: FriendsColors.accentInk,
-};
+}));

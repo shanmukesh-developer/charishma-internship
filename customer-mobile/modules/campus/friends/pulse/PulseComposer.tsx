@@ -24,6 +24,7 @@ import { linksIn, pulseBus, pulseErrorMessage, tagsIn } from './pulseShared';
 import type { PulseComposerRequest } from './pulseNav';
 import { useRetentionPolicy, daysLabel } from '../../useRetentionPolicy';
 
+import { themedSheet } from '../../../../utils/themeNow';
 interface Draft {
   text: string;
   images: UploadedImage[];
@@ -500,7 +501,7 @@ export const PulseComposer: React.FC<{
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   publish: { minHeight: 38, paddingHorizontal: 18, borderRadius: FR.pill, backgroundColor: FriendsColors.accent, alignItems: 'center', justifyContent: 'center', marginRight: FS.sm },
   publishText: { fontSize: 14, fontWeight: '800', color: FriendsColors.accentInk },
   parent: { padding: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.card, borderWidth: 1, borderColor: FriendsColors.lineSoft, marginBottom: FS.md },
@@ -517,4 +518,4 @@ const styles = StyleSheet.create({
   policyOn: { borderColor: FriendsColors.accent, backgroundColor: FriendsColors.accentSoft },
   anonRow: { flexDirection: 'row', alignItems: 'center', gap: FS.md, marginTop: FS.xl, padding: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.card, borderWidth: 1, borderColor: FriendsColors.line },
   error: { marginTop: FS.md, padding: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.dangerSoft, color: FriendsColors.danger, fontSize: 13, fontWeight: '600' },
-});
+}));

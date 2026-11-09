@@ -1,6 +1,6 @@
 /**
  * Mounts Campus Events v2: the data provider, the navigator, the screen and the sheets. `EventsV2Home` is
- * Others → Campus events (full screen like Food v2 / Rentals v2: its own night header with the Others section
+ * Others → Campus events (full screen like Food v2 / Rentals v2: its own header with the Others section
  * pills driven by `sections` / `onSection`).
  */
 import React, { useRef } from 'react';

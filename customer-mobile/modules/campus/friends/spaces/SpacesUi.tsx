@@ -7,6 +7,7 @@ import { FriendsAvatar } from '../shared/FriendsAvatar';
 import { Space, SpaceRole, spaceErrorMessage } from '../api/spacesApi';
 import { statusLabel } from './spacesShared';
 
+import { themedSheet } from '../../../../utils/themeNow';
 /** Small pulsing dot for live states (still when the user prefers reduced motion). */
 export const LiveDot: React.FC<{ size?: number; color?: string }> = ({ size = 8, color = FriendsColors.danger }) => {
   const v = useRef(new Animated.Value(1)).current;
@@ -172,7 +173,7 @@ export const SpaceSoftError: React.FC<{ error: any; onRetry: () => void }> = ({ 
   </TouchableOpacity>
 );
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -258,4 +259,4 @@ const styles = StyleSheet.create({
     borderColor: FriendsColors.line,
   },
   stepBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: FriendsColors.card },
-});
+}));

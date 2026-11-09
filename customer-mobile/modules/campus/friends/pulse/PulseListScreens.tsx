@@ -24,6 +24,7 @@ import { usePulsePaged } from './usePulsePaged';
 import { compactCount, pulseBus, pulseErrorMessage } from './pulseShared';
 import { usePulseNav } from './pulseNav';
 
+import { themedSheet } from '../../../../utils/themeNow';
 const postKey = (p: PulsePost) => `${p.kind}:${p.id}`;
 
 // ── Hashtag ──────────────────────────────────────────────────────────────────
@@ -446,7 +447,7 @@ export const PulseUserSheet: React.FC<{ userId: string | null; onClose: () => vo
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   round: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   note: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.warnSoft, marginBottom: FS.md },
   sectionRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: FS.sm },
@@ -469,4 +470,4 @@ const styles = StyleSheet.create({
   segment: { flexDirection: 'row', gap: FS.sm, paddingHorizontal: FS.lg, paddingVertical: FS.md },
   stats: { flexDirection: 'row', gap: FS.sm, marginTop: FS.lg },
   stat: { flex: 1, alignItems: 'center', paddingVertical: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.cardHi },
-});
+}));

@@ -7,6 +7,7 @@ import type { FriendsSubTab } from '../../../../types/campus';
 import { FriendsColors, FriendsGradients, FMotion, FS, SectionTints, fui } from '../friendsTheme';
 import { useReduceMotion } from './FriendsUi';
 
+import { themedSheet } from '../../../../utils/themeNow';
 export const SUB_TAB_META: Record<FriendsSubTab, { label: string; icon: typeof Sparkles; description: string }> = {
   pulse: { label: 'Pulse', icon: Sparkles, description: "What's happening on campus" },
   spaces: { label: 'Spaces', icon: Mic, description: 'Live audio rooms' },
@@ -106,7 +107,7 @@ export const SubTabBar: React.FC<{
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   wrap: { borderBottomWidth: StyleSheet.hairlineWidth * 2, borderBottomColor: FriendsColors.line, backgroundColor: FriendsColors.bg },
   row: { paddingHorizontal: FS.sm, gap: 2 },
   tab: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 50, paddingHorizontal: 12 },
@@ -114,4 +115,4 @@ const styles = StyleSheet.create({
   label: { fontSize: 14, fontWeight: '700', color: FriendsColors.muted, letterSpacing: 0.1 },
   labelOn: { color: FriendsColors.ink, fontWeight: '800' },
   indicator: { position: 'absolute', left: 0, bottom: 0, width: BASE_W, height: 3, borderTopLeftRadius: 3, borderTopRightRadius: 3, overflow: 'hidden' },
-});
+}));

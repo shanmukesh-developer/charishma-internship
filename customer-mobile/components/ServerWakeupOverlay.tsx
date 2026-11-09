@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
-import { COLORS } from '../constants/theme';
+import { dietNow } from '../utils/themeNow';
 import SymbolIcon from './SymbolIcon';
 
 interface ServerWakeupOverlayProps {
@@ -132,7 +132,7 @@ export default function ServerWakeupOverlay({ visible, onWakeupComplete, onRetry
   if (!visible) return null;
 
   const statusConfig = {
-    connecting: { text: 'ZenWe is waking up…', color: COLORS.gold || '#C9A84C' },
+    connecting: { text: 'ZenWe is waking up…', color: dietNow().acc }, // diet accent (owner, 10 Nov 2026), was the old gold
     retrying: { text: 'ZenWe is waking up. This can take a minute or two…', color: '#F59E0B' },
     connected: { text: 'Connected. Loading…', color: '#10B981' },
     offline: { text: offlineText || "ZenWe is taking longer than usual. Please try again in a minute.", color: '#6B7280' },

@@ -1,5 +1,5 @@
 /**
- * All events / category listing (app/campus-events?q&cat&when&price&club&focus). Night look: a glossy category
+ * All events / category listing (app/campus-events?q&cat&when&price&club&focus). Diet look: a category
  * banner, the search field, and filter rows for category, date, price and club. Real events first, then the
  * matching samples. Old links keep working (?featured=1, ?section=, ?filters=1 open the plain listing).
  */
@@ -7,7 +7,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
-import { NIGHT, TILES, W, shadow, type TileKey } from './eventsV2Theme';
+import { NIGHT, TILES, W, hexA, shadow, type TileKey } from './eventsV2Theme';
+import { themedSheet } from '../../utils/themeNow';
 import { ChipRow, NightHeader, Press } from './EventsV2Kit';
 import { EventRowCard } from './EventsV2Cards';
 import { Notice, StateBlock } from './EventsV2States';
@@ -31,9 +32,9 @@ const one = (v: unknown) => (Array.isArray(v) ? v[0] : v) as string | undefined;
 function Banner({ tile, count }: { tile: TileKey; count: number | null }) {
   const t = TILES.find((x) => x.key === tile)!;
   return (
-    <View style={[s.banner, shadow(2, t.grad[2])]}>
-      <LinearGradient colors={[t.grad[0], t.grad[1], t.grad[2]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-      <LinearGradient colors={['rgba(255,255,255,0.34)', 'rgba(255,255,255,0)']} style={[StyleSheet.absoluteFill, { height: '55%' }]} />
+    <View style={[s.banner, shadow(2, NIGHT.violetDeep)]}>
+      <LinearGradient colors={[NIGHT.go[0], NIGHT.violet, NIGHT.violetDeep]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0)']} style={[StyleSheet.absoluteFill, { height: '55%' }]} />
       <View style={{ flex: 1, paddingRight: 8 }}>
         <Text style={s.bannerTitle}>{tile === 'all' ? 'All events' : `${t.label} events`}</Text>
         <Text style={s.bannerSub} numberOfLines={2}>{BLURB[tile]}</Text>
@@ -111,13 +112,13 @@ export default function EventsV2Explore() {
   );
 }
 
-const s = StyleSheet.create({
+const s = themedSheet(() => ({
   banner: { flexDirection: 'row', alignItems: 'center', borderRadius: 24, padding: 16, paddingRight: 10, overflow: 'hidden', minHeight: 116, marginBottom: 14 },
-  bannerTitle: { color: '#FFFFFF', fontSize: 21, fontWeight: W.display, letterSpacing: -0.3 },
-  bannerSub: { color: 'rgba(255,255,255,0.92)', fontSize: 12.5, lineHeight: 17, marginTop: 4 },
-  bannerCount: { color: '#FFFFFF', fontSize: 12, fontWeight: W.label, marginTop: 6, opacity: 0.9 },
-  bannerRim: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
-  search: { flexDirection: 'row', alignItems: 'center', gap: 9, marginHorizontal: 16, marginBottom: 12, height: 48, borderRadius: 24, paddingLeft: 16, paddingRight: 6, backgroundColor: NIGHT.glass2, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.22)' },
+  bannerTitle: { color: NIGHT.onAcc, fontSize: 21, fontWeight: W.display, letterSpacing: -0.3 },
+  bannerSub: { color: hexA(NIGHT.onAcc, 0.9), fontSize: 12.5, lineHeight: 17, marginTop: 4 },
+  bannerCount: { color: NIGHT.onAcc, fontSize: 12, fontWeight: W.label, marginTop: 6, opacity: 0.9 },
+  bannerRim: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)' },
+  search: { flexDirection: 'row', alignItems: 'center', gap: 9, marginHorizontal: 16, marginBottom: 12, height: 48, borderRadius: 24, paddingLeft: 16, paddingRight: 6, backgroundColor: NIGHT.glass, borderWidth: StyleSheet.hairlineWidth, borderColor: NIGHT.border },
   input: { flex: 1, color: NIGHT.ink, fontSize: 14, paddingVertical: 8 },
   clear: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-});
+}));

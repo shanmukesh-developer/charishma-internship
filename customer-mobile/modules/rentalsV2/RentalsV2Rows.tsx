@@ -21,7 +21,7 @@ export function ItemThumb({ item, w, h, radius = 16, style }: { item: RItem; w: 
     return (
       <LinearGradient colors={[plate.bg[0], plate.bg[1]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[{ width: w, height: h, borderRadius: radius, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }, style]}>
         <View style={{ position: 'absolute', width: w * 0.86, height: w * 0.86, borderRadius: w, backgroundColor: plate.blob, opacity: 0.55, top: -w * 0.18, right: -w * 0.22 }} />
-        <GroundShadow width={w * 0.78} height={12} opacity={0.22} color="#2A1F6A" style={{ position: 'absolute', bottom: h * 0.06 }} />
+        <GroundShadow width={w * 0.78} height={12} opacity={0.22} color={NIGHT.shadow} style={{ position: 'absolute', bottom: h * 0.06 }} />
         <Image source={item.cut as any} style={{ width: w * 0.88, height: h * 0.8, marginTop: h * 0.02 }} contentFit="contain" contentPosition="bottom" accessibilityIgnoresInvertColors />
       </LinearGradient>
     );

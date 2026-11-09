@@ -21,6 +21,7 @@ import {
 import { FriendRequestsState } from '../useFriendRequests';
 import { ScreenModal, Sheet, Avatar, ListRow, EmptyState, ErrorState, SkeletonRows, SectionTitle, Button, T, S, R, ui } from '../ui';
 
+import { themedSheet } from '../../../utils/themeNow';
 // ── Add friend by code ──────────────────────────────────────────────────────
 export const AddFriendSheet: React.FC<{
   visible: boolean;
@@ -420,8 +421,8 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({ visible, onClose, 
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   codeCard: { backgroundColor: CampusColors.inkCard, borderRadius: R.card, padding: S.lg },
   code: { fontSize: 28, fontWeight: '800', color: '#FFFFFF', letterSpacing: 2, marginVertical: 4 },
   hint: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: S.md, justifyContent: 'center' },
-});
+}));

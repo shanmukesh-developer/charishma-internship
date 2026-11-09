@@ -31,6 +31,7 @@ import { ModToolsSheet } from './ModToolsSheet';
 import { POST_TYPE_META, REVIEW_KIND_META, compactCount, forumBus, forumErrorMessage, forumPostLink } from './forumShared';
 import { useForumNav } from './forumNav';
 
+import { themedSheet } from '../../../../utils/themeNow';
 /** Small status / label chips shared by the card and the post screen. */
 export const PostFlags: React.FC<{ post: ForumPost; showType?: boolean }> = ({ post, showType = true }) => {
   const meta = POST_TYPE_META[post.type];
@@ -342,7 +343,7 @@ export const ForumPostCard: React.FC<{
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   card: {
     backgroundColor: FriendsColors.card,
     borderRadius: FR.card,
@@ -366,4 +367,4 @@ const styles = StyleSheet.create({
   foot: { flexDirection: 'row', alignItems: 'center', gap: FS.sm, marginTop: FS.sm },
   footBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44, minWidth: 44, justifyContent: 'center', paddingHorizontal: 6 },
   footText: { fontSize: 13, fontWeight: '700', color: FriendsColors.muted },
-});
+}));

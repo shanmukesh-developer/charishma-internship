@@ -10,6 +10,7 @@ import { PostCard } from './PostCard';
 import { SpaceCard } from './SpaceCard';
 import { dropBlocked, dropFromFeed, itemKey, patchFeed, pulseBus, pulseErrorMessage } from './pulseShared';
 
+import { themedSheet } from '../../../../utils/themeNow';
 /** Header for screens inside the Pulse stack (back arrow, title, optional right slot). */
 export const PulseHeader: React.FC<{ title: string; subtitle?: string | null; onBack: () => void; right?: React.ReactNode }> = (props) => (
   <FriendsHeader {...props} section="pulse" />
@@ -138,7 +139,7 @@ export function PulseFeedList<T extends PulseFeedItem>({
 
 const Separator = () => <View style={{ height: FS.md }} />;
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -161,4 +162,4 @@ const styles = StyleSheet.create({
     minHeight: 44,
   },
   softText: { flex: 1, fontSize: 12, fontWeight: '600', color: FriendsColors.warn },
-});
+}));

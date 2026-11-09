@@ -11,7 +11,7 @@ import React, { useState } from 'react';
 import { ScrollView, Share, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { DAY, PLATE, W, shadow, type Category } from './rentalsV2Theme';
+import { DAY, NIGHT, PLATE, W, shadow, type Category } from './rentalsV2Theme';
 import { Press, Heart, usePageW } from './RentalsV2Kit';
 import { FeatureGlyph, IArrowLeft, IShare, IChevronRight, IBadge, IShield, ILock } from './RentalsV2Icons';
 import { useTopInset } from '../../utils/useTopInset';
@@ -103,7 +103,7 @@ export function OwnerCard({ item, role = 'Owner', note }: { item: RItem; role?: 
   return (
     <View style={[d.owner, shadow(1)]}>
       {o.avatar ? <Image source={{ uri: o.avatar }} style={d.avatar} contentFit="cover" /> : (
-        <LinearGradient colors={['#C4B5FD', '#7C5CF0']} style={[d.avatar, { alignItems: 'center', justifyContent: 'center' }]}>
+        <LinearGradient colors={[NIGHT.ring[1], DAY.accent]} style={[d.avatar, { alignItems: 'center', justifyContent: 'center' }]}>
           <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: W.title }}>{o.name.charAt(0).toUpperCase()}</Text>
         </LinearGradient>
       )}

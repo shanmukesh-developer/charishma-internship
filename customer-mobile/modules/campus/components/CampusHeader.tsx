@@ -7,6 +7,7 @@ import { CampusProfileData } from '../../../types/campus';
 import { FriendsChrome } from '../friends/friendsTheme';
 import { BrandFill } from '../friends/shared/FriendsUi';
 
+import { themedSheet } from '../../../utils/themeNow';
 interface CampusHeaderProps {
   profile: CampusProfileData | null;
   title: string;
@@ -101,7 +102,7 @@ export const CampusHeader: React.FC<CampusHeaderProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   header: {
     backgroundColor: CampusColors.paper,
     paddingHorizontal: CampusLayout.spacing.lg,
@@ -138,4 +139,4 @@ const styles = StyleSheet.create({
   },
   bannerMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
   bannerText: { flex: 1, fontSize: 13, fontWeight: '600', color: CampusColors.warmDeep, lineHeight: 18 },
-});
+}));

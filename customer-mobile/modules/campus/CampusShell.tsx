@@ -48,6 +48,7 @@ import { connectCampusSocket, disconnectCampusSocket, rejectCampusCall } from '.
 import { EmptyState, ErrorState, SkeletonRows, Sheet, ListRow, S } from './ui';
 import { goHome } from '../../utils/goHome';
 
+import { themedSheet } from '../../utils/themeNow';
 // The campus socket is shared by every mounted shell (a notification can open a second one on top).
 // It is closed only when the last shell unmounts, so a later logout/login never reuses the old identity.
 let mountedShells = 0;
@@ -758,7 +759,7 @@ export const CampusShell: React.FC<CampusShellProps> = ({ onBack, link }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   safeArea: {
     flex: 1,
     backgroundColor: CampusColors.paper,
@@ -779,4 +780,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-});
+}));

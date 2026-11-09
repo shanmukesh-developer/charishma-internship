@@ -37,6 +37,8 @@ import {
 } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useDietLight } from '../components/local/dietLightTheme';
+import { dietNow, isDarkNow, mixHex, themedSheet } from '../utils/themeNow';
 import { apiFetch } from '../utils/auth';
 import { readCache, writeCache, useSWRJson } from '../utils/swrCache';
 import { StaggeredSection, FloatingPulse, BounceIn } from '../components/AnimatedSection';
@@ -196,6 +198,10 @@ export default function CheckoutScreen() {
   // After an order: back to the Basket tab on this (now empty) basket, with the order on top.
   const { user, refreshUser, setUser } = useAuth();
   const { isDark, colors } = useTheme();
+  // Owner, 10 Nov 2026: one look - the diet accent (red Non-veg / green Veg) replaces the red / gold split; in dark a
+  // deeper fill so white labels on it stay readable.
+  const diet = useDietLight();
+  const dFill = diet.isDark ? mixHex(diet.acc, '#000000', 0.3) : diet.acc;
 
   const navigation = useNavigation();
   // No silent default: the last campus picked here, else the college email's campus, else the customer picks.
@@ -926,12 +932,12 @@ export default function CheckoutScreen() {
     }
   };
 
-  const bg = colors.bg;
-  const cardBg = colors.card;
+  const bg = diet.pageDeep;
+  const cardBg = diet.card;
   const txt = colors.text;
   const txtSec = colors.textSecondary;
   const border = colors.border;
-  const goldColor = isDark ? COLORS.gold : colors.gold;
+  const goldColor = diet.acc;
 
   const headerStoreName = quote?.store?.name
     || orderLines.find((i) => !i.isAddOn)?.restaurantName
@@ -947,12 +953,12 @@ export default function CheckoutScreen() {
   };
 
   const header = (
-    <View style={[s.header, { paddingTop: topPad, backgroundColor: bg, borderBottomColor: border }]}>
-      <TouchableOpacity onPress={goBack} style={[s.backBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} accessibilityRole="button" accessibilityLabel="Back">
-        <Ionicons name="chevron-back" size={20} color={txt} />
+    <View style={[s.header, { paddingTop: topPad, backgroundColor: diet.top, borderBottomColor: diet.top }]}>
+      <TouchableOpacity onPress={goBack} style={[s.backBtn, { backgroundColor: diet.card }]} accessibilityRole="button" accessibilityLabel="Back">
+        <Ionicons name="chevron-back" size={20} color={diet.dk} />
       </TouchableOpacity>
       <View style={{ flexShrink: 1 }}>
-        <Text style={[s.title, { color: goldColor }]}>{BASKET_ORDER_TITLES[basketKind]}</Text>
+        <Text style={[s.title, { color: diet.dk }]}>{BASKET_ORDER_TITLES[basketKind]}</Text>
         {!!headerStoreName && (
           <Text style={{ fontSize: 12, fontWeight: '600', color: txtSec }} numberOfLines={1}>from {headerStoreName}</Text>
         )}
@@ -1048,8 +1054,8 @@ export default function CheckoutScreen() {
         showsVerticalScrollIndicator={false}
       >
         {isClosed && (
-          <View style={[s.noticeCard, { backgroundColor: isDark ? 'rgba(99,102,241,0.12)' : 'rgba(99,102,241,0.08)', borderColor: 'rgba(99,102,241,0.3)' }]}>
-            <Ionicons name="moon-outline" size={20} color="#6366F1" />
+          <View style={[s.noticeCard, { backgroundColor: diet.soft, borderColor: diet.line }]}>
+            <Ionicons name="moon-outline" size={20} color={diet.acc} />
             <View style={{ flex: 1 }}>
               <Text style={[s.noticeTitle, { color: txt }]}>Closed for the night</Text>
               <Text style={[s.noticeSub, { color: txtSec }]}>{closedMessage}</Text>
@@ -1074,7 +1080,7 @@ export default function CheckoutScreen() {
                   style={[
                     s.campusBtnNew,
                     { backgroundColor: cardBg, borderColor: border },
-                    isActive && { borderColor: goldColor, backgroundColor: isDark ? 'rgba(201,168,76,0.08)' : 'rgba(239,79,95,0.05)' },
+                    isActive && { borderColor: goldColor, backgroundColor: isDark ? mixHex(diet.card, diet.acc, 0.1) : diet.sel },
                     soon && { opacity: 0.5 },
                   ]}
                   disabled={soon}
@@ -1115,16 +1121,16 @@ export default function CheckoutScreen() {
                     accessibilityHint="Long press to remove"
                     accessibilityState={{ selected: isSelected, checked: isSelected }}
                     style={[s.placeChip, {
-                      backgroundColor: isSelected ? (isDark ? goldColor : '#EF4F5F') : cardBg,
-                      borderColor: isSelected ? (isDark ? goldColor : '#EF4F5F') : border,
+                      backgroundColor: isSelected ? dFill : cardBg,
+                      borderColor: isSelected ? dFill : border,
                     }]}
                     onPress={() => setAddress(text)}
                     onLongPress={() => confirmRemovePlace(pl)}
                   >
-                    <Ionicons name={PLACE_ICON[pl.label] || 'location-outline'} size={14} color={isSelected ? (isDark ? '#000' : '#FFF') : goldColor} />
+                    <Ionicons name={PLACE_ICON[pl.label] || 'location-outline'} size={14} color={isSelected ? '#FFF' : goldColor} />
                     <View style={{ maxWidth: 170 }}>
-                      <Text style={{ fontSize: 12, fontWeight: '600', color: isSelected ? (isDark ? '#000' : '#FFF') : txt }} numberOfLines={1}>{pl.label}</Text>
-                      <Text style={{ fontSize: 11, fontWeight: '400', color: isSelected ? (isDark ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.85)') : txtSec }} numberOfLines={1}>{text}</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: isSelected ? '#FFF' : txt }} numberOfLines={1}>{pl.label}</Text>
+                      <Text style={{ fontSize: 11, fontWeight: '400', color: isSelected ? 'rgba(255,255,255,0.85)' : txtSec }} numberOfLines={1}>{text}</Text>
                     </View>
                   </DopaminePressable>
                 );
@@ -1203,8 +1209,8 @@ export default function CheckoutScreen() {
                     accessibilityLabel={`Hostel block ${block}`}
                     accessibilityState={{ selected: isSelected, checked: isSelected }}
                     style={[s.blockChip, {
-                      backgroundColor: isSelected ? (isDark ? goldColor : '#EF4F5F') : cardBg,
-                      borderColor: isSelected ? (isDark ? goldColor : '#EF4F5F') : border,
+                      backgroundColor: isSelected ? dFill : cardBg,
+                      borderColor: isSelected ? dFill : border,
                     }]}
                     onPress={() => {
                       const roomMatch = address.match(/(?:room\s*#?\s*|#\s*)(\w+)/i) || address.match(/\b(\d{3,4})\b/);
@@ -1265,7 +1271,7 @@ export default function CheckoutScreen() {
                     {extra.emoji ? (
                       <Text style={{ fontSize: 24, marginBottom: 4 }}>{extra.emoji}</Text>
                     ) : (
-                      <Ionicons name="add-circle-outline" size={24} color={COLORS.gold} style={{ marginBottom: 4 }} />
+                      <Ionicons name="add-circle-outline" size={24} color={diet.acc} style={{ marginBottom: 4 }} />
                     )}
                     <Text style={[s.extraName, { color: txt }]} numberOfLines={2}>{extra.name}</Text>
                     <Text style={s.extraPrice}>{formatINR(extra.price)}</Text>
@@ -1313,7 +1319,7 @@ export default function CheckoutScreen() {
                         accessibilityLabel={`Coupon ${cpn.code}`}
                         accessibilityState={{ checked: isActive }}
                       >
-                        <Ionicons name={cpn.type === 'FREEDEL' ? 'bicycle-outline' : 'pricetag-outline'} size={20} color={COLORS.gold} style={{ marginBottom: 4 }} />
+                        <Ionicons name={cpn.type === 'FREEDEL' ? 'bicycle-outline' : 'pricetag-outline'} size={20} color={diet.acc} style={{ marginBottom: 4 }} />
                         <Text style={[s.couponCode, { color: txt }]}>{cpn.code}</Text>
                         <Text style={s.couponType}>{cpn.label || (cpn.type === 'FREEDEL' ? 'Free delivery' : 'Discount')}</Text>
                         {typeof cpn.expiresInDays === 'number' && (
@@ -1380,7 +1386,7 @@ export default function CheckoutScreen() {
                   style={[
                     s.payCardNew,
                     { backgroundColor: cardBg, borderColor: border, opacity: item.enabled ? 1 : 0.55 },
-                    isActive && { borderColor: COLORS.red, backgroundColor: isDark ? 'rgba(239,79,95,0.06)' : 'rgba(239,79,95,0.03)' }
+                    isActive && { borderColor: diet.acc, backgroundColor: isDark ? mixHex(diet.card, diet.acc, 0.08) : diet.sel }
                   ]}
                   onPress={() => { if (item.enabled) setPaymentMethod(item.key); }}
                   accessibilityRole="radio"
@@ -1392,16 +1398,16 @@ export default function CheckoutScreen() {
                 >
                   <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
-                      <Ionicons name={item.icon} size={22} color={isActive ? COLORS.red : txtSec} />
+                      <Ionicons name={item.icon} size={22} color={isActive ? diet.acc : txtSec} />
                       <View style={{ flex: 1 }}>
-                        <Text style={[s.payCardTitle, { color: isActive ? COLORS.red : txt }]}>{item.title}</Text>
+                        <Text style={[s.payCardTitle, { color: isActive ? diet.acc : txt }]}>{item.title}</Text>
                         <Text style={[s.payCardDesc, { color: txtSec }]}>{item.desc}</Text>
                       </View>
                     </View>
-                    <View style={[s.radioOuter, { borderColor: isActive ? COLORS.red : border }]}>
+                    <View style={[s.radioOuter, { borderColor: isActive ? diet.acc : border }]}>
                       {isActive && (
                         <BounceIn delay={0}>
-                          <View style={[s.radioInner, { backgroundColor: COLORS.red }]} />
+                          <View style={[s.radioInner, { backgroundColor: diet.acc }]} />
                         </BounceIn>
                       )}
                     </View>
@@ -1420,7 +1426,7 @@ export default function CheckoutScreen() {
           <View style={[s.billCard, { backgroundColor: cardBg, borderColor: border, borderWidth: 1, marginTop: 24 }]}>
             {hasOrder && quoteLoading && !quote && (
               <View style={{ paddingVertical: 18, alignItems: 'center' }}>
-                <ActivityIndicator color={COLORS.red} />
+                <ActivityIndicator color={diet.acc} />
                 <Text style={[s.helperText, { color: txtSec, marginTop: 8 }]}>Calculating your bill…</Text>
               </View>
             )}
@@ -1496,7 +1502,7 @@ export default function CheckoutScreen() {
                 ))}
                 <View style={[s.billRow, { borderTopWidth: 1, borderTopColor: border, paddingTop: 12, marginTop: 8 }]}>
                   <Text style={{ fontSize: 14, fontWeight: '700', color: txt }}>{isStallOrder ? 'Pay the stall' : 'To pay'}</Text>
-                  <Text style={{ fontSize: 22, fontWeight: '700', color: COLORS.red }}>{formatINR(quote.finalPrice)}</Text>
+                  <Text style={{ fontSize: 22, fontWeight: '700', color: diet.acc }}>{formatINR(quote.finalPrice)}</Text>
                 </View>
                 {isStallOrder && (
                   <Text style={[s.helperText, { color: txtSec, marginTop: 6 }]}>{stallPayCopy(stallName)}.</Text>
@@ -1522,7 +1528,7 @@ export default function CheckoutScreen() {
           </View>
         </StaggeredSection>
 
-        <FloatingPulse color={COLORS.red} style={s.placeBtnContainer}>
+        <FloatingPulse color={dFill} style={s.placeBtnContainer}>
           <ActionPressable
             style={[s.placeBtn, { width: '100%', opacity: canPlace ? 1 : 0.5 }]}
             onPress={handlePlaceOrder}
@@ -1553,7 +1559,10 @@ export default function CheckoutScreen() {
   );
 }
 
-const s = StyleSheet.create({
+/** The diet accent as a fill under white text (a deeper step in dark). */
+const dFillNow = () => (isDarkNow() ? mixHex(dietNow().acc, '#000000', 0.3) : dietNow().acc);
+// Diet-following sheet (one per look: light/dark x Non-veg/Veg).
+const s = themedSheet(() => ({
   container: { flex: 1, width: '100%', maxWidth: 600, alignSelf: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: Platform.OS === 'android' ? 40 : 50, paddingBottom: 16, borderBottomWidth: 1 },
   backBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginRight: 16 },
@@ -1586,7 +1595,7 @@ const s = StyleSheet.create({
     marginBottom: Platform.OS === 'android' ? 80 : 40,
   },
   placeBtn: {
-    backgroundColor: COLORS.red,
+    backgroundColor: dFillNow(),
     paddingVertical: 16,
     borderRadius: 16,
     alignItems: 'center',
@@ -1597,30 +1606,30 @@ const s = StyleSheet.create({
   noticeCard: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 16, borderWidth: 1, marginBottom: 16 },
   noticeTitle: { fontSize: 12, fontWeight: '700' },
   noticeSub: { fontSize: 12, fontWeight: '600', marginTop: 2, lineHeight: 15 },
-  smallBtn: { alignSelf: 'flex-start', backgroundColor: COLORS.red, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
+  smallBtn: { alignSelf: 'flex-start', backgroundColor: dFillNow(), paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
   smallBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
 
   centerBox: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   centerTitle: { fontSize: 18, fontWeight: '600', marginBottom: 8, textAlign: 'center' },
   centerSub: { fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 20 },
-  primaryBtn: { backgroundColor: COLORS.red, paddingHorizontal: 28, paddingVertical: 14, borderRadius: 16, ...SHADOWS.redGlow },
+  primaryBtn: { backgroundColor: dFillNow(), paddingHorizontal: 28, paddingVertical: 14, borderRadius: 16, ...SHADOWS.redGlow },
   primaryBtnText: { color: '#fff', fontSize: 14, fontWeight: '700', letterSpacing: 0.2 },
 
   // Suggested Extras
   extrasScroll: { gap: 10, paddingRight: 16 },
   extraCard: { width: 120, padding: 12, borderRadius: 20, borderWidth: 1, borderColor: COLORS.borderDark, alignItems: 'center' },
   extraName: { fontSize: 12, fontWeight: '600', marginTop: 4, width: '100%', textAlign: 'center' },
-  extraPrice: { fontSize: 12, fontWeight: '700', color: COLORS.gold, marginTop: 2 },
-  extraAddBtn: { fontSize: 12, fontWeight: '700', color: '#000', backgroundColor: COLORS.gold, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8, marginTop: 8, overflow: 'hidden' },
+  extraPrice: { fontSize: 12, fontWeight: '700', color: dietNow().acc, marginTop: 2 },
+  extraAddBtn: { fontSize: 12, fontWeight: '700', color: '#FFF', backgroundColor: dFillNow(), paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8, marginTop: 8, overflow: 'hidden' },
 
   // Coupons
   couponsScroll: { gap: 10, paddingRight: 16 },
   couponCard: { width: 130, padding: 12, borderRadius: 20, borderWidth: 1, borderColor: COLORS.borderDark, alignItems: 'center', position: 'relative' },
-  couponCardActive: { borderColor: COLORS.gold, borderWidth: 1.5 },
+  couponCardActive: { borderColor: dietNow().acc, borderWidth: 1.5 },
   couponCode: { fontSize: 12, fontWeight: '700' },
   couponType: { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary, marginTop: 2 },
-  activeIndicator: { fontSize: 12, fontWeight: '700', color: COLORS.gold, marginTop: 6 },
+  activeIndicator: { fontSize: 12, fontWeight: '700', color: dietNow().acc, marginTop: 6 },
   emptyCoupons: { padding: 20, borderRadius: 20, borderWidth: 1, borderStyle: 'dashed', borderColor: COLORS.borderDark, alignItems: 'center' },
   emptyCouponsText: { fontSize: 12, fontWeight: '700', color: COLORS.textSecondary },
   emptyCouponsSub: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
-});
+}));

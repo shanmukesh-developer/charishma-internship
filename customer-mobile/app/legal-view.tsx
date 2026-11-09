@@ -11,7 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
-import { COLORS } from '../constants/theme';
+import { useDietLight } from '../components/local/dietLightTheme';
 import { LEGAL_LINKS, LEGAL_LABELS, type LegalPage } from '../utils/legal';
 
 export default function LegalView() {
@@ -21,15 +21,16 @@ export default function LegalView() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isDark } = useTheme();
+  const d = useDietLight();
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const bg = isDark ? '#0A0A0B' : '#FFFFFF';
-  const fg = isDark ? '#FFFFFF' : '#0F172A';
+  const fg = d.dk;
   const sub = isDark ? '#A1A1AA' : '#64748B';
-  const line = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)';
+  const line = d.line;
 
   return (
-    <View style={[st.root, { backgroundColor: bg, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+    <View style={[st.root, { backgroundColor: d.top, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <View style={[st.bar, { borderBottomColor: line }]}>
         <TouchableOpacity onPress={() => router.back()} style={st.icon} accessibilityRole="button" accessibilityLabel="Back" hitSlop={8}>
           <Ionicons name="chevron-back" size={24} color={fg} />
@@ -40,12 +41,12 @@ export default function LegalView() {
         </TouchableOpacity>
       </View>
       {failed ? (
-        <View style={st.center}>
+        <View style={[st.center, { backgroundColor: bg }]}>
           <Ionicons name="cloud-offline-outline" size={36} color={sub} />
           <Text style={[st.msg, { color: fg }]}>We couldn't load this page.</Text>
           <Text style={[st.small, { color: sub }]} selectable>{url}</Text>
-          <TouchableOpacity onPress={() => { setFailed(false); setLoading(true); }} style={st.retry} accessibilityRole="button">
-            <Text style={st.retryText}>Try again</Text>
+          <TouchableOpacity onPress={() => { setFailed(false); setLoading(true); }} style={[st.retry, { backgroundColor: d.acc }]} accessibilityRole="button">
+            <Text style={[st.retryText, { color: d.onAcc }]}>Try again</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -59,7 +60,7 @@ export default function LegalView() {
         />
       )}
       {loading && !failed && (
-        <View style={st.loader} pointerEvents="none"><ActivityIndicator color={COLORS.red} /></View>
+        <View style={st.loader} pointerEvents="none"><ActivityIndicator color={d.acc} /></View>
       )}
     </View>
   );
@@ -73,7 +74,7 @@ const st = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 10 },
   msg: { fontSize: 16, fontWeight: '600' },
   small: { fontSize: 12, textAlign: 'center' },
-  retry: { marginTop: 8, backgroundColor: COLORS.red, borderRadius: 999, paddingHorizontal: 22, paddingVertical: 10 },
+  retry: { marginTop: 8, backgroundColor: '#C8143F', borderRadius: 999, paddingHorizontal: 22, paddingVertical: 10 },
   retryText: { color: '#FFFFFF', fontWeight: '700' },
   loader: { position: 'absolute', top: 120, left: 0, right: 0, alignItems: 'center' },
 });

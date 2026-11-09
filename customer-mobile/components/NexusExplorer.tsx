@@ -9,6 +9,7 @@ import { productOptions } from './ProductOptions';
 import { isCustomizable } from './CustomizeDrawer';
 import { useCartActions } from '../context/CartContext';
 import { useDietary } from '../context/DietaryContext';
+import { useDietLight } from './local/dietLightTheme';
 import DopaminePressable, { CardPressable, ActionPressable } from './DopaminePressable';
 import SafeImage from './SafeImage';
 import { storeEtaMins } from '../utils/storeEta';
@@ -67,6 +68,7 @@ export default function NexusExplorer({ restaurants, activeCategory, onSelectIte
   const { isDark } = useTheme();
   const { addToCart } = useCartActions();
   const { dietMode, isItemAllowed } = useDietary();
+  const diet = useDietLight();
   const [activeFilter, setActiveFilter] = useState<'all' | 'veg'>('all');
   const [activeSort, setActiveSort] = useState<'recommended' | 'rating' | 'fastest'>('recommended');
   const [sortValue, setSortValue] = useState<'default' | 'low' | 'high'>('default');
@@ -232,7 +234,7 @@ export default function NexusExplorer({ restaurants, activeCategory, onSelectIte
   const txtSec = isDark ? '#A1A1AA' : '#6B7280';
 
   // Signature Black & Pink (Coral) Color Tokens
-  const PINK_ACTIVE = '#EF4F5F'; // Signature vibrant coral-pink
+  const PINK_ACTIVE = diet.acc; // The diet accent (red Non-veg / green Veg)
   const BLACK_PILL = '#18181B';  // Signature obsidian black
 
   return (
@@ -412,7 +414,7 @@ export default function NexusExplorer({ restaurants, activeCategory, onSelectIte
                   <View style={s.info}>
                     <View style={s.titleRow}>
                       <Text style={[s.name, { color: txt }]} numberOfLines={1}>{item.name || item.cleanName}</Text>
-                      <Text style={s.price}>₹{item.price}</Text>
+                      <Text style={[s.price, { color: diet.acc }]}>₹{item.price}</Text>
                     </View>
                     <TouchableOpacity 
                       activeOpacity={0.7}
@@ -428,7 +430,7 @@ export default function NexusExplorer({ restaurants, activeCategory, onSelectIte
                     <ActionPressable 
                       style={[
                         s.addBtn, 
-                        { backgroundColor: isAdded ? '#10B981' : (item.storeOpen ? COLORS.red : (isDark ? '#3F3F46' : '#E5E7EB')) }
+                        { backgroundColor: isAdded ? '#10B981' : (item.storeOpen ? diet.acc : (isDark ? '#3F3F46' : '#E5E7EB')) }
                       ]}
                       onPress={() => handleAddToCart(item)}
                       sound="tabSwitch"

@@ -7,6 +7,7 @@ import { FriendsColors, FR } from '../friendsTheme';
 import { compactCount, forumErrorMessage } from './forumShared';
 import { errorCode } from '../api/core';
 
+import { themedSheet } from '../../../../utils/themeNow';
 export interface VoteState {
   up: number;
   down: number;
@@ -100,7 +101,7 @@ export const VoteControl: React.FC<{
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   wrap: { alignItems: 'center', backgroundColor: FriendsColors.cardHi, borderRadius: FR.pill, borderWidth: 1, borderColor: FriendsColors.lineSoft },
   row: { flexDirection: 'row', paddingHorizontal: 2 },
   col: { flexDirection: 'column', paddingVertical: 2 },
@@ -108,4 +109,4 @@ const styles = StyleSheet.create({
   wrapUp: { backgroundColor: FriendsColors.accentSoft, borderColor: FriendsColors.accentLine },
   wrapDown: { backgroundColor: FriendsColors.dangerSoft, borderColor: 'rgba(243,139,128,0.3)' },
   score: { minWidth: 22, textAlign: 'center', fontSize: 13, fontWeight: '800', fontVariant: ['tabular-nums'] },
-});
+}));

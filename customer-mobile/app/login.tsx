@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAvoidingView } from '../components/KeyboardAvoidingView';
 import { useRouter, useIsFocused } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../constants/theme';
+import { useDietLight } from '../components/local/dietLightTheme';
 import { ENDPOINTS } from '../constants/api';
 import { useAuth } from '../context/AuthContext';
 import { setToken, postAuth, normalizePhone, isValidIndianMobile, NETWORK_ERROR_MESSAGE } from '../utils/auth';
@@ -44,6 +44,7 @@ export default function LoginScreen() {
   const router = useRouter();
   const { user, isLoading, setUser } = useAuth();
   const { isDark } = useTheme();
+  const d = useDietLight();
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   useEffect(() => {
@@ -308,7 +309,7 @@ export default function LoginScreen() {
 
   const insets = useSafeAreaInsets();
   return (
-    <View style={[s.container, { backgroundColor: isDark ? '#090D16' : '#F8FAFC' }]}>
+    <View style={[s.container, { backgroundColor: d.page }]}>
       {/* Server wake-up banner */}
       {showWakeup && (
         <ServerWakeupOverlay
@@ -360,7 +361,7 @@ export default function LoginScreen() {
                     s.phoneInputWrapper,
                     {
                       backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
-                      borderColor: focusedField === 'phone' ? (isDark ? COLORS.gold : '#0F172A') : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0')
+                      borderColor: focusedField === 'phone' ? d.acc : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0')
                     }
                   ]}>
                     <View style={s.countryCodeBox}>
@@ -387,12 +388,12 @@ export default function LoginScreen() {
                 {error ? <Text style={s.error}>{error}</Text> : null}
 
                 <TouchableOpacity
-                  style={[s.primaryBtn, { backgroundColor: COLORS.red }, busy && { opacity: 0.7 }]}
+                  style={[s.primaryBtn, { backgroundColor: d.acc }, busy && { opacity: 0.7 }]}
                   onPress={handleSendOtp}
                   disabled={busy}
                   activeOpacity={0.85}
                 >
-                  {busy ? <ActivityIndicator color={'#FFFFFF'} size="small" /> : <Text style={[s.primaryBtnText, { color: '#FFFFFF' }]}>Verify Phone</Text>}
+                  {busy ? <ActivityIndicator color={d.onAcc} size="small" /> : <Text style={[s.primaryBtnText, { color: d.onAcc }]}>Verify Phone</Text>}
                 </TouchableOpacity>
 
                 <TouchableOpacity onPress={cancelGoogle} disabled={busy} style={{ alignSelf: 'center', marginTop: 14, padding: 6 }}>
@@ -446,7 +447,7 @@ export default function LoginScreen() {
                   s.phoneInputWrapper,
                   {
                     backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
-                    borderColor: focusedField === 'phone' ? (isDark ? COLORS.gold : '#0F172A') : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0')
+                    borderColor: focusedField === 'phone' ? d.acc : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0')
                   }
                 ]}>
                   <View style={s.countryCodeBox}>
@@ -486,14 +487,14 @@ export default function LoginScreen() {
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                       <Text style={[s.fieldLabel, { color: isDark ? '#E2E8F0' : '#334155', marginBottom: 0 }]}>Password</Text>
                       <TouchableOpacity onPress={() => router.push('/forgot-password' as any)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                        <Text style={[s.forgotLink, { color: isDark ? COLORS.gold : '#2563EB' }]}>Forgot password?</Text>
+                        <Text style={[s.forgotLink, { color: d.acc }]}>Forgot password?</Text>
                       </TouchableOpacity>
                     </View>
                     <View style={[
                       s.phoneInputWrapper,
                       {
                         backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
-                        borderColor: focusedField === 'password' ? (isDark ? COLORS.gold : '#0F172A') : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0'),
+                        borderColor: focusedField === 'password' ? d.acc : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0'),
                       }
                     ]}>
                       <Ionicons name="lock-closed-outline" size={18} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginLeft: 14, marginRight: 8 }} />
@@ -532,17 +533,17 @@ export default function LoginScreen() {
                     {error ? <Text style={s.error}>{error}</Text> : null}
 
                     <TouchableOpacity
-                      style={[s.primaryBtn, { backgroundColor: COLORS.red }, busy && { opacity: 0.7 }]}
+                      style={[s.primaryBtn, { backgroundColor: d.acc }, busy && { opacity: 0.7 }]}
                       onPress={handleLogin}
                       disabled={busy}
                       activeOpacity={0.85}
                     >
                       {busy ? (
-                        <ActivityIndicator color={'#FFFFFF'} size="small" />
+                        <ActivityIndicator color={d.onAcc} size="small" />
                       ) : (
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                          <Text style={[s.primaryBtnText, { color: '#FFFFFF' }]}>Sign In</Text>
-                          <Ionicons name="arrow-forward" size={17} color={'#FFFFFF'} />
+                          <Text style={[s.primaryBtnText, { color: d.onAcc }]}>Sign In</Text>
+                          <Ionicons name="arrow-forward" size={17} color={d.onAcc} />
                         </View>
                       )}
                     </TouchableOpacity>
@@ -562,24 +563,24 @@ export default function LoginScreen() {
                         {error ? <Text style={s.error}>{error}</Text> : null}
 
                         <TouchableOpacity
-                          style={[s.primaryBtn, { backgroundColor: COLORS.red }, busy && { opacity: 0.7 }]}
+                          style={[s.primaryBtn, { backgroundColor: d.acc }, busy && { opacity: 0.7 }]}
                           onPress={handleSendOtp}
                           disabled={busy}
                           activeOpacity={0.85}
                         >
                           {busy ? (
-                            <ActivityIndicator color={'#FFFFFF'} size="small" />
+                            <ActivityIndicator color={d.onAcc} size="small" />
                           ) : (
                             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                              <Text style={[s.primaryBtnText, { color: '#FFFFFF' }]}>Send verification code</Text>
-                              <Ionicons name="arrow-forward" size={17} color={'#FFFFFF'} />
+                              <Text style={[s.primaryBtnText, { color: d.onAcc }]}>Send verification code</Text>
+                              <Ionicons name="arrow-forward" size={17} color={d.onAcc} />
                             </View>
                           )}
                         </TouchableOpacity>
 
                         {smsFailed && (
                           <TouchableOpacity onPress={handleSendEmailCode} disabled={busy} style={{ marginTop: 14, alignSelf: 'center' }} accessibilityRole="button">
-                            <Text style={{ fontSize: 13, fontWeight: '800', color: isDark ? COLORS.gold : '#2563EB' }}>Send code by email instead</Text>
+                            <Text style={{ fontSize: 13, fontWeight: '800', color: d.acc }}>Send code by email instead</Text>
                           </TouchableOpacity>
                         )}
                       </>
@@ -592,7 +593,7 @@ export default function LoginScreen() {
                           s.phoneInputWrapper,
                           {
                             backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
-                            borderColor: focusedField === 'otp' ? (isDark ? COLORS.gold : '#0F172A') : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0')
+                            borderColor: focusedField === 'otp' ? d.acc : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0')
                           }
                         ]}>
                           <TextInput
@@ -625,14 +626,14 @@ export default function LoginScreen() {
 
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
                           <TouchableOpacity onPress={changeNumber} disabled={busy} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                            <Text style={{ fontSize: 12, fontWeight: '800', color: isDark ? '#D4AF7A' : '#2563EB' }}>← Change number</Text>
+                            <Text style={{ fontSize: 12, fontWeight: '800', color: d.acc }}>← Change number</Text>
                           </TouchableOpacity>
                           <TouchableOpacity
                             onPress={handleSendOtp}
                             disabled={phoneOtp.countdown > 0 || busy}
                             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                           >
-                            <Text style={{ fontSize: 12, fontWeight: '800', color: (phoneOtp.countdown > 0 || busy) ? (isDark ? '#71717A' : '#9CA3AF') : (isDark ? COLORS.gold : '#2563EB') }}>
+                            <Text style={{ fontSize: 12, fontWeight: '800', color: (phoneOtp.countdown > 0 || busy) ? (isDark ? '#71717A' : '#9CA3AF') : (d.acc) }}>
                               {phoneOtp.countdown > 0 ? `Resend in ${phoneOtp.countdown}s` : 'Resend code'}
                             </Text>
                           </TouchableOpacity>
@@ -642,17 +643,17 @@ export default function LoginScreen() {
                         {error ? <Text style={s.error}>{error}</Text> : null}
 
                         <TouchableOpacity
-                          style={[s.primaryBtn, { backgroundColor: COLORS.red }, busy && { opacity: 0.7 }]}
+                          style={[s.primaryBtn, { backgroundColor: d.acc }, busy && { opacity: 0.7 }]}
                           onPress={handleVerifyOtp}
                           disabled={busy}
                           activeOpacity={0.85}
                         >
                           {busy ? (
-                            <ActivityIndicator color={'#FFFFFF'} size="small" />
+                            <ActivityIndicator color={d.onAcc} size="small" />
                           ) : (
                             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                              <Text style={[s.primaryBtnText, { color: '#FFFFFF' }]}>Verify & Sign In</Text>
-                              <Ionicons name="checkmark-circle" size={18} color={'#FFFFFF'} />
+                              <Text style={[s.primaryBtnText, { color: d.onAcc }]}>Verify & Sign In</Text>
+                              <Ionicons name="checkmark-circle" size={18} color={d.onAcc} />
                             </View>
                           )}
                         </TouchableOpacity>
@@ -664,13 +665,13 @@ export default function LoginScreen() {
                 {/* Footer disclaimer and sign up link */}
                 <Text style={{ textAlign: 'center', fontSize: 12, color: isDark ? '#71717A' : '#94A3B8', marginTop: 18, lineHeight: 18 }}>
                   By continuing you agree to the{' '}
-                  <Text style={{ color: isDark ? COLORS.gold : '#2563EB', fontWeight: '700' }} onPress={() => openLegal('terms')} accessibilityRole="link">Terms of Service</Text> and{' '}
-                  <Text style={{ color: isDark ? COLORS.gold : '#2563EB', fontWeight: '700' }} onPress={() => openLegal('privacy')} accessibilityRole="link">Privacy Policy</Text>.
+                  <Text style={{ color: d.acc, fontWeight: '700' }} onPress={() => openLegal('terms')} accessibilityRole="link">Terms of Service</Text> and{' '}
+                  <Text style={{ color: d.acc, fontWeight: '700' }} onPress={() => openLegal('privacy')} accessibilityRole="link">Privacy Policy</Text>.
                 </Text>
 
                 <TouchableOpacity onPress={() => router.push('/register' as any)} style={s.switchLink} activeOpacity={0.8}>
                   <Text style={[s.switchText, { color: isDark ? '#94A3B8' : '#64748B' }]}>
-                    Don't have an account? <Text style={{ color: isDark ? COLORS.gold : '#2563EB', fontWeight: '800' }}>Sign up</Text>
+                    Don't have an account? <Text style={{ color: d.acc, fontWeight: '800' }}>Sign up</Text>
                   </Text>
                 </TouchableOpacity>
               </>
@@ -679,7 +680,7 @@ export default function LoginScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
       {/* Status-bar backdrop (QA 5 Nov): scrolled form text no longer runs under the clock. */}
-      <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top, backgroundColor: isDark ? '#090D16' : '#F8FAFC' }} />
+      <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top, backgroundColor: d.page }} />
     </View>
   );
 }

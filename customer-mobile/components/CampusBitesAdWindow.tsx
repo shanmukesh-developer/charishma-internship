@@ -2,6 +2,7 @@ import React, { useMemo, useRef } from 'react';
 import { Alert } from 'react-native';
 import HighClassPromoCarousel, { PromoSlide } from './HighClassPromoCarousel';
 import { COLORS } from '../constants/theme';
+import { dietNow } from '../utils/themeNow';
 import { CAMPUS_BITES_PROMOS, CampusBitesPromo } from '../constants/campusBitesPromos';
 
 /**
@@ -77,7 +78,7 @@ const stallChips = (stall: any, open: boolean) => {
   };
 };
 
-export default function CampusBitesAdWindow({ stalls, isOpen, onOpenStall, onShowList, accent = COLORS.gold }: Props) {
+export default function CampusBitesAdWindow({ stalls, isOpen, onOpenStall, onShowList, accent = dietNow().acc }: Props) {
   const ACCENT = accent;
   // Callbacks change every render of the section: read them through refs so the slide list stays stable.
   const openRef = useRef(onOpenStall);

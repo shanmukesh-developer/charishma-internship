@@ -138,7 +138,7 @@ export default function OrganizerHome() {
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                       <Pill label={m.label} color={m.color} />
                       {e.pendingChanges ? <Pill label="Edits in review" color="#D97706" /> : null}
-                      {['PUBLISHED', 'COMPLETED'].includes(e.status) ? <Pill label={`${e.counters.confirmed} confirmed`} color="#0EA5E9" /> : null}
+                      {['PUBLISHED', 'COMPLETED'].includes(e.status) ? <Pill label={`${e.counters.confirmed} confirmed`} color={p.accent} /> : null}
                     </View>
                   </View>
                 </View>

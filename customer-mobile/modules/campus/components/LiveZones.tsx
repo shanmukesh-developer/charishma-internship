@@ -11,19 +11,20 @@ import ShimmerLoader from '../../../components/ShimmerLoader';
 import { useLiveSync } from '../../../utils/useLiveSync';
 import { T, S, R } from '../ui';
 
+import { fixedDietTokens, themedSheet } from '../../../utils/themeNow';
 /** Icons an admin can pick for a spot (backend spotAdminController ICONS). */
 export const SPOT_ICON_MAP: Record<string, any> = {
   MapPin, BookOpen, Utensils, Dumbbell, Users, Sofa, Mic, Coffee, Music, Gamepad2, Trees, Bus, Laptop, Building,
 };
 
-const CATEGORY_COLORS: Record<string, { bg: string; fg: string }> = {
+const CATEGORY_COLORS: Record<string, { bg: string; fg: string }> = fixedDietTokens(false, (): Record<string, { bg: string; fg: string }> => ({
   library: { bg: CampusColors.accentSoft, fg: CampusColors.accentDeep },
   dining: { bg: CampusColors.warmSoft, fg: CampusColors.warmDeep },
   sports: { bg: '#DCFCE7', fg: '#166534' },
   hostel: { bg: CampusColors.roseSoft, fg: CampusColors.roseDeep },
   academic: { bg: CampusColors.accentSoft, fg: CampusColors.accentDeep },
   common: { bg: '#F3E8FF', fg: '#7C3AED' },
-};
+}));
 
 /**
  * Campus spot chat rooms (library, mess, gym…). Spots are created by admins per campus; the app shows
@@ -125,7 +126,7 @@ export const LiveZones: React.FC<{ onOpenRoom: (slug: string) => void; refreshKe
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -143,4 +144,4 @@ const styles = StyleSheet.create({
   live: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#DCFCE7', paddingHorizontal: 5, paddingVertical: 1, borderRadius: R.pill },
   liveText: { fontSize: 12, fontWeight: '800', color: '#166534' },
   empty: { paddingVertical: S.lg, alignItems: 'center', backgroundColor: CampusColors.card, borderRadius: R.card, borderWidth: 1, borderColor: CampusColors.line },
-});
+}));

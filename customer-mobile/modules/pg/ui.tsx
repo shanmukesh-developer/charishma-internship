@@ -12,7 +12,8 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
-import { ACCENTS } from '../others/othersTheme';
+import { ACCENTS, hexAlpha } from '../others/othersTheme';
+import { useDietLight } from '../../components/local/dietLightTheme';
 
 export { default as IconArrowLeft } from 'lucide-react-native/icons/arrow-left';
 export { default as IconBadgeCheck } from 'lucide-react-native/icons/badge-check';
@@ -120,20 +121,22 @@ export const TYPE = { title: 20, heading: 16, body: 14, small: 12 } as const;
 
 export const usePgPalette = () => {
   const { isDark, colors } = useTheme();
+  // Owner, 10 Nov 2026: one look - the diet page and accent (red Non-veg / green Veg) replace the old PG blue.
+  const d = useDietLight();
   return useMemo(() => ({
     isDark,
-    bg: colors.bg,
+    bg: d.page,
     card: colors.card,
     sunken: isDark ? '#141417' : '#F1F3F5',
     text: colors.text,
     sub: colors.textSecondary,
     muted: colors.textMuted,
     line: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)',
-    // One accent for PG: blue. accentFill keeps white text readable on buttons in both themes.
+    // One accent for PG: the diet accent. accentFill keeps white text readable on buttons in both themes.
     accent: isDark ? ACCENTS.pg.ink.dark : ACCENTS.pg.ink.light,
     accentFill: ACCENTS.pg.solid,
-    accentSoft: isDark ? 'rgba(96,165,250,0.14)' : 'rgba(37,99,235,0.08)',
-    accentLine: isDark ? 'rgba(96,165,250,0.45)' : 'rgba(37,99,235,0.35)',
+    accentSoft: hexAlpha(isDark ? ACCENTS.pg.ink.dark : ACCENTS.pg.solid, isDark ? 0.14 : 0.08),
+    accentLine: hexAlpha(isDark ? ACCENTS.pg.ink.dark : ACCENTS.pg.solid, isDark ? 0.45 : 0.35),
     success: isDark ? '#34D399' : '#047857',
     successSoft: isDark ? 'rgba(52,211,153,0.12)' : 'rgba(4,120,87,0.08)',
     skeleton: isDark ? '#1F1F23' : '#E9ECEF',
@@ -143,7 +146,7 @@ export const usePgPalette = () => {
     shadow: isDark
       ? { borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.08)' }
       : { shadowColor: '#0F172A', shadowOpacity: 0.07, shadowRadius: 14, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
-  }), [isDark, colors]);
+  }), [isDark, colors, d]);
 };
 export type PgPalette = ReturnType<typeof usePgPalette>;
 

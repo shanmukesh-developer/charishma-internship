@@ -11,6 +11,7 @@ import { ModToolsSheet } from './ModToolsSheet';
 import { forumErrorMessage } from './forumShared';
 import { useForumNav } from './forumNav';
 
+import { themedSheet } from '../../../../utils/themeNow';
 /** Visual indent per depth, capped so deep threads stay readable on narrow phones. */
 const INDENT = 14;
 const MAX_VISUAL_DEPTH = 4;
@@ -176,7 +177,7 @@ export const CommentItem: React.FC<{
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   wrap: { flexDirection: 'row' },
   thread: { width: 2, borderRadius: 1, backgroundColor: FriendsColors.line, marginRight: FS.sm },
   box: { flex: 1, paddingVertical: FS.sm, paddingHorizontal: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.card, borderWidth: 1, borderColor: FriendsColors.lineSoft },
@@ -192,4 +193,4 @@ const styles = StyleSheet.create({
   note: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
   tomb: { flex: 1, paddingVertical: FS.sm, paddingHorizontal: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.lineSoft, minHeight: 40, justifyContent: 'center', gap: 4 },
   link: { fontSize: 12, fontWeight: '700', color: FriendsColors.accent },
-});
+}));

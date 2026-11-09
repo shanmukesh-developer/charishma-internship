@@ -780,12 +780,13 @@ export default function ProfileScreen() {
   const hasSpend = monthlySpend.some((m) => Number(m?.total) > 0) || topItems.length > 0;
   const favRestaurant = spendStats?.favoriteRestaurant && spendStats.favoriteRestaurant !== 'N/A' ? spendStats.favoriteRestaurant : '—';
   const isDataUriImage = typeof editProfileImage === 'string' && editProfileImage.startsWith('data:');
-  const inputBg = isDark ? 'rgba(255,255,255,0.05)' : '#F7F8FA';
-  const inputBorder = isDark ? colors.border : '#E4E6EC';
+  const inputBg = isDark ? 'rgba(255,255,255,0.05)' : '#FAFBFC';
+  const inputBorder = isDark ? colors.border : '#D3D8E0';
   // One look for every field: accent border while typing, red border + message when it needs a fix.
   const fieldStyle = (f: EditField | 'about' | 'address', extra?: any) => {
     const err = f === 'about' ? undefined : showErr(f as EditField);
-    return [s.modalInput, { color: txt, backgroundColor: inputBg, borderColor: err ? '#DC2626' : focusField === f ? goldColor : inputBorder, borderWidth: err || focusField === f ? 1.5 : 1 }, extra];
+    const on = focusField === f;
+    return [s.modalInput, { color: txt, backgroundColor: on && !isDark ? d.soft : inputBg, borderColor: err ? '#DC2626' : on ? goldColor : inputBorder, borderWidth: err || on ? 1.6 : 1 }, extra];
   };
   const errText = (f: EditField) => {
     const m = showErr(f);
@@ -1434,21 +1435,33 @@ export default function ProfileScreen() {
       </ScrollView>
 
       {/* ─── Modal: edit profile ─── */}
-      <Modal visible={isEditing} animationType="slide" transparent={true} onRequestClose={closeEditor}>
+      {/* Edit profile as a full-screen form (owner, 10 Nov 2026: fill it like a form; fields shrank and the colours
+          merged): diet band header, three section cards, full-width bordered fields, Save fixed at the bottom. */}
+      <Modal visible={isEditing} animationType="slide" transparent={false} statusBarTranslucent onRequestClose={closeEditor}>
+        <View style={{ flex: 1, backgroundColor: isDark ? colors.bg : d.pageDeep }}>
+          <View style={[s.formHeader, { paddingTop: topPad + 10, backgroundColor: d.top }]}>
+            <TouchableOpacity onPress={closeEditor} disabled={savingProfile} style={[s.formClose, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF' }]} accessibilityRole="button" accessibilityLabel="Close without saving">
+              <Ionicons name="close" size={22} color={d.dk} />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }}>
+              <Text style={[s.formTitle, { color: d.dk }]}>Edit profile</Text>
+              <Text style={[s.formSub, { color: d.dk }]}>Fields marked * are needed for delivery</Text>
+            </View>
+          </View>
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
         >
-          <View style={s.modalOverlay}>
             <ScrollView
-              contentContainerStyle={[s.modalScroll, { paddingBottom: 120 }]}
+              contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
-              bounces={true}
             >
-              <View style={[s.modalContent, { backgroundColor: isDark ? colors.card : '#FFFFFF', borderColor: isDark ? colors.border : 'rgba(17,17,26,0.06)' }]}>
-              <Text style={[s.modalTitle, { color: txt }]}>Edit profile</Text>
+              <View style={[s.formCard, { backgroundColor: isDark ? colors.card : '#FFFFFF', borderColor: isDark ? colors.border : 'rgba(17,17,26,0.06)' }]}>
+              <View style={s.formSectionRow}>
+                <Ionicons name="camera-outline" size={17} color={goldColor} />
+                <Text style={[s.formSectionText, { color: txt }]}>Profile photo</Text>
+              </View>
 
               {/* Avatar preview */}
               <View style={{ alignItems: 'center', marginVertical: 12 }}>
@@ -1498,8 +1511,15 @@ export default function ProfileScreen() {
                 </>
               ) : null}
 
+              </View>
+
+              <View style={[s.formCard, { backgroundColor: isDark ? colors.card : '#FFFFFF', borderColor: isDark ? colors.border : 'rgba(17,17,26,0.06)' }]}>
+              <View style={s.formSectionRow}>
+                <Ionicons name="person-outline" size={17} color={goldColor} />
+                <Text style={[s.formSectionText, { color: txt }]}>Your details</Text>
+              </View>
               {/* Name */}
-              <Text style={[s.inputLabel, { color: txtSec }]}>Full name</Text>
+              <Text style={[s.inputLabel, { color: txtSec }]}>Full name *</Text>
               <TextInput
                 value={editName}
                 onChangeText={setEditName}
@@ -1516,7 +1536,7 @@ export default function ProfileScreen() {
               {errText('name')}
 
               {/* Mobile Number */}
-              <Text style={[s.inputLabel, { color: txtSec }]}>Mobile number</Text>
+              <Text style={[s.inputLabel, { color: txtSec }]}>Mobile number *</Text>
               <TextInput
                 value={editPhone}
                 onChangeText={(t) => {
@@ -1634,9 +1654,12 @@ export default function ProfileScreen() {
               <Text style={{ fontSize: 12, color: txtSec, textAlign: 'right', marginTop: -4, marginBottom: 6 }}>{editAbout.length}/{BIO_MAX}</Text>
 
               {/* Where you live (10 Nov 2026): block chips, then Block + Room side by side, then the other address and City */}
-              <View style={[s.groupHead, { borderTopColor: inputBorder }]}>
-                <Ionicons name="location-outline" size={16} color={goldColor} />
-                <Text style={[s.groupHeadText, { color: txt }]}>Where you live</Text>
+              </View>
+
+              <View style={[s.formCard, { backgroundColor: isDark ? colors.card : '#FFFFFF', borderColor: isDark ? colors.border : 'rgba(17,17,26,0.06)', zIndex: 5 }]}>
+              <View style={s.formSectionRow}>
+                <Ionicons name="location-outline" size={17} color={goldColor} />
+                <Text style={[s.formSectionText, { color: txt }]}>Where you live</Text>
               </View>
               {myHostelCampuses.some((c) => c.blocks.length) ? <Text style={[s.inputLabel, { color: txtSec }]}>Pick your hostel block</Text> : null}
               {myHostelCampuses.length > 0 && (
@@ -1659,7 +1682,7 @@ export default function ProfileScreen() {
               )}
               <View style={s.twoCol}>
                 <View style={{ flex: 1.35 }}>
-                  <Text style={[s.inputLabel, { color: txtSec }]}>Hostel block</Text>
+                  <Text style={[s.inputLabel, { color: txtSec }]}>Hostel block *</Text>
                   <TextInput
                     value={editHostelBlock}
                     onChangeText={(t) => setEditHostelBlock(t.slice(0, HOSTEL_BLOCK_MAX))}
@@ -1673,7 +1696,7 @@ export default function ProfileScreen() {
                   {errText('block')}
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[s.inputLabel, { color: txtSec }]}>Room</Text>
+                  <Text style={[s.inputLabel, { color: txtSec }]}>Room *</Text>
                   <TextInput
                     value={editRoom}
                     onChangeText={(t) => setEditRoom(t.replace(/^\s*room\s*/i, '').slice(0, ROOM_NUMBER_MAX))}
@@ -1766,7 +1789,9 @@ export default function ProfileScreen() {
                 <Text style={[s.fieldError, { alignSelf: 'center', marginTop: 10 }]}>Fix the fields marked in red to save.</Text>
               ) : null}
 
-              <View style={s.modalActionsRow}>
+              </View>
+            </ScrollView>
+              <View style={[s.formFooter, { backgroundColor: isDark ? colors.card : '#FFFFFF', borderTopColor: isDark ? colors.border : 'rgba(17,17,26,0.08)' }]}>
                 <TouchableOpacity
                   style={[s.modalCancelBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]}
                   onPress={closeEditor}
@@ -1786,10 +1811,8 @@ export default function ProfileScreen() {
                   )}
                 </TouchableOpacity>
               </View>
-            </View>
-          </ScrollView>
-        </View>
       </KeyboardAvoidingView>
+        </View>
       </Modal>
 
       <DeleteAccountModal
@@ -2761,28 +2784,38 @@ const s = StyleSheet.create({
     marginBottom: 16,
   },
   inputLabel: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
     color: '#888',
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
     alignSelf: 'flex-start',
-    marginTop: 12,
-    marginBottom: 6,
+    marginTop: 14,
+    marginBottom: 7,
   },
+  formHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingBottom: 18, borderBottomLeftRadius: 26, borderBottomRightRadius: 26 },
+  formClose: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  formTitle: { fontSize: 22, fontWeight: '900', letterSpacing: -0.3 },
+  formSub: { fontSize: 12.5, fontWeight: '600', opacity: 0.7, marginTop: 2 },
+  formCard: { borderRadius: 22, borderWidth: 1, padding: 16, marginBottom: 14, alignItems: 'stretch', shadowColor: '#1b1a17', shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 1 },
+  formSectionRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 },
+  formSectionText: { fontSize: 15.5, fontWeight: '900' },
+  formFooter: { flexDirection: 'row', gap: 12, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 18, borderTopWidth: 1 },
   modalInput: {
+    alignSelf: 'stretch',
     width: '100%',
-    height: 48,
+    height: 52,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
     borderRadius: 14,
-    paddingHorizontal: 16,
-    fontSize: 12,
+    paddingHorizontal: 14,
+    fontSize: 15,
     color: '#FFF',
     fontWeight: '600',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   localUploadBtn: {
+    alignSelf: 'stretch',
     width: '100%',
     paddingVertical: 14,
     borderRadius: 14,

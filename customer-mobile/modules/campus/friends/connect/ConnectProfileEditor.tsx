@@ -18,6 +18,7 @@ import {
 import { ConnectChip, ConnectPhotoView, Notice, SectionTitle, StatusPill, ToggleRow } from './ConnectUi';
 import { LOOKING_FOR_META, YEARS, connectErrorMessage, lookingForLabel, yearLabel } from './connectShared';
 
+import { themedSheet } from '../../../../utils/themeNow';
 const mediaIdOf = (img: UploadedImage): string | null => {
   if (img.id) return img.id;
   const m = /\/api\/campus\/media\/([0-9a-f-]{36})/i.exec(img.url || '');
@@ -433,7 +434,7 @@ const RemovableChip: React.FC<{ label: string; onRemove: () => void }> = ({ labe
   </TouchableOpacity>
 );
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: FS.sm },
   slot: { width: '31.5%', aspectRatio: 4 / 5, borderRadius: FR.md, overflow: 'hidden', backgroundColor: FriendsColors.card, borderWidth: 1, borderColor: FriendsColors.line, borderStyle: 'dashed' },
   slotMain: { borderColor: 'rgba(212,175,122,0.45)' },
@@ -445,4 +446,4 @@ const styles = StyleSheet.create({
   addRow: { flexDirection: 'row', gap: FS.sm, alignItems: 'center' },
   addBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: FriendsColors.accent, alignItems: 'center', justifyContent: 'center' },
   error: { marginTop: FS.md, fontSize: 13, fontWeight: '600', color: FriendsColors.danger },
-});
+}));

@@ -10,6 +10,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { NIGHT, W } from './eventsV2Theme';
+import { themedSheet } from '../../utils/themeNow';
 import { FadeInUp, Press, SectionHead, usePageW } from './EventsV2Kit';
 import { ICalendarPlus, IClipboard, IScan, ITicket } from './EventsV2Icons';
 import { useNav } from './eventsV2Nav';
@@ -37,7 +38,7 @@ export default function QuickAccess() {
           <FadeInUp key={it.key} index={i}>
             <Press onPress={it.on} label={`${it.title}, ${it.sub}${it.badge ? `, ${it.badge}` : ''}`} style={[s.card, { width: cardW }]} scaleTo={0.97}>
               <View style={[s.icon, narrow ? { width: 36, height: 36, borderRadius: 11 } : null]}>
-                <it.Icon size={19} color="#D9CCFF" strokeWidth={1.7} />
+                <it.Icon size={19} color={NIGHT.accInk} strokeWidth={1.7} />
               </View>
               <View style={{ flex: 1, marginLeft: narrow ? 9 : 11, minWidth: 0 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -54,12 +55,12 @@ export default function QuickAccess() {
   );
 }
 
-const s = StyleSheet.create({
+const s = themedSheet(() => ({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: 16 },
   card: { flexGrow: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 11, minHeight: 68, borderRadius: 16, backgroundColor: NIGHT.card, borderWidth: StyleSheet.hairlineWidth, borderColor: NIGHT.line },
-  icon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(167,139,250,0.14)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(167,139,250,0.34)' },
+  icon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: NIGHT.accSoft, borderWidth: StyleSheet.hairlineWidth, borderColor: NIGHT.accLine },
   title: { color: NIGHT.ink, fontSize: 13.5, lineHeight: 18, fontWeight: W.title, flexShrink: 1 },
   sub: { color: NIGHT.faint, fontSize: 12, lineHeight: 16, marginTop: 1 },
   badge: { minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 5, backgroundColor: NIGHT.violetDeep, alignItems: 'center', justifyContent: 'center' },
-  badgeText: { color: '#FFFFFF', fontSize: 10.5, fontWeight: W.title },
-});
+  badgeText: { color: NIGHT.onAcc, fontSize: 10.5, fontWeight: W.title },
+}));

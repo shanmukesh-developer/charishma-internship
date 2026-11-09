@@ -1,5 +1,5 @@
 /**
- * Registration result (night look): a glowing check with sparkles, the headline for the server's status, the
+ * Registration result (diet look): a glowing check with sparkles, the headline for the server's status, the
  * registration code on a ticket stub, payment state, and the next actions (QR ticket, pay, details, my registrations).
  */
 import React from 'react';
@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { fmtWhen, inr, PAYMENT_STATUS_LABEL, REG_STATUS_META, type EventDetail, type Registration } from '../campusEvents/campusEventsApi';
 import { useCampusEventsStatus } from '../campusEvents/ui';
 import { NIGHT, W, shadow } from './eventsV2Theme';
+import { themedSheet } from '../../utils/themeNow';
 import { CTA, Press, Tag } from './EventsV2Kit';
 import { Notice } from './EventsV2States';
 import { ICheck, IHourglass, IListChecks } from './EventsV2Icons';
@@ -26,10 +27,10 @@ export default function RegisterDone({ result, ev }: { result: { registration: R
     <View>
       <View style={{ alignItems: 'center', paddingTop: 10, paddingBottom: 18 }}>
         <View>
-          <View style={[s.badge, shadow(3, ok ? '#138A55' : '#5B2FD6')]}>
+          <View style={[s.badge, shadow(3, ok ? '#138A55' : NIGHT.violetDeep)]}>
             <LinearGradient colors={ok ? ['#6EE7B7', '#10935F'] : [NIGHT.go[0], NIGHT.go[1]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
             <LinearGradient colors={['rgba(255,255,255,0.4)', 'rgba(255,255,255,0)']} style={[StyleSheet.absoluteFill, { height: '50%' }]} />
-            <View><Icon size={38} color="#FFFFFF" strokeWidth={2.2} /></View>
+            <View><Icon size={38} color={ok ? '#FFFFFF' : NIGHT.onAcc} strokeWidth={2.2} /></View>
           </View>
         </View>
         <Text style={s.head} accessibilityRole="header">{headline}</Text>
@@ -37,7 +38,7 @@ export default function RegisterDone({ result, ev }: { result: { registration: R
       </View>
 
       <View style={[s.stub, shadow(2)]}>
-        <LinearGradient colors={['#2B2770', '#1E1B52']} style={[StyleSheet.absoluteFill, { borderRadius: 22 }]} />
+        <LinearGradient colors={[NIGHT.card, NIGHT.card2]} style={[StyleSheet.absoluteFill, { borderRadius: 22 }]} />
         <Text style={s.codeLabel}>Registration code</Text>
         <Text style={s.code} selectable accessibilityLabel={`Registration code ${r.code.split('').join(' ')}`}>{r.code}</Text>
         <View style={{ flexDirection: 'row', gap: 6, marginTop: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -60,14 +61,14 @@ export default function RegisterDone({ result, ev }: { result: { registration: R
   );
 }
 
-const s = StyleSheet.create({
+const s = themedSheet(() => ({
   badge: { width: 84, height: 84, borderRadius: 42, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.5)' },
   head: { color: NIGHT.ink, fontSize: 24, fontWeight: W.display, marginTop: 16, textAlign: 'center' },
   sub: { color: NIGHT.sub, fontSize: 13.5, marginTop: 4, textAlign: 'center' },
-  stub: { borderRadius: 22, padding: 18, alignItems: 'center', overflow: 'visible', marginBottom: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.18)' },
+  stub: { borderRadius: 22, padding: 18, alignItems: 'center', overflow: 'visible', marginBottom: 14, backgroundColor: NIGHT.card, borderWidth: StyleSheet.hairlineWidth, borderColor: NIGHT.line },
   codeLabel: { color: NIGHT.faint, fontSize: 12 },
-  code: { color: '#FFFFFF', fontSize: 26, fontWeight: W.hero, letterSpacing: 3, marginTop: 4 },
+  code: { color: NIGHT.ink, fontSize: 26, fontWeight: W.hero, letterSpacing: 3, marginTop: 4 },
   notch: { position: 'absolute', top: '50%', width: 24, height: 24, borderRadius: 12, backgroundColor: NIGHT.page, marginTop: -12 },
   link: { alignSelf: 'center', minHeight: 48, justifyContent: 'center', paddingHorizontal: 12, marginTop: 4 },
   linkText: { color: NIGHT.violet, fontSize: 14, fontWeight: W.label },
-});
+}));

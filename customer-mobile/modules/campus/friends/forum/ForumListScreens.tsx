@@ -25,6 +25,7 @@ import { usePaged } from './usePaged';
 import { Chips, ForumHeader, PostList, SoftError } from './ForumUi';
 import { POST_TYPE_META, forumErrorMessage } from './forumShared';
 
+import { themedSheet } from '../../../../utils/themeNow';
 // ── Search ────────────────────────────────────────────────────────────────────
 export const ForumSearchScreen: React.FC<{ communityId?: string | null; communityName?: string | null }> = ({ communityId, communityName }) => {
   const nav = useForumNav();
@@ -323,11 +324,11 @@ export const ModQueueScreen: React.FC<{ communityId?: string | null }> = ({ comm
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedSheet(() => ({
   search: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 0 },
   searchInput: { flex: 1, color: FriendsColors.ink, fontSize: 15, minHeight: 44 },
   report: { padding: FS.md, borderRadius: FR.card, backgroundColor: FriendsColors.card, borderWidth: 1, borderColor: FriendsColors.line },
   sev: { width: 8, height: 8, borderRadius: 4 },
   logRow: { flexDirection: 'row', alignItems: 'center', gap: FS.md, paddingVertical: FS.md, minHeight: 52 },
   error: { marginTop: FS.md, padding: FS.md, borderRadius: FR.md, backgroundColor: FriendsColors.dangerSoft, color: FriendsColors.danger, fontSize: 13, fontWeight: '600' },
-});
+}));
