@@ -977,7 +977,7 @@ export default function HomeScreen() {
           <ServicesBento
             hidden={hiddenServiceTiles}
             onOpen={(k) => {
-              if (k === 'campusBooking') router.push('/campus-booking' as any);
+              if (k === 'campusBooking') router.navigate('/(tabs)/local' as any);
               else if (k === 'groceries') router.push({ pathname: '/(tabs)/others', params: { tab: 'food' } } as any);
               else if (k === 'promos') router.push({ pathname: '/(tabs)/others', params: { tab: 'promos' } } as any);
               else router.push({ pathname: '/(tabs)/services', params: { tab: k } } as any);

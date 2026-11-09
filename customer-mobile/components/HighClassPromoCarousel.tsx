@@ -471,7 +471,7 @@ export default function HighClassPromoCarousel({
         description: 'Order from campus counters and pick up when it is ready.',
         buttonText: 'Book now',
         accentColor: '#F97316',
-        redirectAction: () => router.push('/campus-booking' as any),
+        redirectAction: () => router.navigate('/(tabs)/local' as any),
       },
       {
         id: 'campus-events',
