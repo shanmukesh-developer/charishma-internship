@@ -607,12 +607,20 @@ export default function CheckoutScreen() {
     }
   };
 
+  // After a successful order (owner, 10 Nov 2026: "navigate to home screen instead of basket"): checkout closes, Home is
+  // the tab underneath, and tracking (or the shopping list) opens on top, so Back from tracking lands on Home. The
+  // other shops stay in the basket.
+  const showAfterOrder = (path: string) => {
+    try { if (router.canDismiss()) router.dismissAll(); } catch { /* nothing to dismiss */ }
+    router.navigate('/(tabs)' as any);
+    router.push(path as any);
+  };
+
   const goToPlacedOrder = (orderId: string, cartKeys: string[]) => {
     const keys = new Set(cartKeys);
     setCart((prev) => prev.filter((i) => !keys.has(i.cartKey)));
     refreshUser().catch(() => {});
-    // Tracking replaces checkout; Back returns to the Basket tab underneath (the other baskets stay intact).
-    router.replace(`/tracking/${orderId}` as any);
+    showAfterOrder(`/tracking/${orderId}`);
   };
 
   const handlePlaceOrder = async () => {
@@ -914,7 +922,7 @@ export default function CheckoutScreen() {
     }
     // Navigate only after the "placing" lock is released (the back guard would otherwise block it).
     if (navigateTo) {
-      router.replace(navigateTo as any);
+      showAfterOrder(navigateTo);
     }
   };
 

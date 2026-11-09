@@ -933,6 +933,10 @@ export function useBasketQuote(couponCode: string | null | undefined, enabled: b
   // Which basket the quote / error above belongs to: switching baskets must never show the other
   // basket's bill (or its error) while the new quote is on its way.
   const [resultKind, setResultKind] = useState<string | null>(null);
+  // Same value as resultKind, readable inside the request (a silent re-quote may only stay silent when this
+  // basket's bill is already on screen).
+  const resultKindRef = useRef<string | null>(null);
+  resultKindRef.current = resultKind;
   const [nonce, setNonce] = useState(0);
   const refresh = useCallback(() => setNonce((n) => n + 1), []);
   // Live-sync refreshes run silently: the current bill stays on screen (no "Calculating…" flash)
@@ -971,7 +975,10 @@ export function useBasketQuote(couponCode: string | null | undefined, enabled: b
     // A silent (live-sync) re-quote only keeps the old bill on screen when the basket and coupon are
     // unchanged; if they changed in the same render, the old bill no longer matches and must not be placeable.
     const requestSig = `${kind}|${storeId || ''}|${signature}|${couponCode || ''}|${college || ''}`;
-    const silent = silentRef.current && lastQuoteSigRef.current === requestSig;
+    // Owner, 10 Nov 2026 ("second restaurant keeps calculating"): a live update could cancel the first request and the
+    // silent retry then swallowed its own failure, leaving "Calculating your bill…" for ever. Silent only while this
+    // basket already has its bill on screen.
+    const silent = silentRef.current && lastQuoteSigRef.current === requestSig && resultKindRef.current === resultKey;
     silentRef.current = false;
     lastQuoteSigRef.current = requestSig;
     if (!silent) setLoading(true);

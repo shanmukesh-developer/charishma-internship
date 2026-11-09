@@ -545,6 +545,9 @@ export default function BasketScreen() {
               </StaggeredSection>
             )}
             {!multiRestaurant && cart.map((item: any, i: number) => renderItemCard(item, i))}
+            {!multiRestaurant && storeGroups[0] ? (
+              <AddMoreFromStore storeId={storeGroups[0].storeId} name={storeGroups[0].storeName || 'this store'} campus={isCampus} />
+            ) : null}
 
             {multiRestaurant && isCampus && storeGroups.map((g, gi) => (
               <CampusStallSection
@@ -748,6 +751,29 @@ export default function BasketScreen() {
  * and its own fees (restaurant / grocery: delivery + platform fee; local store: as the server prices it). The amounts
  * come from the server quote, never from the app.
  */
+/**
+ * "Add more items" under a shop's items, before its bill (owner, 10 Nov 2026): opens that shop's own page so the
+ * student can keep adding from the same place. Campus stalls open their stall page; every other shop its store page.
+ */
+function AddMoreFromStore({ storeId, name, campus }: { storeId?: string | null; name: string; campus?: boolean }) {
+  const router = useRouter();
+  const d = useDietLight();
+  if (!storeId) return null;
+  return (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={() => router.push((campus ? `/campus-booking/stall/${storeId}` : `/restaurant/${storeId}`) as any)}
+      accessibilityRole="button"
+      accessibilityLabel={`Add more items from ${name}`}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 16, marginBottom: 10, paddingVertical: 11, paddingHorizontal: 14, borderRadius: 14, backgroundColor: d.soft, borderWidth: 1, borderColor: d.line }}
+    >
+      <Ionicons name="add-circle" size={18} color={d.acc} />
+      <Text style={{ flex: 1, fontSize: 13, fontWeight: '800', color: d.acc }} numberOfLines={1}>Add more items from {name}</Text>
+      <Ionicons name="chevron-forward" size={16} color={d.acc} />
+    </TouchableOpacity>
+  );
+}
+
 const SECTION_ICON: Record<BasketKind, React.ComponentProps<typeof Ionicons>['name']> = {
   restaurant: 'restaurant-outline', store: 'basket-outline', campus: 'storefront-outline', stall: 'storefront-outline',
 };
@@ -800,6 +826,7 @@ function RestaurantOrderSection({ basket, group, index, signedIn, active, orderi
           <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec }}>{plural(items, 'item')}</Text>
         </View>
         {group.lines.map((item, i) => <React.Fragment key={item.cartKey || item.id || i}>{renderItemCard(item, i)}</React.Fragment>)}
+        <AddMoreFromStore storeId={group.storeId} name={name} />
         <View style={[s.billCard, { backgroundColor: colors.card, borderColor: border, borderWidth: 1, marginTop: 0 }]}>
           {!signedIn ? (
             <View style={s.billRow}>
@@ -952,6 +979,7 @@ function CampusStallSection({ group, index, signedIn, active, renderItemCard, on
           <Text style={{ fontSize: 12, fontWeight: '800', color: txtSec }}>{plural(items, 'item')}</Text>
         </View>
         {group.lines.map((item, i) => <React.Fragment key={item.cartKey || item.id || i}>{renderItemCard(item, i)}</React.Fragment>)}
+        <AddMoreFromStore storeId={group.storeId} name={group.storeName || 'this stall'} campus />
         <View style={[s.billCard, { backgroundColor: colors.card, borderColor: border, borderWidth: 1, marginTop: 0 }]}>
           <View style={s.billRow}>
             <Text style={[s.billLabel, { color: txtSec }]}>Item total</Text>
