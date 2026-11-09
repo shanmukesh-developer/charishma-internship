@@ -664,7 +664,10 @@ export default function OrdersScreen() {
   // Owner, 10 Nov 2026: Orders takes the app's new look - light diet band and page, glass cards, one diet accent.
   const d = useDietLight();
   const bg = d.pageDeep;
-  const cardBg = isDark ? d.card : 'rgba(255,255,255,0.74)';
+  // Solid, not see-through (owner, 9 Nov 2026: "square shape red colour, weird grading" on the phone): Android draws
+  // the elevation shadow under a translucent card, so it showed through as a reddish square. These are the exact
+  // colours of 74% white over the page, so the look is unchanged.
+  const cardBg = isDark ? d.card : d.pageDeep === '#ECF5EF' ? '#FAFCFB' : '#FDFAFB';
   const lift = isDark
     ? { shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 3 }
     : { shadowColor: d.dk, shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 3 };

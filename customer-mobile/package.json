@@ -72,7 +72,8 @@
   "expo": {
     "autolinking": {
       "buildFromSource": [
-        "expo-audio"
+        "expo-audio",
+        "expo-video"
       ]
     }
   }

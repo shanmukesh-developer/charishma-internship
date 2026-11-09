@@ -1,0 +1,37 @@
+diff --git a/node_modules/expo-video/android/src/main/java/expo/modules/video/playbackService/ExpoVideoPlaybackService.kt b/node_modules/expo-video/android/src/main/java/expo/modules/video/playbackService/ExpoVideoPlaybackService.kt
+index 54c0ad0..6572e0e 100644
+--- a/node_modules/expo-video/android/src/main/java/expo/modules/video/playbackService/ExpoVideoPlaybackService.kt
++++ b/node_modules/expo-video/android/src/main/java/expo/modules/video/playbackService/ExpoVideoPlaybackService.kt
+@@ -86,7 +86,7 @@ class ExpoVideoPlaybackService : MediaSessionService() {
+         .build()
+ 
+       // Replace the basic media session with a session connected to our playback service.
+-      videoPlayer.mediaSession.release()
++      videoPlayer.mediaSession?.release()
+       videoPlayer.mediaSession = mediaSession
+ 
+       mediaSessions[player] = mediaSession
+diff --git a/node_modules/expo-video/android/src/main/java/expo/modules/video/player/VideoPlayer.kt b/node_modules/expo-video/android/src/main/java/expo/modules/video/player/VideoPlayer.kt
+index 8bae522..b25da85 100644
+--- a/node_modules/expo-video/android/src/main/java/expo/modules/video/player/VideoPlayer.kt
++++ b/node_modules/expo-video/android/src/main/java/expo/modules/video/player/VideoPlayer.kt
+@@ -88,7 +88,9 @@ class VideoPlayer(val context: Context, appContext: AppContext, source: VideoSou
+ 
+   internal val firstFrameEventGenerator: FirstFrameEventGenerator
+   val serviceConnection = PlaybackServiceConnection(WeakReference(this), appContext)
+-  var mediaSession: MediaSession = buildBasicMediaSession(context, player)
++  // ZenWe: no basic media session (it showed an "Unknown song" card on some phones). Built only by the playback
++  // service when a video asks for a now-playing notification.
++  var mediaSession: MediaSession? = null
+   val intervalUpdateClock = IntervalUpdateClock(this)
+ 
+   var playing by IgnoreSameSet(false) { new, old ->
+@@ -374,7 +376,7 @@ class VideoPlayer(val context: Context, appContext: AppContext, source: VideoSou
+       appContext?.reactContext?.unbindService(serviceConnection)
+     }
+     serviceConnection.playbackServiceBinder?.service?.unregisterPlayer(player)
+-    mediaSession.release()
++    mediaSession?.release()
+ 
+     VideoManager.unregisterVideoPlayer(this@VideoPlayer)
+ 
