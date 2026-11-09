@@ -68,5 +68,12 @@
     "export": "expo export --platform android",
     "postinstall": "npx --yes patch-package"
   },
-  "private": true
+  "private": true,
+  "expo": {
+    "autolinking": {
+      "buildFromSource": [
+        "expo-audio"
+      ]
+    }
+  }
 }
