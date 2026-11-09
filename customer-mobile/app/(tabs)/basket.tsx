@@ -791,6 +791,7 @@ function RestaurantOrderSection({ basket, group, index, signedIn, active, orderi
   onCheckout: () => void;
 }) {
   const { isDark, colors } = useTheme();
+  const dl = useDietLight();
   const { quote, loading, error, refresh } = useBasketQuote(null, signedIn, active, basket, group.storeId || null);
   const txt = colors.text;
   const txtSec = colors.textSecondary;
@@ -897,7 +898,7 @@ function RestaurantOrderSection({ basket, group, index, signedIn, active, orderi
           ) : null}
           <Text style={{ fontSize: 12, color: txtSec, fontWeight: '700', marginTop: 4 }}>{feeNote}</Text>
           <ActionPressable
-            style={[s.groupCheckoutBtn, { backgroundColor: COLORS.red }, blocked && { opacity: 0.55 }]}
+            style={[s.groupCheckoutBtn, { backgroundColor: dl.acc }, blocked && { opacity: 0.55 }]}
             disabled={blocked}
             accessibilityRole="button"
             accessibilityLabel={label}
@@ -927,6 +928,7 @@ function CampusStallSection({ group, index, signedIn, active, renderItemCard, on
   onCheckout: () => void;
 }) {
   const { isDark, colors } = useTheme();
+  const dl = useDietLight();
   const txt = colors.text;
   const txtSec = colors.textSecondary;
   const border = colors.border;
@@ -998,7 +1000,7 @@ function CampusStallSection({ group, index, signedIn, active, renderItemCard, on
           ) : null}
           <Text style={{ fontSize: 12, color: txtSec, fontWeight: '700', marginTop: 4 }}>Separate booking · pick up at the counter, pay the stall by UPI</Text>
           <ActionPressable
-            style={[s.groupCheckoutBtn, { backgroundColor: COLORS.red }, blocked && { opacity: 0.55 }]}
+            style={[s.groupCheckoutBtn, { backgroundColor: dl.acc }, blocked && { opacity: 0.55 }]}
             disabled={blocked}
             accessibilityRole="button"
             accessibilityLabel={label}

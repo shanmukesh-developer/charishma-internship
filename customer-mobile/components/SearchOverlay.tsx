@@ -158,6 +158,8 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
   const [correctedTo, setCorrectedTo] = useState<string | null>(null);
   const [didYouMean, setDidYouMean] = useState<string | null>(null);
   const [popular, setPopular] = useState<string[]>([]);
+  // Veg on: no "Chicken" / "Mutton" / "Egg" chips under "Popular searches".
+  const popularShown = useMemo(() => (vegOn ? popular.filter((w) => !SEARCH_NONVEG_WORDS.test(w)) : popular), [popular, vegOn]);
   useEffect(() => {
     if (!isOpen || searchMode !== 'food') return;
     let alive = true;
@@ -394,11 +396,11 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
                   </Text>
                 </TouchableOpacity>
               )}
-              {!searchError && searchMode === 'food' && popular.length > 0 && (
+              {!searchError && searchMode === 'food' && popularShown.length > 0 && (
                 <View style={s.popularWrap}>
                   <Text style={[s.sectionTitle, { textAlign: 'center', color: isDark ? '#A1A1AA' : '#334155' }]}>POPULAR SEARCHES</Text>
                   <View style={[s.tagsRow, { justifyContent: 'center' }]}>
-                    {popular.map((tag) => (
+                    {popularShown.map((tag) => (
                       <TouchableOpacity
                         key={tag}
                         style={[s.tagBtn, { backgroundColor: cardBg, borderColor: border }]}
