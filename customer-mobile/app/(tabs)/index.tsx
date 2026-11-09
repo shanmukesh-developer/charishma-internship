@@ -769,7 +769,7 @@ export default function HomeScreen() {
   // Restaurants / Fast food / Tiffins (owner, 9 Nov 2026), read from each store's cuisine tags for now.
   const dietStores = React.useMemo(() => restaurants.filter(isHomeFoodVendor).filter((r) => (vegOnly ? hasVegDish(r) : true)), [restaurants, vegOnly]);
   const kindCounts = React.useMemo(() => {
-    const c: Record<RestaurantKind, number> = { rest: 0, fast: 0, tiffin: 0 };
+    const c: Record<RestaurantKind, number> = { rest: 0, fast: 0, tiffin: 0, all: dietStores.length };
     dietStores.forEach((r) => { c[restaurantKind(r)] += 1; });
     return c;
   }, [dietStores]);
@@ -804,7 +804,7 @@ export default function HomeScreen() {
     })
     .filter(r => matchesHomeFilter(r, filter, favorites))
     // A search looks across every kind; otherwise only the chosen tab's stores.
-    .filter(r => !!search || restaurantKind(r) === kind)
+    .filter(r => !!search || kind === 'all' || restaurantKind(r) === kind)
     .filter(r => {
       if (!search) return true;
       const q = search.toLowerCase();

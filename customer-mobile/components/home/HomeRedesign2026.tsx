@@ -217,8 +217,10 @@ export function RestaurantsOpener({ theme, count, avatars }: { theme: HomeTheme;
   );
 }
 
-export type RestaurantKind = 'rest' | 'fast' | 'tiffin';
-const KIND_LABEL: Record<RestaurantKind, string> = { rest: 'Restaurants', fast: 'Fast food', tiffin: 'Tiffins' };
+// 'all' (owner, 10 Nov 2026: "add an All option after Restaurants, Fast food and Tiffins") shows every kitchen;
+// restaurantKind() never returns it.
+export type RestaurantKind = 'rest' | 'fast' | 'tiffin' | 'all';
+const KIND_LABEL: Record<RestaurantKind, string> = { rest: 'Restaurants', fast: 'Fast food', tiffin: 'Tiffins', all: 'All' };
 /** Until stores carry an admin-set type: read it from their cuisine tags. */
 export function restaurantKind(r: any): RestaurantKind {
   const t = [r?.cuisine, ...(Array.isArray(r?.tags) ? r.tags : [])].map((x) => String(x || '').toLowerCase()).join(' ');
@@ -229,7 +231,7 @@ export function restaurantKind(r: any): RestaurantKind {
 }
 
 export function RestaurantKindTabs({ value, counts, onChange, theme, isDark, pageBg }: { value: RestaurantKind; counts: Record<RestaurantKind, number>; onChange: (k: RestaurantKind) => void; theme: HomeTheme; isDark: boolean; pageBg: string }) {
-  const kinds: RestaurantKind[] = ['rest', 'fast', 'tiffin'];
+  const kinds: RestaurantKind[] = ['rest', 'fast', 'tiffin', 'all'];
   const panel = isDark ? '#17171C' : '#FFFFFF';
   const unBg = isDark ? 'rgba(255,255,255,0.06)' : `${theme.acc}14`;
   return (
@@ -242,11 +244,11 @@ export function RestaurantKindTabs({ value, counts, onChange, theme, isDark, pag
             onPress={() => onChange(k)}
             accessibilityRole="tab"
             accessibilityState={{ selected: on }}
-            style={[st.kindTab, on ? { backgroundColor: panel, borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingVertical: 12 } : { backgroundColor: unBg, borderRadius: 14, marginBottom: 6, paddingVertical: 10, borderWidth: 1, borderColor: `${theme.acc}24` }]}
+            style={[st.kindTab, k === 'all' && { flex: 0.55 }, on ? { backgroundColor: panel, borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingVertical: 12 } : { backgroundColor: unBg, borderRadius: 14, marginBottom: 6, paddingVertical: 10, borderWidth: 1, borderColor: `${theme.acc}24` }]}
           >
             {on && i > 0 ? <FlareCorner side="left" size={8} fill={panel} bg={pageBg} /> : null}
             {on && i < kinds.length - 1 ? <FlareCorner side="right" size={8} fill={panel} bg={pageBg} /> : null}
-            <Text style={[st.kindLabel, { color: on ? theme.accDeep : isDark ? 'rgba(255,255,255,0.75)' : '#2B2F38' }]}>
+            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={[st.kindLabel, { color: on ? theme.accDeep : isDark ? 'rgba(255,255,255,0.75)' : '#2B2F38' }]}>
               {KIND_LABEL[k]} <Text style={{ color: theme.acc, fontSize: 10.5 }}>{counts[k]}</Text>
             </Text>
             {on ? <LinearGradient colors={[theme.acc, theme.acc2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={st.kindUnderline} /> : null}
@@ -261,7 +263,7 @@ export function RestaurantKindTabs({ value, counts, onChange, theme, isDark, pag
 /** The white panel the kind tabs open into (first / last tab square that top corner). */
 export function KindPanel({ value, isDark, children }: { value: RestaurantKind; isDark: boolean; children: React.ReactNode }) {
   return (
-    <View style={[st.kindPanel, { backgroundColor: isDark ? '#17171C' : '#FFFFFF' }, value === 'rest' && { borderTopLeftRadius: 0 }, value === 'tiffin' && { borderTopRightRadius: 0 }]}>
+    <View style={[st.kindPanel, { backgroundColor: isDark ? '#17171C' : '#FFFFFF' }, value === 'rest' && { borderTopLeftRadius: 0 }, value === 'all' && { borderTopRightRadius: 0 }]}>
       {children}
     </View>
   );
