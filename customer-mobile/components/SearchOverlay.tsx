@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useDietary } from '../context/DietaryContext';
 import { View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Dimensions, Platform } from 'react-native';
 // expo-image (memory + disk cache, downsampled CDN URLs) in place of react-native's Image
 import { CachedImage as Image } from './SafeImage';
@@ -113,6 +114,24 @@ interface SearchOverlayProps {
   searchMode?: 'food' | 'grocery';
 }
 
+// Veg mode in search (owner, 10 Nov 2026: "while searching non-veg is coming even though we enabled Veg"). Same rules
+// as Home: a dish shows only if it is veg (its own veg / egg / non-veg label first); a restaurant shows while it has a
+// veg dish, or, when the result carries no menu, unless its name / cuisine says it is a non-veg place.
+const searchIsVegDish = (item: any): boolean => {
+  const d = String(item?.dietType || '').toLowerCase().replace(/[^a-z]/g, '');
+  if (d === 'veg') return true;
+  if (d === 'egg' || d === 'nonveg' || d === 'nonvegetarian') return false;
+  const veg = item?.isVegetarian === true || String(item?.isVegetarian).toLowerCase() === 'true' || Number(item?.isVegetarian) === 1 || item?.isVeg === true;
+  return veg && !/eggs?/i.test(String(item?.name || ''));
+};
+const SEARCH_NONVEG_WORDS = /(chicken|mutton|meat|fish|seafood|prawns?|shawarma|kebab|beef|pork|non-?veg|egg)/i;
+const searchRestaurantHasVeg = (r: any): boolean => {
+  const menu = Array.isArray(r?.menu) ? r.menu : [];
+  if (menu.length) return menu.some(searchIsVegDish);
+  if (r?.isVeg === true || r?.isVegetarian === true) return true;
+  return !SEARCH_NONVEG_WORDS.test(`${r?.name || ''} ${r?.cuisine || ''}`);
+};
+
 export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: SearchOverlayProps) {
   const router = useRouter();
   const { isDark, colors } = useTheme();
@@ -123,6 +142,13 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
     restaurants: [],
     items: [],
   });
+  // What the screen shows: with Veg on (Home's Veg tab), food search hides non-veg dishes and non-veg-only places.
+  // Groceries are not filtered.
+  const { dietMode } = useDietary();
+  const vegOn = searchMode === 'food' && (dietMode === 'veg' || dietMode === 'eggarian');
+  const shown = useMemo(() => (vegOn
+    ? { ...results, restaurants: results.restaurants.filter(searchRestaurantHasVeg), items: results.items.filter(searchIsVegDish) }
+    : results), [results, vegOn]);
   const [searchError, setSearchError] = useState(false);
   // Bumped by the Retry button to re-run the same search.
   const [retryTick, setRetryTick] = useState(0);
@@ -149,7 +175,7 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
   const [foodIdeas, setFoodIdeas] = useState<string[]>([]);
   const [groceryIdeas, setGroceryIdeas] = useState<string[]>([]);
   useEffect(() => {
-    if (results.isTrending && results.items.length) setFoodIdeas(uniqueNames(results.items));
+    if (results.isTrending && shown.items.length) setFoodIdeas(uniqueNames(shown.items));
   }, [results]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!isOpen || searchMode !== 'grocery' || groceryIdeas.length) return;
@@ -353,7 +379,7 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
           )}
 
           {/* Empty state */}
-          {results.restaurants.length === 0 && results.items.length === 0 && query.length > 1 && !loading && (
+          {shown.restaurants.length === 0 && shown.items.length === 0 && query.length > 1 && !loading && (
             <View style={s.emptyState}>
               <Text style={s.emptyText}>{searchError ? "Couldn't search right now. Check your connection and try again." : `No results found for "${query}" 😕`}</Text>
               {!searchError && searchMode === 'food' && !!didYouMean && (
@@ -399,18 +425,18 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
           )}
 
           {/* Results for the corrected spelling (e.g. "biriyani" -> Biryani) */}
-          {searchMode === 'food' && !!correctedTo && !loading && (results.restaurants.length > 0 || results.items.length > 0) && (
+          {searchMode === 'food' && !!correctedTo && !loading && (shown.restaurants.length > 0 || shown.items.length > 0) && (
             <Text style={[s.correctedText, { color: txtMuted }]} accessibilityRole="text">
               Showing results for <Text style={{ color: accent, fontWeight: '900' }}>{correctedTo}</Text>
             </Text>
           )}
 
           {/* Restaurants section */}
-          {results.restaurants.length > 0 && (
+          {shown.restaurants.length > 0 && (
             <View style={s.section}>
               <Text style={[s.sectionTitle, { color: isDark ? '#A1A1AA' : '#334155' }]}>RESTAURANTS</Text>
               <View style={s.gridContainer}>
-                {results.restaurants.map((res) => {
+                {shown.restaurants.map((res) => {
                   const img = res.imageUrl || res.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400';
                   return (
                     <TouchableOpacity
@@ -431,11 +457,11 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
           )}
 
           {/* Items / Dishes section */}
-          {results.items.length > 0 && (
+          {shown.items.length > 0 && (
             <View style={s.section}>
               <Text style={[s.sectionTitle, { color: isDark ? '#A1A1AA' : '#334155' }]}>{searchMode === 'grocery' ? 'GROCERY ITEMS' : 'DISHES'}</Text>
               <View style={s.gridContainer}>
-                {results.items.map((item) => {
+                {shown.items.map((item) => {
                   const img = item.image || item.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400';
                   
                   if (searchMode === 'grocery') {
