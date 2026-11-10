@@ -21,7 +21,7 @@ export { default as IBadgeCheck } from 'lucide-react-native/icons/badge-check';
 export { default as ISliders } from 'lucide-react-native/icons/sliders-horizontal';
 export { default as IWifiOff } from 'lucide-react-native/icons/wifi-off';
 export { default as ICloudOff } from 'lucide-react-native/icons/cloud-off';
-export { default as ISparkles } from 'lucide-react-native/icons/sparkles';
+export { default as ISparkles } from 'lucide-react-native/icons/star';
 export { default as IX } from 'lucide-react-native/icons/x';
 export { default as ICheck } from 'lucide-react-native/icons/check';
 export { default as ICircleCheck } from 'lucide-react-native/icons/circle-check';

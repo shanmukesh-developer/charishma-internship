@@ -13,6 +13,7 @@ import {
   AccessibilityInfo,
   Animated,
   AppState,
+  Image,
   LayoutChangeEvent,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -28,6 +29,11 @@ import * as Haptics from 'expo-haptics';
 import { useIsFocused, useRouter } from 'expo-router';
 import { useTheme } from '../context/ThemeContext';
 import { artForType, CARD_H, ZippySquashContext } from './promo/FunnyPromoArt';
+
+/** Photoreal cut-outs (Gemini, background removed) that replace the drawn scenes, per banner type. */
+const PHOTO_ART: Record<string, { src: any; ratio: number; w: number } | undefined> = {
+  food: { src: require('../assets/home-redesign-2026-11-09/promo-food-biryani-roll-box-gemini-cut-2026-11-10.webp'), ratio: 793 / 378, w: 0.47 },
+};
 import { featuredLabel } from '../utils/promoLabel';
 import { storeEtaMins } from '../utils/storeEta';
 
@@ -281,9 +287,18 @@ const PromoCard = memo(function PromoCard({
           importantForAccessibility="no-hide-descendants"
           style={[StyleSheet.absoluteFill, drive ? { transform: [{ translateX: drive.artX }] } : null]}
         >
-          <ZippySquashContext.Provider value={squash}>
-            <Art active={active} size={cardW} reduceMotion={reduceMotion} imageUrl={slide.imageUrl} />
-          </ZippySquashContext.Provider>
+          {PHOTO_ART[slide.type] && !slide.imageUrl ? (
+            // Owner, 10 Nov 2026 ("promotions much better", no cartoons): photoreal cut-out art in place of the drawn
+            // Zippy scene, bottom-right with a soft ground shadow.
+            <View style={{ position: 'absolute', right: -10, bottom: 12, width: cardW * PHOTO_ART[slide.type]!.w, aspectRatio: PHOTO_ART[slide.type]!.ratio }}>
+              <View style={{ position: 'absolute', left: '22%', right: '22%', bottom: 2, height: 10, borderRadius: 999, backgroundColor: 'rgba(0,0,0,0.28)' }} />
+              <Image source={PHOTO_ART[slide.type]!.src} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
+            </View>
+          ) : (
+            <ZippySquashContext.Provider value={squash}>
+              <Art active={active} size={cardW} reduceMotion={reduceMotion} imageUrl={slide.imageUrl} />
+            </ZippySquashContext.Provider>
+          )}
         </Animated.View>
 
         {/* COPY */}
@@ -315,7 +330,8 @@ const PromoCard = memo(function PromoCard({
             {slide.title2}
           </Text>
           {/* Large phone text (QA 5 Nov, 130%): capped scale and one line fewer so the text never runs into the button. */}
-          <Text numberOfLines={isFeatured ? 1 : (PixelRatio.getFontScale() > 1.05 ? 2 : 3)} maxFontSizeMultiplier={1.15} style={styles.description}>
+          {/* Two lines at most, shrinking a little to fit, so it never runs under the button (larger text sizes). */}
+          <Text numberOfLines={isFeatured ? 1 : 2} adjustsFontSizeToFit minimumFontScale={0.8} maxFontSizeMultiplier={1.15} style={styles.description}>
             {slide.description}
           </Text>
           {chips.length > 0 ? (

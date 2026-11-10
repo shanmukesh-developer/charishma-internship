@@ -52,7 +52,7 @@ export function mixHex(a: string, b: string, t: number): string {
   return `#${x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join('')}`;
 }
 
-const LIGHT_SURF = { card: '#FFFFFF', edge: 'rgba(17,17,26,0.07)', track: '#ECEEF3', mute: '#F2F3F6', muteInk: '#4B5160', onAcc: '#FFFFFF' };
+const LIGHT_SURF = { card: '#FFFFFF', edge: 'rgba(17,17,26,0.10)', track: '#ECEEF3', mute: '#F2F3F6', muteInk: '#4B5160', onAcc: '#FFFFFF' };
 const DARK_SURF = { card: '#1A1316', edge: 'rgba(255,255,255,0.08)', track: 'rgba(255,255,255,0.12)', mute: 'rgba(255,255,255,0.08)', muteInk: '#B4B4BC', line: 'rgba(255,255,255,0.08)' };
 const withShades = (t: Omit<DietTokens, 'accDeep' | 'topDeep'>, dark: boolean): DietTokens => ({
   ...t,

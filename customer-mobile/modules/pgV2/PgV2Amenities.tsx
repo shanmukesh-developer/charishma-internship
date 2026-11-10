@@ -19,7 +19,7 @@ import IDroplets from 'lucide-react-native/icons/droplets';
 import ICctv from 'lucide-react-native/icons/cctv';
 import IParking from 'lucide-react-native/icons/square-parking';
 import IBook from 'lucide-react-native/icons/book-open';
-import ISparkles from 'lucide-react-native/icons/sparkles';
+import ISparkles from 'lucide-react-native/icons/spray-can';
 import IShield from 'lucide-react-native/icons/shield-check';
 import ISofa from 'lucide-react-native/icons/sofa';
 import ILampDesk from 'lucide-react-native/icons/lamp-desk';

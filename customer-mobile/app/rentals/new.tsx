@@ -272,7 +272,7 @@ export default function ListVehicle() {
         {STEPS.map((s, i) => (
           <TouchableOpacity key={s} style={{ flex: 1 }} onPress={() => (i < step || listingId ? setStep(i) : null)} accessibilityRole="button" accessibilityLabel={`Step ${i + 1}: ${stepName(s)}`}>
             <View style={{ height: 4, borderRadius: 2, backgroundColor: i <= step ? p.accent : p.border }} />
-            <Text style={{ fontSize: 12, fontWeight: '800', color: i === step ? p.accent : p.muted, marginTop: 4, textAlign: 'center' }}>{stepName(s)}</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ fontSize: 12, fontWeight: '800', color: i === step ? p.accent : p.muted, marginTop: 4, textAlign: 'center' }}>{stepName(s)}</Text>
           </TouchableOpacity>
         ))}
       </View>

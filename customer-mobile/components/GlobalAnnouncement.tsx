@@ -32,7 +32,7 @@ interface Announcement {
 }
 
 const TYPE_STYLES = {
-  info: { bg: 'rgba(26, 26, 28, 0.95)', border: 'rgba(212, 175, 122, 0.6)', icon: '✨' },
+  info: { bg: 'rgba(26, 26, 28, 0.95)', border: 'rgba(212, 175, 122, 0.6)', icon: '📢' },
   warning: { bg: 'rgba(26, 26, 28, 0.95)', border: 'rgba(245, 158, 11, 0.6)', icon: '⚠️' },
   promo: { bg: 'rgba(26, 26, 28, 0.95)', border: 'rgba(212, 175, 122, 0.8)', icon: '🎁' },
   emergency: { bg: 'rgba(26, 26, 28, 0.95)', border: 'rgba(239, 79, 95, 0.8)', icon: '🚨' },

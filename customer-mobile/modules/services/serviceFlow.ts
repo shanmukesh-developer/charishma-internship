@@ -77,7 +77,7 @@ export const itemIcon = (shelfId: string, name: string): IconTile => {
     case 'tailoring.fitting': return { icon: 'shirt-outline', color: C.green };
     case 'tailoring.repair': return { icon: 'construct-outline', color: C.orange };
     case 'print.a3': return { icon: 'easel-outline', color: C.violet };
-    case 'laundry.dryClean': return { icon: 'sparkles-outline', color: C.violet };
+    case 'laundry.dryClean': return { icon: 'shirt-outline', color: C.violet };
     case 'laundry.shoes': return { icon: 'footsteps-outline', color: C.orange };
     case 'laundry.blanket': return { icon: 'bed-outline', color: C.indigo };
     default: break;

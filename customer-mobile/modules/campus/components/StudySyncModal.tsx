@@ -205,7 +205,7 @@ export const StudySyncModal: React.FC<StudySyncModalProps> = ({
             <Text style={styles.sectionTitle}>Session Goals</Text>
             {tasks.length === 0 && (
               <Text style={styles.taskText}>
-                Add what you want to finish this session. Ticking goals off feels great ✨
+                Add what you want to finish this session. Ticking goals off feels great.
               </Text>
             )}
             <View style={styles.taskList}>

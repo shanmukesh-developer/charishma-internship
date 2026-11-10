@@ -133,7 +133,7 @@ const FILTERS: { key: string; label: string; icon: keyof typeof Ionicons.glyphMa
   { key: 'under99', label: 'Under ₹99', icon: 'cash-outline' },
   { key: 'topRated', label: 'Rated 4.5+', icon: 'star-outline' },
   { key: 'express', label: 'Under 20 min', icon: 'time-outline' },
-  { key: 'premium', label: 'Featured', icon: 'sparkles-outline' },
+  { key: 'premium', label: 'Featured', icon: 'ribbon-outline' },
   { key: 'budget', label: 'Under ₹150', icon: 'wallet-outline' },
   { key: 'jain', label: 'Jain', icon: 'flower-outline' },
   { key: 'eggless', label: 'Eggless', icon: 'egg-outline' },

@@ -45,7 +45,7 @@ export { default as IPhone } from 'lucide-react-native/icons/phone';
 export { default as IChat } from 'lucide-react-native/icons/message-circle';
 export { default as ICalendar } from 'lucide-react-native/icons/calendar-days';
 export { default as IClock } from 'lucide-react-native/icons/clock';
-export { default as ISparkles } from 'lucide-react-native/icons/sparkles';
+export { default as ISparkles } from 'lucide-react-native/icons/star';
 export { default as IBadge } from 'lucide-react-native/icons/badge-check';
 export { default as IWifiOff } from 'lucide-react-native/icons/wifi-off';
 export { default as ICloudOff } from 'lucide-react-native/icons/cloud-off';

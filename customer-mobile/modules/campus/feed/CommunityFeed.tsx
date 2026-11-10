@@ -1898,7 +1898,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
         {/* ── 🏷️ CATEGORY FILTER CHIPS ── */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8, marginBottom: 12 }}>
           {[
-            { id: 'all', label: '✨ All Stories', count: posts.length },
+            { id: 'all', label: 'All Stories', count: posts.length },
             { id: 'memories', label: '📸 Campus Life', count: posts.filter(p => p.postType !== 'review').length },
             { id: 'reviews', label: '⭐ Food Reviews', count: posts.filter(p => p.postType === 'review').length },
           ].map(cat => {
@@ -2246,7 +2246,7 @@ export function CommunityFeed({ embedded = false, tab }: { embedded?: boolean; t
               >
                 {/* Card Header decoration */}
                 <View style={s.bdayHeaderDecor}>
-                  <Text style={{ fontSize: 24 }}>✨🎉🥳🎉✨</Text>
+                  <Text style={{ fontSize: 24 }}>🎉🥳🎉</Text>
                 </View>
 
                 {/* Close Button */}

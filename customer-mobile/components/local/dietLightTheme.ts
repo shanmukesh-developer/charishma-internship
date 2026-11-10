@@ -36,7 +36,7 @@ export interface DietLight {
   onAcc: string;
 }
 
-const LIGHT_SURF = { card: '#FFFFFF', edge: 'rgba(17,17,26,0.07)', track: '#ECEEF3', mute: '#F2F3F6', muteInk: '#4B5160', onAcc: '#FFFFFF' };
+const LIGHT_SURF = { card: '#FFFFFF', edge: 'rgba(17,17,26,0.10)', track: '#ECEEF3', mute: '#F2F3F6', muteInk: '#4B5160', onAcc: '#FFFFFF' };
 const LIGHT = {
   nonveg: { top: '#FBE1E6', sel: '#FFF5F7', un: '#F4D0D8', acc: '#C8143F', soft: '#FDEEF1', page: '#FFFBFB', dk: '#4C0912', line: '#F4E3E6', pageDeep: '#F7ECEE', ...LIGHT_SURF },
   veg: { top: '#DCF1E3', sel: '#F3FBF5', un: '#C8E8D2', acc: '#15803D', soft: '#ECF8EF', page: '#FAFEFB', dk: '#08351C', line: '#E0EFE4', pageDeep: '#ECF5EF', ...LIGHT_SURF },

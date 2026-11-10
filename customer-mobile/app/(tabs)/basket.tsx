@@ -40,7 +40,7 @@ export default function BasketScreen() {
   const basketFocused = useIsFocused();
   const { isDark, colors } = useTheme();
   const { user } = useAuth();
-  const { baskets, basketCounts, basketTotals, activeBasket, setActiveBasket, lastAddedBasket, lastAddedAt, cartLoaded, removeFromCart, updateQuantity, clearBasket, removeItems: removeAnyItems, roomCode, isHosting, roomStatus, roomMessage, handleHostRoom, handleJoinRoom, handleDisconnect } = useCart();
+  const { baskets, basketCounts, basketTotals, activeBasket, setActiveBasket, lastAddedBasket, lastAddedAt, cartLoaded, removeFromCart, updateQuantity, clearBasket, removeItems: removeAnyItems, roomCode, isHosting, roomStatus, roomMessage, groupClosesAt, handleHostRoom, handleJoinRoom, handleDisconnect } = useCart();
   const [isJoinOpen, setIsJoinOpen] = useState(false);
   const [inputCode, setInputCode] = useState('');
   const [selectedInstructions, setSelectedInstructions] = useState<string[]>([]);
@@ -465,6 +465,7 @@ export default function BasketScreen() {
                     <Text style={s.disconnectText} numberOfLines={1}>Leave group</Text>
                   </TouchableOpacity>
                 </View>
+                {isHosting && groupClosesAt ? <GroupCloseCountdown until={groupClosesAt} color={txtSec} accent={d.acc} /> : null}
               </View>
             )}
           </View>
@@ -752,6 +753,23 @@ export default function BasketScreen() {
  * and its own fees (restaurant / grocery: delivery + platform fee; local store: as the server prices it). The amounts
  * come from the server quote, never from the app.
  */
+/** Host's group with nobody in it yet: "Closes in 12:40 if nobody joins" (CartContext closes it at 0). */
+function GroupCloseCountdown({ until, color, accent }: { until: number; color: string; accent: string }) {
+  const [now, setNow] = React.useState(Date.now());
+  React.useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
+  const left = Math.max(0, Math.round((until - now) / 1000));
+  const mm = Math.floor(left / 60);
+  const ss = String(left % 60).padStart(2, '0');
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 }} accessibilityLiveRegion="none">
+      <Ionicons name="time-outline" size={14} color={accent} />
+      <Text style={{ fontSize: 12.5, fontWeight: '700', color }}>
+        Closes in <Text style={{ color: accent, fontWeight: '900' }}>{mm}:{ss}</Text> if nobody joins
+      </Text>
+    </View>
+  );
+}
+
 /**
  * "Add more items" under a shop's items, before its bill (owner, 10 Nov 2026): opens that shop's own page so the
  * student can keep adding from the same place. Campus stalls open their stall page; every other shop its store page.

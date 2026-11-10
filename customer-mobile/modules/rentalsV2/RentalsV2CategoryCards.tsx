@@ -9,6 +9,7 @@ import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useDietLight } from '../../components/local/dietLightTheme';
 import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
 import { CARD, NIGHT, W, shadow, type Category } from './rentalsV2Theme';
 import { HOME_ART, HOME_ART_IS_PHOTO } from './rentalsV2Art';
@@ -51,7 +52,10 @@ function Glow({ size, color, id }: { size: number; color: string; id: string }) 
 
 function CategoryCard({ kind, w, h, index }: { kind: Category; w: number; h: number; index: number }) {
   const nav = useNav();
-  const tone = CARD[kind];
+  // Owner, 10 Nov 2026 (one look everywhere): the four cards share the diet colours instead of purple / blue / red /
+  // green; dark ink on a soft band gradient, accent arrow. The cut-out art and photos are unchanged.
+  const d = useDietLight();
+  const tone = { ...CARD[kind], grad: [d.sel, d.soft, d.un] as const, glow: d.acc, shadow: d.dk, ink: d.acc };
   const copy = COPY[kind];
   const box = ART[kind];
   const artW = Math.round(w * box.w);
@@ -68,9 +72,9 @@ function CategoryCard({ kind, w, h, index }: { kind: Category; w: number; h: num
           <LinearGradient colors={[tone.grad[0], tone.grad[1], tone.grad[2]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
           <View style={{ position: 'absolute', right: artRight + artW / 2 - glow / 2, top: artTop + artH / 2 - glow / 2 }}><Glow size={glow} color={tone.glow} id={gid} /></View>
           <LinearGradient colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0)']} start={{ x: 0, y: 0 }} end={{ x: 0.62, y: 0.62 }} style={StyleSheet.absoluteFill} />
-          <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(20,8,60,0.16)']} start={{ x: 0.45, y: 0.45 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+          <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.04)']} start={{ x: 0.45, y: 0.45 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
           <LinearGradient colors={['rgba(255,255,255,0.22)', 'rgba(255,255,255,0)']} style={[StyleSheet.absoluteFill, { height: 18 }]} />
-          <View style={[StyleSheet.absoluteFill, { borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' }]} />
+          <View style={[StyleSheet.absoluteFill, { borderRadius: 20, borderWidth: 1, borderColor: d.line }]} />
         </View>
         {HOME_ART_IS_PHOTO[kind] ? (
           /* A real room photo framed in the art area (rounded, thin white rim, soft shadow). */
@@ -87,9 +91,9 @@ function CategoryCard({ kind, w, h, index }: { kind: Category; w: number; h: num
           </>
         )}
         <View style={{ position: 'absolute', left: 12, right: 10, bottom: 10 }} pointerEvents="none">
-          <Text style={[c.title, compact ? { fontSize: 19.5, lineHeight: 21 } : null]}>{copy.t1}</Text>
-          <Text style={[c.title, compact ? { fontSize: 19.5, lineHeight: 21 } : null]}>Rentals</Text>
-          <Text style={[c.sub, compact ? { letterSpacing: -0.25 } : null]} numberOfLines={1}>{compact && kind === 'flat' ? '1BHK · 2BHK · House' : copy.sub}</Text>
+          <Text style={[c.title, { color: d.dk, textShadowRadius: 0 }, compact ? { fontSize: 19.5, lineHeight: 21 } : null]}>{copy.t1}</Text>
+          <Text style={[c.title, { color: d.dk, textShadowRadius: 0 }, compact ? { fontSize: 19.5, lineHeight: 21 } : null]}>Rentals</Text>
+          <Text style={[c.sub, { color: d.dk, opacity: 0.75, textShadowRadius: 0 }, compact ? { letterSpacing: -0.25 } : null]} numberOfLines={1}>{compact && kind === 'flat' ? '1BHK · 2BHK · House' : copy.sub}</Text>
         </View>
         <View style={[c.arrow, shadow(2, NIGHT.shadow)]} pointerEvents="none"><IArrowRight size={15} color={tone.ink} strokeWidth={2.2} /></View>
       </Press>

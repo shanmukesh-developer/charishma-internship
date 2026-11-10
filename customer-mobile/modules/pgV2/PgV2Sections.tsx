@@ -13,7 +13,7 @@ import IClock from 'lucide-react-native/icons/clock';
 import IUsers from 'lucide-react-native/icons/users';
 import IVolumeX from 'lucide-react-native/icons/volume-x';
 import ICigOff from 'lucide-react-native/icons/cigarette-off';
-import ISparkles from 'lucide-react-native/icons/sparkles';
+import ISparkles from 'lucide-react-native/icons/wrench';
 import IPlug from 'lucide-react-native/icons/plug-zap';
 import IDoor from 'lucide-react-native/icons/door-open';
 import IInfo from 'lucide-react-native/icons/info';

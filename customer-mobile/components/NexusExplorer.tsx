@@ -255,7 +255,6 @@ export default function NexusExplorer({ restaurants, activeCategory, onSelectIte
             sound="tabSwitch"
             activeScale={0.93}
           >
-            <Text style={{ fontSize: 12 }}>✨</Text>
             <Text style={[s.hudLabel, { color: '#FFFFFF' }]}>
               ALL
             </Text>

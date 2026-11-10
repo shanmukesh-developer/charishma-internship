@@ -612,7 +612,8 @@ export default function TrackingScreen() {
 
   const dl = useDietLight();
   const acc = dl.acc;
-  const bg = dl.page;
+  // Deeper diet tint behind white cards (owner, 10 Nov 2026: "all cards are merging").
+  const bg = dl.pageDeep;
   const cardBg = dl.card;
   const txt = isDark ? COLORS.textPrimary : COLORS.textDark;
   const txtSec = isDark ? COLORS.textSecondary : COLORS.textDarkSecondary;
@@ -1344,7 +1345,7 @@ const s = StyleSheet.create({
   v7Card: { borderRadius: 22, borderWidth: 1, padding: 16, marginBottom: 12, overflow: 'hidden' },
   v7Eta: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, marginTop: 8 },
   v7Art: { width: 104, height: 96, marginRight: -6, marginTop: -4 },
-  v7Pin: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, borderRadius: 18 },
+  v7Pin: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, borderRadius: 18, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(17,17,26,0.06)' },
   v7Tile: { flexDirection: 'column', gap: 5, paddingVertical: 12, borderRadius: 16 },
   receiptCard: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 16, padding: 14, marginBottom: 12 },
   receiptBtn: { backgroundColor: COLORS.gold, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, minWidth: 110, alignItems: 'center' },

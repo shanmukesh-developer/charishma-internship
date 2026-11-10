@@ -726,7 +726,7 @@ export const CATEGORY_META: Record<Category, { label: string; icon: CeIconName; 
   HACKATHON: { label: 'Hackathon', icon: 'code-slash-outline', color: '#9333EA' },
   CULTURAL: { label: 'Cultural', icon: 'color-palette-outline', color: '#DB2777' },
   RECREATION: { label: 'Recreational', icon: 'game-controller-outline', color: '#059669' },
-  OTHER: { label: 'Other', icon: 'sparkles-outline', color: '#64748B' },
+  OTHER: { label: 'Other', icon: 'apps-outline', color: '#64748B' },
 };
 export const CATEGORIES = Object.keys(CATEGORY_META) as Category[];
 

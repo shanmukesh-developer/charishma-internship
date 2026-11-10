@@ -1997,6 +1997,9 @@ const initializeApp = async () => {
               if (shared.snapshot && (!snapshot || shared.snapshot.at > snapshot.at)) snapshot = shared.snapshot;
             }
             if (snapshot) socket.emit('cart_updated', cartRooms.sanitizeCart(snapshot.cart) || []);
+            // Tell the people already in the group how many are in it now (owner, 10 Nov 2026: a group nobody
+            // joins closes itself after 15 minutes on the host's phone; this is how the host learns someone joined).
+            socket.to(room).emit('cart_members', { members });
             log(`[JOIN_ROOM] ${socket.id} -> ${room}`);
             return reply({ ok: true, room, exists: existed, members });
           }

@@ -33,7 +33,7 @@ export { default as IBuilding } from 'lucide-react-native/icons/building';
 export { default as IWrench } from 'lucide-react-native/icons/wrench';
 export { default as IBike } from 'lucide-react-native/icons/bike';
 export { default as ICar } from 'lucide-react-native/icons/car';
-export { default as ISparkles } from 'lucide-react-native/icons/sparkles';
+export { default as ISparkles } from 'lucide-react-native/icons/star';
 export { default as IWifiOff } from 'lucide-react-native/icons/wifi-off';
 export { default as ICloudOff } from 'lucide-react-native/icons/cloud-off';
 export { default as IX } from 'lucide-react-native/icons/x';

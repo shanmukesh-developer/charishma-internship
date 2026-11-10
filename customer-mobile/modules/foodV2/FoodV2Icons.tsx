@@ -33,5 +33,5 @@ export function Icon({ name, size = 20, color = '#FFFFFF', strokeWidth = 1.75 }:
 /** Placeholder icon per product group (image failed to load). */
 export const GROUP_ICON: Record<string, string> = {
   Groceries: 'basket-outline', Snacks: 'cookie', Beverages: 'cup-soda', Fresh: 'apple', Bakery: 'croissant',
-  'Personal care': 'sparkles', 'Gifts & toys': 'gift', Seeds: 'sprout', Electronics: 'plug',
+  'Personal care': 'droplet', 'Gifts & toys': 'gift', Seeds: 'sprout', Electronics: 'plug',
 };

@@ -159,6 +159,8 @@ interface CartContextType {
   isHosting: boolean;
   isJoined: boolean;
   roomStatus: RoomStatus;
+  /** Host only: when the group closes by itself if nobody joins (null = no timer). */
+  groupClosesAt: number | null;
   roomMessage: string | null;
   handleHostRoom: () => void;
   handleJoinRoom: (code: string) => void;
@@ -180,6 +182,8 @@ const CartCountContext = createContext<number>(0);
 export const MAX_ITEM_QTY = 20;
 // Codes from older builds (4-8 characters) still work; new rooms get 10 characters (server accepts 4-12).
 const ROOM_CODE_RE = /^ZN-[A-Z0-9]{4,12}$/;
+/** A group nobody joins closes itself after this long (owner, 10 Nov 2026). */
+const GROUP_EMPTY_CLOSE_MS = 15 * 60 * 1000;
 
 /** Mega Basket "custom request" lines (free-text items a rider shops for). They are placed via /api/mega-basket, never /api/orders. */
 export const isCustomRequest = (item: Pick<CartItem, 'id'>) => String(item.id || '').startsWith('custom-');
@@ -389,6 +393,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [isHosting, setIsHosting] = useState(false);
   const [isJoined, setIsJoined] = useState(false);
   const [roomStatus, setRoomStatus] = useState<RoomStatus>('idle');
+  // Owner, 10 Nov 2026: "add a fixed timer like 15 minutes, no one joins, auto close the group". Host only: the
+  // time the group closes by itself (null = no timer: joined, someone joined, or no group).
+  const [groupClosesAt, setGroupClosesAt] = useState<number | null>(null);
+  const someoneJoinedRef = useRef(false);
   const [roomMessage, setRoomMessage] = useState<string | null>(null);
 
   const socketRef = useRef<Socket | null>(null);
@@ -473,6 +481,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         });
       });
 
+      socket.on('cart_members', (m: any) => {
+        if (socketRef.current !== socket) return;
+        if (Number(m?.members) > 1) { someoneJoinedRef.current = true; setGroupClosesAt(null); }
+      });
+
       socket.on('connect_error', () => {
         if (socketRef.current !== socket) return;
         setRoomStatus('error');
@@ -485,6 +498,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         setRoomStatus('live');
         setRoomMessage(null);
         if (!areCartsEqual(restaurantLinesOf(cartRef.current), incomingCart)) {
+          // A basket change from a roommate also means someone is in the group: the 15-minute close stops.
+          if (role === 'host') { someoneJoinedRef.current = true; setGroupClosesAt(null); }
           lastSyncedCartRef.current = incomingCart;
           isIncomingUpdateRef.current = true;
           // Only the restaurant basket is shared: the campus store and stall baskets stay as they are.
@@ -509,7 +524,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setRoomCode(code);
     setIsHosting(true);
     setIsJoined(false);
-    try { await AsyncStorage.setItem('zenvy_collab_session', JSON.stringify({ code, role: 'host' })); } catch {}
+    const closesAt = Date.now() + GROUP_EMPTY_CLOSE_MS;
+    someoneJoinedRef.current = false;
+    setGroupClosesAt(closesAt);
+    try { await AsyncStorage.setItem('zenvy_collab_session', JSON.stringify({ code, role: 'host', closesAt })); } catch {}
     initializeSocket(code, 'host');
   }, [initializeSocket]);
 
@@ -539,9 +557,25 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setIsJoined(false);
     setRoomStatus('idle');
     setRoomMessage(null);
+    setGroupClosesAt(null);
+    someoneJoinedRef.current = false;
     lastSyncedCartRef.current = [];
     try { await AsyncStorage.removeItem('zenvy_collab_session'); } catch {}
   }, []);
+
+  // 15 minutes with nobody in the hosted group: it closes by itself; the basket items stay on this phone.
+  useEffect(() => {
+    if (!groupClosesAt || !isHosting) return;
+    const left = groupClosesAt - Date.now();
+    const close = () => {
+      if (someoneJoinedRef.current) return;
+      handleDisconnect();
+      Alert.alert('Group closed', 'Nobody joined your group in 15 minutes, so it closed. Your basket items are still here.');
+    };
+    if (left <= 0) { close(); return; }
+    const t = setTimeout(close, left);
+    return () => clearTimeout(t);
+  }, [groupClosesAt, isHosting, handleDisconnect]);
 
   // A basket saved by the one-basket build: its store's type decides which basket it moves to.
   // Lines with no type on them stay in Restaurants until /api/users/restaurants/:id answers.
@@ -628,11 +662,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (savedCollab) {
-          const { code, role } = JSON.parse(savedCollab);
+          const { code, role, closesAt } = JSON.parse(savedCollab);
           if (code && ROOM_CODE_RE.test(code)) {
             setRoomCode(code);
             if (role === 'host') {
               setIsHosting(true);
+              // The 15-minute "nobody joined" close keeps its deadline across restarts (older sessions have none).
+              if (typeof closesAt === 'number') setGroupClosesAt(closesAt);
             } else {
               setIsJoined(true);
             }
@@ -808,9 +844,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const state = useMemo<CartState>(() => ({
     cart, quantityOf, totalItems, totalPrice,
     baskets, basketCounts, basketTotals, activeBasket, lastAddedBasket, lastAddedAt, cartLoaded: isLoaded,
-    roomCode, isHosting, isJoined, roomStatus, roomMessage,
+    roomCode, isHosting, isJoined, roomStatus, roomMessage, groupClosesAt,
   }), [cart, quantityOf, totalItems, totalPrice, baskets, basketCounts, basketTotals, activeBasket, lastAddedBasket, lastAddedAt, isLoaded,
-    roomCode, isHosting, isJoined, roomStatus, roomMessage]);
+    roomCode, isHosting, isJoined, roomStatus, roomMessage, groupClosesAt]);
 
   return (
     <CartActionsContext.Provider value={actions}>

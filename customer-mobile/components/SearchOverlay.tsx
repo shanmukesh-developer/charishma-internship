@@ -453,7 +453,7 @@ export default function SearchOverlay({ isOpen, onClose, searchMode = 'food' }: 
                       <Image source={{ uri: img }} style={s.gridCardImg} />
                       <View style={s.gridCardInfo}>
                         <Text style={[s.gridCardName, { color: txtColor }]} numberOfLines={1}>{res.name}</Text>
-                        <Text style={[s.gridCardMeta, { color: isDark ? COLORS.textSecondary : '#617088' }]} numberOfLines={1}>{Number(res.rating) > 0 ? `⭐ ${Number(res.rating).toFixed(1)}` : '✨ New'} • {localityOf(res.location) || 'Campus'}</Text>
+                        <Text style={[s.gridCardMeta, { color: isDark ? COLORS.textSecondary : '#617088' }]} numberOfLines={1}>{Number(res.rating) > 0 ? `⭐ ${Number(res.rating).toFixed(1)}` : 'New'} • {localityOf(res.location) || 'Campus'}</Text>
                       </View>
                     </TouchableOpacity>
                   );
