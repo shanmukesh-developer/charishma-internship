@@ -1130,7 +1130,8 @@ export default function OrdersScreen() {
                     <View style={{ flexDirection: 'row', gap: 4 }}>
                       {labels.map((l, i) => (
                         <View key={l} style={{ flex: 1, height: 4, borderRadius: 3, backgroundColor: dl.track, overflow: 'hidden' }}>
-                          {i < stage ? <View style={{ flex: 1, backgroundColor: goldColor }} /> : i === stage ? <View style={{ width: '50%', height: '100%', backgroundColor: goldColor }} /> : null}
+                          {/* Reached steps are full bars; nothing is drawn towards a step that has not happened. */}
+                          {i <= stage ? <View style={{ flex: 1, backgroundColor: goldColor }} /> : null}
                         </View>
                       ))}
                     </View>

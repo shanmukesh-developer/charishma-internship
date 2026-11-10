@@ -794,7 +794,9 @@ export default function TrackingScreen() {
                 <View style={{ flexDirection: 'row', gap: 4, marginTop: 16 }}>
                   {labels.map((l, i) => (
                     <View key={l} style={{ flex: 1, height: 4, borderRadius: 3, backgroundColor: dl.track, overflow: 'hidden' }}>
-                      {i < done ? <View style={{ flex: 1, backgroundColor: acc }} /> : i === done && status < 6 ? <View style={{ width: '50%', height: '100%', backgroundColor: acc }} /> : null}
+                      {/* A reached step is a full bar; the next step stays empty until it really happens
+                          (owner, 10 Nov 2026: a half bar looked like the order was already being confirmed). */}
+                      {i <= done ? <View style={{ flex: 1, backgroundColor: acc }} /> : null}
                     </View>
                   ))}
                 </View>
