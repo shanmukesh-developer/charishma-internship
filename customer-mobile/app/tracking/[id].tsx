@@ -769,8 +769,10 @@ export default function TrackingScreen() {
 
         {/* v7FoodStatus: the replica's status card (light mode) */}
         {!legacy ? (() => {
-          const done = status >= 6 ? 4 : status >= 4 ? 2 : status >= 2 ? 1 : 0;
-          const labels = ['Confirmed', 'Preparing', 'On the way', 'Delivered'];
+          // Owner, 10 Nov 2026: five steps - Order placed (waiting for the store), Order confirmed, Preparing,
+          // On the way (out for delivery / at the gate), Delivered.
+          const done = status >= 6 ? 5 : status >= 4 ? 3 : status === 3 ? 2 : status === 2 ? 1 : 0;
+          const labels = ['Order placed', 'Order confirmed', 'Preparing', 'On the way', 'Delivered'];
           const big = status === 1 ? 'Waiting for the store' : status === 2 ? 'Confirmed' : status === 3 ? 'Preparing' : status === 4 ? 'Out for delivery' : status === 5 ? 'At your gate' : 'Delivered';
           const eta = status === 5 ? 'Your rider is at the gate' : estMinutes && status >= 2 && status <= 4 ? `About ${estMinutes} min away` : slotLabel && status < 6 ? `Delivery: ${slotLabel}` : null;
           return (
@@ -796,8 +798,8 @@ export default function TrackingScreen() {
                     </View>
                   ))}
                 </View>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>
-                  {labels.map((l, i) => <Text key={l} style={{ fontSize: 10.5, fontWeight: '700', color: i === done && status < 6 ? acc : txtSec }}>{l}</Text>)}
+                <View style={{ flexDirection: 'row', gap: 4, marginTop: 6 }}>
+                  {labels.map((l, i) => <Text key={l} numberOfLines={2} style={{ flex: 1, textAlign: 'center', fontSize: 10, lineHeight: 12.5, fontWeight: i === done && status < 6 ? '800' : '700', color: i === done && status < 6 ? acc : txtSec }}>{l}</Text>)}
                 </View>
                 {!!liveFix && (
                   <Text style={{ fontSize: 12, fontWeight: '700', color: txtSec, marginTop: 10 }}>

@@ -1122,8 +1122,9 @@ export default function OrdersScreen() {
 
               {/* v7ProgressBar: the replica's live block (light mode) */}
               {o.status !== 'Delivered' && o.status !== 'Cancelled' && !isExpanded ? (() => {
-                const stage = ['Picking', 'PickedUp', 'OutForDelivery', 'ArrivedAtGate'].includes(o.status) ? 2 : ['Accepted', 'Preparing', 'ReadyForPickup'].includes(o.status) ? 1 : 0;
-                const labels = ['Confirmed', 'Preparing', 'On the way', 'Delivered'];
+                // Owner, 10 Nov 2026: five steps - Order placed, Order confirmed, Preparing, On the way, Delivered.
+                const stage = ['Picking', 'PickedUp', 'OutForDelivery', 'ArrivedAtGate'].includes(o.status) ? 3 : ['Preparing', 'ReadyForPickup'].includes(o.status) ? 2 : o.status === 'Accepted' ? 1 : 0;
+                const labels = ['Order placed', 'Order confirmed', 'Preparing', 'On the way', 'Delivered'];
                 return (
                   <View style={{ marginTop: 14 }}>
                     <View style={{ flexDirection: 'row', gap: 4 }}>
@@ -1133,8 +1134,8 @@ export default function OrdersScreen() {
                         </View>
                       ))}
                     </View>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>
-                      {labels.map((l, i) => <Text key={l} style={{ fontSize: 10.5, fontWeight: '700', color: i === stage ? goldColor : txtSec }}>{l}</Text>)}
+                    <View style={{ flexDirection: 'row', gap: 4, marginTop: 6 }}>
+                      {labels.map((l, i) => <Text key={l} numberOfLines={2} style={{ flex: 1, textAlign: 'center', fontSize: 10, lineHeight: 12.5, fontWeight: i === stage ? '800' : '700', color: i === stage ? goldColor : txtSec }}>{l}</Text>)}
                     </View>
                     {showPin ? (
                       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 14, backgroundColor: dl.soft }}>
