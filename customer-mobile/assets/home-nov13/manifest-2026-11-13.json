@@ -1,0 +1,69 @@
+{
+ "capTop": 0.5105263157894737,
+ "icons": {
+  "nonveg": [
+   {
+    "label": "Biryani",
+    "file": "food-biryani-nonveg-2026-11-13.png"
+   },
+   {
+    "label": "Shawarma",
+    "file": "food-shawarma-nonveg-2026-11-13.png"
+   },
+   {
+    "label": "Burgers",
+    "file": "food-burgers-nonveg-2026-11-13.png"
+   },
+   {
+    "label": "Noodles",
+    "file": "food-noodles-nonveg-2026-11-13.png"
+   },
+   {
+    "label": "Fried rice",
+    "file": "food-fried-rice-nonveg-2026-11-13.png"
+   },
+   {
+    "label": "Starters",
+    "file": "food-starters-nonveg-2026-11-13.png"
+   },
+   {
+    "label": "Rolls",
+    "file": "food-rolls-nonveg-2026-11-13.png"
+   }
+  ],
+  "veg": [
+   {
+    "label": "Biryani",
+    "file": "food-biryani-veg-2026-11-13.png"
+   },
+   {
+    "label": "Dosa",
+    "file": "food-dosa-veg-2026-11-13.png"
+   },
+   {
+    "label": "Burgers",
+    "file": "food-burgers-veg-2026-11-13.png"
+   },
+   {
+    "label": "Momos",
+    "file": "food-momos-veg-2026-11-13.png"
+   },
+   {
+    "label": "Noodles",
+    "file": "food-noodles-veg-2026-11-13.png"
+   },
+   {
+    "label": "Pasta",
+    "file": "food-pasta-veg-2026-11-13.png"
+   },
+   {
+    "label": "Paneer",
+    "file": "food-paneer-veg-2026-11-13.png"
+   },
+   {
+    "label": "Fried rice",
+    "file": "food-fried-rice-veg-2026-11-13.png"
+   }
+  ]
+ }
+}

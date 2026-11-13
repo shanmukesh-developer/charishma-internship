@@ -24,6 +24,9 @@ import NexusExplorer, { cuisineHasDishes } from '../../components/NexusExplorer'
 import SearchOverlay from '../../components/SearchOverlay';
 import PromoCarousel from '../../components/PromoCarousel';
 import { homeTheme, DietTabs, HeaderIconButton, SectionHeading, ServicesBento, DealsStrip, RestaurantsOpener, RestaurantKindTabs, KindPanel, SlotTag, EndCaption, restaurantKind, type RestaurantKind, type ServiceKey } from '../../components/home/HomeRedesign2026';
+import { dishesFrom, pickDeals, DealSlideshow, FoodTypeRow, FireDealsBanner, HotDealsGrid, RestaurantsBanner, DeliverToButton, DeliverySheet, useDropoff } from '../../components/home/HomeNov2026';
+import { useCampusHostelBlocks } from '../../utils/hostel';
+import { useCollege } from '../../utils/college';
 import HighClassPromoCarousel from '../../components/HighClassPromoCarousel';
 import CampusLiveTicker from '../../components/CampusLiveTicker';
 import { isLocalVendor } from '../../utils/localVendor';
@@ -774,6 +777,24 @@ export default function HomeScreen() {
     return c;
   }, [dietStores]);
   const openerAvatars = React.useMemo(() => dietStores.map((r: any) => r.imageUrl || r.image).filter(Boolean).slice(0, 4) as string[], [dietStores]);
+  // New Home (owner, 13 Nov 2026, approved prototype): real deals for the slideshow (4) and the Hot deals grid (4 more),
+  // the food-type row, the restaurants banner logos, and the deliver-to picker.
+  const homeDishes = React.useMemo(() => dishesFrom(restaurants.filter(isHomeFoodVendor)), [restaurants]);
+  const heroDeals = React.useMemo(() => {
+    const d = pickDeals(homeDishes, vegOnly, 4);
+    return d.sort((a, b) => (/biryani/i.test(b.name) ? 1 : 0) - (/biryani/i.test(a.name) ? 1 : 0));
+  }, [homeDishes, vegOnly]);
+  const gridDeals = React.useMemo(() => pickDeals(homeDishes, vegOnly, 4, new Set(heroDeals.map((d) => d.id))), [homeDishes, vegOnly, heroDeals]);
+  const storeLogos = React.useMemo(() => dietStores.map((r: any) => r.logoUrl || r.imageUrl || r.image).filter(Boolean) as string[], [dietStores]);
+  const [deliverOpen, setDeliverOpen] = useState(false);
+  const { drop, save: saveDrop } = useDropoff();
+  const college = useCollege();
+  const campusList = useCampusHostelBlocks(true);
+  const campusName = React.useMemo(() => {
+    const c = campusList.find((x) => x.code.toLowerCase() === (college || 'srmap'));
+    return c?.name || (college === 'vitap' ? 'VIT-AP University' : 'SRM University AP');
+  }, [campusList, college]);
+  const openDish = useCallback((d: { id: string }) => router.push(`/products/${d.id}` as any), [router]);
   // Search box words: real dishes on today's menus and real stores, split by the Non-veg / Veg tab.
   const searchWords = React.useMemo(() => {
     const dishes: string[] = [];
@@ -895,7 +916,8 @@ export default function HomeScreen() {
                   <Text style={[s.campusPillText, { color: '#fff' }]}>Campus</Text>
                 </DopaminePressable>
               )}
-              <HeaderIconButton source={HEADER_MOON} onPress={toggleTheme} label={isDark ? 'Switch to light theme' : 'Switch to dark theme'} />
+              {/* Owner, 13 Nov 2026 (approved prototype): deliver-to picker in place of the moon (dark mode stays in Profile). */}
+              <DeliverToButton campusName={campusName} drop={drop} onPress={() => setDeliverOpen(true)} />
               <HeaderIconButton source={HEADER_BELL} ring onPress={() => { lastUnreadCheck.current.at = 0; router.push('/notifications' as any); }} label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}>
                 {unreadCount > 0 && <BounceIn><View style={s.badge}><Text style={s.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text></View></BounceIn>}
               </HeaderIconButton>
@@ -914,86 +936,48 @@ export default function HomeScreen() {
               if (!nextVeg && filter === 'veg') setFilter('all');
             }}
           />
-          <LinearGradient colors={[ht.sel, ht.sel2]} style={{ paddingTop: 14, paddingBottom: 6, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, borderTopLeftRadius: vegOnly ? 22 : 0, borderTopRightRadius: vegOnly ? 0 : 22 }}>
-            <View style={{ alignItems: 'center', marginBottom: 12 }}>
-              <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={() => setIsSearchOpen(true)}
-                accessibilityRole="search"
-                accessibilityLabel="Search dishes and stores"
-                style={[s.searchWrap, { backgroundColor: isDark ? '#1C1C22' : '#fff', borderColor: 'transparent', width: '90%', marginBottom: 0 }, lift]}
-              >
-                <Ionicons name="search-outline" size={17} color={txtSec} />
-                <RotatingSearchInput search={search} words={searchWords} color={txt} placeholderColor={txtSec} inputStyle={s.searchInput} />
-                {!!search && (
-                  <TouchableOpacity onPress={() => setSearch('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityLabel="Clear search">
-                    <SymbolIcon name="close" style={{ fontSize: 14, fontWeight: '600', color: txtSec }} />
-                  </TouchableOpacity>
-                )}
-              </TouchableOpacity>
-            </View>
-            <View>
-              <HighClassPromoCarousel
-                visible={carouselVisible}
-                hiddenSlideIds={hiddenPromoSlides}
-                featuredRestaurants={restaurants}
-                themeAccent={ht.adAccent}
-                themeBase={ht.adBase}
-                noPeek
-                onSelectRestaurant={(id) => router.push(`/restaurant/${id}` as any)}
-                onSelectSlide={(slide) => {
-                  if (slide.id === 'gold-pass') router.push('/(tabs)/profile');
-                  else if (slide.id === 'biryani') {
-                    setSearch('Biryani');
-                    scrollToGrid();
-                  } else if (slide.id === 'kfc') {
-                    const kfc = restaurants.find((r: any) => /kfc/i.test(r?.name || ''));
-                    if (kfc) router.push(`/restaurant/${kfc.id || kfc._id}` as any);
-                    else { setSearch('KFC'); scrollToGrid(); }
-                  } else if (slide.id === 'campus-buddy') {
-                    router.push('/friends' as any);
-                  } else if (slide.id === 'ride') {
-                    router.push({ pathname: '/(tabs)/services', params: { tab: 'rides' } } as any);
-                  } else if (slide.id === 'stays') {
-                    router.push({ pathname: '/(tabs)/services', params: { tab: 'stays' } } as any);
-                  } else if (slide.id === 'express-canteen') {
-                    router.push('/category/express' as any);
-                  } else if (slide.id === 'welcome-benefits') {
-                    fetchVaultItems();
-                    setShowVaultModal(true);
-                  } else if (slide.id === 'free-cash') {
-                    scrollToGrid();
-                  }
-                }}
-              />
-            </View>
+          <LinearGradient colors={[ht.sel, ht.sel2]} style={{ paddingTop: 6, paddingBottom: 34, borderBottomLeftRadius: 32, borderBottomRightRadius: 32, borderTopLeftRadius: vegOnly ? 22 : 0, borderTopRightRadius: vegOnly ? 0 : 22 }}>
+            {/* Owner, 13 Nov 2026 (approved prototype): the real-deals slideshow is the panel; the ad slider left Home. */}
+            <DealSlideshow deals={heroDeals} theme={ht} onOpen={openDish} active={homeFocused} />
           </LinearGradient>
         </View>
 
-
-        {/* ── EXPLORE ZENWE: services bento (In-Campus Booking first; tiles for switched-off sections stay hidden) ── */}
-        <View style={{ marginTop: 14 }}>
-          <SectionHeading kicker="Explore ZenWe" title="Everything you need on campus" color={ht.acc} titleColor={txt} />
-          <ServicesBento
-            hidden={hiddenServiceTiles}
-            onOpen={(k) => {
-              if (k === 'campusBooking') router.navigate('/(tabs)/local' as any);
-              else if (k === 'groceries') router.push({ pathname: '/(tabs)/others', params: { tab: 'food' } } as any);
-              else if (k === 'promos') router.push({ pathname: '/(tabs)/others', params: { tab: 'promos' } } as any);
-              else router.push({ pathname: '/(tabs)/services', params: { tab: k } } as any);
-            }}
-          />
+        {/* Search on the panel's edge, full width (prototype: no filter button) */}
+        <View style={{ alignItems: 'center', marginTop: -30, zIndex: 3 }}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => setIsSearchOpen(true)}
+            accessibilityRole="search"
+            accessibilityLabel="Search dishes and stores"
+            style={[s.searchWrap, { backgroundColor: isDark ? '#1C1C22' : '#fff', borderColor: 'transparent', width: '90%', marginBottom: 0, height: 52, borderRadius: 26 }, lift]}
+          >
+            <Ionicons name="search-outline" size={17} color={txtSec} />
+            <RotatingSearchInput search={search} words={searchWords} color={txt} placeholderColor={txtSec} inputStyle={s.searchInput} />
+            {!!search && (
+              <TouchableOpacity onPress={() => setSearch('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityLabel="Clear search">
+                <SymbolIcon name="close" style={{ fontSize: 14, fontWeight: '600', color: txtSec }} />
+              </TouchableOpacity>
+            )}
+          </TouchableOpacity>
         </View>
 
-        {/* ── DEALS: coupons, store offers and price drops (opens today's coupons) ── */}
-        <DealsStrip theme={ht} onPress={() => { fetchVaultItems(); setShowVaultModal(true); }} />
+        {/* ── FOOD TYPES: All + real dish types for this diet; a tap opens that food's page ── */}
+        <FoodTypeRow veg={vegOnly} theme={ht} isDark={isDark} dishes={homeDishes} onOpen={(label) => router.push({ pathname: '/food-type/[type]', params: { type: label, veg: vegOnly ? '1' : '0' } } as any)} />
 
-        {/* Recently viewed: right under Deals (owner's choice) */}
-        <RecentlyViewed accent={ht.acc} />
+        {/* ── HOT DEALS TODAY: live fire banner + the next best real offers ── */}
+        {gridDeals.length > 0 && (
+          <>
+            <FireDealsBanner veg={vegOnly} active={homeFocused} onSeeAll={() => { fetchVaultItems(); setShowVaultModal(true); }} />
+            <HotDealsGrid deals={gridDeals} theme={ht} isDark={isDark} onOpen={openDish} />
+          </>
+        )}
 
-        {/* ── RESTAURANTS: opener everyone notices, then Restaurants / Fast food / Tiffins ── */}
-        <View onLayout={(e) => { gridY.current = e.nativeEvent.layout.y; }} style={{ marginTop: 16 }}>
-          <RestaurantsOpener theme={ht} count={storeCounts.total} avatars={openerAvatars} />
+        {/* Recently viewed (owner's earlier choice), before the restaurants */}
+        <View style={{ marginTop: 10 }}><RecentlyViewed accent={ht.acc} /></View>
+
+        {/* ── RESTAURANTS NEAR YOU: banner with real logos, then Restaurants / Fast food / Tiffins ── */}
+        <View onLayout={(e) => { gridY.current = e.nativeEvent.layout.y; }} style={{ marginTop: 4 }}>
+          <RestaurantsBanner theme={ht} count={dietStores.length} logos={storeLogos} />
           {!noFoodVendors && (
             <RestaurantKindTabs value={kind} counts={kindCounts} onChange={setKind} theme={ht} isDark={isDark} pageBg={pageBg} />
           )}
@@ -1321,6 +1305,8 @@ export default function HomeScreen() {
       </ScrollView>
 
       {/* ── Daily deals modal ── */}
+      {/* Deliver-to picker (owner, 13 Nov 2026): campus -> hostel block -> room, saved where checkout reads it */}
+      <DeliverySheet visible={deliverOpen} onClose={() => setDeliverOpen(false)} theme={ht} isDark={isDark} drop={drop} onSave={saveDrop} />
       <Modal visible={showVaultModal} animationType="slide" transparent={true} onRequestClose={() => setShowVaultModal(false)}>
         <View style={s.modalOverlay}>
           <View style={[s.modalContentBox, { backgroundColor: sheetBg }]}>
