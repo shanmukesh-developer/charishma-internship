@@ -142,12 +142,12 @@ test('report / preview / pending carry masked details; Mark paid refused with no
   });
   const { store: Bank } = await H.mkStore({ rate: 10 });
   const { store: None } = await H.mkStore({ rate: 10 });
-  await Bank.update({ settlementCycle: 'monthly' });
-  await None.update({ settlementCycle: 'monthly' });
+  await Bank.update({ settlementCycle: '3days' });
+  await None.update({ settlementCycle: '3days' });
   await put(Bank.id, { bankAccountHolder: 'Bank Only', bankAccountNumber: FULL, bankAccountNumberConfirm: FULL, bankIfsc: 'SBIN0009999', bankName: 'SBI' });
   await mk(Bank, 300);
   await mk(None, 400);
-  // Monthly cutoff = end of last month: put the orders 40 days back so they are before it.
+  // Every-3-days cutoff = end of the last complete block: put the orders 40 days back so they are before it.
   await H.ctx.M('Order').update({ deliveredAt: new Date(Date.now() - 40 * DAY) }, { where: { restaurantId: [Bank.id, None.id] } });
 
   const ymd = new Date(Date.now() - 40 * DAY + 330 * 60000).toISOString().slice(0, 10);
@@ -160,13 +160,13 @@ test('report / preview / pending carry masked details; Mark paid refused with no
   assert.equal(rowN.payment.canPay, false);
   assert.ok(!JSON.stringify(rep.body).includes(FULL) && !JSON.stringify(rep.body).includes('pd1:'));
 
-  const p = await api('GET', '/api/admin/revenue/settle/preview?cycle=monthly', admin.token);
+  const p = await api('GET', '/api/admin/revenue/settle/preview?cycle=3days', admin.token);
   assert.equal(p.body.stores.find((s) => s.storeId === Bank.id).payment.bankName, 'SBI');
   assert.equal(p.body.stores.find((s) => s.storeId === None.id).payment.canPay, false);
   const expected = p.body.stores.filter((s) => [Bank.id, None.id].includes(s.storeId)).map((s) => ({ storeId: s.storeId, orderCount: s.orderCount, netPaise: s.netPaise }));
-  const made = await api('POST', '/api/admin/revenue/settle', admin.token, { cycle: 'monthly', cutoff: p.body.cutoff, expected });
+  const made = await api('POST', '/api/admin/revenue/settle', admin.token, { cycle: '3days', cutoff: p.body.cutoff, expected });
   assert.equal(made.status, 201, JSON.stringify(made.body));
-  const p2 = await api('GET', '/api/admin/revenue/settle/preview?cycle=monthly', admin.token);
+  const p2 = await api('GET', '/api/admin/revenue/settle/preview?cycle=3days', admin.token);
   const stB = p2.body.pendingStatements.find((x) => x.partnerId === Bank.id);
   const stN = p2.body.pendingStatements.find((x) => x.partnerId === None.id);
   assert.equal(stB.payment.bankAccountMasked, '••••0123');

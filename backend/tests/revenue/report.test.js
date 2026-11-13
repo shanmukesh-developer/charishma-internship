@@ -166,18 +166,22 @@ test('IST boundaries: 23:59 and 00:01 land on different days, weeks (Mon-Sun) an
   assert.equal((await report({ period: 'day', date: '2026-02-30' })).status, 400);
 });
 
-test('settlement cutoffs in IST: yesterday, last Sunday, end of last month', () => {
+test('settlement cutoffs in IST: yesterday, last complete 3-day block, last Sunday', () => {
   const { settlementCutoff } = H.r('utils/revenueReport');
   const fri = new Date('2026-11-06T10:00:00Z'); // Fri 6 Nov 15:30 IST
   assert.equal(settlementCutoff('daily', fri).cutoff.toISOString(), '2026-11-05T18:29:59.999Z');
   assert.equal(settlementCutoff('weekly', fri).cutoff.toISOString(), '2026-11-01T18:29:59.999Z');
-  assert.equal(settlementCutoff('monthly', fri).cutoff.toISOString(), '2026-10-31T18:29:59.999Z');
+  // Fri 6 Nov is in the 5-7 Nov block: the last complete block is 2-4 Nov.
+  assert.equal(settlementCutoff('3days', fri).cutoff.toISOString(), '2026-11-04T18:29:59.999Z');
+  assert.equal(settlementCutoff('3days', new Date('2026-11-07T18:31:00Z')).cutoff.toISOString(), '2026-11-07T18:29:59.999Z'); // Sun 8 Nov 00:01 IST
+  assert.equal(settlementCutoff('monthly', fri).cycle, '3days'); // old saved value
   const sunNight = new Date('2026-11-01T18:00:00Z'); // Sun 1 Nov 23:30 IST: this week is not over yet
   assert.equal(settlementCutoff('weekly', sunNight).cutoff.toISOString(), '2026-10-25T18:29:59.999Z');
   assert.equal(settlementCutoff('daily', sunNight).cutoff.toISOString(), '2026-10-31T18:29:59.999Z');
   const monEarly = new Date('2026-11-01T19:00:00Z'); // Mon 2 Nov 00:30 IST (still Sunday in UTC)
   assert.equal(settlementCutoff('weekly', monEarly).cutoff.toISOString(), '2026-11-01T18:29:59.999Z');
-  assert.equal(settlementCutoff('monthly', monEarly).cutoff.toISOString(), '2026-10-31T18:29:59.999Z');
+  // Mon 2 Nov starts the first block; the one before it is 30 Oct - 1 Nov.
+  assert.equal(settlementCutoff('3days', monEarly).cutoff.toISOString(), '2026-11-01T18:29:59.999Z');
   assert.throws(() => settlementCutoff('yearly', fri));
 });
 

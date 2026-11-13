@@ -53,7 +53,12 @@ const payouts = require('./payouts');
 const storeCompliance = require('./storeCompliance');
 
 const { PayoutError } = payouts;
-const SETTLEMENT_CYCLES = ['daily', 'weekly', 'monthly'];
+// Owner, 13 Nov 2026: "monthly theesesi 3 days pettu" - Monthly replaced by Every 3 days.
+const SETTLEMENT_CYCLES = ['daily', '3days', 'weekly'];
+// Stores saved as 'monthly' before 13 Nov read (and settle) as every 3 days.
+const LEGACY_CYCLES = { monthly: '3days' };
+// 3-day blocks are fixed IST dates counted from Mon 2 Nov 2026 (launch): 2-4 Nov, 5-7 Nov, 8-10 Nov ...
+const THREE_DAY_ANCHOR_CIVIL = Date.UTC(2026, 10, 2);
 const DEFAULT_CYCLE = 'weekly';
 const PERIODS = ['day', 'week', 'month'];
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -67,6 +72,7 @@ const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const normalizeCycle = (v) => {
   const s = String(v === undefined || v === null ? '' : v).trim().toLowerCase();
+  if (LEGACY_CYCLES[s]) return LEGACY_CYCLES[s];
   return SETTLEMENT_CYCLES.includes(s) ? s : null;
 };
 const cycleOf = (store) => normalizeCycle(store && store.settlementCycle) || DEFAULT_CYCLE;
@@ -141,7 +147,7 @@ const periodBounds = (period, date = null, now = new Date()) => {
  * The last moment a "Settle all" for this cycle covers (inclusive), in IST:
  *   daily   -> yesterday 23:59:59.999
  *   weekly  -> last Sunday 23:59:59.999 (the most recent complete Mon-Sun week)
- *   monthly -> the last day of the previous month, 23:59:59.999
+ *   3days   -> the last day of the most recent complete 3-day block (blocks from Mon 2 Nov 2026), 23:59:59.999
  * Orders delivered up to then and not on any statement yet go on the new statements.
  */
 const settlementCutoff = (cycle, now = new Date()) => {
@@ -152,7 +158,7 @@ const settlementCutoff = (cycle, now = new Date()) => {
   let endCivil; // exclusive
   if (c === 'daily') endCivil = today;
   else if (c === 'weekly') endCivil = today - ((t.getUTCDay() + 6) % 7) * DAY_MS;
-  else endCivil = Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), 1);
+  else endCivil = THREE_DAY_ANCHOR_CIVIL + Math.floor((today - THREE_DAY_ANCHOR_CIVIL) / (3 * DAY_MS)) * 3 * DAY_MS;
   const cutoff = new Date(instantOfCivil(endCivil).getTime() - 1);
   return { cycle: c, cutoff, coversThrough: ymdOfCivil(endCivil - DAY_MS), label: `Orders delivered up to ${dayLabel(endCivil - DAY_MS)}, 11:59 pm IST` };
 };
@@ -495,7 +501,10 @@ const paymentAttrs = (Restaurant) => storeCompliance.PAYMENT_ATTRS.filter((a) =>
 
 const storesInCycle = async (sequelize, cycle) => {
   const Restaurant = sequelize.models.Restaurant;
-  const where = cycle === DEFAULT_CYCLE ? { [Op.or]: [{ settlementCycle: cycle }, { settlementCycle: null }] } : { settlementCycle: cycle };
+  const saved = [cycle, ...Object.keys(LEGACY_CYCLES).filter((k) => LEGACY_CYCLES[k] === cycle)];
+  const or = saved.map((v) => ({ settlementCycle: v }));
+  if (cycle === DEFAULT_CYCLE) or.push({ settlementCycle: null });
+  const where = { [Op.or]: or };
   return Restaurant.findAll({ where, attributes: ['id', 'name', 'vendorType', 'isTestData', 'settlementCycle', ...paymentAttrs(Restaurant)], order: [['name', 'ASC']], raw: true });
 };
 

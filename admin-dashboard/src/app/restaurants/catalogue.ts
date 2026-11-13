@@ -70,7 +70,7 @@ export interface Store {
   /** Admin-set special delivery price (whole ₹). null = the standard ₹19. Platform fee ₹4 is always added. */
   deliveryFeeOverride?: number | null;
   /** How often ZenWe settles this store (Revenue > Settle all). Admin only; default weekly. */
-  settlementCycle?: 'daily' | 'weekly' | 'monthly' | null;
+  settlementCycle?: 'daily' | '3days' | 'weekly' | null;
   logoUrl?: string | null;
   createdAt?: string;
   updatedAt?: string;

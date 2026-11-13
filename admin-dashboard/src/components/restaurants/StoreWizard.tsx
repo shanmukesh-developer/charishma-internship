@@ -48,7 +48,7 @@ export interface WizardState {
   commissionType: 'percentage' | 'flat';
   commissionRate: string;
   /** How often ZenWe settles this store (Revenue > Settle all). */
-  settlementCycle: 'daily' | 'weekly' | 'monthly';
+  settlementCycle: 'daily' | '3days' | 'weekly';
   /** Payment details: where ZenWe sends this store's money (validated + audited server side, utils/storeCompliance).
    * The account number is write-only: typed twice, stored encrypted, shown only as ••••1234. */
   payUpiId: string;
@@ -129,7 +129,7 @@ export function stateFromStore(s: Store): WizardState {
     deliveryFeeOverride: s.deliveryFeeOverride != null ? String(s.deliveryFeeOverride) : '',
     commissionType: s.commissionType === 'flat' ? 'flat' : 'percentage',
     commissionRate: String(s.commissionRate ?? 10),
-    settlementCycle: s.settlementCycle === 'daily' || s.settlementCycle === 'monthly' ? s.settlementCycle : 'weekly',
+    settlementCycle: s.settlementCycle === 'daily' || s.settlementCycle === '3days' ? s.settlementCycle : String(s.settlementCycle) === 'monthly' ? '3days' : 'weekly',
     payUpiId: s.payoutUpiId || '', bankHolder: s.bankAccountHolder || '', bankNumber: '', bankNumberAgain: '',
     bankIfsc: s.bankIfsc || '', bankName: s.bankName || '', bankBranch: s.bankBranch || '',
     // An existing In-Campus stall keeps its wording when edited (its booking settings live in its In-Campus tab).
@@ -1011,10 +1011,10 @@ function CommissionStep({ s, set, errors }: StepProps) {
         <p className="text-xs font-semibold text-fg-muted">Settlement cycle</p>
         <Segmented label="Settlement cycle" value={s.settlementCycle} onChange={settlementCycle => set({ settlementCycle })} options={[
           { value: 'daily', label: 'Daily' },
+          { value: '3days', label: 'Every 3 days' },
           { value: 'weekly', label: 'Weekly (Mon–Sun)' },
-          { value: 'monthly', label: 'Monthly' },
         ]} />
-        <p className="text-xs text-fg-muted">How often ZenWe pays this partner. Revenue → Settle all creates one statement per store up to yesterday, last Sunday or the end of last month.</p>
+        <p className="text-xs text-fg-muted">How often ZenWe pays this partner. Revenue → Settle all creates one statement per store up to yesterday, the end of the last 3-day block (2–4 Nov, 5–7 Nov …) or last Sunday.</p>
       </div>
       <Field label={s.commissionType === 'flat' ? 'Amount per order (₹)' : 'Commission (%)'} required error={errors.commissionRate} help="Charged on the item subtotal only. The rider fee and ZenWe coupons never reduce the partner's share.">
         {({ id, msgId, invalid }) => (
@@ -1115,7 +1115,7 @@ function ReviewStep({ s, issues, goto, mode, initial, preview }: {
       ? [['App', app], ['Login phone', loginPhone], ['Password', password], ['Payment', bookingStall ? 'UPI to the stall, collected at the counter' : 'Cash on delivery to the stall']]
       : [['Mode', s.managedByZenvy ? 'Managed by ZenWe' : 'ZenWe Restaurant app'], ['Login phone', loginPhone], ['Password', password]] },
     ...(local ? [] : [
-      { step: 'commission' as StepKey, items: [['Commission', s.commissionType === 'flat' ? `₹${s.commissionRate} per order` : `${s.commissionRate}% of order`], ['Settlement', s.settlementCycle === 'daily' ? 'Daily' : s.settlementCycle === 'monthly' ? 'Monthly' : 'Weekly (Mon–Sun)']] as [string, ReactNode][] },
+      { step: 'commission' as StepKey, items: [['Commission', s.commissionType === 'flat' ? `₹${s.commissionRate} per order` : `${s.commissionRate}% of order`], ['Settlement', s.settlementCycle === 'daily' ? 'Daily' : s.settlementCycle === '3days' ? 'Every 3 days' : 'Weekly (Mon–Sun)']] as [string, ReactNode][] },
     ]),
   ];
   return (

@@ -1,7 +1,7 @@
 // Revenue (owner, 6 Nov 2026), mounted at /api/admin/revenue inside routes/adminRoutes (after protect + admin, so
 // only a signed-in admin reaches it). Rules and definitions: utils/revenueReport.js.
 //   GET  /                    ?period=day|week|month&date=YYYY-MM-DD&storeId=   the report (read-only)
-//   GET  /settle/preview      ?cycle=daily|weekly|monthly                         what Settle all would create
+//   GET  /settle/preview      ?cycle=daily|3days|weekly                           what Settle all would create
 //   POST /settle              { cycle, cutoff, planHash?, expected: [{ storeId, orderCount, netPaise }] }
 //   POST /settle/mark-paid    { items: [{ payoutId, utr, method? }] }            one reference per statement
 //   PUT  /stores/:id/cycle    { cycle }                                          audited

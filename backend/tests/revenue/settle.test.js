@@ -131,12 +131,13 @@ test('two parallel Settle all clicks create exactly one statement per store', as
   const stores = [];
   for (let i = 0; i < 3; i++) {
     const { store } = await H.mkStore({ rate: 10 });
-    await store.update({ settlementCycle: 'monthly' });
+    // Saved before 13 Nov as 'monthly': must settle with the every-3-days run.
+    await store.update({ settlementCycle: i === 0 ? 'monthly' : '3days' });
     await delivered({ store, user: u, total: 100 + i, at: old });
     await delivered({ store, user: u, total: 200 + i, at: old });
     stores.push(store);
   }
-  const p = await preview('monthly');
+  const p = await preview('3days');
   assert.equal(p.status, 200, JSON.stringify(p.body));
   const ids = stores.map((s) => s.id);
   const [r1, r2, r3] = await Promise.all([settle(p.body, ids), settle(p.body, ids), settle(p.body, ids)]);
@@ -166,13 +167,17 @@ test('settlement cycle: store form + Revenue page, validated and audited', async
   assert.deepEqual(JSON.parse(log.details), { name: store.name, from: 'weekly', to: 'daily' });
   assert.equal(log.adminId, String(admin.id));
 
-  const r = await api('PUT', `/api/admin/revenue/stores/${store.id}/cycle`, admin.token, { cycle: 'monthly' });
+  const r = await api('PUT', `/api/admin/revenue/stores/${store.id}/cycle`, admin.token, { cycle: '3days' });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal(r.body.changed, true);
-  assert.equal((await H.ctx.M('Restaurant').findByPk(store.id)).settlementCycle, 'monthly');
+  assert.equal((await H.ctx.M('Restaurant').findByPk(store.id)).settlementCycle, '3days');
   assert.equal(await H.ctx.M('VerificationLog').count({ where: { action: 'STORE_SETTLEMENT_CYCLE_UPDATED', targetId: store.id } }), 2);
   // Same value again: no change, no new audit row.
-  assert.equal((await api('PUT', `/api/admin/revenue/stores/${store.id}/cycle`, admin.token, { cycle: 'monthly' })).body.changed, false);
+  assert.equal((await api('PUT', `/api/admin/revenue/stores/${store.id}/cycle`, admin.token, { cycle: '3days' })).body.changed, false);
+  // An old dashboard sending 'monthly' gets every 3 days, never a 'monthly' row.
+  const legacy = await api('PUT', `/api/admin/revenue/stores/${store.id}/cycle`, admin.token, { cycle: 'monthly' });
+  assert.equal(legacy.body.settlementCycle, '3days');
+  assert.equal(legacy.body.changed, false);
   assert.equal(await H.ctx.M('VerificationLog').count({ where: { action: 'STORE_SETTLEMENT_CYCLE_UPDATED', targetId: store.id } }), 2);
   assert.equal((await api('PUT', `/api/admin/revenue/stores/${store.id}/cycle`, admin.token, { cycle: 'hourly' })).status, 400);
   // Private: never in the customer store list.

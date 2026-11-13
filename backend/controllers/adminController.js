@@ -532,7 +532,7 @@ const RESTAURANT_FIELDS = [
   'phone', 'packagingFee', 'minOrderValue', 'logoUrl',
   // 5 Nov 2026: special delivery price for this store (whole rupees 0-200; null = standard ₹19, utils/orderPricing)
   'deliveryFeeOverride',
-  // 6 Nov 2026: how often ZenWe settles this store (daily | weekly | monthly; utils/revenueReport)
+  // 6 Nov 2026: how often ZenWe settles this store (daily | 3days | weekly; utils/revenueReport)
   'settlementCycle',
   // 31 Oct 2026: the colleges the store serves (utils/campuses; empty = every college)
   'visibleCampuses'

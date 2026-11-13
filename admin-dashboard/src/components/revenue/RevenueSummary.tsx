@@ -296,7 +296,7 @@ export function HelpDrawer({ open, onClose }: { open: boolean; onClose: () => vo
     ['ZenWe keeps', 'Commission + delivery fees + platform fees + packaging − discounts ZenWe paid − refunds. Delivery fees are ZenWe’s income; riders are paid separately, not from here.'],
     ['Balance check', 'For every order, what the customer paid must equal what the store gets + what ZenWe keeps. If any order is off, the page lists it in red. Don’t pay from a red page until you’ve checked.'],
     ['Payment details', 'Each store needs a UPI ID or a bank account before you can mark it paid. Add them with “Payment details” in the store table. Account numbers are shown as ••••1234; Show reveals the full number (recorded).'],
-    ['Cycles', 'Each store is paid Daily, Weekly (Mon–Sun) or Monthly. Change it in the store table. The app never sends money: you pay by UPI or bank yourself.'],
+    ['Cycles', 'Each store is paid Daily, Every 3 days or Weekly (Mon–Sun). Change it in the store table. The app never sends money: you pay by UPI or bank yourself.'],
     ['Cutoffs and statements', '“Create statements” takes every delivered order not yet on a statement up to the cutoff (yesterday, last Sunday, or the end of last month, 11:59 pm IST). Pay each store, then press Mark paid and type the UTR / UPI reference.'],
   ];
   return (

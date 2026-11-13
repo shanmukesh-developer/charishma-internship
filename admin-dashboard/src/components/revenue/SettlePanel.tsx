@@ -400,7 +400,7 @@ export function MarkPaidDialog({ target, onClose, onChanged, onEditPayment }: { 
 /* ───────────────────────────────────────────── the panel */
 
 export default function SettlePanel({ refreshKey, onChanged, onEditPayment }: { refreshKey: number; onChanged: () => void; onEditPayment: EditPayment }) {
-  const [state, setState] = useState<Record<Cycle, PreviewState>>({ daily: EMPTY_STATE, weekly: EMPTY_STATE, monthly: EMPTY_STATE });
+  const [state, setState] = useState<Record<Cycle, PreviewState>>({ daily: EMPTY_STATE, '3days': EMPTY_STATE, weekly: EMPTY_STATE });
   const [settling, setSettling] = useState<SettlePreview | null>(null);
   const [paying, setPaying] = useState<PayTarget | null>(null);
   const seq = useRef(0);

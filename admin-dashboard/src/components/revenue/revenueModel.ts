@@ -10,15 +10,15 @@
  */
 
 export type Period = 'day' | 'week' | 'month';
-export type Cycle = 'daily' | 'weekly' | 'monthly';
+export type Cycle = 'daily' | '3days' | 'weekly';
 export type Channel = 'cod' | 'wallet' | 'stall' | 'other';
 
 export const MISSING = '—';
 
 export const CYCLES: { value: Cycle; label: string }[] = [
   { value: 'daily', label: 'Daily' },
+  { value: '3days', label: 'Every 3 days' },
   { value: 'weekly', label: 'Weekly' },
-  { value: 'monthly', label: 'Monthly' },
 ];
 export const cycleLabel = (c: string | null | undefined) => CYCLES.find(x => x.value === c)?.label || 'Weekly';
 
