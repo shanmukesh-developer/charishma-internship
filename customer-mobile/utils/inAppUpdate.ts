@@ -59,9 +59,11 @@ type Persisted = {
   flexStarted: boolean;
   /** "Later" pressed at this time. */
   laterAt: number;
+  /** Installed versionCode when Play was last asked (0 = unknown). */
+  checkedOnBuild: number;
 };
 
-const EMPTY: Persisted = { lastCheckAt: 0, apiOk: null, available: false, versionCode: 0, flexStarted: false, laterAt: 0 };
+const EMPTY: Persisted = { lastCheckAt: 0, apiOk: null, available: false, versionCode: 0, flexStarted: false, laterAt: 0, checkedOnBuild: 0 };
 
 let persisted: Persisted = { ...EMPTY };
 let state: InAppUpdateState = { supported: null, phase: 'idle', versionCode: 0, progress: null, hidden: false };
@@ -107,9 +109,21 @@ function load(): Promise<void> {
             versionCode: Number(p.versionCode) || 0,
             flexStarted: p.flexStarted === true,
             laterAt: Number(p.laterAt) || 0,
+            checkedOnBuild: Number(p.checkedOnBuild) || 0,
           };
         }
       } catch { /* keep defaults */ }
+      // Team report 13 Nov 2026 ("update chesenna malli update ani osthundi"): after updating from the Play Store the
+      // saved "update available" answer (up to 6 h old) still showed the banner. A different installed build, or a
+      // saved offer that is not newer than this build, means that answer is stale: forget it and ask Play again.
+      const build = getClientInfo()?.build ?? null;
+      if (build !== null && build > 0) {
+        const updatedSince = persisted.checkedOnBuild > 0 && persisted.checkedOnBuild !== build;
+        const offerNotNewer = persisted.available && persisted.versionCode > 0 && persisted.versionCode <= build;
+        if (updatedSince || offerNotNewer) {
+          persisted = { ...persisted, lastCheckAt: 0, available: false, versionCode: 0, flexStarted: false, laterAt: 0 };
+        }
+      }
     })();
   }
   return loaded;
@@ -151,6 +165,7 @@ async function askPlay(): Promise<PlayUpdateInfo | null> {
       flexStarted: persisted.flexStarted && stillDownloading,
       // A new check window: "Later" no longer applies.
       laterAt: isHidden(persisted) ? persisted.laterAt : 0,
+      checkedOnBuild: getClientInfo()?.build ?? 0,
     });
     applyInfo(info);
     suppressStoreSoftBanner();

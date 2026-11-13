@@ -127,6 +127,9 @@ export default function FoodV2Listing({ shelf }: { shelf: string }) {
       keyboardShouldPersistTaps="handled"
       scrollEventThrottle={16}
       onScroll={onScroll}
+      // Never stop with the banner half-collapsed (owner, 13 Nov: "visual bug while scrolling"): settle open or shut.
+      snapToOffsets={collapse > 8 ? [0, collapse] : undefined}
+      snapToEnd={false}
       contentContainerStyle={{ paddingTop: padTop, paddingBottom: bottomPad, paddingLeft: side.length ? 10 : 16, paddingRight: side.length ? 12 : 16 }}
     />
   );
@@ -194,7 +197,9 @@ export default function FoodV2Listing({ shelf }: { shelf: string }) {
 
   // ── Category ──
   const art = BANNER_ART[shelf];
-  const fade = scrollY.interpolate({ inputRange: [0, 90], outputRange: [1, 0], extrapolate: 'clamp' });
+  // Fade over the same distance the block slides: it used to vanish at 90 px while still sliding to `collapse`
+  // (142 px), leaving an empty green band under the bar.
+  const fade = scrollY.interpolate({ inputRange: [0, Math.max(1, collapse * 0.35), Math.max(2, collapse)], outputRange: [1, 1, 0], extrapolate: 'clamp' });
   const slide = scrollY.interpolate({ inputRange: [0, Math.max(1, collapse)], outputRange: [0, -collapse], extrapolate: 'clamp' });
   const bannerW = pageW - 32;
   return (

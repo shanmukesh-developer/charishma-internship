@@ -23,6 +23,7 @@ import { peekCache, RESTAURANTS_CACHE_KEY } from '../../utils/swrCache';
 import { useTopInset } from '../../utils/useTopInset';
 
 const EMPTY: any[] = [];
+const IMG_H = 84;
 type LocalTabKey = 'campus' | 'local';
 let counterMemo: CbStall[] | null = null;
 
@@ -36,13 +37,21 @@ function CounterRow({ s, onPress }: { s: CbStall; onPress: () => void }) {
   const closes = hhmm12(s.closesAt);
   const status = s.isOpen ? (closes ? `Open · closes ${closes}` : 'Open now') : opens ? `Closed · opens ${opens}` : 'Closed now';
   const type = [s.categoryLabel, s.tags?.[0]].filter(Boolean).join(' · ');
+  // Owner, 13 Nov 2026 ("image ki ratio petu"): the photo keeps its own shape instead of being cropped to a square
+  // ("ESCAF"): the frame is 84 px tall and as wide as the photo's ratio allows (square up to 16:9).
+  const [ratio, setRatio] = useState(1);
+  const frameW = Math.round(IMG_H * ratio);
+  const frame = { width: frameW, height: IMG_H };
   return (
     <TouchableOpacity activeOpacity={0.9} onPress={onPress} style={[st.row, { backgroundColor: d.isDark ? colors.card : '#FFFFFF', borderColor: d.line }]} accessibilityRole="button" accessibilityLabel={`${s.name}. ${status}`}>
-      <View style={st.rowImgWrap}>
-        {img ? <SafeImage source={{ uri: img }} style={st.rowImg} maxWidth={200} placeholderIcon="storefront-outline" /> : (
-          <View style={[st.rowImg, { backgroundColor: d.soft, alignItems: 'center', justifyContent: 'center' }]}><Ionicons name="storefront-outline" size={28} color={d.acc} /></View>
-        )}
-        {logo ? <SafeImage source={{ uri: logo }} style={st.rowLogo} maxWidth={80} placeholderIcon="storefront-outline" /> : null}
+      <View style={[st.rowImgWrap, frame]}>
+        <View style={[st.rowImgFrame, frame, { borderColor: d.isDark ? 'rgba(255,255,255,0.12)' : d.line, backgroundColor: d.soft }]}>
+          {img ? <SafeImage source={{ uri: img }} style={frame} contentFit="cover" maxWidth={320} placeholderIcon="storefront-outline"
+            onLoad={(e: any) => { const w = e?.source?.width; const h = e?.source?.height; if (w > 0 && h > 0) setRatio(Math.min(16 / 9, Math.max(1, w / h))); }} /> : (
+            <View style={[frame, { alignItems: 'center', justifyContent: 'center' }]}><Ionicons name="storefront-outline" size={28} color={d.acc} /></View>
+          )}
+        </View>
+        {logo ? <SafeImage source={{ uri: logo }} style={[st.rowLogo, { borderColor: d.isDark ? colors.card : '#FFFFFF' }]} maxWidth={80} placeholderIcon="storefront-outline" /> : null}
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={[st.rowName, { color: colors.text }]} numberOfLines={1}>{s.name}</Text>
@@ -220,9 +229,9 @@ const st = StyleSheet.create({
   shCount: { fontSize: 12, fontWeight: '700' },
   list: { paddingHorizontal: 14, paddingTop: 12, gap: 10 },
   row: { flexDirection: 'row', gap: 12, borderRadius: 18, padding: 10, borderWidth: 1 },
-  rowImgWrap: { width: 84, height: 84 },
-  rowImg: { width: 84, height: 84, borderRadius: 14 },
-  rowLogo: { position: 'absolute', right: -6, bottom: -6, width: 30, height: 30, borderRadius: 9, borderWidth: 2, borderColor: '#FFFFFF' },
+  rowImgWrap: { alignSelf: 'center' },
+  rowImgFrame: { borderRadius: 14, borderWidth: 1, overflow: 'hidden' },
+  rowLogo: { position: 'absolute', right: -6, bottom: -6, width: 30, height: 30, borderRadius: 9, borderWidth: 2 },
   rowName: { fontSize: 15, fontWeight: '800' },
   rowMeta: { fontSize: 12, fontWeight: '500', marginTop: 2 },
   pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },

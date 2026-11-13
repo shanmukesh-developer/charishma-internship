@@ -270,12 +270,18 @@ export function KindPanel({ value, isDark, children }: { value: RestaurantKind; 
   );
 }
 
-export function SlotTag({ text, theme }: { text: string; theme: HomeTheme }) {
+/**
+ * Owner, 13 Nov 2026 ("colour gradients"): in dark mode the tag was dark-green text on a dark-green fill, so it read
+ * as an empty green bar. Now a soft accent gradient with text that stays readable in both modes.
+ */
+export function SlotTag({ text, theme, isDark = false }: { text: string; theme: HomeTheme; isDark?: boolean }) {
+  const fg = isDark ? theme.acc2 : theme.accDeep;
   return (
-    <View style={[st.slotTag, { backgroundColor: `${theme.acc}1A`, borderColor: `${theme.acc}38` }]} accessibilityLabel={`Next delivery ${text}`}>
-      <Ionicons name="time-outline" size={12} color={theme.accDeep} />
-      <Text style={[st.slotTagText, { color: theme.accDeep }]} numberOfLines={1}>{text}</Text>
-    </View>
+    <LinearGradient colors={isDark ? [`${theme.acc}40`, `${theme.acc2}1F`] : [`${theme.acc}1F`, `${theme.acc2}14`]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+      style={[st.slotTag, { borderColor: isDark ? `${theme.acc2}40` : `${theme.acc}38` }]} accessibilityLabel={`Next delivery ${text}`}>
+      <Ionicons name="time-outline" size={12} color={fg} />
+      <Text style={[st.slotTagText, { color: fg }]} numberOfLines={1}>{text}</Text>
+    </LinearGradient>
   );
 }
 

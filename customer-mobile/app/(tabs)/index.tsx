@@ -1250,7 +1250,7 @@ export default function HomeScreen() {
                           <Text style={[s.rMetaText, { color: txtSec, flexShrink: 1 }]} numberOfLines={1}>{areaText}</Text>
                         </View>
                       )}
-                      {!!slotText && <SlotTag text={slotText} theme={ht} />}
+                      {!!slotText && <SlotTag text={slotText} theme={ht} isDark={isDark} />}
                     </View>
                   )}
 
