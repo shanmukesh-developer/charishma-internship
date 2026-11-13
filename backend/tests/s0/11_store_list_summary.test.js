@@ -61,6 +61,18 @@ test("?fields=summary keeps a dish's choices (admin options, customisable) so Ho
   assert.ok(!('specs' in byName['Plain Dosa']), 'a dish without choices has no specs');
 });
 
+test('?fields=summary carries the old price of a discounted dish (Home deals show "-20%, was ₹350")', async () => {
+  const kitchen = await H.mkStore({ name: 'Deal Kitchen', vendorType: 'RESTAURANT' });
+  await H.ctx.M.MenuItem.create({ restaurantId: kitchen.id, name: 'Prawns Biryani', price: 280, originalPrice: 350, category: 'Biryani', isAvailable: true });
+  await H.ctx.M.MenuItem.create({ restaurantId: kitchen.id, name: 'Plain Rice', price: 60, category: 'Rice', isAvailable: true });
+  H.r('controllers/adminController').clearRestaurantsCache();
+  const sum = await H.api('GET', '/api/users/restaurants?fields=summary');
+  const k = sum.body.find((r) => r.id === kitchen.id);
+  const byName = Object.fromEntries(k.menu.map((m) => [m.name, m]));
+  assert.strictEqual(byName['Prawns Biryani'].originalPrice, 350);
+  assert.ok(!('originalPrice' in byName['Plain Rice']), 'no old price when the dish is not discounted');
+});
+
 test('night window: store shown closed with opensAt 06:00 and the plain message (production only)', () => {
   const { withCampusWindow, getCampusServiceability } = H.r('utils/storeHours');
   const night = new Date('2026-10-20T17:00:00Z'); // 22:30 IST

@@ -134,7 +134,8 @@ const logAuditAction = async (req, targetId, action, details) => {
 // ?fields=summary (Home, app 1.0.8+): the same stores with a light menu, only the available dishes and
 // only the fields the Home list uses (name, price, photo, category, tags, veg). The full menu is fetched
 // on the store page (GET /api/users/restaurants/:id). Without the parameter the response is unchanged.
-const SUMMARY_ITEM_FIELDS = ['id', '_id', 'restaurantId', 'name', 'price', 'imageUrl', 'category', 'tags', 'isVegetarian', 'dietType', 'isAvailable'];
+// originalPrice (13 Nov 2026): the new Home's deal slideshow, Hot deals grid and food-type pages show "-20%, was ₹350".
+const SUMMARY_ITEM_FIELDS = ['id', '_id', 'restaurantId', 'name', 'price', 'originalPrice', 'imageUrl', 'category', 'tags', 'isVegetarian', 'dietType', 'isAvailable'];
 // A dish with choices to make keeps just those in specs (the admin's options, the customisable flag): Home's quick add
 // reads them (productOptions / isCustomizable) and opens the dish page instead of a bare add that checkout refused
 // ("please choose a Portion"). Any other specs stay out of the summary.
